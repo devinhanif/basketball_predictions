@@ -368,8 +368,8 @@ def first_seen_text_sha(raw_dirs: Sequence[Path], since_day: str | None = None) 
     return {pid: sha for pid, (_, sha) in best.items()}
 
 
-def text_sha256(text: str) -> str:
-    return hashlib.sha256(text.encode()).hexdigest()
+def text_sha256(text: str | None) -> str:
+    return hashlib.sha256((text or "").encode()).hexdigest()
 
 
 def value_text(**fields: object) -> str:

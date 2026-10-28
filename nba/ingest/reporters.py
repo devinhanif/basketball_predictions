@@ -930,13 +930,16 @@ class XClient:
     ) -> tuple[datetime, bool]:
         """``(lower bound, clipped)`` of this poll (capture fix 3, adversary M7 and N3).
 
-        * with ``prev_tip`` (a team handle: its previous game's tip; the scheduled job passes the
-          league's latest tip for a league-wide handle): the later of ``prev_tip + 3 h`` (earlier
+        * with ``prev_tip`` (a team handle: its previous game's tip; a league-wide handle never
+          gets one, because a tip must not raise its bound above its cursor): the later of
+          ``prev_tip + 3 h`` (earlier
           posts belong to that game, filter F4) and ``now - team_lookback_hours`` (48 h), then the
           cursor if there is one. So a post written the day before a game, from a team idle that
           day, is still requested at the first game-day poll;
-        * otherwise: the cursor minus the overlap, never further back than ``max_lookback_hours``;
-          with no cursor the ``anchor_hour_et`` (06:00 ET) of the game day;
+        * otherwise: the cursor minus the overlap, never further back than ``max_lookback_hours``
+          (18 h; a league-wide handle, which has no team schedule to bound it, gets
+          ``team_lookback_hours``, 48 h, so an idle day is read from the cursor); with no cursor
+          the ``anchor_hour_et`` (06:00 ET) of the game day;
         * ``lookback_hours`` (the CLI flag) replaces the caps and the anchor.
         ``clipped`` is True when a cap cut off time the cursor had not read AND a post from there
         could still attach to a game (cap under 36 h): the poll then ends ``short:lookback_cap``
@@ -962,7 +965,12 @@ class XClient:
             if base <= latest:
                 return min(max(base, cursor) if cursor else base, latest), False
             # prev_tip + 3 h lies in the future (a same-evening tip): ignore it, use the cursor path
-        floor = now - timedelta(hours=self.allowlist.max_lookback_hours)
+        league_wide = self.allowlist.require(handle).team_id is None
+        floor = now - timedelta(
+            hours=self.allowlist.team_lookback_hours
+            if league_wide
+            else self.allowlist.max_lookback_hours
+        )
         if cursor:
             start = max(floor, cursor)
             return min(start, latest), cursor < floor and (now - floor) < MAX_ATTACH_AHEAD
@@ -1578,7 +1586,8 @@ def main(argv: list[str] | None = None) -> int:
                     mismatch = {
                         p.post_id
                         for p in posts
-                        if p.post_id in raw_text and rs.text_sha256(p.text) != raw_text[p.post_id]
+                        if p.post_id in raw_text
+                        and rs.text_sha256(str(p.text or "")) != raw_text[p.post_id]
                     }
                     if mismatch:
                         print(

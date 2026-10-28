@@ -21,9 +21,10 @@ F2 stat line  reject a sentence with a box-score count or a shooting line. A min
               rejected every range; clarified 2026-10-27).
 F3 day        a named weekday or date must be the game's ET date; "tonight/today/this evening"
               needs the post's EVENING date to be the game's; "tomorrow" needs that date + 1 = the
-              game date. The evening date is the ET date of ``created_at - 6 h`` (a post written
-              00:00-06:00 ET belongs to the evening that just ended, so a "tonight" posted at 00:30
-              ET about the coming evening is dropped: a recall cost, by design, review m9).
+              game date. The evening date is the ET wall-clock date of ``created_at``, minus one day
+              before 06:00 ET local (a post written 00:00-06:00 ET belongs to the evening that just
+              ended, so a "tonight" posted at 00:30 ET about the coming evening is dropped: a
+              recall cost, by design, review m9).
               Without a game date any such reference is rejected.
 F3b postgame  (``reporter_facts``) between the previous tip + 3 h and the next 06:00 ET a claim is
               kept only if it NAMES the attached game's day (``day_ref`` tomorrow / weekday / date);
@@ -330,8 +331,22 @@ def _claims_in_sentence(
                     rej,
                 )
             )
-    ref = day_ref(sentence)
-    return [replace(c, day_ref=ref) for c in out]
+    # day_ref per CLAUSE (round 4, N11): "X is on a 20-minute restriction, and Y will sit tomorrow"
+    # must not license X's clause with Y's day word
+    return [replace(c, day_ref=day_ref(_clause_of(sentence, c.player_name))) for c in out]
+
+
+_CLAUSE_SPLIT = re.compile(r"\s*;\s*|,\s+(?:and|but)\s+|\s+but\s+", re.I)
+
+
+def _clause_of(sentence: str, name: str) -> str:
+    """The clause of ``sentence`` that holds ``name`` (split on ';', ', and', ', but', ' but ');
+    the whole sentence if the name is in none of them or the sentence is one clause."""
+    low = name.lower()
+    for part in _CLAUSE_SPLIT.split(sentence):
+        if low in part.lower():
+            return part
+    return sentence
 
 
 def parse_pretip(
@@ -339,7 +354,8 @@ def parse_pretip(
 ) -> list[PretipClaim]:
     """Every recognised claim in ``text`` with the filter that dropped it, if any. Retweets and
     empty text give nothing. ``game_date_et`` is the ET date of the game the post is attached to;
-    ``posted_date_et`` the post's EVENING date: the ET date of ``created_at - 6 h``."""
+    ``posted_date_et`` the post's EVENING date: the ET wall-clock date of
+    ``created_at``, minus one day before 06:00 ET local (``reporter_facts.evening_date``)."""
     text = (text or "").strip()
     if not text or retweeted_handle(text):
         return []

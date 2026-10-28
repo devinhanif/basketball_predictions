@@ -1290,26 +1290,98 @@ def test_league_wide_handle_across_an_idle_day_is_not_a_silent_gap_n3(tmp_path: 
     assert not clipped and start == datetime(2026, 11, 25, 4, 30, tzinfo=UTC)
 
 
-def test_tick_passes_the_leagues_latest_tip_to_a_league_wide_handle_n3(tmp_path: Path) -> None:
+def test_league_wide_handle_overnight_window_is_read_not_skipped_n10(tmp_path: Path) -> None:
+    """Wed 19:00 + 22:00 ET, Thu 19:30 ET slate, league handle only. The Thursday 13:30 ET sweep
+    must start no later than Wednesday's last ok poll, so the Wed 22:10 and 23:30 ET posts (about
+    Thursday's game) are inside the requested window. (Before the fix: Thu 01:00 ET.)"""
+    wed_early = ScheduledGame("0022600070", datetime(2026, 10, 28, 23, 0), 1610612738, 1610612752)
+    wed_late = ScheduledGame("0022600071", datetime(2026, 10, 29, 2, 0), 1610612747, 1610612756)
+    thu = ScheduledGame("0022600072", datetime(2026, 10, 29, 23, 30), HOU, DAL)
+    games = [wed_early, wed_late, thu]
     allow = allowlist_yaml(tmp_path, [{"handle": "ShamsC", "team": None}])
-    srv = Paged([], size=5)
-    clock = [NOW]
+    srv = Paged([], size=100)
+    clock = [datetime(2026, 10, 28, 17, 30, tzinfo=UTC)]
     c = client(tmp_path, srv, allow=allow, clock=lambda: clock[0])
-    # a league-wide handle polls when any slate game has a due label
-    res = rt.run_tick(
-        now=TIPA - timedelta(minutes=90),
-        allow=c.allowlist,
-        games=[PREV, TONIGHT],
-        make_client=lambda: c,
-        make_ctx=lambda: ctx(),
-        store_path=tmp_path / "f" / "s.duckdb",
-        data_dir=tmp_path / "data",
-        ops_dir=tmp_path / "ops",
+    store = tmp_path / "f" / "s.duckdb"
+
+    def tick(t: datetime) -> None:
+        clock[0] = t
+        rt.run_tick(
+            now=t,
+            allow=c.allowlist,
+            games=games,
+            make_client=lambda: c,
+            make_ctx=lambda: ctx(games),
+            store_path=store,
+            data_dir=tmp_path / "data",
+            ops_dir=tmp_path / "ops",
+        )
+
+    t = datetime(2026, 10, 28, 17, 30, tzinfo=UTC)
+    while t <= datetime(2026, 10, 29, 2, 5, tzinfo=UTC):  # all of Wednesday's slate
+        tick(t)
+        t += timedelta(minutes=5)
+    thursday_sweep = datetime(2026, 10, 29, 17, 30, tzinfo=UTC)  # 13:30 ET
+    tick(thursday_sweep)
+    polls = rows(
+        store,
+        "SELECT started_at, start_time, status FROM poll_log WHERE status = 'ok' ORDER BY poll_id",
     )
-    clock[0] = TIPA - timedelta(minutes=90)
-    assert res.rc == 0
-    starts = [q.url.params["start_time"] for q in srv.requests if q.url.path.endswith("/tweets")]
-    assert starts == ["2026-10-27T03:30:00Z"]  # PREV tip + 3 h, not 18 h back
+    wed_last = [p for p in polls if p[0] < datetime(2026, 10, 29, 12, 0)][-1]
+    thu_first = [p for p in polls if p[0] >= datetime(2026, 10, 29, 12, 0)][0]
+    assert thu_first[0] == thursday_sweep.replace(tzinfo=None)
+    assert thu_first[1] <= wed_last[0]  # the windows chain: nothing between them is skipped
+    assert thu_first[1] <= datetime(2026, 10, 29, 2, 10)  # the Wed 22:10 ET post is requested
+    assert thu_first[1] <= datetime(2026, 10, 29, 3, 30)  # ... and the 23:30 ET one
+    for started, start_time, _ in polls:
+        assert start_time <= started - timedelta(seconds=r.CURSOR_OVERLAP_S)
+
+
+def test_every_ok_poll_of_a_handle_chains_to_the_previous_one_n10(tmp_path: Path) -> None:
+    """The scorer's chain check, as a property of the poll_log the tick writes."""
+    games = [ScheduledGame("0022600080", datetime(2026, 10, 29, 2, 0), 1610612747, 1610612756)]
+    allow = allowlist_yaml(tmp_path, [{"handle": "ShamsC", "team": None}])
+    clock = [datetime(2026, 10, 28, 17, 30, tzinfo=UTC)]
+    c = client(tmp_path, Paged([], size=100), allow=allow, clock=lambda: clock[0])
+    store = tmp_path / "f" / "s.duckdb"
+    t = datetime(2026, 10, 28, 17, 30, tzinfo=UTC)
+    while t <= datetime(2026, 10, 29, 2, 5, tzinfo=UTC):
+        clock[0] = t
+        rt.run_tick(
+            now=t,
+            allow=c.allowlist,
+            games=games,
+            make_client=lambda: c,
+            make_ctx=lambda: ctx(games),
+            store_path=store,
+            data_dir=tmp_path / "data",
+            ops_dir=tmp_path / "ops",
+        )
+        t += timedelta(minutes=5)
+    polls = rows(
+        store, "SELECT started_at, start_time FROM poll_log WHERE status = 'ok' ORDER BY poll_id"
+    )
+    assert len(polls) >= 3
+    for i in range(1, len(polls)):
+        assert polls[i][1] <= polls[i - 1][0]  # this poll's window starts by the last one's start
+
+
+def test_day_ref_is_per_clause_not_per_sentence_n11() -> None:
+    first, nxt = _b2b(datetime(2026, 10, 28, 23, 30))
+    at = first.tipoff + timedelta(minutes=195)  # 22:45 ET, inside the postgame window
+    text = "Alperen Sengun is on a 20-minute restriction, and Zed Mavsman will be out tomorrow."
+    p = post("9001", at, at + timedelta(seconds=20), text)
+    c = rf.Context(ALLOW, {HOU: HOU_ROSTER, DAL: [("Zed Mavsman", 777)]}, {}, [first, nxt])
+    facts, _, counts = rf.pretip_facts_for_posts([p], c, live([p]))
+    assert [f.subject for f in facts] == [
+        "player:777"
+    ]  # Zed names the day; Sengun's clause does not
+    assert json.loads(facts[0].value_text or "{}")["day_ref"] == "tomorrow"
+    assert counts["drop_f3_postgame_no_day"] == 1
+
+
+def test_text_sha256_of_none_is_the_empty_hash_m12() -> None:
+    assert rs.text_sha256(None) == rs.text_sha256("")
 
 
 def test_store_copy_is_restricted_to_reporter_predicates_n5(tmp_path: Path) -> None:

@@ -228,6 +228,12 @@ N6, N8 (round 2). N7 is Devin's cost knob (the 48 h team lookback raises the fir
 with `posts_per_day` 400 a busy day can hit budget refusals, visible as `refused:not_reached` and
 the T-55 alert; watch two weeks).
 
+- **N10 / N11 / N12 / m11 / m12 (round 4, fixed):** N10 the league-wide handle gets no previous tip
+  (a tip never raises its bound above its cursor) and a 48 h cursor cap instead of 18 h, so the
+  stretch from the night's last poll to the last tip + 3 h is read, not skipped. N11 `day_ref` is
+  taken per clause (split on `;`, `, and`, `, but`), so "X is on a 20-minute restriction, and Y will
+  sit tomorrow" does not license X. N12 the kill-(b) clause is reworded below. m11 the evening date is
+  the ET wall-clock date minus one day before 06:00 ET local. m12 `text_sha256(None)` is the empty hash.
 - **N1R / N3R / N9 (round 3, fixed):**
   - **N1R** between the previous tip + 3 h and the next 06:00 ET (local ET, so the cut-off is 06:00
     on the wall clock across DST) a claim is kept only if its sentence names the attached game's day
@@ -244,7 +250,7 @@ the T-55 alert; watch two weeks).
     that just ended owns it): a recall cost, by design (Devin's default). "tomorrow", a weekday or a
     date at those hours still attach.
 - **N1** a post written before 06:00 ET belongs to the previous evening: "tonight/today/this
-  evening" and "tomorrow" in F3 resolve against the ET date of `created_at - 6 h`. Test: a 22:30 ET
+  evening" and "tomorrow" in F3 resolve against the ET wall-clock date of `created_at`, minus one day before 06:00 ET local. Test: a 22:30 ET
   tip, a 19:30 ET back-to-back, a postgame "tonight" at tip + 3 h 15 m writes no fact.
 - **N2** `claimed_*` rows merge like the `reporter_*` rows, and `parse_post` keeps the numbered one
   when a name has the same claim type twice.
@@ -268,9 +274,11 @@ the builder (draft section 5.3), and Stage B does not run until it passes.
 ### Amendments for the modeler (docs/prereg/REPORTER_FEED_LIVE.md, still a draft)
 1. **Kill criterion (b), add (round 3 wording):** "any qualifying fact whose `created_at` lies
    after the team's previous tip + 3 h and before 06:00 ET on the day after that tip, and whose
-   `day_ref` (stored in `value_text`) is not `tomorrow` or the attached game's own weekday or
-   date". After the N1R fix this never fires, so it is a pure integrity check; worded without the
-   `day_ref` clause it would fire on correct next-day posts ("20-minute restriction tomorrow").
+   `day_ref` (stored in `value_text`) is not one of `tomorrow`, `weekday`, `date` (F3 has already
+   required a named weekday or date to equal the attached game's ET date; `value_text` stores the
+   category, not the value, and the text may be deleted under C5)". After the N1R fix this never
+   fires, so it is a pure integrity check; worded without the `day_ref` clause it would fire on
+   correct next-day posts ("20-minute restriction tomorrow"). `day_ref` is taken per clause.
    The stamp check alone cannot see this class: the stamp is honest, the game is wrong.
 2. **Frozen identifiers:** replace "parser sha256: <nba/ingest/reporter_parse.py ...>" by
    "`nba.ingest.reporter_pretip.parser_fingerprint()` over `FINGERPRINT_FILES`" (reporter_pretip.py,
@@ -289,3 +297,12 @@ the builder (draft section 5.3), and Stage B does not run until it passes.
 5. **Filters:** F1 has no `vs`/`against` as a prospective marker; F1b (bare participle), F2 (range
    exclusion, `scores N`, `N and M`, `in N minutes`) and F3 (06:00 ET rollover, `tomorrow`) are
    clarifications to ratify. `posts_per_day` is 400 in the config, not 600, until Devin changes it.
+6. **Scorer coverage must check that the requested windows chain (round 4).** Today coverage means
+   only "an ok poll lies inside [T-90, T-60]". N3R and N10 both produced `covered = True` over
+   windows nobody requested. Amendment: the scorer recomputes coverage from `poll_log`, and a
+   team-game is covered only if, for each required handle, the ok polls' [`start_time`, `ended_at`]
+   intervals chain without a gap from the previous coverage window (or the team's previous tip
+   + 3 h) up to T-60. `start_time` is already logged (`PollRecord.start_time`).
+7. **Lower bound for a league-wide handle** is max(cursor - 120 s, now - 48 h), never raised by a tip
+   (N10: the tick used to pass it a "previous tip", skipping the stretch from the night's last poll
+   to the last tip + 3 h while the games stayed covered). Team handles: as in item 4.
