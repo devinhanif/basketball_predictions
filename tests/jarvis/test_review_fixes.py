@@ -66,7 +66,7 @@ def test_only_a_confirmed_live_source_can_make_an_arbitrage(cfg: JarvisConfig) -
     play = arbitrage_candidate(cfg, st, st.games[0], [k, p])
     assert play is not None and play.label == "arbitrage"
     assert supports_alert(cfg, replace(play, contracts=3))
-    assert E_stake(cfg, "arbitrage") == 10.0
+    assert E_stake(cfg, "arbitrage") == 15.0
 
 
 def E_stake(cfg: JarvisConfig, label: str) -> float:

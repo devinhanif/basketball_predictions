@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from datetime import timedelta
 
 import pytest
 
 from nba.jarvis.book import PaperBook
 from nba.jarvis.config import JarvisConfig
+from nba.jarvis.models import PlayLeg
 from nba.jarvis.slate import (
     best_per_game,
     gather,
@@ -45,7 +47,10 @@ def test_kalshi_n_plus_threshold_matches_pinnacle_half_line(cfg: JarvisConfig) -
     )  # x P(plays): Kalshi's DNP rule is unverified
     assert yes.label == "strong"  # 59.6c fair vs 44c ask + fee
     assert yes.edge_cents > cfg.strong_cents
-    no = single_candidate(cfg, st, prop, "no")
+    assert single_candidate(cfg, st, prop, "no") is None  # props are Over / Yes only (2026-10-27)
+    # the flag, not hardcoding: with both sides configured the No is priced again
+    both = type(cfg)(**{**cfg.__dict__, "props_sides": ("yes", "no")})
+    no = single_candidate(both, st, prop, "no")
     assert no is not None and no.label == "none" and no.edge_cents < 0
 
 
@@ -109,3 +114,112 @@ def test_first_recorded_size_is_kept_on_reemission(cfg: JarvisConfig, tmp_path) 
     assert {p.key: p.contracts for p in again} == {p.key: p.contracts for p in first}
     assert book.spent_tonight(SLATE) == pytest.approx(sum(p.stake_usd for p in first))
     _ = (LAC,)
+
+
+def test_no_prop_no_in_any_slate_output_but_game_no_still_offered(cfg: JarvisConfig) -> None:
+    from nba.jarvis import edge as E
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
+    assert cfg.props_sides == ("yes",)
+    plays = plan_slate(cfg, st)
+    assert plays
+    for p in plays:
+        for leg in p.legs:
+            assert not (leg.kind == "prop" and leg.side == "no")
+    # the single-candidate path: every prop quote, No side
+    for q in (q for q in st.quotes if q.kind == "prop"):
+        assert single_candidate(cfg, st, q, "no") is None
+        assert not E.side_allowed(cfg, "prop", "no") and E.side_allowed(cfg, "prop", "yes")
+    # game markets keep both sides
+    g = next(q for q in st.quotes if q.kind == "game_win" and q.venue == "kalshi" and q.ask("no"))
+    assert E.side_allowed(cfg, "game_win", "no")
+    assert single_candidate(cfg, st, g, "no") is not None
+    # a ladder arbitrage never uses a prop No, even if one is priced to look like a cover
+    prop = next(q for q in st.quotes if q.kind == "prop")
+    rigged = replace(prop, yes_bid=0.97, yes_ask=0.98)
+    assert E.best_arbitrage(cfg, [rigged]) is None
+
+
+def test_arbitrage_stake_15_fits_the_cap_and_reserve(cfg: JarvisConfig, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from nba.jarvis import edge as E
+    from nba.jarvis.slate import size_plays
+    from tests.jarvis.test_review_fixes import mkplay
+
+    assert E.stake_for(cfg, "arbitrage") == 15.0
+    assert cfg.per_label_cap["arbitrage"] == 15.0 and cfg.per_bet_cap == 15.0
+    assert cfg.nightly_cap == 20.0 and cfg.reserve_for_strong == 10.0
+    assert cfg.nightly_cap >= 15.0  # one confirmed arbitrage fits the nightly cap on an empty night
+    legs = (
+        PlayLeg("kalshi", "A", "yes", 0.46, "game_win", "LAL to win", team_id=LAL),
+        PlayLeg("polymarket", "B", "yes", 0.44, "game_win", "LAC to win", team_id=LAC),
+    )
+    arb = replace(mkplay("arbitrage", "ARB", 8.0), legs=legs)
+    book = PaperBook(tmp_path / "b.duckdb")
+    sized = size_plays(cfg, [arb], book, SLATE)[0]
+    assert 13.0 < sized.stake_usd <= 15.0 + 1e-9 and sized.contracts > 0  # both legs together
+    # reserve logic unchanged: $10 of entertainment spend (the whole non-reserved pool) leaves
+    # exactly the reserve, and the arbitrage is sized into it (never over the nightly cap)
+    nones = [
+        replace(
+            mkplay("none", f"N{i}", -0.2), inputs={"leg_costs": [1.25]}, contracts=2, stake_usd=1.25
+        )
+        for i in range(8)
+    ]
+    book.record(nones, source="slate", slate=SLATE, now=NOW)
+    after = size_plays(cfg, [arb], book, SLATE)[0]
+    spent = 10.0
+    assert 0 < after.stake_usd <= cfg.nightly_cap - spent + 1e-9
+
+
+def test_sides_props_config_fails_closed(cfg: JarvisConfig, root, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from nba.jarvis.config import DEFAULT_PATH, load_config
+
+    base = DEFAULT_PATH.read_text()
+    good = 'props: ["yes"]'
+    assert good in base
+
+    def load(text: str) -> JarvisConfig:
+        f = tmp_path / "j.yaml"
+        f.write_text(text)
+        return load_config(f, root=root)
+
+    for bad in ('props: ["no"]', 'props: ["yes", "no"]', "props: []", "props: yes_only", "props:"):
+        with pytest.raises(ValueError):
+            load(base.replace(good, bad))
+    with pytest.raises(Exception, match="duplicate key"):
+        load(base.replace(good, good + '\n  props: ["yes", "no"]'))
+    assert load(base).props_sides == ("yes",)
+
+
+def test_pick_on_a_prop_no_is_refused(cfg: JarvisConfig) -> None:
+    from nba.jarvis.picks import PickError, build_pick
+
+    st = gather(cfg, SLATE, NOW, use_polymarket=False, model=StubModel())
+    prop = next(q for q in st.quotes if q.kind == "prop" and q.venue == "kalshi")
+    with pytest.raises(PickError, match="Over / Yes only"):
+        build_pick(
+            cfg, st, "x", venue="kalshi", price=0.5, stake=2.0, ticker=prop.ticker, side="no"
+        )
+    g = next(q for q in st.quotes if q.kind == "game_win" and q.venue == "kalshi")
+    assert build_pick(
+        cfg, st, "x", venue="kalshi", price=0.5, stake=2.0, ticker=g.ticker, side="no"
+    )
+
+
+def test_fastarb_keeps_player_props_excluded() -> None:
+    import yaml
+
+    from nba.jarvis.config import ROOT
+
+    raw = yaml.safe_load((ROOT / "configs" / "fastarb.yaml").read_text())
+    found = []
+
+    def walk(o: object) -> None:
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k == "include_player_props":
+                    found.append(v)
+                walk(v)
+
+    walk(raw)
+    assert found and all(v is False for v in found)

@@ -83,7 +83,7 @@ def test_max_price_keeps_the_label(cfg: JarvisConfig) -> None:
 
 def test_stake_ladder_is_monotone_in_the_label(cfg: JarvisConfig) -> None:
     steps = [E.stake_for(cfg, k) for k in ("none", "thin", "strong", "arbitrage")]
-    assert steps == [1.0, 3.0, 5.0, 10.0]
+    assert steps == [1.0, 3.0, 5.0, 15.0]
     assert steps == sorted(steps) and len(set(steps)) == 4
     assert E.stake_for(cfg, "arb_candidate") == E.stake_for(
         cfg, "thin"
