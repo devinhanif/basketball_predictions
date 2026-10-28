@@ -1051,7 +1051,9 @@ outcome, never "NO LAL to lose"), the venue, max price, stake, **what it pays if
 | arb_candidate | the same cover from unconfirmed reads: never alerts, sized as thin, shown "ARB CANDIDATE ... UNCONFIRMED" plus "RESOLUTION RISK: postponement/OT rules differ by venue, not verified" | $3 |
 | none | negative edge or no Pinnacle line for that exact bet: a fair price, entertainment | $1 (at most 2 contracts) |
 
-Player props are Over / Yes only (`sides.props` in `configs/jarvis.yaml`, Devin 2026-10-27); game markets keep both sides.
+Player props: `sides.props` (default `["yes"]`, Over / Yes) with a per-venue override `sides.props_by_venue`. Shipped (Devin 2026-10-27, Kalshi named): Kalshi `[yes, no]`, Polymarket `[yes]`. A prop No is an ordinary
+candidate on Kalshi (same Pinnacle fair, fee and spread) but its label is held at thin while `settlement.kalshi_prop_dnp_rule_verified` is false; `pick --side no` on a prop follows the same venue rule. The halftime scorer
+(`HALFTIME_OVERS_VS_PRICE`) stays Yes-only whatever these keys say (frozen scope; tested). Game markets keep both sides and ignore the keys. Polymarket US lists full-game winners only, and its No skip stays as the fallback.
 Nightly cap $20, of which $10 is reserved for strong/arbitrage only (entertainment cannot spend it). With the cap used a strong/arbitrage alert still posts, showing "stake $0 (nightly cap used)".
 Every measured play says "best of N priced bets" (selection over many near-fair prices). Props use Pinnacle only on an exact line (Kalshi "25+" = over 24.5); until Kalshi's DNP rule is read the fair price is
 Pinnacle's P(over | plays) x our P(plays). Polymarket is **Polymarket US** (public gateway `gateway.polymarket.us`; polymarket.com / gamma is not tradable from the US and is not used), fee 0.0695 x C x p x (1-p)
