@@ -135,3 +135,75 @@ DECISIONS row citing the Kalshi rulebook text.
   (props_by_venue), label capped at thin while the DNP rule is unread; review jarvis_props_sides_2026-10-27.md. Reverses
   if: Kalshi's DNP rule is read (lift the cap by a new row) or the CLV of prop-No bets is negative over the kill-switch
   window."
+
+## Re-review: 2b0f0a2 vs 498da78 (2026-10-27)
+
+Verdict: APPROVED
+
+This supersedes the BLOCKED above. M1, m1, m2 and m4 are fixed and tested, and each new test except m1(b) fails on the
+old code. Yes picks and game picks are byte-identical to 432c2df. In the dry run, Yes output is identical except for the
+"best of N priced bets" count. Two minors predate the branch, and one wording nit is new. None of them blocks the merge.
+
+Scope: `git diff --stat 498da78 2b0f0a2` touches 5 files (+242/-3): nba/jarvis/{picks,render}.py, docs/DAILY_PIPELINE.md
+(one line), tests/jarvis/test_slate.py (+89) and this review. No configs, nba/truth, ops/, halftime or sizing. The diff
+stays within its task.
+
+| # | Check | Command (S = scratchpad) | n | Result | Pass |
+|---|---|---|---|---|---|
+| M1 | Kalshi prop No pick: thin + DNP line while unverified | `python -I $S/attack_paths.py $S/rr_new $S` (2b0f0a2 extracted with `git archive`), planted No at 48c vs fair 58.1c | 1 planted + 3 real | "+8.1c per $1 after the fee: **a thin edge**", then "Kalshi's DNP rule is unverified: a prop No is held at thin (a DNP may settle it either way)." With `kalshi_prop_dnp_rule_verified=True` the unit test gets "a strong edge" and no DNP line. picks.py:100, :124, :131-135 | PASS |
+| M1 | Yes and game picks byte-identical | `python -I $S/rr_picks2.py $S/old|$S/rr_new ...; python -I $S/rr_picks_cmp.py` (quotes picked by sorted ticker) | 32 cases (2 configs x 8 markets x 2 sides) | 24/24 non-prop-No cases IDENTICAL (prop Yes cheap/real, 2 Kalshi game x 2 sides, 2 planted Polymarket game x 2 sides, Polymarket prop Yes). Only the 8 prop-No cases differ: they were refused before and are logged (Kalshi) or refused (Polymarket) now. exit 0 | PASS |
+| m2 | Footer once, only when a listed play is a prop No | `test_slate_footer_names_the_cap_only_when_a_listed_play_is_a_prop_no` (test_slate.py:435); render.py:197-200 | 3 assertions | count == 1 with [yes, no]; absent with [yes]; absent when verified. Tonight's real slate has no footer (no prop No listed) | PASS |
+| m4 | Polymarket prop No refused whatever the config; game picks unchanged | attack_paths (worst config `polymarket: [yes,no]`), test_slate.py:416, picks.py:81-83 | 2 configs | Refused under both configs ("player props are Over / Yes only on polymarket"). The slate still offers only `kalshi no`. Polymarket game picks (both sides) are byte-identical to 432c2df | PASS |
+| m1a | Doc no longer claims P(plays) is multiplied | `grep -n "ModelView. has no" docs/DAILY_PIPELINE.md` and a read of slate.py:151-167 | n/a | DAILY_PIPELINE.md:1059 now matches the code: no p_play in production, so Yes and No are both capped at thin with "no P(plays)"; with a p_play model the value is multiplied and only the No stays capped. Attack arm B (p_play 0.90) confirms the No stays thin. | PASS |
+| m1b | Production-path test (no p_play) | test_slate.py:376 | 1 | fair == 1 - p_over (unmultiplied), label thin, both notes; verified lifts to strong; the Yes is also thin | PASS |
+| - | Mutation: new tests bite | 498da78 nba/configs + 2b0f0a2 tests in `$S/rr_mut`; `pytest tests/jarvis/test_slate.py -k "..." --no-cov` | 4 tests | 3 failed (M1, m4, m2), 1 passed (m1b covers behaviour that was already correct), exit 1 on the old code | PASS |
+| 3d | Dry run, tonight, shipped config, vs 432c2df | `python -I $S/dryrun.py $S/old old {empty,copy}` and `$S/rr_new shipped {empty,copy}`, fixed clock 2026-10-28 01:30Z, then `python -I $S/rr_compare.py $S` | 180 tradable, 179 Yes/game cands, 158 prop-No cands | 179 Yes/game candidates identical on both books. texts / plays identical modulo "best of 19" -> "best of 34". daily_dollar, notes, send, sent_calls identical raw. The 158 prop Nos are all Kalshi and all `none`: 15 measured, 0 positive. No footer. Books unchanged. 2b0f0a2 output == the first pass's 498da78 output on every field. exit 0 | PASS |
+| - | Tests / lint | `.venv/bin/python -m pytest tests/jarvis tests/markets tests/test_layering.py --no-cov -q`; `ruff check nba/jarvis tests/jarvis`; `ruff format --check nba/jarvis tests/jarvis`; `mypy nba/jarvis` | 458 tests | 458 passed, exit 0 (454 + 4 new); ruff 0; format 0; mypy 0 | PASS |
+
+### New findings in the revision (none blocking)
+
+**m5 (minor, predates the branch, now also reaches No picks): the pick's "Best ask now" compares across stats.**
+picks.py:136-141 (`same = [...]`) filters game, kind, team, player and threshold but not `stat`. It is the same on
+432c2df (line 129). On tonight's state a Ja Morant REB 4+ No pick at 48c printed "Best ask now: kalshi 18c (30c above
+the best ask)". That 18c is the AST 4+ No. The Yes pick printed "kalshi 9c (44c above)", which is the 3PT 4+ Yes.
+`$S/rr_same.py` lists the three matched quotes (ast, fg3m, reb). Devin reads this line before placing a real bet, and it
+tells him he overpaid when he did not. Fix: add `and x.stat == q.stat` to the filter at picks.py:140, with a test of
+two stats at one threshold. This changes Yes pick output, so it is a separate follow-up, not a condition of this merge.
+
+**n1 (nit, new): a capped No priced below fair-or-worse prints "a fair price or worse" and then "held at thin".**
+picks.py:131 appends the DNP line whenever `capped`, including when edge < 0. It reads as a contradiction. Fix: guard it
+with `if capped and (edge or 0) >= 0:`, or reword it to "a prop No is never labelled above thin while Kalshi's DNP rule
+is unverified".
+
+**Info (predates the branch): the order of tradable quotes is not deterministic.** Two `gather` calls in one process
+on 432c2df gave different orders of the same 180 quotes: the order sha differs and the sorted sha is the same
+(`$S/rr_order.py`). It does not change tonight's output: every dump compared equal. Any tie-break that relies on input
+order (two candidates at equal edge) could flip between runs. Worth a sort key in `gather` some day. Not this branch.
+
+Still open from the first pass, unchanged by design: a Yes pick has no "no P(plays)" cap, so a cheap Yes pick can say
+"strong" while the slate says thin. That is a separate follow-up because it changes Yes output. m3 (YAML bools) is
+left as is.
+
+### Playbook check (re-review)
+
+Model class: none (a side gate and a label cap; no fit). (1) Information or capacity: neither. (2) Data for the
+class: n/a. (3) Test validity: the production path (no p_play) is now tested directly, and the mutation run shows the
+new tests fail on the old code. (4) Lineage and inherited guards: every guard from the over-only review still holds,
+and picks now matches the slate on the cap and on the Polymarket No skip. (5) Scored against: the paper book's CLV via
+the kill switch, unchanged.
+
+### Biggest risk (unchanged)
+
+The `kalshi_prop_dnp_rule_verified` flag. Setting it true lifts every prop-No cap at once: slate, alert and pick. It
+should change only with a DECISIONS row that quotes Kalshi's rulebook text.
+
+### Not verified
+
+The real Kalshi DNP rule (no network). The Polymarket US gateway (`use_polymarket=False`). LLM free text. `run_tick`
+end to end. The m2 footer on a real slate night where a prop No is listed (none tonight; covered by the unit test only).
+
+### Drafted rows (not appended)
+
+- DECISIONS: the row drafted above stands, now without the M1 condition.
+- Follow-up queue (main session's choice): m5 (`x.stat == q.stat` in picks.py:140, changes Yes text); a Yes-pick
+  "no P(plays)" cap; n1 wording; a deterministic quote order in `gather`.
