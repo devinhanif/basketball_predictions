@@ -116,8 +116,8 @@ _APPROX = r"(?:~|around|about|roughly|approximately|under|up to|no more than|a m
 _NUM = rf"{_APPROX}(?P<lo>\d{{1,2}})(?:\s*(?:-|–|to)\s*(?P<hi>\d{{1,2}}))?"
 _MIN = r"\s*(?:-|\s)*(?:min(?:ute)?s?|mins?\b)"
 _BE = (
-    r"(?:is|will be|is going to be|should be|remains|was|'s|’s|to be|will play|is playing|"
-    r"plays|will start|is starting)?\s*"
+    r"(?:is expected to be|is set to be|is slated to be|expected to be|is|will be|is going to be|"
+    r"should be|remains|was|'s|’s|to be|will play|is playing|plays|will start|is starting)?\s*"
 )
 
 _RESTRICTION = [
@@ -127,7 +127,7 @@ _RESTRICTION = [
     # "limited to ~20 minutes", "restricted to around 20-22 minutes", "capped at 25 min"
     rf"{_BE}(?:limited|restricted|held|capped)\s+(?:to|at)\s+{_NUM}{_MIN}",
     # "will play around 20 minutes", "expected to see ~18 minutes"
-    rf"(?:will|is expected to|is slated to|should|expected to)\s+(?:play|see|get)\s+"
+    rf"(?:will|is expected to|is slated to|is set to|should|expected to)\s+(?:play|see|get)\s+"
     rf"(?:only\s+)?{_NUM}{_MIN}",
     # "has a minutes restriction", "will have a minutes limit"
     rf"(?:has|will have|is dealing with)\s+(?:a\s+)?(?:(?P<lo>\d{{1,2}}){_MIN}\s+|"
