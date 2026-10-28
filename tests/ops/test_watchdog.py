@@ -147,7 +147,11 @@ def test_check_writes_alerts_md_once(tmp_path: Path) -> None:
     log = _kalshi_log(tmp_path / "k.log", NOW)
     sent: list[str] = []
     first = check(ops, NOW, "", log, sent.append)
-    again = check(ops, NOW + timedelta(minutes=10), "", log, sent.append)
+    later = NOW + timedelta(minutes=10)
+    for spec in JOBS:  # every other interval job beats again, so only the old alert can repeat
+        if spec.heartbeat and spec.name != "lineups":
+            _hb(ops / "heartbeat", spec.name, later - timedelta(minutes=1), 0)
+    again = check(ops, later, "", log, sent.append)
     assert [a.key for a in first] == ["lineups:stale"] and again == []
     assert len(sent) == 1
     assert (ops / "ALERTS.md").read_text().count("[watchdog] lineups stale") == 1
