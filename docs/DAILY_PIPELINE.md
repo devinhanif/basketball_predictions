@@ -756,6 +756,10 @@ can never change a morning or pretip exit code, and a slow Drive upload in the m
   skips. A skip is recorded with its reason (heartbeat `status: skipped`, the log `data/ops/app_export_YYYYMMDD.log`, and `app-export.skip.json` with a consecutive count); it exits 0 and the watchdog
   alerts after two in a row. The morning job's own rc is unchanged (still the worst step), so the watchdog still sees a failed Drive upload. A morning run started before this change wrote no steps
   file, so its export skips (fail closed) until the next morning run.
+  **Advisory steps (Devin 2026-10-27):** `stints_nightly`, `coverage_yesterday` and `data_check_advisory` may alert but never hold back the export (`app_export.ADVISORY_STEPS`). `nba.datamanifest check`
+  exits 0 clean, **3** when only diff-only flags fire (COVERAGE_DROP, NULL_SHIFT, STALE_SCHEDULED) and 1 on any other flag (POSSIBLE_LEAK, LABEL_NULL_GAP, schema, PK, ROW_DROP, unknown kinds).
+  `data_check_step` in `ops/nba_daily.sh` records rc 3 as `data_check 0 ok` plus `data_check_advisory 3 failed` (alert, heartbeat rc unchanged); any other non-zero rc records `data_check <rc> failed` and blocks.
+  The manifest coverage ratio counts completed games only (a season with none is null, not 0).
 * **Atomic**: built in `data/export/.latest.stage.<pid>` and swapped into `data/export/latest` only after the build exited 0; a failed build leaves the previous export in place. A locked
   `nba.duckdb` (exit 2) is retried 4 times a minute apart. A second slot that finds today's export already built after the morning job's end does nothing.
 * **Heartbeat / watchdog**: `data/ops/heartbeat/app-export.json` at START and END (`status`, `reason`, `rc`). `JOBS["app-export"]` in `nba.ops.watchdog` is `optional`: silent until the job has left a
@@ -948,7 +952,7 @@ KALSHI_LONGSHOT_FORWARD and UNDERS_FORWARD on at least 72 % of nights, and an in
 ## Nightly stints and possession lineups (Devin, 2026-10-24)
 
 `stints` had 0 rows for `season=2026`: after the 2019-2025 bulk rebuild (tracker v2, ADR 0002) nothing fetched
-play-by-play or ran the tracker for the live season. The morning job now has one advisory step, **`stints_nightly`**
+play-by-play or ran the tracker for the live season. (Since 2026-10-27 `coverage_yesterday` and the diff-only half of `data_check` are advisory too; see the Gate paragraph above.) The morning job now has one advisory step, **`stints_nightly`**
 (`python -m nba.ops.stints_nightly`), between `postgame_load` and `data_snapshot` (so the backup carries the rows).
 
 * **What it runs** (existing code, nothing re-implemented): `nba.ingest.pbp.pull_game_pbp` for missing PBP,

@@ -37,6 +37,16 @@ exclude_from_version:
   - paper_trades
   - prop_predictions
 
+# NULL_SHIFT is advisory (check exit 3, export proceeds) except on these core input tables, where it
+# is a hard stop (exit 1; Devin 2026-10-27, DECISIONS 6d9774a). Shell-style wildcards allowed.
+# No lineups table exists in nba.duckdb today (lineups are parquet under data/lineups); the pattern
+# covers one if it is added or scanned via --parquet.
+hard_null_shift_tables:
+  - games
+  - player_game_stats
+  - player_availability
+  - "*lineups*"
+
 # Columns whose played/unplayed NULL asymmetry is structural (reviewed, not a leak),
 # as "table.column" (shell-style wildcards allowed). Keep this list short and justified.
 # forward_*scores*: the live score tables get a row for every forecast before tip and are filled by

@@ -5,6 +5,30 @@ from __future__ import annotations
 from fnmatch import fnmatchcase
 from typing import Any
 
+#: Diff-only flags: a monitor reading, not evidence that the data the export reads is wrong or
+#: leaking. ``check`` exits ``EXIT_ADVISORY`` when ONLY these fire (the morning job alerts, the
+#: export still runs; Devin 2026-10-27). Every other kind (POSSIBLE_LEAK, LABEL_NULL_GAP,
+#: TABLE_REMOVED, COLUMN_REMOVED, TYPE_CHANGE, PK_DUPLICATES, ROW_DROP, and any kind added
+#: later) is a hard stop, exit 1: fail closed.
+ADVISORY_KINDS = frozenset({"COVERAGE_DROP", "NULL_SHIFT", "STALE_SCHEDULED"})
+EXIT_HARD = 1
+EXIT_ADVISORY = 3
+
+
+def _is_hard(f: dict[str, Any], core: list[str]) -> bool:
+    if f["kind"] not in ADVISORY_KINDS:
+        return True
+    # NULL_SHIFT on a core input table (configs/datamanifest.yaml hard_null_shift_tables) is hard
+    return f["kind"] == "NULL_SHIFT" and any(fnmatchcase(str(f.get("table", "")), k) for k in core)
+
+
+def check_exit_code(flags: list[dict[str, Any]], cfg: dict[str, Any] | None = None) -> int:
+    """0 no flags; 3 only advisory flags; 1 any other kind or a NULL_SHIFT on a core table."""
+    if not flags:
+        return 0
+    core = list((cfg or {}).get("hard_null_shift_tables", []))
+    return EXIT_HARD if any(_is_hard(f, core) for f in flags) else EXIT_ADVISORY
+
 
 def _flag(kind: str, table: str, detail: str, column: str = "") -> dict[str, Any]:
     return {"kind": kind, "table": table, "column": column, "detail": detail}
