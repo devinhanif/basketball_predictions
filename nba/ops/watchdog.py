@@ -129,6 +129,17 @@ JOBS: tuple[JobSpec, ...] = (
         optional=True,
     ),
     JobSpec(
+        # the beat-reporter poll (python -m nba.ingest.reporters tick, ops/launchd/
+        # local.nba.reporters.plist): every 5 minutes, most ticks idle. Optional: silent until the
+        # maintainer installs it. The tick also writes its own coverage alert at T-55.
+        "reporters",
+        "local.nba.reporters",
+        "interval",
+        timedelta(minutes=10),
+        timedelta(minutes=5),
+        optional=True,
+    ),
+    JobSpec(
         "kalshi-snapshot",
         "local.nba.kalshi-snapshot",
         "interval",

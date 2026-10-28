@@ -218,20 +218,25 @@ def test_poll_writes_raw_write_once_and_updates_state(tmp_path: Path) -> None:
     assert [p.post_id for p in r.read_raw(path)] == ["1001", "1002"]
     # the request: one page, our fields, no retweets/replies on the wire, start_time = lookback
     req = [q for q in srv.requests if "tweets" in q.url.path][0]
-    assert req.url.params["start_time"] == "2026-10-21T14:00:00Z"  # 6 h default lookback
+    # no cursor: 06:00 ET of the game day (10:00Z), later than the 18 h cap (capture fix 3)
+    assert req.url.params["start_time"] == "2026-10-21T10:00:00Z"
     assert req.url.params["exclude"] == "retweets,replies"
     assert req.url.params["tweet.fields"] == r.TWEET_FIELDS
     assert req.url.params["max_results"] == "100"
     assert len(srv.requests) == 2  # users/by/username then users/:id/tweets
     # state: user id cached, newest post remembered; a second poll starts there and skips lookup
     st = json.loads((tmp_path / "data" / "state.json").read_text())
-    assert st["rocketsbeat"] == {"last_created_at": "2026-10-21T19:40:00"}
+    assert st["rocketsbeat"] == {
+        "last_created_at": "2026-10-21T19:40:00",
+        "last_ok_poll_at": "2026-10-21T20:00:00",
+    }
     ids = json.loads((tmp_path / "data" / "user_ids.json").read_text())
     assert ids == {"rocketsbeat": "42"}
     clock[0] = NOW + timedelta(minutes=30)
     res2 = c.poll()
     assert len(srv.requests) == 3
-    assert srv.requests[-1].url.params["start_time"] == "2026-10-21T19:40:00Z"
+    # the cursor is the last ok poll's own start minus the 120 s overlap, not the newest post
+    assert srv.requests[-1].url.params["start_time"] == "2026-10-21T19:58:00Z"
     assert res2.raw_paths == [path.with_name("RocketsBeat_203000Z.parquet")]
     # write-once: the same handle at the same second is refused, never overwritten
     with pytest.raises(FileExistsError):
@@ -327,7 +332,12 @@ def test_5xx_backs_off_exponentially_then_gives_up(tmp_path: Path) -> None:
 
 
 def test_only_get_read_only_endpoints_exist() -> None:
-    assert set(r.ENDPOINTS) == {"user_by_username", "users_by", "user_tweets"}
+    assert set(r.ENDPOINTS) == {
+        "user_by_username",
+        "users_by",
+        "user_tweets",
+        "counts_all",
+    }
     src = Path(r.__file__).read_text()
     assert "http.get(" in src and ".post(" not in src and ".delete(" not in src
 
@@ -530,8 +540,10 @@ def test_budget_subcommand_prints_day_and_month(
     if today == first:
         assert "20/1000 posts" in out
     else:
-        assert "20/1000 posts, 3 attempts, 0 user reads, est $0.10" in out
-        assert "120/8000 posts, 7 attempts, 0 user reads, est $0.60/$40.00" in out
+        assert "20/1000 posts, 3 attempts, 0 user reads, 0 counts requests, est $0.10" in out
+        assert (
+            "120/8000 posts, 7 attempts, 0 user reads, 0 counts requests, est $0.60/$40.00" in out
+        )
 
 
 def test_cached_ids_make_zero_user_lookups_and_timeline_asks_for_no_user_objects(

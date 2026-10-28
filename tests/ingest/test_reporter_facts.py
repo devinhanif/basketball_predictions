@@ -39,7 +39,7 @@ def ctx(
 
 
 def fixture_posts() -> list[Post]:
-    fetched = datetime(2026, 10, 21, 23, 0)
+    """The fixture posts, each first read 5 minutes after it was written."""
     return [
         Post(
             p["post_id"],
@@ -48,7 +48,10 @@ def fixture_posts() -> list[Post]:
             .astimezone(UTC)
             .replace(tzinfo=None),
             p["text"],
-            fetched,
+            datetime.fromisoformat(p["created_at"].replace("Z", "+00:00"))
+            .astimezone(UTC)
+            .replace(tzinfo=None)
+            + timedelta(minutes=5),
             r.post_url(p["handle"], p["post_id"]),
         )
         for p in POSTS
@@ -139,7 +142,7 @@ def test_write_facts_known_at_game_and_provenance(tmp_path: Path) -> None:
             f"game:{G_A.game_id}",
             24.0,
             "Udoka says Alperen Sengun is on a 24-minute restriction tonight vs.",
-            datetime(2026, 10, 21, 15, 2),  # = the post's created_at, naive UTC
+            datetime(2026, 10, 21, 15, 7),  # our fetch, created_at + 5 min
             None,
             None,
             "x:RocketsBeat",
@@ -207,7 +210,7 @@ def test_as_of_sees_claims_before_tip_only(tmp_path: Path) -> None:
     t60 = as_of(con, G_A.game_id, G_A.tipoff - timedelta(minutes=60))
     claims = t60.filter(pl.col("predicate").str.starts_with("claimed_"))
     assert claims.height == 6  # posts up to 22:30 UTC; the 22:31-22:45 posts are after T-60
-    assert claims["known_at"].max() == datetime(2026, 10, 21, 19, 20)  # 19:25 is unresolved
+    assert claims["known_at"].max() == datetime(2026, 10, 21, 19, 25)  # fetch of the 19:20 post
     with pytest.raises(PostTipError):
         as_of(con, G_A.game_id, G_A.tipoff + timedelta(minutes=1))
     con.close()

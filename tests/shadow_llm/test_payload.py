@@ -153,3 +153,29 @@ def test_game_without_a_report_gets_an_explicit_no_report_fact(world: World) -> 
     p = build_payload(GAME, now=NOW, paths=world.paths, cfg=world.cfg)
     nr = [f for f in p["facts"] if f.get("value_text") == "no_report"]
     assert len(nr) == 1 and nr[0]["predicate"] == "injury_report" and not _report(p)
+
+
+def test_reporter_facts_never_reach_the_payload(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Planted fact: beat-reporter rows in the as-of set (known before t) are dropped."""
+    real = facts_query.as_of
+    planted = "Alperen Sengun will be on a 24-minute restriction tonight."
+
+    def with_reporters(con, game_id, t, **kw):  # type: ignore[no-untyped-def]
+        df = real(con, game_id, t, **kw)
+        base = df.to_dicts()[0]
+        rows = [
+            base
+            | {"fact_id": 900 + i, "subject": "player:11", "predicate": pred,
+               "value_text": planted, "source": "x:RocketsBeat",
+               "known_at": NOW - timedelta(minutes=30)}
+            for i, pred in enumerate(["claimed_minutes_restriction", "reporter_minutes_cap"])
+        ]  # fmt: skip
+        return pl.DataFrame([*df.to_dicts(), *rows], schema=df.schema)
+
+    monkeypatch.setattr(pl_mod.facts_query, "as_of", with_reporters)
+    p = build_payload(GAME, now=NOW, paths=world.paths, cfg=world.cfg)
+    assert p["facts"]
+    assert not any(f["predicate"].startswith(("claimed_", "reporter_")) for f in p["facts"])
+    assert planted not in json.dumps(p) and "x:RocketsBeat" not in json.dumps(p)

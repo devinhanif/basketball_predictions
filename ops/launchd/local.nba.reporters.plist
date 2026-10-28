@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  SKETCH, NOT INSTALLED. Beat-reporter poll (docs/REPORTER_FEED.md, docs/prereg/REPORTER_FEED_LIVE.md draft, section 9). Nothing in the repo loads it; the maintainer installs it by hand after deciding the monthly X spend ceiling (configs/reporters.yaml: usd_per_month, posts_per_day, posts_per_month).
+    install:    cp ops/launchd/local.nba.reporters.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.reporters.plist && launchctl kickstart -k gui/$(id -u)/local.nba.reporters
+    uninstall:  launchctl bootout gui/$(id -u)/local.nba.reporters && rm ~/Library/LaunchAgents/local.nba.reporters.plist
+  Every 5 minutes, all day. `python -m nba.ingest.reporters tick` reads the cached schedule and polls only the handles that are due: T-90, T-70 and T-40 before each team's real tip, plus a 13:30 ET sweep. T-90 and T-70 both land inside the [T-90, T-60] window a team-game must be polled in to count as covered. A tick with nothing due makes no request and costs nothing (billing is per post read). Without a game today the tick exits 0 at once. A schedule cache older than 36 hours stops it (rc 5, the watchdog alerts). A manual tick writes a heartbeat, so run none before installing.
+  The X bearer token is read from .env by uv (the env-file option) and is never printed or logged. The job writes data/facts/reporter_facts.duckdb (its only writer), the raw store under data/reporters/raw, data/reporters/poll.lock and the heartbeat data/ops/heartbeat/reporters.json (START and END). It never opens nba.duckdb, takes neither data/ops/lock nor the heavy lock, and imports nothing the prediction path imports.
+  It is launched through uv, never /bin/sh: TCC blocks sh from reading ~/Downloads (exit 126 stopped every job once). nba.ops.watchdog already knows the job (optional: silent until this label is loaded or a heartbeat exists); a coverage miss at T-55 also appends one line to data/ops/ALERTS.md.
+  Mac asleep: launchd skips StartInterval runs while the machine sleeps. A missed T-70 poll loses no posts (the cursor catches up) but they are first seen late, so they do not count for the T-60 arm; the team-game is then counted uncovered. For game days consider a pmset scheduled wake before 12:00 ET and caffeinate until the last tip (the maintainer's call).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.reporters</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string>
+    <string>--env-file</string><string>.env</string>
+    <string>python</string><string>-m</string><string>nba.ingest.reporters</string><string>tick</string>
+  </array>
+  <key>StartInterval</key><integer>300</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_reporters.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_reporters.err</string>
+</dict>
+</plist>

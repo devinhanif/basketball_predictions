@@ -16,6 +16,9 @@ import polars as pl
 #: and count too, so "what was known at T-60" includes them, marked by source and confidence.
 GAME_PREDICATES = ("listed_status", "announced_starter", "played_minutes")
 CLAIMED_PREFIX = "claimed_"
+#: The reporter rule's facts (``reporter_minutes_cap``, ``reporter_status``; known_at = our first
+#: read of the post) tie a player to a game the same way.
+REPORTER_PREFIX = "reporter_"
 
 
 class PostTipError(ValueError):
@@ -50,7 +53,7 @@ WITH teams AS (
     SELECT DISTINCT subject AS id FROM facts
     WHERE object = $g
       AND (predicate IN ('listed_status', 'announced_starter', 'played_minutes')
-           OR predicate LIKE 'claimed%')
+           OR predicate LIKE 'claimed%' OR predicate LIKE 'reporter%')
       AND known_at <= $t
 )
 SELECT * FROM facts

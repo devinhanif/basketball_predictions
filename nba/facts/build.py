@@ -26,6 +26,17 @@ same known_at rule as above (00:00 ET the day before the game's ET date). No box
 lineup, coach or starter fact is built for those seasons, and lineup-feed facts for any game whose
 id says its season is above ``max_season`` are dropped (the ``games`` table does not hold future
 games, so the old ``excluded`` set missed them). Season 2025 stays absent unless listed.
+
+Reporter facts (2026-10-27). ``reporter_store`` (CLI ``--reporter-store``; default OFF, adversary
+review B1: the LLM shadow and the explainer read this store through ``as_of``, and the shadow
+payload also drops ``claimed_``/``reporter_`` predicates) is a SECOND input: the write-once store of
+beat-reporter facts
+(``nba.ingest.reporter_store``), whose rows exist only because we read a post once and so cannot be
+derived from any table. :func:`reporter_facts_frame` reads it read-only and adds its rows to the
+rebuilt store; nothing here opens it for writing, so a rebuild never loses a reporter fact. Their
+``known_at`` is our first read of the post. A missing store adds nothing; a locked one is skipped
+with a note (the facts stay in their own file and come back next build). Rows about games outside
+the loaded seasons are not copied.
 """
 
 from __future__ import annotations
@@ -33,6 +44,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -483,6 +495,48 @@ def alias_entities(
     return out
 
 
+REPORTER_STORE = Path("data/facts/reporter_facts.duckdb")
+_REPORTER_RETRIES, _REPORTER_WAIT_S = 3, 2.0
+
+
+def reporter_facts_frame(
+    store: Path, max_season: int, seasons: tuple[int, ...]
+) -> tuple[pl.DataFrame, str | None]:
+    """Fact rows of the reporter store (read-only) for loaded seasons, and a note if it was
+    unavailable. The store is never written, created or removed here."""
+    empty = pl.DataFrame(schema=FACT_SCHEMA)
+    if not Path(store).exists():
+        return empty, None
+    con = None
+    last: Exception | None = None
+    for i in range(_REPORTER_RETRIES):
+        try:
+            con = duckdb.connect(str(store), read_only=True)
+            break
+        except duckdb.IOException as exc:  # the poller holds it for a moment
+            last = exc
+            if i + 1 < _REPORTER_RETRIES:
+                time.sleep(_REPORTER_WAIT_S)
+    if con is None:
+        return empty, f"reporter store {store} locked, skipped this build (not dropped): {last}"
+    try:
+        cols = ", ".join(FACT_SCHEMA)
+        df = con.execute(
+            f"SELECT {cols} FROM reporter_facts "
+            "WHERE starts_with(predicate, 'claimed_') OR starts_with(predicate, 'reporter_')"
+        ).pl()  # only the reporter predicates, whatever else a store might one day hold
+    finally:
+        con.close()
+    if df.is_empty():
+        return empty, None
+    keep = [
+        season_ok(game_id_season(str(o).removeprefix("game:")), max_season, seasons)
+        for o in df["object"].to_list()
+    ]
+    df = df.filter(pl.Series(keep, dtype=pl.Boolean)).cast(FACT_SCHEMA)  # type: ignore[arg-type]
+    return df, None
+
+
 def build_entities(
     facts: pl.DataFrame,
     aliases: dict[str, tuple[str, dict[str, list[str]]]],
@@ -556,6 +610,7 @@ def build(
     schedule_seasons: tuple[int, ...] = (),
     schedule_cache: Path = Path("data/schedule_cache"),
     seasons: tuple[int, ...] = (),
+    reporter_store: Path | None = None,
 ) -> dict[str, Any]:
     notes: list[str] = []
     guard_holdout(max_season, seasons, schedule_seasons)
@@ -607,6 +662,11 @@ def build(
         parts.append(sf_)
         notes.append(f"schedule-only season {season}: {len(sched)} games from {origin}")
 
+    if reporter_store is not None:
+        rfacts, rnote = reporter_facts_frame(reporter_store, max_season, seasons)
+        parts.append(rfacts)
+        notes.append(rnote or f"reporter store: {rfacts.height} facts read in (never written)")
+
     facts = pl.concat(parts)
     entities = build_entities(facts, alias_entities(odds_aliases, kalshi_aliases), coach_names)
     _write(out, facts, entities)
@@ -631,6 +691,7 @@ def build_from_paths(
     max_season: int = 2024,
     schedule_seasons: tuple[int, ...] = (),
     seasons: tuple[int, ...] = (),
+    reporter_store: str | None = None,
 ) -> dict[str, Any]:
     src = duckdb.connect(source, read_only=True)
     lcon = duckdb.connect(lineups, read_only=True) if Path(lineups).exists() else None
@@ -643,6 +704,7 @@ def build_from_paths(
             max_season=max_season,
             schedule_seasons=schedule_seasons,
             seasons=seasons,
+            reporter_store=Path(reporter_store) if reporter_store else None,
         )
     finally:
         src.close()
