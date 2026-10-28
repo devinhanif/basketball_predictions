@@ -135,7 +135,7 @@ _RESTRICTION = [
 ]
 _OUT = [
     r"(?:is|has been|was|will be|remains|now|been)\s+(?:officially\s+)?(?:ruled\s+)?out\b"
-    r"(?=\s*(?:tonight|today|tomorrow|vs|at|against|for|with|due|indefinitely|\(|[.,!;:]|$))",
+    r"(?=\s*(?:tonight|today|tomorrow|vs|at|against|for|with|due|indefinitely|on|\(|[.,!;:]|$))",
     r"(?:has been\s+|was\s+|is\s+)?ruled\s+out\b",
     r"(?:will\s+not|won'?t|is\s+not\s+going\s+to|isn'?t\s+going\s+to)\s+(?:play|suit\s+up)\b",
     r"(?:is|has been|was)\s+(?:downgraded\s+to\s+out|sidelined)\b",

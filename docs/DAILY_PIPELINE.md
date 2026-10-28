@@ -1116,8 +1116,10 @@ Uninstall: `launchctl bootout gui/$(id -u)/local.nba.jarvis && rm ~/Library/Laun
 
 `python -m nba.ingest.reporters tick` (`ops/launchd/local.nba.reporters.plist`, a sketch the
 maintainer installs by hand) polls allow-listed beat reporters at T-90, T-70 and T-40 of each team's
-tip and writes `data/facts/reporter_facts.duckdb`, a write-once store that `nba.facts build` reads in
-(the nightly facts step is unchanged and still never blocks the steps after it). Nothing in
+tip and writes `data/facts/reporter_facts.duckdb`, a write-once store that `nba.facts build` can read
+in with `--reporter-store <path>`. That flag is OFF by default and the nightly facts step does not
+pass it, so the LLM shadow and the explainer see no reporter fact (the shadow payload also drops
+every `claimed_`/`reporter_` predicate). Nothing in
 `nba.daily` imports it, no prediction reads it, and the replay oracle is unaffected. Its heartbeat is
 `data/ops/heartbeat/reporters.json` (watchdog job `reporters`, optional). Details and the incident
 behind each choice: docs/REPORTER_FEED.md, "Capture fixes".

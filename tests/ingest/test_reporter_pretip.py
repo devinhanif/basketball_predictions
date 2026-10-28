@@ -214,11 +214,13 @@ def test_day_references_f3() -> None:
 
 def test_headline_recaps_without_a_tense_word_are_dropped_f1b() -> None:
     for text in (
-        "Alperen Sengun limited to 22 minutes vs. Denver.",
+        "Alperen Sengun limited to 22 minutes vs. Denver.",  # no tonight/will: not prospective
         "Joel Embiid held to 24 minutes against Boston tonight.",
     ):
         (c,) = claims(text)
-        assert c.reject == "f1b_bare_participle", text
+        assert c.reject in {"f1_not_prospective", "f1b_bare_participle"}, text
+    (c,) = claims("Joel Embiid held to 24 minutes against Boston tonight.")
+    assert c.reject == "f1b_bare_participle"
     # present-tense auxiliary or a noun cue keeps the pre-tip phrasing
     assert qualifying("Cade Cunningham is limited to 20 minutes tonight.")
     assert qualifying("Cade Cunningham will be limited to 20 minutes tonight.")
@@ -263,3 +265,61 @@ def test_parser_imports_nothing_new() -> None:
 def test_cap_bounds(n: int) -> None:
     (c,) = claims(f"Alperen Sengun will be on a {n}-minute restriction tonight.")
     assert c.reject == "f6_range"
+
+
+# ---------------------------------------------------------- adversary review M5 / M6 / m8
+
+
+@pytest.mark.parametrize(
+    ("text", "reject"),
+    [
+        ("Joel Embiid on a minutes restriction in 22 minutes vs. Miami.", "f1_not_prospective"),
+        ("Jayson Tatum on a 26-minute restriction vs. Utah.", "f1_not_prospective"),
+        ("Kawhi Leonard on a 22-minute restriction against Dallas.", "f1_not_prospective"),
+        ("Jayson Tatum is on a 26-minute restriction tonight, finishes with 20.", "f1_past"),
+        ("Kawhi Leonard is on a 22-minute restriction tonight and ended up with 9.", "f1_past"),
+        ("Cade Cunningham on a 20-minute restriction tonight, 12 and 8.", "f2_stat_line"),
+        ("Jalen Green is on a 20-minute restriction tonight, scores 12.", "f2_stat_line"),
+        ("Trae Young is on a minutes limit tonight, in 19 minutes of work.", "f2_stat_line"),
+    ],
+)
+def test_headline_recaps_pass_neither_f1_nor_f2_m5(text: str, reject: str) -> None:
+    (c,) = claims(text)
+    assert c.reject == reject, text
+
+
+def test_vs_alone_is_no_longer_a_prospective_marker_but_will_is() -> None:
+    assert claims("Alperen Sengun is on a 24-minute restriction vs. Denver.")[0].kept  # "is on"
+    assert claims("Alperen Sengun will be on a 24-minute restriction vs. Denver.")[0].kept
+    assert not claims("Alperen Sengun on a 24-minute restriction vs. Denver.")[0].kept
+
+
+def test_a_status_followed_by_on_a_day_is_recognised_m8() -> None:
+    (c,) = qualifying("Draymond Green is out on Wednesday vs. Sacramento.")
+    assert c.status == "out"
+
+
+def test_fingerprint_covers_all_files_that_decide_a_claim_m6(tmp_path: Path) -> None:
+    root = Path(rp.__file__).resolve().parents[2]
+    assert set(rp.FINGERPRINT_FILES) == {
+        "nba/ingest/reporter_pretip.py",
+        "nba/ingest/reporter_parse.py",
+        "nba/ingest/reporter_facts.py",
+        "nba/parse/availability.py",
+        "configs/reporter_nicknames.yaml",
+        "configs/kalshi_aliases.yaml",
+    }
+    for rel in rp.FINGERPRINT_FILES:
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_bytes((root / rel).read_bytes())
+    base = rp.parser_fingerprint(tmp_path)
+    assert base == rp.parser_fingerprint(root)  # same bytes, same hash
+    for rel in rp.FINGERPRINT_FILES:  # a one-byte change in ANY of them moves the hash
+        f = tmp_path / rel
+        orig = f.read_bytes()
+        f.write_bytes(orig + b"\n")
+        assert rp.parser_fingerprint(tmp_path) != base, rel
+        f.write_bytes(orig)
+    (tmp_path / rp.FINGERPRINT_FILES[-1]).unlink()
+    with pytest.raises(FileNotFoundError):
+        rp.parser_fingerprint(tmp_path)

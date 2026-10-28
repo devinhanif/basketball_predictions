@@ -64,6 +64,7 @@ ALERT_AT = timedelta(minutes=55)
 RECOVER_DAYS = 2  # raw days re-derived into facts after a poll (idempotent; heals a crash)
 
 RC_OK, RC_REFUSED, RC_STORE, RC_NO_SCHEDULE = 0, 2, 3, 5
+LOCK_STUCK_S = 600.0  # a lock held this long means the previous tick hung
 
 
 @dataclass(frozen=True)
@@ -279,10 +280,15 @@ def run_tick(
     write_heartbeat(hb_dir, now, None, None, "start")
     lock = data_dir / "poll.lock"
     if not acquire_lock(lock):
-        write_heartbeat(
-            hb_dir, now, datetime.now(UTC), RC_OK, "skipped: another tick holds the lock"
-        )
-        return TickResult(RC_OK, "skipped: lock held")
+        try:
+            held_s = datetime.now(UTC).timestamp() - lock.stat().st_mtime
+        except OSError:
+            held_s = 0.0
+        stuck = held_s > LOCK_STUCK_S  # a tick that never ends is an alert, not a quiet skip
+        rc = RC_REFUSED if stuck else RC_OK
+        detail = f"skipped: lock held {held_s / 60:.0f} min" + (" (stuck)" if stuck else "")
+        write_heartbeat(hb_dir, now, datetime.now(UTC), rc, detail)
+        return TickResult(rc, detail)
     res = TickResult(RC_OK, "idle")
     try:
         res = _tick(now, allow, games, make_client, make_ctx, store_path, data_dir, alerts_path)
@@ -328,7 +334,9 @@ def _tick(
     alerts_path: Path | None,
 ) -> TickResult:
     if games is None:
-        return TickResult(RC_NO_SCHEDULE, "schedule cache missing: nothing can be planned")
+        return TickResult(
+            RC_NO_SCHEDULE, "schedule cache missing or older than 36 h: nothing can be planned"
+        )
     slate = slate_for(games, now)
     if not slate:
         return TickResult(RC_OK, "idle: no games on today's ET slate")
@@ -340,7 +348,15 @@ def _tick(
         if due:
             client = make_client()
             client.budget.per_run = max(client.budget.per_run, allow.posts_per_day)
-            result: PollResult = client.poll([d.handle for d in due], isolate_errors=True)
+            prev_tips: dict[str, datetime] = {}
+            for d in due:
+                if d.team_id is not None:
+                    prev, _ = rf.team_game_around(games, d.team_id, _naive(now))
+                    if prev is not None:
+                        prev_tips[d.handle] = prev.tipoff
+            result: PollResult = client.poll(
+                [d.handle for d in due], isolate_errors=True, prev_tips=prev_tips
+            )
             res.outcomes = result.outcomes
             label_of = {d.handle: d for d in due}
             reached = set()

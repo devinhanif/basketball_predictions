@@ -205,6 +205,8 @@ class Allowlist:
     #: capture fix 3: a poll reads back to the last ok poll of the handle (minus the overlap),
     #: never further than this; a handle with no cursor starts at ``anchor_hour_et`` of the game day
     max_lookback_hours: float = 18.0
+    #: a team handle reaches back to its team's previous tip + 3 h, never further than this
+    team_lookback_hours: float = 48.0
     anchor_hour_et: int = 6
     #: ``counts`` rates (docs.x.com pricing, read 2026-10-27); only ``counts`` uses them
     usd_per_count_all: float = 0.010
@@ -258,6 +260,7 @@ def load_allowlist(path: Path | str = ALLOWLIST_PATH) -> Allowlist:
         usd_per_user=float(budget.get("usd_per_user", 0.010)),
         window_minutes=float(raw.get("window_minutes", 120)),
         max_lookback_hours=float(poll.get("max_lookback_hours", 18)),
+        team_lookback_hours=float(poll.get("team_lookback_hours", 48)),
         anchor_hour_et=int(poll.get("anchor_hour_et", 6)),
         usd_per_count_all=float(budget.get("usd_per_count_all", 0.010)),
     )
@@ -301,15 +304,19 @@ def posts_frame(posts: Iterable[Post]) -> pl.DataFrame:
     return pl.DataFrame(rows, schema=RAW_SCHEMA)
 
 
-def write_raw(raw_dir: Path, handle: str, posts: list[Post], fetched_at: datetime) -> Path | None:
-    """Write-once parquet: ``<raw_dir>/<UTC date>/<handle>_<HHMMSS>Z.parquet``. Returns None for
-    an empty page; raises ``FileExistsError`` rather than overwrite."""
+def write_raw(
+    raw_dir: Path, handle: str, posts: list[Post], fetched_at: datetime, page: int = 1
+) -> Path | None:
+    """Write-once parquet: ``<raw_dir>/<UTC date>/<handle>_<HHMMSS>Z.parquet`` (``..._p<k>`` for
+    page k > 1 of one poll). Returns None for an empty page; raises ``FileExistsError`` rather
+    than overwrite."""
     if not posts:
         return None
     fetched_at = _naive_utc(fetched_at)
     day_dir = raw_dir / fetched_at.strftime("%Y-%m-%d")
     day_dir.mkdir(parents=True, exist_ok=True)
-    final = day_dir / f"{handle}_{fetched_at.strftime('%H%M%S')}Z.parquet"
+    tag = f"_p{page}" if page > 1 else ""
+    final = day_dir / f"{handle}_{fetched_at.strftime('%H%M%S')}Z{tag}.parquet"
     if final.exists():
         raise FileExistsError(f"raw file exists, refusing to overwrite: {final}")
     tmp = final.with_name(final.name + ".tmp")
@@ -573,6 +580,7 @@ class HandlePoll:
     detail: str = ""
     pages: int = 0
     posts: list[Post] = field(default_factory=list)
+    raw_paths: list[Path] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -865,8 +873,10 @@ class XClient:
         }
         if pagination_token:
             params["pagination_token"] = pagination_token
-        fetched = self.now()
         body = self._get(ENDPOINTS["user_tweets"].format(user_id=uid), params)
+        # stamped AFTER the response is in hand: a 429 wait or a slow answer must not give a post an
+        # earlier first_seen_at than the moment we actually had it (adversary review M1)
+        fetched = self.now()
         posts = parse_tweets_payload(body, rep.handle, _naive_utc(fetched))
         self.budget.charge(fetched, len(posts))
         meta = body.get("meta") if isinstance(body, dict) else None
@@ -901,37 +911,61 @@ class XClient:
         return body
 
     def poll_start(
-        self, handle: str, now: datetime, lookback_hours: float | None = None
+        self,
+        handle: str,
+        now: datetime,
+        lookback_hours: float | None = None,
+        prev_tip: datetime | None = None,
     ) -> datetime:
-        """Lower bound of this poll (capture fix 3).
+        """Lower bound of this poll (capture fix 3, adversary M7).
 
-        * the handle has an ok poll on record: back to that poll's start minus the overlap, but not
-          further than ``max_lookback_hours`` (a short page never moved the cursor, so the gap it
-          left is read again);
-        * no cursor: the ``anchor_hour_et`` (06:00 ET) of the game day, capped the same way, so a
-          morning shootaround post is reachable by the first poll of the day;
-        * ``lookback_hours`` (the CLI flag) replaces the cap and the anchor.
+        * a team handle (``prev_tip`` = its previous game's tip, from the schedule): the later of
+          ``prev_tip + 3 h`` (earlier posts belong to that game, filter F4) and ``now -
+          team_lookback_hours`` (48 h), then the cursor if there is one. So a post written the day
+          before a game, from a team idle that day, is still requested at the first game-day poll;
+        * otherwise (league-wide handle, or no previous game known): the cursor minus the overlap,
+          never further back than ``max_lookback_hours``; with no cursor the ``anchor_hour_et``
+          (06:00 ET) of the game day;
+        * ``lookback_hours`` (the CLI flag) replaces the caps and the anchor.
+        A short page never moved the cursor, so the gap it left is read again.
         """
-        cap = timedelta(hours=lookback_hours or self.allowlist.max_lookback_hours)
-        floor = now - cap
         st = self.state.get(handle)
-        cursor = st.get("last_ok_poll_at") or st.get("last_created_at")
-        if cursor:
-            c = datetime.fromisoformat(cursor)
-            c = c.replace(tzinfo=UTC) if c.tzinfo is None else c.astimezone(UTC)
-            return max(floor, c - timedelta(seconds=CURSOR_OVERLAP_S))
+        cursor_s = st.get("last_ok_poll_at") or st.get("last_created_at")
+        cursor: datetime | None = None
+        if cursor_s:
+            c = datetime.fromisoformat(cursor_s)
+            cursor = (c.replace(tzinfo=UTC) if c.tzinfo is None else c.astimezone(UTC)) - timedelta(
+                seconds=CURSOR_OVERLAP_S
+            )
         if lookback_hours:
-            return floor
+            floor = now - timedelta(hours=lookback_hours)
+            return max(floor, cursor) if cursor else floor
+        if prev_tip is not None:
+            prev = (prev_tip.replace(tzinfo=UTC) if prev_tip.tzinfo is None else prev_tip) + (
+                timedelta(hours=3)
+            )
+            base = max(now - timedelta(hours=self.allowlist.team_lookback_hours), prev)
+            return max(base, cursor) if cursor else base
+        floor = now - timedelta(hours=self.allowlist.max_lookback_hours)
+        if cursor:
+            return max(floor, cursor)
         return max(floor, anchor_et(now, self.allowlist.anchor_hour_et))
 
     def poll_handle(
-        self, handle: str, now: datetime, *, lookback_hours: float | None = None
+        self,
+        handle: str,
+        now: datetime,
+        *,
+        lookback_hours: float | None = None,
+        prev_tip: datetime | None = None,
     ) -> HandlePoll:
         """Read one handle back to :meth:`poll_start`, page by page. ``status`` is ``ok`` only when
         the timeline was read to the start bound; a budget or page-count cut is ``short:<why>`` and
-        leaves the cursor where it was. Raises the API errors (the caller isolates them)."""
+        leaves the cursor where it was. Every page is written to the raw store as it arrives (a
+        later page's failure cannot lose posts already billed); an API error after the first page
+        ends the poll ``error:<kind>`` with those posts kept. Before the first page it raises."""
         rep = self.allowlist.require(handle)
-        start = self.poll_start(rep.handle, now, lookback_hours)
+        start = self.poll_start(rep.handle, now, lookback_hours, prev_tip)
         out = HandlePoll(rep.handle, rep.team_id, now, start)
         token: str | None = None
         while True:
@@ -942,9 +976,19 @@ class XClient:
                     raise
                 out.status, out.detail = "short:budget", str(exc)
                 break
-            page, token = self.fetch_page(rep.handle, start, remaining, token)
+            try:
+                page, token = self.fetch_page(rep.handle, start, remaining, token)
+            except (RateLimited, Unreachable, ReporterHTTPError) as exc:
+                if out.pages == 0:
+                    raise
+                out.status, out.detail = f"error:{type(exc).__name__}", str(exc)
+                break
             out.pages += 1
             out.posts.extend(page)
+            if page:
+                path = write_raw(self.raw_dir, rep.handle, page, page[0].fetched_at, out.pages)
+                if path is not None:
+                    out.raw_paths.append(path)
             if token is None:
                 break
             if out.pages >= MAX_PAGES:
@@ -959,11 +1003,13 @@ class XClient:
         *,
         lookback_hours: float | None = None,
         isolate_errors: bool = False,
+        prev_tips: Mapping[str, datetime] | None = None,
     ) -> PollResult:
         """Every handle back to its cursor. Stops (not fails) when the budget runs out before a
         handle's first page. With ``isolate_errors`` an API error becomes that handle's
         ``error:<kind>`` outcome and the poll goes on (the scheduled job); without it the error
-        propagates (the manual command exits 4)."""
+        propagates (the manual command exits 4). ``prev_tips`` maps a handle to its team's
+        previous tip (the scheduled job passes it; see :meth:`poll_start`)."""
         res = PollResult()
         names = list(handles) if handles is not None else self.allowlist.handles()
         for h in names:
@@ -979,7 +1025,12 @@ class XClient:
                 log.warning("reporters: %s", exc)
                 break
             try:
-                out = self.poll_handle(rep.handle, now, lookback_hours=lookback_hours)
+                out = self.poll_handle(
+                    rep.handle,
+                    now,
+                    lookback_hours=lookback_hours,
+                    prev_tip=(prev_tips or {}).get(rep.handle),
+                )
             except BudgetExceeded as exc:
                 res.stopped = str(exc)
                 res.outcomes.append(
@@ -999,11 +1050,8 @@ class XClient:
                 continue
             res.outcomes.append(out)
             res.per_handle[rep.handle] = len(out.posts)
-            if out.posts:
-                path = write_raw(self.raw_dir, rep.handle, out.posts, now)
-                if path is not None:
-                    res.raw_paths.append(path)
-                res.posts.extend(out.posts)
+            res.raw_paths.extend(out.raw_paths)
+            res.posts.extend(out.posts)
             if out.status == "ok":
                 fields: dict[str, Any] = {"last_ok_poll_at": _naive_utc(now).isoformat()}
                 if out.posts:
@@ -1387,7 +1435,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         allow = load_allowlist(args.allowlist)
         if args.cmd == "tick":
-            from nba.daily.schedule import load_schedule_cache
+            from nba.daily.schedule import MAX_SCHEDULE_CACHE_AGE, load_schedule_cache
             from nba.ingest import reporter_tick as rtick
 
             now_t = datetime.now(UTC)
@@ -1395,7 +1443,11 @@ def main(argv: list[str] | None = None) -> int:
             res_t = rtick.run_tick(
                 now=now_t,
                 allow=allow,
-                games=load_schedule_cache(rf.season_for(now_t), Path(args.schedule_cache)),
+                games=load_schedule_cache(
+                    rf.season_for(now_t),
+                    Path(args.schedule_cache),
+                    max_age=MAX_SCHEDULE_CACHE_AGE,  # a stale cache has stale tips: refuse
+                ),
                 make_client=lambda: XClient(allow, data_dir=data_dir),
                 make_ctx=lambda: rf.Context.load(
                     allow,
@@ -1495,7 +1547,20 @@ def main(argv: list[str] | None = None) -> int:
                         [client.raw_dir, client.raw_dir.parent / "raw_backfill"]
                     )
                 else:
-                    seen = rs.first_seen_index([Path(args.data_dir).joinpath("raw")])
+                    # BOTH raw roots: a replayed raw_backfill file is backfill, not live; and a
+                    # post held by neither (a file from outside the raw store) is not known to
+                    # have been read at its stamped time, so nothing is written for it
+                    data = Path(args.data_dir)
+                    seen = rs.first_seen_index([data / "raw", data / "raw_backfill"])
+                    unknown = {p.post_id for p in posts if p.post_id not in seen}
+                    if unknown:
+                        print(
+                            f"store: {len(unknown)} posts are in no raw store under {data}; "
+                            "nothing is written for them",
+                            file=sys.stderr,
+                        )
+                        posts = [p for p in posts if p.post_id not in unknown]
+                        claimed = [c for c in claimed if c.post.post_id not in unknown]
                 sf, rj, _ = rf.pretip_facts_for_posts(posts, ctx, seen)
                 w, d = rs.insert_facts(con_s, [*sf, *rf.claimed_store_facts(claimed, seen)])
                 rs.insert_rejects(con_s, rj, datetime.now(UTC).replace(tzinfo=None))

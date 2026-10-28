@@ -365,6 +365,9 @@ def _team_context(
     return out
 
 
+REPORTER_PREDICATE_PREFIXES = ("claimed_", "reporter_")
+
+
 def _facts_section(
     facts: duckdb.DuckDBPyConnection, game_id: str, t: datetime
 ) -> list[dict[str, Any]]:
@@ -379,6 +382,10 @@ def _facts_section(
     out: list[dict[str, Any]] = []
     gent = game_id if game_id.startswith("game:") else f"game:{game_id}"
     for r in df.sort(["known_at", "fact_id"]).iter_rows(named=True):
+        # beat-reporter claims and facts (nba.ingest.reporter_*) are never a forecaster input:
+        # LLM_SHADOW_2026_27 section 1; a rule that wants them has its own id (REPORTER_FEED_LIVE)
+        if str(r["predicate"]).startswith(REPORTER_PREDICATE_PREFIXES):
+            continue
         if r["predicate"] == "played_minutes" and r["object"] == gent:
             raise AsOfViolation(
                 f"{game_id}: a played_minutes fact for this game is in the as-of set"

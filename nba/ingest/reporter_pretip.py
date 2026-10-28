@@ -56,7 +56,7 @@ _MONTHS = ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct",
 #: F1 past markers. "in his return" only counts with a weekday after it ("in his return tonight"
 #: is a prospective phrase).
 _PAST = re.compile(
-    r"\b(?:was|were|played|logged|finished|went|scored|had|came off)\b"
+    r"\b(?:was|were|played|logged|finished|finishes|went|scored|had|came off)\b|\bended up\b"
     rf"|\bin his return\s+(?:on\s+)?{_WD}\b"
     r"|\blast night\b|\byesterday\b|\bin the (?:win|loss)\b"
     rf"|\bin {_WD}'s\b|\bin {_WD}’s\b"
@@ -66,7 +66,7 @@ _PAST = re.compile(
 #: F1 prospective markers (a cap needs one in the same sentence).
 _PROSPECTIVE = re.compile(
     r"\b(?:will|is expected to|is set to|is slated to|remains on|is on|is going to|tonight|"
-    r"today|vs|against|this evening)\b",
+    r"today|this evening)\b",  # "vs" / "against" alone is a headline recap too (review M5)
     re.I,
 )
 #: F1b (clarification, ratify before freezing): a participle cap ("limited to 18 minutes") needs
@@ -84,7 +84,9 @@ _NOUN_CAP = re.compile(
 )
 #: F2.
 _STAT_COUNT = re.compile(
-    r"\b\d+\s*(?:points|pts|rebounds|boards|reb|assists|ast|steals|blocks|3s|threes)\b", re.I
+    r"\b\d+\s*(?:points|pts|rebounds|boards|reb|assists|ast|steals|blocks|3s|threes)\b"
+    r"|\bscores?\s+\d+\b|\b\d+\s+and\s+\d+\b|\bin\s+\d+\s+min(?:ute)?s\b",
+    re.I,
 )
 _SHOOTING = re.compile(r"\b\d+-(?:of-)?\d+\b(?!\s*-?\s*min)", re.I)
 #: F3.
@@ -323,10 +325,26 @@ def parse_pretip(
     return out
 
 
-def parser_fingerprint() -> str:
-    """sha256 of this file followed by ``reporter_parse.py`` (the two files that decide a claim)."""
-    here = Path(__file__).resolve().parent
+#: Every file whose content decides which claim a post becomes and which player and game it is
+#: attached to (adversary review M6): the filters, the phrase patterns, the fact builder, the name
+#: normaliser, and the two reviewed name tables.
+FINGERPRINT_FILES = (
+    "nba/ingest/reporter_pretip.py",
+    "nba/ingest/reporter_parse.py",
+    "nba/ingest/reporter_facts.py",
+    "nba/parse/availability.py",
+    "configs/reporter_nicknames.yaml",
+    "configs/kalshi_aliases.yaml",
+)
+
+
+def parser_fingerprint(root: Path | None = None) -> str:
+    """sha256 over :data:`FINGERPRINT_FILES` (path, length and bytes of each). ``root`` is the repo
+    root (default: this checkout). A missing file raises: a frozen parser must be whole."""
+    base = root or Path(__file__).resolve().parents[2]
     h = hashlib.sha256()
-    for name in ("reporter_pretip.py", "reporter_parse.py"):
-        h.update((here / name).read_bytes())
+    for rel in FINGERPRINT_FILES:
+        data = (base / rel).read_bytes()
+        h.update(f"{rel}\0{len(data)}\0".encode())
+        h.update(data)
     return h.hexdigest()

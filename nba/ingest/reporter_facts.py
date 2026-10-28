@@ -25,6 +25,8 @@ Rules
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from collections import Counter
 from collections.abc import Callable, Mapping
@@ -46,7 +48,7 @@ from nba.ingest.reporter_parse import (
     resolve_player,
     retweeted_handle,
 )
-from nba.ingest.reporter_store import LIVE, StoreFact, value_text
+from nba.ingest.reporter_store import BACKFILL, LIVE, StoreFact, value_text
 from nba.ingest.reporters import Allowlist, Post, Reporter
 from nba.kalshi.aliases import load_reviewed_aliases
 from nba.parse.availability import normalize_name
@@ -364,27 +366,38 @@ def first_seen_at_of(post: Post, first_seen: Mapping[str, tuple[datetime, str]] 
 
 
 def capture_mode_of_post(post: Post, first_seen: Mapping[str, tuple[datetime, str]] | None) -> str:
+    """The capture mode of the earliest raw file holding the post. A post that is in no indexed raw
+    file is NOT known to have been read live, so it defaults to backfill (never eligible)."""
     got = (first_seen or {}).get(post.post_id)
-    return got[1] if got is not None else LIVE
+    return got[1] if got is not None else BACKFILL
 
 
 def claimed_store_facts(
     claimed: list[ClaimedFact], first_seen: Mapping[str, tuple[datetime, str]] | None = None
 ) -> list[StoreFact]:
-    """The briefing's ``claimed_*`` facts as store rows (known_at = first_seen_at)."""
+    """The briefing's ``claimed_*`` facts as store rows (known_at = first_seen_at). Only posts the
+    raw index says were read live are written. The store keeps the post id and the evidence hash,
+    never the post text (X terms: stored content must follow deletions; the text stays in raw)."""
     out: list[StoreFact] = []
     for c in claimed:
         if not c.writable:
             continue
         assert c.game is not None and c.claim.player_id is not None
         seen = first_seen_at_of(c.post, first_seen)
+        if capture_mode_of_post(c.post, first_seen) != LIVE or c.post.created_at > seen:
+            continue
         out.append(
             StoreFact(
                 f"player:{c.claim.player_id}",
                 c.predicate,
                 f"game:{c.game.game_id}",
                 float(c.claim.minutes_limit) if c.claim.minutes_limit is not None else None,
-                c.claim.evidence,
+                value_text(
+                    post_id=c.post.post_id,
+                    evidence_sha256=hashlib.sha256(
+                        " ".join(c.claim.evidence.split()).encode()
+                    ).hexdigest(),
+                ),
                 seen,
                 c.reporter.source,
                 float(c.claim.confidence),
@@ -432,8 +445,10 @@ def pretip_facts_for_posts(
 
     F4 lives here: a post is dropped when ``created_at`` is after ``first_seen_at`` (a clock fault),
     when it was written while the team's previous game was on or within 3 h after its tip, or when
-    its game has already tipped. Backfill-mode posts are counted and never written. Returns
-    ``(facts, rejects, counts)``; ``rejects`` are ``(post_id, handle, reason, detail)`` rows.
+    its game has already tipped. Only posts the raw index says were read live are written: a
+    backfill post, and a post in no indexed raw file (``first_seen`` missing), are counted and never
+    written. Several claims about one player in one post are merged to one row per predicate.
+    Returns ``(facts, rejects, counts)``; ``rejects`` are ``(post_id, handle, reason, detail)``.
     """
     facts: list[StoreFact] = []
     rejects: list[tuple[str, str | None, str, str]] = []
@@ -456,11 +471,13 @@ def pretip_facts_for_posts(
             continue
         roster = ctx.rosters.get(rep.team_id) if rep.team_id is not None else None
         scope: list[list[tuple[str, int]]] = []
+        opp_id: int | None = None
         if rep.team_id is not None:
             _, nxt = team_game_around(ctx.schedule, rep.team_id, post.created_at)
             if nxt is not None:
                 opp = nxt.away_team if nxt.home_team == rep.team_id else nxt.home_team
                 scope = [ctx.rosters[opp]] if opp in ctx.rosters else []
+                opp_id = opp if scope else None
         cache: dict[str, _Resolved | None] = {}
 
         def resolve(
@@ -469,18 +486,23 @@ def pretip_facts_for_posts(
             post: Post = post,
             roster: list[tuple[str, int]] | None = roster,
             scope: list[list[tuple[str, int]]] = scope,
+            opp_id: int | None = opp_id,
             cache: dict[str, _Resolved | None] = cache,
         ) -> _Resolved | None:
             if name in cache:
                 return cache[name]
             pid = resolve_player(name, roster, ctx.aliases, ctx.nicknames)
+            team_of_pid = rep.team_id
             if pid is None and scope and roster is not None:
                 hits = {resolve_player(name, r, ctx.aliases, ctx.nicknames) for r in scope}
                 hits.discard(None)
                 pid = hits.pop() if len(hits) == 1 else None
+                team_of_pid = (
+                    opp_id  # found on the opponent's roster: his team is not the reporter's
+                )
             res: _Resolved | None = None
             if pid is not None:
-                team_id = rep.team_id if rep.team_id is not None else ctx.team_of(pid)
+                team_id = team_of_pid if rep.team_id is not None else ctx.team_of(pid)
                 if team_id is None:
                     res = None
                 else:
@@ -547,4 +569,32 @@ def pretip_facts_for_posts(
                     pretip.PARSER_VERSION,
                 )
             )
-    return facts, rejects, counts
+    return _merge_per_post_player(facts, counts), rejects, counts
+
+
+_STATUS_RANK = {"out": 0, "game_time_decision": 1, "will_play": 2, "available": 2, "cap_lifted": 3}
+
+
+def _merge_per_post_player(facts: list[StoreFact], counts: Counter[str]) -> list[StoreFact]:
+    """One row per (post, player, predicate, game): the store's key has room for one. A numbered,
+    unhedged cap beats an unnumbered or hedged one in the same post; among statuses an unhedged one
+    beats a hedged one, then out > game_time_decision > will_play/available > cap_lifted. Ties keep
+    the first in sentence order. (Adversary review M4: the second claim used to be deduped away
+    blind, losing a numbered cap behind an unnumbered one.)"""
+    best: dict[tuple[str, str, str, str, str], tuple[tuple[int, int, int], StoreFact]] = {}
+    for f in facts:
+        meta = json.loads(f.value_text or "{}")
+        rank = (
+            1 if meta.get("hedged") else 0,
+            0 if f.value is not None else 1,
+            _STATUS_RANK.get(str(meta.get("status")), 9) if f.predicate == "reporter_status" else 0,
+        )
+        key = (f.subject, f.predicate, f.object, f.source, f.post_id)
+        cur = best.get(key)
+        if cur is None:
+            best[key] = (rank, f)
+        else:
+            counts["merged_same_post_player"] += 1
+            if rank < cur[0]:
+                best[key] = (rank, f)
+    return [f for _, f in best.values()]

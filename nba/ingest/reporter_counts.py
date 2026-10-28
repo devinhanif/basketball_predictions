@@ -98,12 +98,19 @@ def pages_for(season: str) -> int:
     return math.ceil((end - start).days / DAYS_PER_PAGE)
 
 
+def request_cap(season: str) -> int:
+    """Most requests one (query, season) may send: the pages it needs plus ONE spare for a split
+    page. It is a hard bound, not an estimate: the loop stops there however the server pages."""
+    return pages_for(season) + 1
+
+
 @dataclass(frozen=True)
 class Plan:
     queries: list[CountQuery]
     seasons: list[str]
-    max_requests: int
+    max_requests: int  # the hard bound the run enforces
     usd_per_request: float
+    expected_requests: int = 0  # what the pages need if none splits
 
     @property
     def max_usd(self) -> float:
@@ -116,8 +123,9 @@ def make_plan(allow: Allowlist, seasons: list[str] | None = None) -> Plan:
         if s not in SEASONS:
             raise PollRefused(f"season {s!r} is not one of {sorted(SEASONS)}")
     queries = build_queries(allow)
-    n = sum(pages_for(s) for s in names) * len(queries)
-    return Plan(queries, names, n, allow.usd_per_count_all)
+    n = sum(request_cap(s) for s in names) * len(queries)
+    expected = sum(pages_for(s) for s in names) * len(queries)
+    return Plan(queries, names, n, allow.usd_per_count_all, expected)
 
 
 def format_plan(plan: Plan, out_dir: Path) -> str:
@@ -128,7 +136,9 @@ def format_plan(plan: Plan, out_dir: Path) -> str:
     for q in plan.queries:
         lines.append(f"  {q.qid}: {len(q.text)} chars")
     lines.append(
-        f"worst case {plan.max_requests} requests x ${plan.usd_per_request:.3f} = "
+        f"expected {plan.expected_requests} requests "
+        f"(${plan.expected_requests * plan.usd_per_request:.2f}); "
+        f"worst case (hard bound) {plan.max_requests} requests x ${plan.usd_per_request:.3f} = "
         f"${plan.max_usd:.2f} -> {out_dir}/"
     )
     lines.append("season 2025-26 is never queried; counts only, no post text is returned")
@@ -146,15 +156,13 @@ def run_counts(
         )
     client.budget.check_counts(client.now(), plan.max_requests)
     out_dir.mkdir(parents=True, exist_ok=True)
-    summary: dict[str, Any] = {"requests": 0, "totals": {}}
+    summary: dict[str, Any] = {"requests": 0, "totals": {}, "truncated": []}
     for q in plan.queries:
         for season in plan.seasons:
             start, end = window(season)
             token: str | None = None
             total = 0
-            for k in range(
-                1, pages_for(season) + 3
-            ):  # the plan's pages, plus slack for a split page
+            for k in range(1, request_cap(season) + 1):
                 f = out_dir / f"{q.qid}_{season}_p{k}.json"
                 if f.exists():
                     body = json.loads(f.read_text())
@@ -171,6 +179,8 @@ def run_counts(
                 token = (resp.get("meta") or {}).get("next_token")
                 if not token:
                     break
+            else:
+                summary["truncated"].append(f"{q.qid}/{season}")  # cap reached, pages remain
             summary["totals"][f"{q.qid}/{season}"] = total
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=1, sort_keys=True))
     return summary

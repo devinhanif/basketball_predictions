@@ -27,8 +27,10 @@ lineup, coach or starter fact is built for those seasons, and lineup-feed facts 
 id says its season is above ``max_season`` are dropped (the ``games`` table does not hold future
 games, so the old ``excluded`` set missed them). Season 2025 stays absent unless listed.
 
-Reporter facts (2026-10-27). ``reporter_store`` (CLI ``--reporter-store``, default
-``data/facts/reporter_facts.duckdb``) is a SECOND input: the write-once store of beat-reporter facts
+Reporter facts (2026-10-27). ``reporter_store`` (CLI ``--reporter-store``; default OFF, adversary
+review B1: the LLM shadow and the explainer read this store through ``as_of``, and the shadow
+payload also drops ``claimed_``/``reporter_`` predicates) is a SECOND input: the write-once store of
+beat-reporter facts
 (``nba.ingest.reporter_store``), whose rows exist only because we read a post once and so cannot be
 derived from any table. :func:`reporter_facts_frame` reads it read-only and adds its rows to the
 rebuilt store; nothing here opens it for writing, so a rebuild never loses a reporter fact. Their

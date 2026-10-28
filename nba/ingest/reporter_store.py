@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS team_game_coverage (
     ok_handles   VARCHAR,
     covered      BOOLEAN NOT NULL,
     finalized_at TIMESTAMP NOT NULL,
-    PRIMARY KEY (game_id, team_id)
+    PRIMARY KEY (game_id, team_id, tip)   -- a made-up game keeps its id and gets a new tip
 );
 CREATE TABLE IF NOT EXISTS claim_rejects (
     post_id     VARCHAR NOT NULL,
@@ -270,13 +270,22 @@ def compute_coverage(
     lo_min: float = 90.0,
     hi_min: float = 60.0,
 ) -> Coverage:
-    """A team-game is covered iff EVERY required handle has an ok poll whose start lies inside
-    [tip - 90 min, tip - 60 min] (inclusive). A short page, an error or a refusal is not ok.
+    """A team-game is covered iff EVERY required handle has an ok poll that lies inside
+    [tip - 90 min, tip - 60 min] (inclusive; start and end both). A short page, an error or a
+    refusal is not ok.
     ``required`` is the team's own handles, or the league-wide handles when it has none."""
     from datetime import timedelta
 
     lo, hi = tip - timedelta(minutes=lo_min), tip - timedelta(minutes=hi_min)
-    got = sorted({p.handle for p in polls if p.ok and lo <= p.started_at <= hi})
+    # the poll must lie WHOLLY inside the window: it started at/after T-90 and its last page came
+    # back at/before T-60, because facts are stamped when the response arrives
+    got = sorted(
+        {
+            p.handle
+            for p in polls
+            if p.ok and lo <= p.started_at and (p.ended_at or p.started_at) <= hi
+        }
+    )
     need = tuple(sorted(required))
     return Coverage(game_id, team_id, tip, lo, hi, need, tuple(h for h in got if h in set(need)))
 

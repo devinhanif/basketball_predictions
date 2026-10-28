@@ -33,8 +33,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     b.add_argument(
         "--reporter-store",
-        default="data/facts/reporter_facts.duckdb",
-        help="write-once reporter facts, read in (never written); '' = leave them out",
+        default="",
+        help="path of reporter_facts.duckdb to read in (never written); default '' = leave out "
+        "(off until the LLM shadow and explainer are cleared to see reporter facts)",
     )
     args = p.parse_args(argv)
     sched = tuple(int(x) for x in args.schedule_seasons.split(",") if x.strip())

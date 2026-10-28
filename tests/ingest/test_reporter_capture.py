@@ -56,6 +56,11 @@ def post(pid: str, created: datetime, fetched: datetime, text: str = CAP_TEXT) -
     return Post(pid, "RocketsBeat", created, text, fetched, r.post_url("RocketsBeat", pid))
 
 
+def live(posts: list[Post]) -> dict[str, tuple[datetime, str]]:
+    """The raw-store index as if every post had been read live at its fetched_at."""
+    return {p.post_id: (p.fetched_at, "live") for p in posts}
+
+
 def derive(tmp_path: Path, posts: list[Post], name: str = "s", *, raw: str = "raw") -> Path:
     """Write ``posts`` to the immutable raw store, then derive facts from it into a store."""
     raw_dir = tmp_path / raw
@@ -175,7 +180,7 @@ def test_first_seen_is_the_earliest_raw_file_holding_the_post(tmp_path: Path) ->
 
 def test_clock_fault_post_is_dropped_and_logged(tmp_path: Path) -> None:
     p = post("9001", datetime(2026, 10, 28, 21, 5), datetime(2026, 10, 28, 21, 0))  # created > read
-    facts, rejects, counts = rf.pretip_facts_for_posts([p], ctx())
+    facts, rejects, counts = rf.pretip_facts_for_posts([p], ctx(), live([p]))
     assert facts == [] and counts["clock_fault"] == 1
     assert rejects[0][:3] == ("9001", "RocketsBeat", "clock_fault")
 
@@ -185,10 +190,10 @@ def test_post_written_during_or_just_after_the_previous_game_is_not_tonights() -
     nxt = ScheduledGame("0022600021", datetime(2026, 10, 27, 23, 30), HOU, DAL)
     text = "Alperen Sengun will be on a 24-minute restriction against Denver."
     during = post("9001", datetime(2026, 10, 27, 2, 0), datetime(2026, 10, 27, 2, 1), text)
-    facts, _, counts = rf.pretip_facts_for_posts([during], ctx([PREV, nxt]))
+    facts, _, counts = rf.pretip_facts_for_posts([during], ctx([PREV, nxt]), live([during]))
     assert facts == [] and counts["drop_f4_prev_game"] == 1
     after = post("9002", datetime(2026, 10, 27, 3, 31), datetime(2026, 10, 27, 3, 32), text)
-    facts, _, _ = rf.pretip_facts_for_posts([after], ctx([PREV, nxt]))
+    facts, _, _ = rf.pretip_facts_for_posts([after], ctx([PREV, nxt]), live([after]))
     assert [f.object for f in facts] == [f"game:{nxt.game_id}"]
 
 
@@ -205,7 +210,7 @@ def test_unresolved_unknown_game_and_hedged_counts(tmp_path: Path) -> None:
         datetime(2026, 10, 28, 15, 1),
         "Zzyzx Nonplayer will be on a 24-minute restriction tonight.",
     )
-    facts, _, counts = rf.pretip_facts_for_posts([hedged, nobody], ctx())
+    facts, _, counts = rf.pretip_facts_for_posts([hedged, nobody], ctx(), live([hedged, nobody]))
     assert counts["hedged"] == 1 and counts["unresolved_player"] == 1
     assert json.loads(facts[0].value_text or "{}")["hedged"] is True and facts[0].confidence < 0.8
 
@@ -739,7 +744,7 @@ def test_counts_dry_run_prints_cost_and_sends_nothing(
         ]
     )
     out = capsys.readouterr().out
-    assert rc == 0 and "worst case 24 requests x $0.010 = $0.24" in out
+    assert rc == 0 and "expected 24 requests ($0.24); worst case (hard bound) 28 requests" in out
     assert not (tmp_path / "out").exists() and not (tmp_path / "d").exists()  # nothing written
 
 
@@ -911,16 +916,26 @@ def test_cli_tick_with_no_schedule_exits_5_and_leaves_a_heartbeat(
     assert not (tmp_path / "facts").exists()  # an idle tick creates no store
 
 
-def test_cli_parse_only_writes_the_store_with_fetch_time_as_known_at(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def _parse_only(tmp_path: Path, raw_root: str | None) -> tuple[int, Path, str]:
+    """Run ``parse-only --store`` on one HOU post; the raw file is written under
+    ``tmp/d/<raw_root>/<date>/`` (None: outside every raw root)."""
+    import contextlib
+    import io
+
     import polars as pl
 
     from nba.daily.schedule import save_schedule_cache
 
-    raw = tmp_path / "raw.parquet"
     created, fetched = datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 22, 45)
-    r.posts_frame([post("9001", created, fetched)]).write_parquet(raw)
+    if raw_root is None:
+        raw = tmp_path / "elsewhere.parquet"
+        r.posts_frame([post("9001", created, fetched)]).write_parquet(raw)
+    else:
+        written = r.write_raw(
+            tmp_path / "d" / raw_root, "RocketsBeat", [post("9001", created, fetched)], fetched
+        )
+        assert written is not None
+        raw = written
     allow = tmp_path / "reporters.yaml"
     allow.write_text(json.dumps({"handles": [{"handle": "RocketsBeat", "team": "HOU"}]}))
     ros = tmp_path / "rosters" / "2026-10-10"
@@ -936,30 +951,266 @@ def test_cli_parse_only_writes_the_store_with_fetch_time_as_known_at(
     cache = tmp_path / "schedule_cache"
     save_schedule_cache([PREV, TONIGHT], rf.season_for(datetime(2026, 10, 28)), cache)
     store = tmp_path / "facts" / "reporter_facts.duckdb"
-    rc = r.main(
-        [
-            "parse-only",
-            "--file",
-            str(raw),
-            "--allowlist",
-            str(allow),
-            "--data-dir",
-            str(tmp_path / "d"),
-            "--rosters",
-            str(tmp_path / "rosters"),
-            "--schedule-cache",
-            str(cache),
-            "--aliases",
-            str(tmp_path / "none.yaml"),
-            "--store",
-            str(store),
-        ]
-    )
-    assert rc == 0, capsys.readouterr()
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = r.main(
+            [
+                "parse-only", "--file", str(raw), "--allowlist", str(allow),
+                "--data-dir", str(tmp_path / "d"), "--rosters", str(tmp_path / "rosters"),
+                "--schedule-cache", str(cache), "--aliases", str(tmp_path / "none.yaml"),
+                "--store", str(store),
+            ]
+        )  # fmt: skip
+    return rc, store, err.getvalue()
+
+
+def test_cli_parse_only_of_a_live_raw_file_stores_fetch_time_as_known_at(tmp_path: Path) -> None:
+    rc, store, _ = _parse_only(tmp_path, "raw")
+    assert rc == 0
     got = rows(
-        store, "SELECT predicate, known_at, created_at FROM reporter_facts ORDER BY predicate"
+        store, "SELECT predicate, known_at, created_at, capture_mode FROM reporter_facts ORDER BY 1"
     )
+    created, fetched = datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 22, 45)
     assert got == [
-        ("claimed_minutes_restriction", fetched, created),
-        ("reporter_minutes_cap", fetched, created),
+        ("claimed_minutes_restriction", fetched, created, "live"),
+        ("reporter_minutes_cap", fetched, created, "live"),
     ]
+
+
+def test_cli_parse_only_of_a_backfill_raw_file_writes_no_fact_m2(tmp_path: Path) -> None:
+    rc, store, _ = _parse_only(tmp_path, "raw_backfill")
+    assert rc == 0 and rows(store, "SELECT * FROM reporter_facts") == []
+
+
+def test_cli_parse_only_of_a_file_outside_the_raw_store_writes_nothing_m2(tmp_path: Path) -> None:
+    rc, store, err = _parse_only(tmp_path, None)
+    assert rc == 0 and rows(store, "SELECT * FROM reporter_facts") == []
+    assert "nothing is written" in err
+
+
+def test_a_post_missing_from_the_index_defaults_to_backfill_m2() -> None:
+    p = post("9001", datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 21, 0))
+    facts, _, counts = rf.pretip_facts_for_posts([p], ctx())  # no index at all
+    assert facts == [] and counts["backfill_ineligible"] == 1
+    assert rf.capture_mode_of_post(p, {}) == "backfill"
+    claimed, _ = rf.claims_for_posts([p], ctx())
+    assert rf.claimed_store_facts(claimed, {}) == []
+
+
+# ---------------------------------------------------- adversary review M1, M3, M4, M7, minors
+
+
+def test_a_429_wait_does_not_backdate_the_stamp_m1(tmp_path: Path) -> None:
+    clock = [datetime(2026, 10, 28, 22, 29, 0, tzinfo=UTC)]  # T-61
+    reset = clock[0] + timedelta(seconds=110)  # the wait ends at 22:30:50, after T-60
+    calls: list[int] = []
+
+    def script(n: int) -> httpx.Response:
+        calls.append(n)
+        if n == 1:
+            return httpx.Response(200, json={"data": {"id": "42"}})
+        if n == 2:
+            return httpx.Response(429, headers={"x-rate-limit-reset": str(int(reset.timestamp()))})
+        return httpx.Response(
+            200, json={"data": [tweet("1", CAP_TEXT, "2026-10-28T15:00:00.000Z")]}
+        )
+
+    def sleep(seconds: float) -> None:
+        clock[0] += timedelta(seconds=seconds)
+
+    c = r.XClient(
+        r.load_allowlist(allowlist_yaml(tmp_path)), environ=ENV, data_dir=tmp_path / "d",
+        clock=lambda: clock[0], sleep=sleep, transport=Server(script).transport,
+    )  # fmt: skip
+    res = c.poll()
+    (p,) = res.posts
+    assert p.fetched_at == datetime(2026, 10, 28, 22, 30, 50)  # when the answer came, not 22:29:00
+    assert p.fetched_at > TIPA.replace(tzinfo=None) - timedelta(minutes=60)
+    out = res.outcomes[0]
+    # the poll started in the window but ended after T-60: it does NOT cover the team-game
+    assert out.started_at == datetime(2026, 10, 28, 22, 29, tzinfo=UTC)
+    rec = rs.PollRecord(
+        "T-70",
+        "RocketsBeat",
+        HOU,
+        rt._naive(out.started_at),
+        rt._naive(out.ended_at or out.started_at),
+        "ok",
+    )
+    assert not rs.compute_coverage("g", HOU, TIP, ("RocketsBeat",), [rec]).covered
+    first = rs.first_seen_index([tmp_path / "d" / "raw"])
+    assert first["1"][0] == datetime(2026, 10, 28, 22, 30, 50)
+
+
+def test_stale_schedule_cache_stops_the_tick_with_rc5_m3(tmp_path: Path) -> None:
+    import os
+
+    from nba.daily.schedule import MAX_SCHEDULE_CACHE_AGE, load_schedule_cache, save_schedule_cache
+
+    cache = tmp_path / "cache"
+    save_schedule_cache([PREV, TONIGHT], "2026-27", cache)
+    assert load_schedule_cache("2026-27", cache, max_age=MAX_SCHEDULE_CACHE_AGE) is not None
+    old = datetime.now().timestamp() - 40 * 3600
+    os.utime(cache / "schedule_2026-27.json", (old, old))
+    assert load_schedule_cache("2026-27", cache, max_age=MAX_SCHEDULE_CACHE_AGE) is None
+    src = Path(r.__file__).read_text()
+    assert (
+        "max_age=MAX_SCHEDULE_CACHE_AGE"
+        in src.split('if args.cmd == "tick"')[1].split("report-test")[0]
+    )
+
+
+def test_coverage_is_keyed_on_the_tip_so_a_made_up_game_gets_its_own_row_m3(tmp_path: Path) -> None:
+    con = rs.open_store(tmp_path / "s.duckdb")
+    old_tip = TIP
+    new_tip = TIP + timedelta(days=20)  # postponed, same game id
+    now = old_tip - timedelta(minutes=30)
+    polls = [poll("RocketsBeat", 75)]
+    cov_old = rs.compute_coverage(TONIGHT.game_id, HOU, old_tip, ("RocketsBeat",), polls)
+    assert cov_old.covered and rs.write_coverage(con, cov_old, now)
+    cov_new = rs.compute_coverage(TONIGHT.game_id, HOU, new_tip, ("RocketsBeat",), polls)
+    assert not cov_new.covered  # the poll was not in the NEW game's window
+    assert rs.write_coverage(con, cov_new, now)  # not swallowed by the old row
+    got = con.execute("SELECT tip, covered FROM team_game_coverage ORDER BY tip").fetchall()
+    assert got == [(old_tip, True), (new_tip, False)]
+    con.close()
+
+
+def test_two_caps_in_one_post_keep_the_numbered_one_m4() -> None:
+    text = (
+        "Alperen Sengun is on a minutes restriction tonight. "
+        "Alperen Sengun will be on a 20-minute restriction tonight."
+    )
+    p = post("9001", datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 21, 0), text)
+    both = post("9002", datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 21, 0),
+                "Alperen Sengun is a game-time decision tonight. "
+                "Alperen Sengun is out tonight.")  # fmt: skip
+    facts, _, counts = rf.pretip_facts_for_posts([p, both], ctx(), live([p, both]))
+    caps = [f for f in facts if f.predicate == "reporter_minutes_cap"]
+    assert [f.value for f in caps] == [20.0]
+    status = [
+        json.loads(f.value_text or "{}")["status"]
+        for f in facts
+        if f.predicate == "reporter_status"
+    ]
+    assert status == ["out"]  # out beats game_time_decision in the same post
+    assert counts["merged_same_post_player"] >= 2
+
+
+def test_claimed_facts_keep_no_post_text_m6() -> None:
+    p = post("9001", datetime(2026, 10, 28, 15, 0), datetime(2026, 10, 28, 21, 0))
+    claimed, _ = rf.claims_for_posts([p], ctx())
+    (f,) = rf.claimed_store_facts(claimed, live([p]))
+    assert "Sengun" not in (f.value_text or "") and "restriction" not in (f.value_text or "")
+    meta = json.loads(f.value_text or "{}")
+    assert set(meta) == {"post_id", "evidence_sha256"} and len(meta["evidence_sha256"]) == 64
+
+
+def test_opponent_player_gets_the_opponents_team_id_m7() -> None:
+    dal_roster = [("Zed Mavsman", 777)]
+    # DAL also has an EARLIER game than the HOU-DAL one; a fact about a DAL player must follow DAL
+    early = ScheduledGame("0022600030", datetime(2026, 10, 28, 20, 0), DAL, 1610612763)
+    c = rf.Context(ALLOW, {HOU: HOU_ROSTER, DAL: dal_roster}, {}, [PREV, TONIGHT, early])
+    p = post(
+        "9001",
+        datetime(2026, 10, 28, 15, 0),
+        datetime(2026, 10, 28, 15, 1),
+        "Zed Mavsman is out tonight.",
+    )
+    facts, _, _ = rf.pretip_facts_for_posts([p], c, live([p]))
+    assert [(f.subject, f.object) for f in facts] == [("player:777", f"game:{early.game_id}")]
+
+
+def test_poll_start_reaches_the_previous_tip_plus_3h_not_18h_m7(tmp_path: Path) -> None:
+    srv = Paged([], size=5)
+    now = datetime(2026, 10, 28, 22, 0, tzinfo=UTC)  # T-90 of a Wednesday game
+    c = client(tmp_path, srv, clock=lambda: now)
+    prev = datetime(2026, 10, 27, 0, 30)  # Monday 20:30 ET game; Tuesday idle
+    assert c.poll_start("RocketsBeat", now, prev_tip=prev) == datetime(
+        2026, 10, 27, 3, 30, tzinfo=UTC
+    )
+    # the 18 h rule (no previous game known) would have started Wednesday 04:00Z, losing a
+    # Tuesday 13:00 ET (17:00Z) post about Wednesday's game
+    assert c.poll_start("RocketsBeat", now) == datetime(2026, 10, 28, 10, 0, tzinfo=UTC)
+    far = datetime(2026, 10, 1, 0, 30)  # long ago: capped at 48 h
+    assert c.poll_start("RocketsBeat", now, prev_tip=far) == now - timedelta(hours=48)
+    c.state.update("RocketsBeat", last_ok_poll_at=datetime(2026, 10, 28, 17, 30).isoformat())
+    got = c.poll_start("RocketsBeat", now, prev_tip=prev)
+    assert got == datetime(2026, 10, 28, 17, 28, tzinfo=UTC)  # the cursor minus 120 s
+
+
+def test_tick_asks_x_from_the_previous_tip_plus_3h_m7(tmp_path: Path) -> None:
+    posts = [tweet("7001", CAP_TEXT, "2026-10-27T17:00:00.000Z")]  # Tuesday 13:00 ET
+    clock = [NOW]
+    run, store, srv = tick_env(tmp_path, posts, clock)
+    run(TIP - timedelta(minutes=90))
+    starts = [q.url.params["start_time"] for q in srv.requests if q.url.path.endswith("/tweets")]
+    assert starts == ["2026-10-27T03:30:00Z"]
+
+
+def test_each_page_is_written_to_raw_as_it_arrives_m2(tmp_path: Path) -> None:
+    pages = {"n": 0}
+    posts = many(12)
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.startswith("/2/users/by/username/"):
+            return httpx.Response(200, json={"data": {"id": "42"}})
+        pages["n"] += 1
+        if pages["n"] in (2, 3):  # page 2 and its one retry
+            return httpx.Response(500)
+        return httpx.Response(200, json={"data": posts[:5], "meta": {"next_token": "5"}})
+
+    c = r.XClient(
+        r.load_allowlist(allowlist_yaml(tmp_path)), environ=ENV, data_dir=tmp_path / "d",
+        clock=lambda: NOW, sleep=lambda s: None, transport=httpx.MockTransport(handler),
+    )  # fmt: skip
+    res = c.poll(isolate_errors=True)
+    out = res.outcomes[0]
+    assert out.status.startswith("error:") and len(out.posts) == 5 and not out.ok
+    files = sorted((tmp_path / "d" / "raw").rglob("*.parquet"))
+    assert len(files) == 1 and sum(len(r.read_raw(f)) for f in files) == 5  # billed and kept
+    st = tmp_path / "d" / "state.json"
+    assert not st.exists() or "last_ok_poll_at" not in json.loads(st.read_text()).get(
+        "rocketsbeat", {}
+    )
+
+
+def test_counts_worst_case_is_a_hard_bound_m1(tmp_path: Path) -> None:
+    allow = r.load_allowlist(allowlist_yaml(tmp_path))
+    plan = rcount.make_plan(allow)
+    assert plan.max_requests == 28 and plan.max_usd == pytest.approx(0.28)
+    sent: list[int] = []
+
+    def endless(req: httpx.Request) -> httpx.Response:  # a server that never stops paging
+        sent.append(1)
+        body = {"data": [], "meta": {"next_token": "more"}}
+        return httpx.Response(200, json=body)
+
+    c = r.XClient(allow, environ=ENV, data_dir=tmp_path / "d", clock=lambda: NOW,
+                  transport=httpx.MockTransport(endless))  # fmt: skip
+    summary = rcount.run_counts(c, plan, tmp_path / "o", max_usd=0.28)
+    assert len(sent) <= plan.max_requests and summary["requests"] == len(sent) == 28
+    assert summary["truncated"]  # the page cap was hit, and it says so
+
+
+def test_a_stuck_tick_lock_is_an_alert_not_a_quiet_skip_m3(tmp_path: Path) -> None:
+    import os
+
+    lock = tmp_path / "data" / "poll.lock"
+    assert rt.acquire_lock(lock)
+    allow = r.load_allowlist(allowlist_yaml(tmp_path))
+    common = dict(
+        allow=allow, games=[PREV, TONIGHT], make_client=lambda: None, make_ctx=lambda: ctx(),
+        store_path=tmp_path / "f" / "s.duckdb", data_dir=tmp_path / "data",
+        ops_dir=tmp_path / "ops",
+    )  # fmt: skip
+    # a second pid cannot own it: pretend another process holds it (acquire sees a live pid)
+    (lock / "pid").write_text(str(os.getppid()))
+    res = rt.run_tick(now=TIPA - timedelta(minutes=90), **common)  # type: ignore[arg-type]
+    assert res.rc == 0 and "lock held" in res.detail  # held for seconds: quiet skip
+    old = datetime.now().timestamp() - 700
+    os.utime(lock, (old, old))
+    res = rt.run_tick(now=TIPA - timedelta(minutes=90), **common)  # type: ignore[arg-type]
+    assert res.rc == rt.RC_REFUSED and "stuck" in res.detail
+    hb = json.loads((tmp_path / "ops" / "heartbeat" / "reporters.json").read_text())
+    assert hb["rc"] == rt.RC_REFUSED

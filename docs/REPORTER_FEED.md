@@ -67,7 +67,7 @@ Guards (each refuses with exit 2 BEFORE the request is sent, against `data/repor
   are always eligible. `poll --all-teams` lifts the slate filter (not the window).
 - **Pre-game window:** polls are refused outside `[tip - 120 min, tip]` of the handle's team
   (league-wide handles: slate first tip - 120 min to the slate's last tip). No games today or no
-  schedule means refusal. Planned schedule: **T-90 and T-40 relative to each team's tip**, two polls
+  schedule means refusal. Planned schedule (now **T-90, T-70 and T-40** plus a sweep, see "Capture fixes"), two polls
   per team per game day. Nothing is wired into launchd or `ops/`; that is Devin's later go.
 - `budget` subcommand: `python -m nba.ingest.reporters budget` prints today's and this month's posts,
   HTTP attempts, user reads and estimated USD (posts and users shown separately).
@@ -177,20 +177,30 @@ oracle has nothing to compare.
 2. **Own store.** `data/facts/reporter_facts.duckdb`, primary key (subject, predicate, object,
    source, post_id), insert-only (`ON CONFLICT DO NOTHING`; the module has no UPDATE, DELETE or
    DROP, a test greps for them). `python -m nba.facts build` reads it read-only through
-   `--reporter-store` (default that path, `''` = leave out), copies rows of loaded seasons only, and
-   survives a locked store with a note. The poller is its only writer.
+   `--reporter-store` (**default off**; pass the store path to turn it on, only once the LLM shadow
+   and the explainer are cleared to see reporter facts; the shadow payload now also drops every
+   `claimed_` and `reporter_` predicate), copies rows of loaded seasons only, and survives a locked
+   store with a note. The store keeps post ids and evidence hashes, never post text (X deletion
+   term; the text stays in `data/reporters/raw`). The poller is its only writer.
 3. **Cursor and lookback.** A handle is paged until its start bound. A poll ends `ok` only if it
    reached it; a page cut short by the budget (`short:budget`) or by the 5-page cap
    (`short:max_pages`) records its status and leaves the cursor where it was, so the gap is read
-   again. The cursor is the last OK poll's start minus 120 s; start = max(cursor, now - 18 h), or
-   with no cursor 06:00 ET of the game day (`anchor_hour_et`), so a morning shootaround post is
-   reachable (the old 6 h window missed any post more than 6 h before the first poll). Optional
-   `poll:` block in `configs/reporters.yaml` (`max_lookback_hours`, `anchor_hour_et`); the old
+   again. The cursor is the last OK poll's start minus 120 s. A team handle starts at
+   max(cursor, previous team tip + 3 h, now - 48 h), so a post written the day before a game, from a
+   team idle that day, is still read; a league-wide handle starts at max(cursor, now - 18 h), or
+   with no cursor 06:00 ET of the game day. A morning shootaround post is reachable (the old 6 h
+   window missed any post more than 6 h before the first poll); the first poll of a game day
+   reads up to two days of a team handle, a cost of perhaps a third more posts. Every page is
+   written to raw as it arrives. Optional `poll:` block in `configs/reporters.yaml`
+   (`max_lookback_hours`, `team_lookback_hours`, `anchor_hour_et`); the old
    `lookback_hours: 6` key is no longer read by the poll (the `--lookback-hours` flag still overrides).
 4. **Cadence and coverage.** `python -m nba.ingest.reporters tick` (5-minute launchd interval,
    sketch `ops/launchd/local.nba.reporters.plist`, NOT installed) polls each team handle at T-90,
    T-70 and T-40 of its team's real tip plus a 13:30 ET sweep; T-90 and T-70 both land inside
-   [T-90, T-60]. After a sleep only the latest due label runs; a poll that does not end ok is
+   [T-90, T-60] (the whole poll, first request to last page, must lie in the window: facts are
+   stamped when the response arrives). A schedule cache older than 36 h stops the tick (rc 5): a
+   stale tip would give false coverage. A manual `tick` leaves a heartbeat, so the watchdog's job
+   alert starts watching a job that is not scheduled; run it only after installing. After a sleep only the latest due label runs; a poll that does not end ok is
    retried up to three times. League-wide handles poll at every game's times. A team-game is
    COVERED iff every required handle (its own, else the league-wide ones) has an ok poll started
    inside [T-90, T-60]; a final row per team-game goes to `team_game_coverage` after T-60, and a
@@ -203,7 +213,7 @@ oracle has nothing to compare.
    iterated against (a regression ratchet); the acceptance numbers come from the first 5 live nights
    labelled from text.
 6. **Stage 0 counts.** `python -m nba.ingest.reporters counts --dry-run` prints the plan (24
-   requests, worst case $0.24) and sends nothing. A real run needs the token, `--confirm`, a plan
+   requests, $0.24; hard bound 28, $0.28) and sends nothing. A real run needs the token, `--confirm`, a plan
    under `--max-usd` (default 0.50) and the month cap; output goes to `data/raw/x_counts_<date>/`
    page by page, resumable. Season 2025-26 is never queried.
 
