@@ -154,7 +154,9 @@ class _Spy:
     """duckdb.connect spy: every connection must be read-only; every result is scanned for the planted 2025 game."""
 
     def __init__(self, real: Any) -> None:
-        self.real, self.read_only, self.hits = real, [], []
+        self.real = real
+        self.read_only: list[bool] = []
+        self.hits: list[Any] = []
 
     def __call__(self, *a: Any, **k: Any) -> Any:
         self.read_only.append(bool(k.get("read_only")))

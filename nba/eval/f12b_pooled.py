@@ -256,7 +256,11 @@ def _draft_year_note(db: str, df: pl.DataFrame) -> dict[str, Any]:
     }
     con = duckdb.connect(db, read_only=True)
     try:
-        ps = con.execute("SELECT player_id, draft_status FROM players_static").pl()
+        ps = con.execute(
+            "SELECT DISTINCT b.player_id, p.draft_status FROM player_game_stats b "
+            "JOIN games g USING (game_id) JOIN players_static p USING (player_id) "
+            "WHERE g.season <= 2024"
+        ).pl()
     except duckdb.Error as exc:
         out["draft_status"] = f"unavailable: {exc!r}"
         return out
