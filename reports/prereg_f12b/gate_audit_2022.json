@@ -1,0 +1,84 @@
+{
+  "rule": "F12B_CLOSING_RISK (DRAFT)",
+  "seasons": {
+    "2022": {
+      "games": 1320,
+      "games_with_any_garbage": 939,
+      "garbage_min_mean_all": 3.530593434,
+      "garbage_min_mean_blowout": 7.900592904,
+      "blowout_games_a_lt_1": 61,
+      "cells": {
+        "young_close": {
+          "player_games": 1088,
+          "games": 330,
+          "sum_A_min": 12553.91833
+        },
+        "young_blow": {
+          "player_games": 1381,
+          "games": 294,
+          "sum_A_min": 6791.553332
+        },
+        "vet_close": {
+          "player_games": 3613,
+          "games": 362,
+          "sum_A_min": 41732.975
+        },
+        "vet_blow": {
+          "player_games": 3138,
+          "games": 295,
+          "sum_A_min": 15355.94833
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04308347093,
+      "inflation_sqrt_12_over_A": 1.562078679,
+      "young_gap_halfwidth_projected": 0.06729977134
+    }
+  },
+  "checks": [
+    {
+      "check": "G1a stints cover games 2022 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2022 >= 0.95",
+      "value": 0.999783698,
+      "n": 27739,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2022 >= 0.98",
+      "value": 0.8037878788,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2022 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2022 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2022",
+      "value": [
+        1088,
+        294
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2022 >= 1000",
+      "value": 6791.553332,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2022 <= 0.04",
+      "value": 0.06729977134,
+      "ok": false
+    }
+  ],
+  "all_ok": false
+}

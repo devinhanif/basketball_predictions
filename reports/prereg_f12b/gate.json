@@ -1,0 +1,160 @@
+{
+  "rule": "F12B_CLOSING_RISK (DRAFT)",
+  "seasons": {
+    "2023": {
+      "games": 1318,
+      "games_with_any_garbage": 984,
+      "garbage_min_mean_all": 4.175068285,
+      "garbage_min_mean_blowout": 8.286381173,
+      "blowout_games_a_lt_1": 102,
+      "cells": {
+        "young_close": {
+          "player_games": 891,
+          "games": 273,
+          "sum_A_min": 10227.46167
+        },
+        "young_blow": {
+          "player_games": 1428,
+          "games": 320,
+          "sum_A_min": 6847.641667
+        },
+        "vet_close": {
+          "player_games": 3190,
+          "games": 310,
+          "sum_A_min": 36775.31
+        },
+        "vet_blow": {
+          "player_games": 3678,
+          "games": 330,
+          "sum_A_min": 17550.675
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.03983805299,
+      "inflation_sqrt_12_over_A": 1.581918896,
+      "young_gap_halfwidth_projected": 0.06302056881
+    },
+    "2024": {
+      "games": 1320,
+      "games_with_any_garbage": 982,
+      "garbage_min_mean_all": 4.177126263,
+      "garbage_min_mean_blowout": 8.260572688,
+      "blowout_games_a_lt_1": 114,
+      "cells": {
+        "young_close": {
+          "player_games": 1108,
+          "games": 323,
+          "sum_A_min": 12805.69667
+        },
+        "young_blow": {
+          "player_games": 1635,
+          "games": 340,
+          "sum_A_min": 8023.499999
+        },
+        "vet_close": {
+          "player_games": 3323,
+          "games": 332,
+          "sum_A_min": 38547.67333
+        },
+        "vet_blow": {
+          "player_games": 3581,
+          "games": 340,
+          "sum_A_min": 17597.41666
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.03839526937,
+      "inflation_sqrt_12_over_A": 1.563750902,
+      "young_gap_halfwidth_projected": 0.06004063709
+    }
+  },
+  "checks": [
+    {
+      "check": "G1a stints cover games 2023 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2023 >= 0.95",
+      "value": 0.9996808624,
+      "n": 28201,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2023 >= 0.98",
+      "value": 0.7989377845,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2023 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2023 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2023",
+      "value": [
+        891,
+        273
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2023 >= 1000",
+      "value": 6847.641667,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2023 <= 0.04",
+      "value": 0.06302056881,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2024 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2024 >= 0.95",
+      "value": 0.9997521246,
+      "n": 28240,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2024 >= 0.98",
+      "value": 0.7901515152,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2024 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2024 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2024",
+      "value": [
+        1108,
+        323
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2024 >= 1000",
+      "value": 8023.499999,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2024 <= 0.04",
+      "value": 0.06004063709,
+      "ok": false
+    }
+  ],
+  "all_ok": false
+}

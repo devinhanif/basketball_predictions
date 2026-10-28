@@ -1,0 +1,692 @@
+{
+  "rule": "F12B_CLOSING_RISK (DRAFT)",
+  "seasons": {
+    "2013": {
+      "games": 1319,
+      "games_with_any_garbage": 912,
+      "garbage_min_mean_all": 3.506381097,
+      "garbage_min_mean_blowout": 8.044653179,
+      "blowout_games_a_lt_1": 74,
+      "cells": {
+        "young_close": {
+          "player_games": 1193,
+          "games": 351,
+          "sum_A_min": 13838.2
+        },
+        "young_blow": {
+          "player_games": 1102,
+          "games": 263,
+          "sum_A_min": 5355.3
+        },
+        "vet_close": {
+          "player_games": 4095,
+          "games": 366,
+          "sum_A_min": 47406.3
+        },
+        "vet_blow": {
+          "player_games": 3255,
+          "games": 272,
+          "sum_A_min": 16230.23333
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04284619788,
+      "inflation_sqrt_12_over_A": 1.571410019,
+      "young_gap_halfwidth_projected": 0.06732894465
+    },
+    "2014": {
+      "games": 1311,
+      "games_with_any_garbage": 935,
+      "garbage_min_mean_all": 3.563513857,
+      "garbage_min_mean_blowout": 7.95145951,
+      "blowout_games_a_lt_1": 79,
+      "cells": {
+        "young_close": {
+          "player_games": 983,
+          "games": 328,
+          "sum_A_min": 11388.35
+        },
+        "young_blow": {
+          "player_games": 1020,
+          "games": 269,
+          "sum_A_min": 5229.133333
+        },
+        "vet_close": {
+          "player_games": 3957,
+          "games": 354,
+          "sum_A_min": 45766.28333
+        },
+        "vet_blow": {
+          "player_games": 3270,
+          "games": 274,
+          "sum_A_min": 16815.2
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04835312934,
+      "inflation_sqrt_12_over_A": 1.529945114,
+      "young_gap_halfwidth_projected": 0.07397763399
+    },
+    "2015": {
+      "games": 1316,
+      "games_with_any_garbage": 937,
+      "garbage_min_mean_all": 3.525506586,
+      "garbage_min_mean_blowout": 7.754326047,
+      "blowout_games_a_lt_1": 67,
+      "cells": {
+        "young_close": {
+          "player_games": 1099,
+          "games": 333,
+          "sum_A_min": 12739.21667
+        },
+        "young_blow": {
+          "player_games": 1094,
+          "games": 288,
+          "sum_A_min": 5524.966667
+        },
+        "vet_close": {
+          "player_games": 4104,
+          "games": 356,
+          "sum_A_min": 47693.33333
+        },
+        "vet_blow": {
+          "player_games": 3734,
+          "games": 299,
+          "sum_A_min": 19181.26667
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04450884658,
+      "inflation_sqrt_12_over_A": 1.541467785,
+      "young_gap_halfwidth_projected": 0.06860895316
+    },
+    "2016": {
+      "games": 1309,
+      "games_with_any_garbage": 921,
+      "garbage_min_mean_all": 3.579666412,
+      "garbage_min_mean_blowout": 7.884153713,
+      "blowout_games_a_lt_1": 74,
+      "cells": {
+        "young_close": {
+          "player_games": 1035,
+          "games": 331,
+          "sum_A_min": 12061.63333
+        },
+        "young_blow": {
+          "player_games": 1319,
+          "games": 312,
+          "sum_A_min": 6623.216667
+        },
+        "vet_close": {
+          "player_games": 3980,
+          "games": 352,
+          "sum_A_min": 46178.06667
+        },
+        "vet_blow": {
+          "player_games": 3703,
+          "games": 312,
+          "sum_A_min": 18425.28333
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04036742061,
+      "inflation_sqrt_12_over_A": 1.545889828,
+      "young_gap_halfwidth_projected": 0.06240358491
+    },
+    "2017": {
+      "games": 1312,
+      "games_with_any_garbage": 934,
+      "garbage_min_mean_all": 3.604623984,
+      "garbage_min_mean_blowout": 7.841131907,
+      "blowout_games_a_lt_1": 67,
+      "cells": {
+        "young_close": {
+          "player_games": 1204,
+          "games": 348,
+          "sum_A_min": 13871.98333
+        },
+        "young_blow": {
+          "player_games": 1328,
+          "games": 303,
+          "sum_A_min": 6537.416667
+        },
+        "vet_close": {
+          "player_games": 3840,
+          "games": 359,
+          "sum_A_min": 44462.66667
+        },
+        "vet_blow": {
+          "player_games": 3591,
+          "games": 307,
+          "sum_A_min": 18113.61667
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04028829368,
+      "inflation_sqrt_12_over_A": 1.561300783,
+      "young_gap_halfwidth_projected": 0.06290214448
+    },
+    "2018": {
+      "games": 1312,
+      "games_with_any_garbage": 952,
+      "garbage_min_mean_all": 3.810315041,
+      "garbage_min_mean_blowout": 8.058109209,
+      "blowout_games_a_lt_1": 93,
+      "cells": {
+        "young_close": {
+          "player_games": 1230,
+          "games": 352,
+          "sum_A_min": 14212.48333
+        },
+        "young_blow": {
+          "player_games": 1491,
+          "games": 315,
+          "sum_A_min": 7393.383333
+        },
+        "vet_close": {
+          "player_games": 3903,
+          "games": 361,
+          "sum_A_min": 45157.1
+        },
+        "vet_blow": {
+          "player_games": 3481,
+          "games": 316,
+          "sum_A_min": 17559.81667
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.03790557224,
+      "inflation_sqrt_12_over_A": 1.555635455,
+      "young_gap_halfwidth_projected": 0.05896725211
+    },
+    "2019": {
+      "games": 1143,
+      "games_with_any_garbage": 823,
+      "garbage_min_mean_all": 3.617101195,
+      "garbage_min_mean_blowout": 7.825913313,
+      "blowout_games_a_lt_1": 62,
+      "cells": {
+        "young_close": {
+          "player_games": 1060,
+          "games": 287,
+          "sum_A_min": 12198.08667
+        },
+        "young_blow": {
+          "player_games": 1169,
+          "games": 258,
+          "sum_A_min": 5857.693333
+        },
+        "vet_close": {
+          "player_games": 2844,
+          "games": 299,
+          "sum_A_min": 32806.14833
+        },
+        "vet_blow": {
+          "player_games": 2657,
+          "games": 261,
+          "sum_A_min": 13467.15667
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04144108448,
+      "inflation_sqrt_12_over_A": 1.547513915,
+      "young_gap_halfwidth_projected": 0.06413065491
+    },
+    "2020": {
+      "games": 1171,
+      "games_with_any_garbage": 878,
+      "garbage_min_mean_all": 4.054985768,
+      "garbage_min_mean_blowout": 8.244946808,
+      "blowout_games_a_lt_1": 89,
+      "cells": {
+        "young_close": {
+          "player_games": 1064,
+          "games": 303,
+          "sum_A_min": 12249.55833
+        },
+        "young_blow": {
+          "player_games": 1457,
+          "games": 287,
+          "sum_A_min": 6870.050001
+        },
+        "vet_close": {
+          "player_games": 2992,
+          "games": 311,
+          "sum_A_min": 34541.45167
+        },
+        "vet_blow": {
+          "player_games": 2842,
+          "games": 287,
+          "sum_A_min": 13791.91667
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.04006010516,
+      "inflation_sqrt_12_over_A": 1.595292965,
+      "young_gap_halfwidth_projected": 0.06390760392
+    },
+    "2021": {
+      "games": 1323,
+      "games_with_any_garbage": 980,
+      "garbage_min_mean_all": 4.004087932,
+      "garbage_min_mean_blowout": 8.151208622,
+      "blowout_games_a_lt_1": 98,
+      "cells": {
+        "young_close": {
+          "player_games": 1146,
+          "games": 319,
+          "sum_A_min": 13377.58167
+        },
+        "young_blow": {
+          "player_games": 1516,
+          "games": 332,
+          "sum_A_min": 7280.27
+        },
+        "vet_close": {
+          "player_games": 2988,
+          "games": 331,
+          "sum_A_min": 34677.205
+        },
+        "vet_blow": {
+          "player_games": 3304,
+          "games": 334,
+          "sum_A_min": 16149.86333
+        }
+      },
+      "young_gap_halfwidth_no_exclusion": 0.03806585858,
+      "inflation_sqrt_12_over_A": 1.580761976,
+      "young_gap_halfwidth_projected": 0.06017306181
+    }
+  },
+  "checks": [
+    {
+      "check": "G1a stints cover games 2013 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2013 >= 0.95",
+      "value": 1.0,
+      "n": 27337,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2013 >= 0.98",
+      "value": 0.7771038666,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2013 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2013 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2013",
+      "value": [
+        1102,
+        263
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2013 >= 1000",
+      "value": 5355.3,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2013 <= 0.04",
+      "value": 0.06732894465,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2014 >= 0.95",
+      "value": 0.9992372235,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2014 >= 0.95",
+      "value": 1.0,
+      "n": 27487,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2014 >= 0.98",
+      "value": 0.765064836,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2014 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2014 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2014",
+      "value": [
+        983,
+        269
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2014 >= 1000",
+      "value": 5229.133333,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2014 <= 0.04",
+      "value": 0.07397763399,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2015 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2015 >= 0.95",
+      "value": 1.0,
+      "n": 27827,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2015 >= 0.98",
+      "value": 0.7750759878,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2015 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2015 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2015",
+      "value": [
+        1094,
+        288
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2015 >= 1000",
+      "value": 5524.966667,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2015 <= 0.04",
+      "value": 0.06860895316,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2016 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2016 >= 0.95",
+      "value": 1.0,
+      "n": 27715,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2016 >= 0.98",
+      "value": 0.7601222307,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2016 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2016 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2016",
+      "value": [
+        1035,
+        312
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2016 >= 1000",
+      "value": 6623.216667,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2016 <= 0.04",
+      "value": 0.06240358491,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2017 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2017 >= 0.95",
+      "value": 1.0,
+      "n": 27693,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2017 >= 0.98",
+      "value": 0.8102134146,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2017 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2017 >= 0.95",
+      "value": 0.9992378049,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2017",
+      "value": [
+        1204,
+        303
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2017 >= 1000",
+      "value": 6537.416667,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2017 <= 0.04",
+      "value": 0.06290214448,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2018 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2018 >= 0.95",
+      "value": 1.0,
+      "n": 27747,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2018 >= 0.98",
+      "value": 0.8208841463,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2018 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2018 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2018",
+      "value": [
+        1230,
+        315
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2018 >= 1000",
+      "value": 7393.383333,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2018 <= 0.04",
+      "value": 0.05896725211,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2019 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2019 >= 0.95",
+      "value": 0.9891616991,
+      "n": 23989,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2019 >= 0.98",
+      "value": 0.8258967629,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2019 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2019 >= 0.95",
+      "value": 0.9991251094,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2019",
+      "value": [
+        1060,
+        258
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2019 >= 1000",
+      "value": 5857.693333,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2019 <= 0.04",
+      "value": 0.06413065491,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2020 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2020 >= 0.95",
+      "value": 0.9865969008,
+      "n": 24845,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2020 >= 0.98",
+      "value": 0.8095644748,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2020 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2020 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2020",
+      "value": [
+        1064,
+        287
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2020 >= 1000",
+      "value": 6870.050001,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2020 <= 0.04",
+      "value": 0.06390760392,
+      "ok": false
+    },
+    {
+      "check": "G1a stints cover games 2021 >= 0.95",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G1b stints vs box within 1 min 2021 >= 0.95",
+      "value": 0.9938167308,
+      "n": 27817,
+      "ok": true
+    },
+    {
+      "check": "G2 as written (first Q4 poss >= 700 s, score_diff non-null) 2021 >= 0.98",
+      "value": 0.7785336357,
+      "ok": false
+    },
+    {
+      "check": "G2-A1 amended (state from 720 s; first Q4 poss >= 680 s, score_diff non-null) 2021 >= 0.98",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "check": "G3 last-possession margin (any period) within 3 of final 2021 >= 0.95",
+      "value": 0.9992441421,
+      "ok": true
+    },
+    {
+      "check": "G4 cells >= 500 player-games and >= 150 games 2021",
+      "value": [
+        1146,
+        319
+      ],
+      "ok": true
+    },
+    {
+      "check": "G4 young x blowout non-garbage Q4 minutes 2021 >= 1000",
+      "value": 7280.27,
+      "ok": true
+    },
+    {
+      "check": "G5 projected young-gap half-width 2021 <= 0.04",
+      "value": 0.06017306181,
+      "ok": false
+    }
+  ],
+  "all_ok": false
+}
