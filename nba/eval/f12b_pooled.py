@@ -21,7 +21,7 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import polars as pl
@@ -167,10 +167,15 @@ def _gap_row(c: pl.DataFrame, b: pl.DataFrame, games: list[str]) -> dict[str, An
     gap = F.ratio_ng(c) / F.ratio_ng(b) - 1.0
     with np.errstate(divide="ignore", invalid="ignore"):
         bs = F._boot_ng(c, b, games)
-    bs = bs[np.isfinite(bs)]
+    finite = np.isfinite(bs)
+    n_drop = int(
+        (~finite).sum()
+    )  # review m6: draws with an empty resampled cell (expected 0 on real windows)
+    bs = bs[finite]
     lo, hi = float(np.quantile(bs, 0.025)), float(np.quantile(bs, 0.975))
     return {
         "gap": gap, "ci": [lo, hi], "half_width": (hi - lo) / 2.0,
+        "n_boot": int(len(finite)), "n_boot_dropped_nonfinite": n_drop,
         "n_close": c.height, "n_blow": b.height,
         "games_close": c["game_id"].n_unique(), "games_blow": b["game_id"].n_unique(),
     }  # fmt: skip
@@ -216,8 +221,8 @@ def window_premise(db: str, seasons: tuple[int, ...]) -> dict[str, Any]:
     mid = d.filter((pl.col("idx") >= 3) & (pl.col("idx") <= 4))
     close, blow = pl.col("margin") <= F.CLOSE_MAX, pl.col("margin") >= F.BLOW_MIN
     desc["idx_3_4_gap"] = _gap_row(mid.filter(close), mid.filter(blow), games)
-    desc["young_starters_gap"] = _young_starters(db, d, games)
-    desc["null_draft_year_share_of_player_games"] = float(df["draft_year"].is_null().mean())  # type: ignore[arg-type]
+    desc["young_starters_gap"] = _young_starters(db, d, games, seasons)
+    desc["draft_year"] = _draft_year_note(db, df)
     return {
         "seasons": list(seasons),
         "games": len(games),
@@ -237,12 +242,57 @@ def _no_exclusion(c: pl.DataFrame, b: pl.DataFrame) -> float | None:
     return rc / rb - 1.0
 
 
-def _young_starters(db: str, d: pl.DataFrame, games: list[str]) -> dict[str, Any]:
+def _draft_year_note(db: str, df: pl.DataFrame) -> dict[str, Any]:
+    """Review m2: undrafted players carry a null draft_year by design (excluded from the idx
+    cells, as F12 did); the threat the rule names is a DRAFTED player-game with a null year.
+    Both shares are reported separately (descriptive)."""
     import duckdb
 
+    out: dict[str, Any] = {
+        "null_draft_year_share_all_player_games": float(
+            cast(float, df["draft_year"].is_null().mean())
+        ),
+        "note": "undrafted players: null draft_year by design, excluded from the cells",
+    }
     con = duckdb.connect(db, read_only=True)
     try:
-        st = con.execute("SELECT game_id, player_id, starter FROM player_game_stats").pl()
+        ps = con.execute("SELECT player_id, draft_status FROM players_static").pl()
+    except duckdb.Error as exc:
+        out["draft_status"] = f"unavailable: {exc!r}"
+        return out
+    finally:
+        con.close()
+    j = df.select("player_id", "draft_year").join(ps, on="player_id", how="left")
+    drafted = j.filter(pl.col("draft_status") == "drafted")
+    out["drafted_player_games"] = drafted.height
+    out["null_draft_year_share_of_drafted_player_games"] = (
+        float(cast(float, drafted["draft_year"].is_null().mean())) if drafted.height else None
+    )
+    out["undrafted_share_of_player_games"] = (
+        float(cast(float, (j["draft_status"] == "undrafted").mean())) if j.height else None
+    )
+    out["null_status_share_of_player_games"] = (
+        float(cast(float, j["draft_status"].is_null().mean())) if j.height else None
+    )
+    return out
+
+
+def _young_starters(
+    db: str, d: pl.DataFrame, games: list[str], seasons: tuple[int, ...]
+) -> dict[str, Any]:
+    """Descriptive young-starter gap. Review B1: box rows are filtered at the source to the
+    window's seasons (<= 2024)."""
+    import duckdb
+
+    lst = ", ".join(str(int(x)) for x in seasons)
+    if max(seasons) > F.MAX_SEASON:
+        raise SystemExit("refused: season > 2024 requested")
+    con = duckdb.connect(db, read_only=True)
+    try:
+        st = con.execute(
+            "SELECT b.game_id, b.player_id, b.starter FROM player_game_stats b "
+            f"JOIN games g USING (game_id) WHERE g.season IN ({lst}) AND g.season <= 2024"
+        ).pl()
     except duckdb.Error as exc:  # descriptive only
         return {"unavailable": repr(exc)}
     finally:
@@ -256,20 +306,23 @@ def _young_starters(db: str, d: pl.DataFrame, games: list[str]) -> dict[str, Any
 
 
 def decide(select: dict[str, Any], report: dict[str, Any] | None) -> dict[str, Any]:
-    """Frozen rule: SELECT P1 and P2 first (else FAIL, REPORT not computed); then REPORT P1 and
-    P2 (else FAIL); then the realised REPORT young half-width <= 0.05 (else INCONCLUSIVE); else
-    PASS. FAIL and INCONCLUSIVE both close F12."""
+    """Frozen rule: SELECT P1 and P2 first (else FAIL, REPORT not computed); then the realised
+    REPORT young half-width <= 0.05 (else INCONCLUSIVE, whatever P1 / P2 say: review m3, a label
+    choice; both close F12); then REPORT P1 and P2 (else FAIL); else PASS."""
     if not (select["P1"] and select["P2"]):
         return {"verdict": "FAIL", "reason": "SELECT failed P1 or P2; REPORT not computed"}
     assert report is not None
-    if not (report["P1"] and report["P2"]):
-        return {"verdict": "FAIL", "reason": "REPORT failed P1 or P2"}
     hw = report["gaps"]["young"].get("half_width")
     if hw is None or hw > PRECISION_MAX:
         return {
             "verdict": "INCONCLUSIVE",
-            "reason": f"REPORT young half-width {hw} > {PRECISION_MAX}",
+            "reason": f"REPORT young half-width {hw} > {PRECISION_MAX} (INCONCLUSIVE whatever "
+            "P1 / P2 say; closes F12 as a FAIL does)",
+            "report_P1": report["P1"],
+            "report_P2": report["P2"],
         }
+    if not (report["P1"] and report["P2"]):
+        return {"verdict": "FAIL", "reason": "REPORT failed P1 or P2"}
     return {
         "verdict": "PASS",
         "reason": "P1 and P2 in both windows; precision guard holds (opens only F12B_MODEL)",
