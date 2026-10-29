@@ -1,8 +1,8 @@
 # LINE_CAL_LIVE: does the frozen LINE_CALIBRATION map make production's P(over) honest at Pinnacle's line on the 2026-27 live log? (pre-registration)
 
-Status: **DRAFT, revision 1, written by the modeler Thu 2026-10-29 12:32 CDT (clock read by `date`; revision 0 was 08:30). Revision 1
-applies Devin's settled choices (section 11) and the adversary pre-freeze review (docs/reviews/LINE_CAL_LIVE_prefreeze_2026-10-29.md:
-B1-B3, M1-M4, m1-m9). Not frozen. No map fitted; no outcome-scored number exists for the candidate on any 2026 row.**
+Status: **DRAFT, revision 2, written by the modeler Thu 2026-10-29 12:46 CDT (clock read by `date`; revision 0 08:30, revision 1 12:32). Revision 1
+applied Devin's settled choices (section 11) and the adversary pre-freeze review (docs/reviews/LINE_CAL_LIVE_prefreeze_2026-10-29.md:
+B1-B3, M1-M4, m1-m9); revision 2 applies its re-review (N1-N5). Not frozen. No map fitted; no outcome-scored number exists for the candidate on any 2026 row.**
 - **How it becomes the rule:** the main session commits `prereg(LINE_CAL_LIVE): <sha256>` of everything above the line
   `=== RESULTS BELOW ===` (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/LINE_CAL_LIVE.md | shasum -a 256`), with the status
   line changed to FROZEN in the same commit. Before that: Devin reads it, the open choices (section 11) are settled, the harness is written
@@ -63,7 +63,8 @@ is already shown to users on the card and the parlay panel, yet it has never bee
 5. **One look.** The first slate date D on which the window holds >= 200 games with at least one leg AND >= 5,000 legs (projected
    2026-12-01, section 5), counting only dates before the run date. Backstop: if not reached by 2027-01-31, D = 2027-01-31. `run`
    reads the real ET clock only (no date override), requires the real date to be after D, and requires every game on every window date
-   through D to be settled. **Settled:** a game with a final score (`games.home_pts > 0 AND away_pts > 0`) and production
+   through D to be settled. **Settled:** a game that is final (`games.home_pts > 0 AND away_pts > 0`, or `player_game_stats` holds rows
+   for it: an ingest outage is not a postponement) and has production
    `forward_predictions` rows has `forward_scores` rows (else pending: the run refuses and is retried later). A scheduled game with no final
    score 36 h after its tip is listed in the results as `unplayed_or_postponed` and does not block; before 36 h it is pending. A final game
    with no production prediction is listed as `unforecast` and does not block. The same rules apply to the backstop. A verdict word needs
@@ -233,7 +234,7 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
 
 ## 10. Kill criteria and what reverses it
 - Stop unscored if: the map sha differs; more than 5% of legs with a Pinnacle t60 two-sided main line drop for lead < 55 min (0% at the
-  gate); any season other than 2026 enters; any pinned file (section 13) differs from the freeze commit. A production prop-model version change inside the window does not stop the look: legs are scored as served
+  gate); any season other than 2026 enters; the executing code of any pinned file (section 13) differs from the freeze commit. A production prop-model version change inside the window does not stop the look: legs are scored as served
   (the question is the served number) and S6 reports each version segment.
 - Reading: a NOT_TRANSPORTED, or a bench-slice (P6) failure, is read as "the served map does not hold". This test cannot separate season
   drift from the serving deviation of the bench input (section 8.3), except through D0.
@@ -260,18 +261,27 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
 - Month: calendar month of the ET slate date.
 
 ## 13. Commands and pins (maintainer; light, numpy only, no heavy.lock needed)
-- **Pinned to the freeze commit** (the freeze commit carries them at their final bytes): the harness `research/eval/line_cal_live_eval.py`,
-  the gate `research/eval/line_cal_live_gate.py`, and the served functions `nba/parlay/line_cal.py`, `nba/parlay/line_cal_map_v1.json`,
-  `nba/parlay/top_source.py` (`p_over`, `quartiles`) and `nba/forward/scorecard.py` (`_main_point`). Tests:
-  `tests/eval/test_line_cal_live_eval.py`, `tests/eval/test_line_cal_live_gate.py`. `run` refuses when `git diff <freeze commit>` over the
-  pinned files is non-empty, and records each file's sha256. A change to any pinned file before the look is a new rule id, or a logged
-  amendment that leaves RAW and CAL byte-identical on the pre-freeze legs.
+- **Pinned to the freeze commit:** the harness `research/eval/line_cal_live_eval.py`, the gate `research/eval/line_cal_live_gate.py`, and
+  the served functions `nba/parlay/line_cal.py`, `nba/parlay/line_cal_map_v1.json`, `nba/parlay/top_source.py` (`p_over`, `quartiles`)
+  and `nba/forward/scorecard.py` (`_main_point`). Tests: `tests/eval/test_line_cal_live_eval.py`, `tests/eval/test_line_cal_live_gate.py`.
+- **How the look runs:** from a checkout of the freeze commit (`git worktree add <dir> <freeze commit>`), with `--data-root` the main
+  checkout, so a later edit on main to a pinned file cannot change the look's computation and does not stop it. `run` compares the
+  bytes of every module it actually executes (the harness, the gate, `line_cal`, the map file, `top_source`, `scorecard`) with
+  `git show <freeze commit>:<path>`, refuses on any mismatch, and records those sha256s. The results list every commit on main since
+  the freeze that touches a pinned file; if one changes `p_over`, `quartiles`, `_main_point` or `CalMap.apply`, the served number differs
+  from the scored one, and the results say so (a serving difference, descriptive; not a stop and not a new id). The one result is
+  written to `reports/prereg_line_cal_live/results.json` in both the freeze checkout and the main checkout; `run` refuses if either
+  exists.
+- **Holdout log first:** before `run`, the main session commits a HOLDOUT_ACCESS_LOG row (rule sha, the one look, season-2026 outcomes
+  read once), whether or not the season-2026 holdout rollover (at 20 games) has been done.
 ```
 cd /Users/devin/Downloads/nba-prediction
 M="-m research.eval.line_cal_live_eval"
 .venv-1/bin/python -W ignore $M status --sha <64 hex>     # counts only: games, legs, look date (no outcome)
 .venv-1/bin/python -W ignore $M dryrun                    # synthetic outcomes end to end on the real legs (no outcome read)
-.venv-1/bin/python -W ignore $M run --sha <64 hex>        # the one look; real clock only; refuses before the look or with pending games
+git worktree add ../lcl_look <freeze commit>               # the look runs from the frozen code
+(cd ../lcl_look && /Users/devin/Downloads/nba-prediction/.venv-1/bin/python -W ignore $M run --sha <64 hex> --data-root /Users/devin/Downloads/nba-prediction)
+                                                          # the one look; real clock only; refuses before the look or with pending games
 .venv-1/bin/python -W ignore -m research.eval.line_cal_live_gate --data-root . --until <date> --out reports/prereg_line_cal_live/gate_<date>.json
 ```
 

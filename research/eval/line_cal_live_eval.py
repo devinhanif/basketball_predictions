@@ -13,10 +13,13 @@ the freeze commit (read from git); 2026-10-20..freeze is reported once, at the l
 labelled secondary. One look: the first slate date with >= 200 games and >= 5,000 legs in the window;
 backstop 2027-01-31; fewer than 150 games is INSUFFICIENT_DATA. ``run`` uses the real ET clock only,
 requires every window game settled (postponed and unforecast games listed, not blocking), and refuses
-if any PINNED file differs from the freeze commit.
+unless the executing modules are byte-identical to the freeze commit. It is meant to run from a checkout
+of the freeze commit (``git worktree add <dir> <freeze commit>``) with ``--data-root`` the main checkout;
+later edits on main to a pinned file are listed in the results as a serving difference, not a stop.
 
 Read-only on ``nba.duckdb`` and ``data/markets/market_asof.duckdb``. Season 2026 only in every live
-query (``season = 2026``); the 2023-24 Pinnacle legs (pinned pairs frames) are read for C0 and the x band.
+query (``season = 2026``); the 2023-24 Pinnacle and DraftKings t60 legs (pinned pairs frames) are read for C0
+and the x band (DraftKings for S3 only).
 Season 2025 is never loaded. ``status`` and ``dryrun`` never read an outcome (no ``y``, no score column);
 ``run`` reads outcomes only after the look is reached and settled.
 """
@@ -40,7 +43,9 @@ import duckdb
 import numpy as np
 import polars as pl
 
+from nba.forward import scorecard as served_scorecard
 from nba.parlay import line_cal as lc
+from nba.parlay import top_source as served_top_source
 from research.eval import line_cal_live_gate as gate
 
 RULE = "LINE_CAL_LIVE"
@@ -252,6 +257,14 @@ def load_game_states(root: Path, start: date, end: date) -> list[GameState]:
     scored: set[str] = set()
     if ids:
         gm = ",".join("?" for _ in ids)
+        # a game with box rows is final even if the score ingest lags (an ingest outage is not a postponement)
+        final |= {
+            r[0]
+            for r in con.execute(
+                f"SELECT DISTINCT game_id FROM player_game_stats WHERE game_id IN ({gm})",  # noqa: S608
+                ids,
+            ).fetchall()
+        }
         predicted = {
             r[0]
             for r in con.execute(
@@ -278,6 +291,50 @@ def load_game_states(root: Path, start: date, end: date) -> list[GameState]:
         )
         for gid in ids
     ]
+
+
+def executing_files() -> dict[str, Path]:
+    """The bytes that actually run: each pinned path mapped to the module file the interpreter loaded."""
+    return {
+        "research/eval/line_cal_live_eval.py": Path(__file__),
+        "research/eval/line_cal_live_gate.py": Path(str(gate.__file__)),
+        "nba/parlay/line_cal.py": Path(str(lc.__file__)),
+        "nba/parlay/line_cal_map_v1.json": Path(lc.MAP_PATH),
+        "nba/parlay/top_source.py": Path(str(served_top_source.__file__)),
+        "nba/forward/scorecard.py": Path(str(served_scorecard.__file__)),
+    }
+
+
+def executing_vs_freeze(repo: Path, commit: str) -> tuple[dict[str, str], list[str]]:
+    """(sha256 of each executing pinned file, the pinned paths whose executing bytes differ from
+    ``git show <commit>:<path>``)."""
+    shas: dict[str, str] = {}
+    bad: list[str] = []
+    for rel, f in executing_files().items():
+        got = hashlib.sha256(f.read_bytes()).hexdigest()
+        shas[rel] = got
+        frozen = subprocess.run(
+            ["git", "-C", str(repo), "show", f"{commit}:{rel}"], capture_output=True, check=False
+        )
+        if frozen.returncode != 0 or hashlib.sha256(frozen.stdout).hexdigest() != got:
+            bad.append(rel)
+    return shas, bad
+
+
+def main_commits_touching_pinned(root: Path, commit: str) -> list[str] | str:
+    """Commits on the data-root checkout since the freeze that touch a pinned file (a serving
+    difference, descriptive)."""
+    try:
+        out = _git(root, "log", "--format=%h %cI %s", f"{commit}..HEAD", "--", *PINNED)
+    except (subprocess.CalledProcessError, OSError):
+        return "unknown (data root is not a git checkout holding the freeze commit)"
+    return [ln for ln in out.splitlines() if ln.strip()]
+
+
+def run_once_guard(repo: Path, root: Path) -> None:
+    for base in (repo, root):
+        if (base / OUT_REL).exists():
+            raise SystemExit(f"refused: {base / OUT_REL} exists (the look runs once)")
 
 
 def pinned_diff(repo: Path, commit: str) -> list[str]:
@@ -803,6 +860,12 @@ def cmd_run(root: Path, repo: Path, sha: str, today: date) -> dict[str, Any]:
         raise SystemExit("refused: run uses the real clock only")
     check_doc(repo, sha)
     commit, fz = freeze_commit(repo, sha)
+    exec_shas, bad = executing_vs_freeze(repo, commit)
+    if bad:
+        raise SystemExit(
+            f"refused: the executing code differs from the freeze commit {commit[:8]}: {bad} "
+            "(run from `git worktree add <dir> <freeze commit>`)"
+        )
     moved = pinned_diff(repo, commit)
     if moved:
         raise SystemExit(
@@ -825,9 +888,7 @@ def cmd_run(root: Path, repo: Path, sha: str, today: date) -> dict[str, Any]:
             f"refused: {len(settle['pending'])} window games are not settled yet (final but unscored, or not final "
             f"within {POSTPONED_AFTER_H:.0f} h of tip)"
         )
-    out_p = repo / OUT_REL
-    if out_p.exists():
-        raise SystemExit(f"refused: {OUT_REL} exists (the look runs once)")
+    run_once_guard(repo, root)
     legs, why = _load_window(root, start, lk.date, BOOK)
     lead = why.get("lead_below_55", 0)
     with_line = len(legs) + sum(
@@ -847,7 +908,8 @@ def cmd_run(root: Path, repo: Path, sha: str, today: date) -> dict[str, Any]:
         "rule": RULE, "sha": sha, "freeze_commit": commit, "freeze_et_date": str(fz),
         "look": {"kind": lk.kind, "date": str(lk.date)}, "window": [str(start), str(lk.date)],
         "map_sha256": gate.MAP_SHA,
-        "pinned_sha256": {f: file_sha(repo / f) for f in PINNED},
+        "pinned_sha256": exec_shas,
+        "main_commits_touching_pinned": main_commits_touching_pinned(root, commit),
         "drops": why,
         "settlement": {k: (len(v) if k == "settled" else v) for k, v in settle.items()},
         "verdict": verdict(prim["verdict_core"], prim["games"], lk.kind), "primary": prim,
@@ -873,8 +935,12 @@ def cmd_run(root: Path, repo: Path, sha: str, today: date) -> dict[str, Any]:
         "n": len(dnp), "under_lean": int(side.sum()), "over_lean": int((~side).sum()),
         "by_stat": {s: sum(1 for x in dnp if x.stat == s) for s in STATS},
     }  # fmt: skip
-    out_p.parent.mkdir(parents=True, exist_ok=True)
-    out_p.write_text(json.dumps(res, indent=1, default=str) + "\n")
+    run_once_guard(repo, root)
+    txt = json.dumps(res, indent=1, default=str) + "\n"
+    for base in (repo, root):  # the freeze checkout and the main checkout both carry the one result
+        out_p = base / OUT_REL
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out_p.write_text(txt)
     return res
 
 
