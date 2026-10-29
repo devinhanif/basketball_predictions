@@ -204,14 +204,15 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
 - A TRANSPORTS verdict is reversed by the post-result attack (re-derivation, a second seed, dropping the top five player-seasons, team
   clustering) or by a production change to the grid (the map must then be re-checked on legs scored by the new grid).
 
-## 11. Open choices (defaults in bold)
-1. Pre-freeze rows 10-20..freeze: **excluded** / included as a labelled secondary only.
-2. Quartile source: **served 19-point q_grid** (export and panel; 0.00022 max difference) / the frozen text's 199-point grid.
-3. Line snapshot: **t60** (the map's own) / close (the scorecard's).
-4. Look size: **200 games and 5,000 legs, about 2026-12-01** / 150 games, about 11-22 (P1 power 0.87 at lam 0.25).
-5. Primary metric: **Brier, log loss as agreement** / log loss primary (LINE_CALIBRATION's).
-6. DraftKings cell: **secondary** / co-primary (then BH m = 2 on P1).
-7. JARVIS weight rule on CAL: **no, display only** / a new rule version now.
+## 11. Choices (settled: Devin, 2026-10-29 12:05, "defaults"; DECISIONS row of that time)
+1. Pre-freeze rows 10-20..freeze: **excluded from every check; reported once, at the look, as a labelled secondary marked EXPOSED with no
+   pass word** (as recorded in the DECISIONS row).
+2. Quartile source: **the served 19-point q_grid** (export and panel; 0.00022 max difference from the 199-point grid).
+3. Line snapshot: **Pinnacle t60** (the map's own).
+4. Look size: **200 games and 5,000 legs, about 2026-12-01**; backstop 2027-01-31; fewer than 150 games is INSUFFICIENT_DATA.
+5. Primary metric: **Brier, with log loss as agreement**.
+6. DraftKings cell: **secondary only** (no BH shared with P1).
+7. JARVIS weight rule: **display only; the weight rule keeps reading RAW**.
 
 ## 12. Unstated details fixed before any scored number
 - Clipping: model probabilities to [0.5/199, 1 - 0.5/199] for both scores; market to [1e-9, 1 - 1e-9].

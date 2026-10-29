@@ -71,6 +71,7 @@ class Leg:
     min_sd: float | None
     mean: float
     p_mkt: float
+    made_at: datetime | None = None
 
 
 def side_under(p_raw: np.ndarray) -> np.ndarray:
@@ -166,18 +167,24 @@ def _pairs_x_band(root: Path) -> dict[str, list[float]]:
     return band
 
 
-def load_legs(root: Path, since: date, until: date, book: str) -> tuple[list[Leg], dict[str, int]]:
+def load_legs(
+    root: Path, since: date, until: date, book: str, status: str = "scored"
+) -> tuple[list[Leg], dict[str, int]]:
+    """Label-free legs: forecast, book line, RAW and CAL. ``status`` 'scored' (played) or 'dnp'
+    (voided; LINE_CAL_LIVE D3). Never selects y or any score column."""
     if until.year > 2027 or since < SINCE:
         raise ValueError("window outside season 2026")
+    if status not in ("scored", "dnp"):
+        raise ValueError("status must be 'scored' or 'dnp'")
     con = duckdb.connect(str(root / "nba.duckdb"), read_only=True)
     rows = con.execute(
         """SELECT s.game_id, s.game_date, s.target, s.player_id, s.made_at, CAST(p.prediction AS VARCHAR)
            FROM forward_scores s JOIN forward_predictions p
              ON p.game_id = s.game_id AND p.model_name = s.model_name AND p.target = s.target
             AND p.player_id = s.player_id AND p.made_at = s.made_at
-           WHERE s.status = 'scored' AND s.model_name = ? AND s.season = ?
+           WHERE s.status = ? AND s.model_name = ? AND s.season = ?
              AND s.game_date BETWEEN ? AND ? AND s.target IN ('pts','reb','ast','fg3m')""",
-        [PROD, SEASON, since, until],
+        [status, PROD, SEASON, since, until],
     ).fetchall()
     latest: dict[tuple[str, str, int], tuple[Any, ...]] = {}
     for r in rows:
@@ -265,7 +272,7 @@ def load_legs(root: Path, since: date, until: date, book: str) -> tuple[list[Leg
                 p_raw=float(np.clip(po, lc.EPS, 1 - lc.EPS)), p_cal=float(pc), p_cal_199=pc199,
                 starter=float(sr) >= 0.5, p_play=None if pp is None else float(pp),
                 proj_min=None if pm is None else float(pm), min_sd=minutes_sd(prior),
-                mean=float(pred["mean"]), p_mkt=float(po_m / (po_m + pu_m)),
+                mean=float(pred["mean"]), p_mkt=float(po_m / (po_m + pu_m)), made_at=r[4],
             )
         )  # fmt: skip
     return legs, dict(why)
