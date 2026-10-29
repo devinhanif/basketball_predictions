@@ -1,7 +1,8 @@
 # LINE_CAL_LIVE: does the frozen LINE_CALIBRATION map make production's P(over) honest at Pinnacle's line on the 2026-27 live log? (pre-registration)
 
-Status: **DRAFT, revision 0, written by the modeler Thu 2026-10-29 08:30 CDT (clock read by `date`). Not frozen. No map fitted; no
-outcome-scored number exists for the candidate on any 2026 row.**
+Status: **DRAFT, revision 1, written by the modeler Thu 2026-10-29 12:32 CDT (clock read by `date`; revision 0 was 08:30). Revision 1
+applies Devin's settled choices (section 11) and the adversary pre-freeze review (docs/reviews/LINE_CAL_LIVE_prefreeze_2026-10-29.md:
+B1-B3, M1-M4, m1-m9). Not frozen. No map fitted; no outcome-scored number exists for the candidate on any 2026 row.**
 - **How it becomes the rule:** the main session commits `prereg(LINE_CAL_LIVE): <sha256>` of everything above the line
   `=== RESULTS BELOW ===` (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/LINE_CAL_LIVE.md | shasum -a 256`), with the status
   line changed to FROZEN in the same commit. Before that: Devin reads it, the open choices (section 11) are settled, the harness is written
@@ -15,7 +16,7 @@ outcome-scored number exists for the candidate on any 2026 row.**
 ## 0. Step 0: what already exists, and what was already tested
 | object | what it calibrates | lines, seasons | wired where | evidence |
 |---|---|---|---|---|
-| **LINE_CALIBRATION** (frozen a5441242, commit 06d76e3; `nba/parlay/line_cal.py`, `line_cal_build.py`, map `line_cal_map_v1.json`, payload sha 443743a1) | production's integer-grid P(over) at a book's x.5 MAIN line. Terms `[1, x, z, bench, bench*x]`: x = logit raw P, z = line vs continuous median in spread units, bench = starter rate < 0.5. One ridge logistic per (book, stat), books Pinnacle and DraftKings. Nothing from a price enters a fit | T-60 lines of 2023-24, walk-forward by month for the test; the served static map is fit on all 2023-24 legs (last row 2025-06-22), weights 0.5^(age/365) | parlay top-picks panel (`top_source`, `top_parlays`, legs carry `p_cal`); app export `line_cal` and the card (DraftKings cell at the DK main line, display only). **Not** in the scorecard, **not** in JARVIS, **not** in the briefing | **T493 CALIBRATED** (select 2024): Pinnacle log loss CAL - raw -0.0117 [-0.0139, -0.0096], n 37,528 legs / 1,260 games; CAL - base rate -0.0037; CAL 0.6882 vs coin 0.6931 vs Pinnacle 0.6865. Attack SURVIVES; fg3m carries 54% of the gain over the base rate, pts almost none (-0.0007). Stage 2 (2025) never run; Claude recommended the live log instead. **No forward check has ever been run** |
+| **LINE_CALIBRATION** (frozen a5441242, commit 06d76e3; `nba/parlay/line_cal.py`, `line_cal_build.py`, map `line_cal_map_v1.json`, payload sha 443743a1) | production's integer-grid P(over) at a book's x.5 MAIN line. Terms `[1, x, z, bench, bench*x]`: x = logit raw P, z = line vs continuous median in spread units, bench = `starter10` < 0.5 in the fit (exponentially weighted starter share over played games, half-life 10), but **served (and scored here) with the stored `starter_rate`** (plain starter share over the previous 150 box rows including DNP rows, NULL set to 0). The two disagree on 12.80% of the map's own 72,674 Pinnacle fit legs (6,413 fit-starters served as bench, 2,892 the reverse, so the served bench group is about 23% larger), mean absolute CAL change 0.0018 (0.014 on the flipped legs, max 0.196). One ridge logistic per (book, stat), books Pinnacle and DraftKings. Nothing from a price enters a fit | T-60 lines of 2023-24, walk-forward by month for the test; the served static map is fit on all 2023-24 legs (last row 2025-06-22), weights 0.5^(age/365) | parlay top-picks panel (`top_source`, `top_parlays`, legs carry `p_cal`); app export `line_cal` and the card (DraftKings cell at the DK main line, display only). **Not** in the scorecard, **not** in JARVIS, **not** in the briefing | **T493 CALIBRATED** (select 2024): Pinnacle log loss CAL - raw -0.0117 [-0.0139, -0.0096], n 37,528 legs / 1,260 games; CAL - base rate -0.0037; CAL 0.6882 vs coin 0.6931 vs Pinnacle 0.6865. Attack SURVIVES; fg3m carries 54% of the gain over the base rate, pts almost none (-0.0007). Stage 2 (2025) never run; Claude recommended the live log instead. **No forward check has ever been run** |
 | ALT_RUNG_CAL (T494; `rung_cal*`) | P(over) at DraftKings ALTERNATE rungs, raw P >= 0.5 only | DK 2023-24 | export `rung_cal`, card | RUNG_REFIT_FIXES, WOUNDED: 92% of the gain is the book's main line. Not this question (main lines only here) |
 | PARLAY_JOINT_CAL (T495) | the JOINT of parlay legs, using LINE_CALIBRATION marginals | DK primary, 2023-24 | panel joint | "T1 CALIBRATED in all 4 DK cells" means the joint of CAL legs is honest for random tickets; WOUNDED: mostly a confidence correction, and the panel's top picks still run 3-5 pts high (selection). It checks the same map, not a new one |
 | TAIL_LEG_CAL (T496) | CAL legs with P >= 0.65 | DK 2023-24 | none | NOT_FIXED, closed; tail flag only |
@@ -53,13 +54,20 @@ is already shown to users on the card and the parlay panel, yet it has never bee
    whose raw prices are closest to even, `nba.forward.scorecard._main_point`), lead >= 55 min, x.5 lines only.
 2. **Arms.** RAW = `top_source.p_over(pred, line)` clipped to [0.5/199, 1 - 0.5/199]. **CAL** = `CalMap.apply("pinnacle", stat, RAW,
    line, q50, (q75 - q25)/1.349, starter_rate)` with the frozen map (payload sha 443743a1, refused otherwise) and quartiles from the stored
-   19-point `q_grid` (the served definition: export and parlay panel). No refit, ever, inside this rule.
+   19-point `q_grid` (the served definition: export and parlay panel). No refit, ever, inside this rule. The bench input is the served
+   `starter_rate`, not the fitted `starter10` (section 8.3): this rule tests the map as served.
 3. **Side.** under-lean iff RAW < 0.5, else over-lean. Fixed by RAW, so both arms are scored on the same partition.
-4. **Window.** Slate dates (ET) from the first slate after the freeze commit. Pre-freeze rows (10-20 to the freeze) are excluded from every
-   check (section 7).
-5. **One look.** The morning after the first slate date on which the window holds >= 200 games with at least one leg AND >= 5,000 legs
-   (projected 2026-12-01, section 5). Backstop: if not reached by 2027-01-31, look then. A verdict word needs >= 150 games, else
-   INSUFFICIENT_DATA. No interim look at any CAL outcome number.
+4. **Window.** Slate dates (ET) strictly after the ET calendar date of the freeze commit's committer time (read from git; the main
+   session merges with `--no-ff`, because a rebase or squash moves the committer date). Pre-freeze rows (10-20 to that date) are excluded
+   from every check (section 7) and reported once, at the look, as the EXPOSED secondary S10.
+5. **One look.** The first slate date D on which the window holds >= 200 games with at least one leg AND >= 5,000 legs (projected
+   2026-12-01, section 5), counting only dates before the run date. Backstop: if not reached by 2027-01-31, D = 2027-01-31. `run`
+   reads the real ET clock only (no date override), requires the real date to be after D, and requires every game on every window date
+   through D to be settled. **Settled:** a game with a final score (`games.home_pts > 0 AND away_pts > 0`) and production
+   `forward_predictions` rows has `forward_scores` rows (else pending: the run refuses and is retried later). A scheduled game with no final
+   score 36 h after its tip is listed in the results as `unplayed_or_postponed` and does not block; before 36 h it is pending. A final game
+   with no production prediction is listed as `unforecast` and does not block. The same rules apply to the backstop. A verdict word needs
+   >= 150 games, else INSUFFICIENT_DATA. No interim look at any CAL outcome number.
 6. **Primary metric.** Mean per-leg Brier at the line, CAL minus RAW, four stats pooled, legs weighted equally. 95% paired percentile
    bootstrap over games (B = 2,000, seed 0); a date-clustered CI is printed beside it (cross-game same-night moves); the game CI binds.
 7. **Checks.** P1 Brier CAL - RAW <= **-0.0015** with CI upper < 0. P1b log loss CAL - RAW CI upper < 0. P2 under-lean: Brier CAL - RAW
@@ -84,7 +92,8 @@ is already shown to users on the card and the parlay panel, yet it has never bee
 | P4, the 0.015 calibration-in-the-large bar (LINE_CALIBRATION P4) | a gain from shrinking while the location bias stays |
 | P5, P6 | a pooled gain hiding a stat or the bench (T477: bench off by 5.9 pp) |
 | pre-freeze rows excluded | the raw side-split hit rates through 10-28 have been read (section 7) |
-| one look, a fixed size, a backstop | peeking; a test that never ends |
+| one look, a fixed size, a backstop; real clock only; every window date settled | peeking; a test that never ends; a verdict forced early by a mistyped date; a result that depends on when it is run |
+| harness, gate and served functions pinned to the freeze commit (section 13) | a wiring branch changing RAW or CAL before the look |
 | DNP voided | scoring a played-only map on a mixture it was never fit on (the Kalshi DNP-as-miss case is a wiring question, D3) |
 | game-clustered paired bootstrap, date CI beside it | row-level CIs that were anti-conservative (BEST_PRACTICES 3) |
 
@@ -93,17 +102,21 @@ is already shown to users on the card and the parlay panel, yet it has never bee
   than Pinnacle. A CAL win would be a surprise to attack, not a claim.
 - **S2 base rate C0.** The frozen harness's C0 at the static map's block (per stat, the 0.5^(age/365)-weighted over rate of the 2023-24
   Pinnacle t60 legs, block start 2025-07-01). CAL - C0 says whether the map beats "say the old base rate" live.
-- **S3 DraftKings cell.** The same checks for the DK cell at the DK t60 main line (the cell the card serves; CAL_FORWARD's cell A). Label
-  only; BH not shared with the primary.
+- **S3 DraftKings cell.** The same contrasts for the DK cell at the DK t60 main line (the cell the card serves; CAL_FORWARD's cell A), with
+  the DraftKings C0 and the DraftKings x band. Label only: no check, no verdict word; BH not shared with the primary.
 - **S4 coin** (0.5) reference row.
 - **S5 per stat** CAL - RAW (BH m = 4), and **side x stat** (BH m = 8).
 - **S6 slices** (each CAL - RAW with game CI, n and games): starter / bench; minutes-uncertain = P(play) < 0.9 OR minutes sd >= 6 over the
   player's season-2026 games before the date (>= 4 games; else "unknown"), and each flag alone; RAW outside the map's x band (1st-99th
-  percentile of the Pinnacle fit legs per stat); calendar month; production version segment (`forward_scores.version`).
+  percentile of the Pinnacle fit legs per stat); recency-fallback rows (`fallback_reason` set in the stored prediction; 74 of the 1,787
+  pre-freeze legs, pts 26 / reb 20 / ast 13 / fg3m 15, a model the map never saw) and their complement; calendar month; production
+  version segment (`forward_scores.version`).
 - **S7 reliability** in ten equal-width bins for RAW and CAL, per side.
 - **S8 descriptive recalibration fit** on the window (intercept and slope of logit outcome on logit RAW, and on logit CAL). It is a
   description of the residual, not a candidate: no fitted number is served or scored.
 - **S9 bridge.** The scorecard's mean-vs-line side table for RAW and CAL, so the two views can be read together.
+- **S10 pre-freeze rows, EXPOSED.** The same contrasts on 2026-10-20 through the freeze date, reported once at the look, marked EXPOSED,
+  no check, no verdict word (section 11.1).
 
 ## 5. Minimum-data gate (non-negotiable 8), measured Thu 2026-10-29 08:29 CDT on the live data it will run on
 - **Command:** `.venv-1/bin/python -W ignore -m research.eval.line_cal_live_gate --data-root /Users/devin/Downloads/nba-prediction --until 2026-10-28 --out reports/prereg_line_cal_live/gate_draft.json`
@@ -118,7 +131,7 @@ is already shown to users on the card and the parlay panel, yet it has never bee
 | legs with a Pinnacle t60 main x.5 line and all inputs | 1,787 (57 games, 9 dates; 31.4 legs per game; 83.8% of scored games have >= 1 leg) | rate >= 20 legs/game | yes |
 | why the rest drop | 4,241 no Pinnacle t60 line for that player (Pinnacle lists fewer players); 0 whole-number, 0 missing inputs | n/a | n/a |
 | t60 lead to the real tip | median 62.0 min, min 55.3 | >= 55 | yes |
-| forecast made at or before the t60 snapshot | 99.8% | n/a | n/a |
+| forecast made at or before the t60 snapshot | 1,784 of 1,787; the other 3 legs are one player in one game (0022600126, ast/pts/reb), forecast at T-9.9 min after the line at T-63.8; 0 post-tip forecasts, 0 post-tip lines; `live_book_odds.tipoff` equals the scheduled tip on all 57 games (adversary A3). Kept: they are served | n/a | n/a |
 | side split (RAW) | under 1,396 / over 391 (pts 459/185, reb 385/93, ast 240/54, fg3m 312/59) | both sides present | yes |
 | starter / bench | 1,414 / 373 (bench under 319, over 54) | both present | yes |
 | minutes-uncertain | P(play) < 0.9: 448; min sd >= 6: 28; sd unknown (< 4 season games): 1,557 (shrinks as the season grows); either: 470 | n/a | descriptive |
@@ -134,7 +147,11 @@ is already shown to users on the card and the parlay panel, yet it has never bee
 | lam 0.25 (three quarters transports) | -0.0040 | 0.0157 | 0.0022 | 0.95 | 0.91 | 0.28 |
 | lam 0.4 (about one fifth transports) | -0.0010 | 0.0154 | 0.0021 | 0.15 | 0.14 | 0.05 |
 
-Calibration-gap sd per game on under-lean legs: 0.098, so the P2 gap's standard error at 200 games is about 0.007 against the 0.03 bar.
+**Minimum detectable effect:** at 200 games the P1 standard error is about 0.00112, so the MDE at 80% power is about **-0.0031 Brier**
+(CI upper < 0 binds; the -0.0015 floor binds only for effects smaller than about -0.0024). That is 37% of the exact-transport effect
+(-0.0085): transport is detectable down to about lam 0.3 on this synthetic family.
+Calibration-gap sd per game on under-lean legs: 0.098, so the P2 gap's standard error at 200 games is about 0.007 against the 0.03 bar (a
+true gap of exactly 0.03 fails half the time).
 The over-lean slice is under-powered for a gain, which is why P3 asks only for no significant harm. **Gate: PASS.**
 
 **Capture audit (before any gate could be declared failed; it passed, recorded anyway).** Prop lines held: 2023 and 2024 (odds_history t60:
@@ -144,6 +161,13 @@ Pinnacle 35,630 / 38,333 raw legs, DraftKings 54,013 / 54,716, FanDuel 45,290 / 
 no prop lines. Nothing repairable changes this rule's power: it is set by the live season's pace.
 
 ## 6. Pre-declared diagnostics (descriptive; game-clustered CIs; no pass word)
+- **D0 serving bridge (optional, label-free, before the look only).** Replay at least 10 dates of 2024 through the live path on a copy of
+  the database (`nba.daily.replay_season`, seasons <= 2024), and compare RAW, q50, spread, the bench flag and CAL with the fit-path values
+  on the same Pinnacle legs. No outcome is read. Pre-declared reading: a median absolute CAL difference <= 0.005 says the serving path
+  matches the fit path, and a NOT_TRANSPORTED is then read as season drift; otherwise it is read as a serving mismatch. The tool is not
+  written; if D0 is not run before the look, NOT_TRANSPORTED is not attributed to either cause. The bench part is already measured (12.80%
+  of the 2023-24 Pinnacle legs flip, mean absolute CAL change 0.0018; section 0). An outcome score of CAL on 2024 is NOT a positive control:
+  the served map was fit on every 2023-24 leg, so it would pass by construction; T493's walk-forward is the historical control.
 - **D1 minutes realisation on under-lean legs.** Groups by actual minus projected minutes: short (<= -5), near (-5, +5), long (>= +5), no
   projection. Per group, for RAW and CAL: n, mean stated P(under), realised under rate, gap, and the group's share of the side's total excess
   sum(stated - hit). Question: is the under overconfidence carried by players who played more than projected (a minutes miss), or by
@@ -163,6 +187,8 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
   0.632, over 0.575) to CAL 0.545 (under 0.551, over 0.526); mean P(over) RAW 0.413, CAL 0.466, Pinnacle 0.485; CAL flips the side on 7.7%.
   With the scorecard's under hit rate near 0.56, a reader can guess that CAL's under gap on the pre-freeze rows is small. That is why those
   rows are excluded from every check.
+- **Seen at the review (label-free):** the ast cell sits further from Pinnacle live than in the fit (RAW minus Pinnacle mean P(over) -0.085
+  on 294 live legs against -0.047 on the fit legs; the other stats within 0.016). If a stat fails P5, ast is the likeliest. A prior only.
 - **Not seen:** any CAL (or C0) outcome score on any 2026 leg. No map fitted.
 
 ## 8. Lineage and playbook check (docs/MODEL_PLAYBOOK.md; class: quantile and distribution layers, recalibration at the line)
@@ -170,10 +196,17 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
    is stated at the line, already built. The class's named failure ("our P(over) 4 pp low at the line") is the target.
 2. **Enough data for the class?** The map is 5 parameters per cell fit on 12,984-25,210 Pinnacle legs; nothing is fit here. The live test
    needs about 200 games for P1 at a three-quarters transport (power 0.95).
-3. **Valid test?** Real tips (live `tipoff`, lead >= 55 min), played legs only, as-of inputs (forecast made before the t60 snapshot on
-   99.8%), probabilities at x.5 lines are exact on the integer grid, both arms on the same legs and partition, fixed look, power measured on
-   the real legs. The comparator is what production serves. Known transport risk, and the reason for the test: production in 2026 may not
-   be the production the map was fit on (2023-24 OOF rows of 2026-10-10; same `ctxres-v1` label, code drift since unmeasured).
+3. **Valid test?** Real tips (live `tipoff` equals the scheduled tip on all 57 gate games; line lead >= 55 min, min 55.3), played legs
+   only, as-of inputs (0 post-tip forecasts and lines; 3 legs of one player have a forecast made after the t60 line, at T-9.9 min, and
+   are kept because they are served), probabilities at x.5 lines exact on the integer grid, both arms on the same legs and partition,
+   fixed look, power measured on the real legs. The comparator is what production serves. **It tests the map as served, not as fitted.**
+   Known serving deviations: (a) the bench term is served on `starter_rate`, not the fitted `starter10` (12.80% of fit legs flip; served
+   bench group about 23% larger). P6 and the S6 bench slice are therefore defined on a bench group the map's bench coefficients were not
+   fit on; a bench failure means the served bench probabilities are not honest, not that the fitted coefficients are wrong. (b) 4.1% of
+   live legs are recency-fallback rows (S6). (c) Production refits daily on all rows before the slate, while the fit rows came from
+   monthly-block OOF refits; the roster source differs. **Code drift:** none found in the conditional prop path between the OOF build
+   (`model_rows_*` at a2e7609, 2026-10-10) and ec98d17 (adversary A6: `max_season` plumbing, P(play) Platt off, grids persisted; replay
+   oracle 89889f6d unchanged since 10-11).
 4. **Lineage.** CALIBRATED_GRID (T339, isotonic/Platt/temperature on DK, 60-day window; closed, its shuffled control beat every map) ->
    LINE_CALIBRATION (T493, the one allowed follow-up; CALIBRATED; Stage 2 not run) -> this forward check (T493's own recommended
    confirmation). Guards carried: map sha refusal, holdout refusal, game-clustered paired bootstrap with seed 0, B 2,000, per-stat BH, P4,
@@ -192,15 +225,18 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
 - **PARTIAL.** The named slice is recorded. If it is a side (P2 or P3), one follow-up is allowed under a new id (LINE_CAL_SIDE): the same
   logistic plus a side term (`1[x < 0]` and its interaction with x; Platt-family, two parameters, not isotonic: isotonic cannot use role or
   z and already lost in CALIBRATED_GRID), fit on 2023-24 Pinnacle legs, tested forward on the next 200 games. No other follow-up.
-- **NOT_TRANSPORTED.** The card and the parlay panel are serving a map that does not hold this season: the proposal to Devin is to label
+- **NOT_TRANSPORTED.** This means **the served number is not honest**, not "season drift": the test cannot tell drift from the serving
+  deviations of section 8.3 unless D0 was run (section 6). The card and the parlay panel are serving a map that does not hold: the proposal to Devin is to label
   them "historical calibration, not confirmed live" or to show Pinnacle's price instead, and a refit question under a new id on 2026 live
   legs only (walk-forward, no 2025), drafted no earlier than 400 games.
 - **INSUFFICIENT_DATA.** Recorded; no wiring.
 
 ## 10. Kill criteria and what reverses it
-- Stop unscored if: the map sha differs; more than 5% of otherwise eligible legs drop for lead < 55 min (0% at the gate); any season
-  other than 2026 enters. A production prop-model version change inside the window does not stop the look: legs are scored as served
+- Stop unscored if: the map sha differs; more than 5% of legs with a Pinnacle t60 two-sided main line drop for lead < 55 min (0% at the
+  gate); any season other than 2026 enters; any pinned file (section 13) differs from the freeze commit. A production prop-model version change inside the window does not stop the look: legs are scored as served
   (the question is the served number) and S6 reports each version segment.
+- Reading: a NOT_TRANSPORTED, or a bench-slice (P6) failure, is read as "the served map does not hold". This test cannot separate season
+  drift from the serving deviation of the bench input (section 8.3), except through D0.
 - A TRANSPORTS verdict is reversed by the post-result attack (re-derivation, a second seed, dropping the top five player-seasons, team
   clustering) or by a production change to the grid (the map must then be re-checked on legs scored by the new grid).
 
@@ -219,16 +255,24 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
 - Outcome: over iff `y > line` (x.5 lines, no pushes). Under rate is 1 - over rate on the under-lean legs.
 - Bootstrap: one multinomial game-resample matrix (seed 0, B 2,000) shared by every statistic; date clusters resampled the same way
   (seed 1). One-sided p for BH = (1 + #{boot of RAW - CAL <= 0}) / 2,001.
-- Starter: `starter_rate >= 0.5`. Minutes sd: sample sd (ddof 1) of minutes > 0 in season-2026 games strictly before the date.
+- Starter: the served `starter_rate >= 0.5` (not the fitted `starter10`; section 8.3). Fallback rows are kept (they are served). Minutes sd: sample sd (ddof 1) of minutes > 0 in season-2026 games strictly before the date.
 - Duplicate legs: one per (game, player, stat). A player traded mid-window keeps every leg.
 - Month: calendar month of the ET slate date.
 
-## 13. Commands (maintainer; light, no heavy.lock needed: numpy only, about 2 s on the gate)
+## 13. Commands and pins (maintainer; light, numpy only, no heavy.lock needed)
+- **Pinned to the freeze commit** (the freeze commit carries them at their final bytes): the harness `research/eval/line_cal_live_eval.py`,
+  the gate `research/eval/line_cal_live_gate.py`, and the served functions `nba/parlay/line_cal.py`, `nba/parlay/line_cal_map_v1.json`,
+  `nba/parlay/top_source.py` (`p_over`, `quartiles`) and `nba/forward/scorecard.py` (`_main_point`). Tests:
+  `tests/eval/test_line_cal_live_eval.py`, `tests/eval/test_line_cal_live_gate.py`. `run` refuses when `git diff <freeze commit>` over the
+  pinned files is non-empty, and records each file's sha256. A change to any pinned file before the look is a new rule id, or a logged
+  amendment that leaves RAW and CAL byte-identical on the pre-freeze legs.
 ```
 cd /Users/devin/Downloads/nba-prediction
-.venv-1/bin/python -W ignore -m research.eval.line_cal_live_gate --data-root . --until <date> --out reports/prereg_line_cal_live/gate_<date>.json   # re-measure the gate
-# after the freeze (harness research/eval/line_cal_live_eval.py, not yet written; it will refuse a DRAFT, a missing prereg commit and any season != 2026):
-.venv-1/bin/python -W ignore -m research.eval.line_cal_live_eval run --sha <64 hex> --until <look date>
+M="-m research.eval.line_cal_live_eval"
+.venv-1/bin/python -W ignore $M status --sha <64 hex>     # counts only: games, legs, look date (no outcome)
+.venv-1/bin/python -W ignore $M dryrun                    # synthetic outcomes end to end on the real legs (no outcome read)
+.venv-1/bin/python -W ignore $M run --sha <64 hex>        # the one look; real clock only; refuses before the look or with pending games
+.venv-1/bin/python -W ignore -m research.eval.line_cal_live_gate --data-root . --until <date> --out reports/prereg_line_cal_live/gate_<date>.json
 ```
 
 === RESULTS BELOW ===

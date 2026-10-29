@@ -10,8 +10,10 @@ RAW (production's integer-grid P(over)) against CAL (the frozen LINE_CALIBRATION
 443743a1, Pinnacle cell, applied as served; no refit) on scored, played production legs at Pinnacle's
 t60 main x.5 line (lead >= 55 min). Side by RAW < 0.5. Window: slate dates strictly after the ET date of
 the freeze commit (read from git); 2026-10-20..freeze is reported once, at the look, as an EXPOSED
-labelled secondary. One look: the first slate date with >= 200 games and >= 5,000 legs in the window,
-fully settled; backstop 2027-01-31; fewer than 150 games is INSUFFICIENT_DATA.
+labelled secondary. One look: the first slate date with >= 200 games and >= 5,000 legs in the window;
+backstop 2027-01-31; fewer than 150 games is INSUFFICIENT_DATA. ``run`` uses the real ET clock only,
+requires every window game settled (postponed and unforecast games listed, not blocking), and refuses
+if any PINNED file differs from the freeze commit.
 
 Read-only on ``nba.duckdb`` and ``data/markets/market_asof.duckdb``. Season 2026 only in every live
 query (``season = 2026``); the 2023-24 Pinnacle legs (pinned pairs frames) are read for C0 and the x band.
@@ -71,6 +73,17 @@ PAIRS_SHA = {
 ET = ZoneInfo("America/New_York")
 MINUTES_SHORT = -5.0
 MINUTES_LONG = 5.0
+POSTPONED_AFTER_H = 36.0
+#: The operational rule: these files must be byte-identical to the freeze commit when ``run`` executes.
+PINNED = (
+    "research/eval/line_cal_live_eval.py",
+    "research/eval/line_cal_live_gate.py",
+    "nba/parlay/line_cal.py",
+    "nba/parlay/line_cal_map_v1.json",
+    "nba/parlay/top_source.py",
+    "nba/forward/scorecard.py",
+)
+PASS_WORDS = ("checks", "verdict_core", "failing")
 
 Frame = dict[str, np.ndarray]
 
@@ -172,28 +185,118 @@ def find_look(counts: list[tuple[date, int, int]], start: date, today: date) -> 
     return Look("not_reached", None, g, n)
 
 
-def unsettled_games(root: Path, d: date) -> int:
-    """Scheduled games on ET date d without any production forward_scores row (scored or dnp)."""
-    s = pl.read_parquet(root / "data/schedule/live_tips_2026-27.parquet")
-    sched = set(
-        s.filter(pl.col("gameDateTimeEst").str.slice(0, 10) == d.isoformat())["gameId"].to_list()
-    )
-    con = duckdb.connect(str(root / "nba.duckdb"), read_only=True)
-    have = {
-        r[0]
-        for r in con.execute(
-            "SELECT DISTINCT game_id FROM forward_scores WHERE model_name = ? AND season = ? AND game_date = ?",
-            [gate.PROD, gate.SEASON, d],
-        ).fetchall()
+def real_today() -> date:
+    """The real ET calendar date (``run`` accepts no other clock)."""
+    return datetime.now(ET).date()
+
+
+@dataclass(frozen=True)
+class GameState:
+    game_id: str
+    date: date
+    tip_utc: datetime | None
+    final: bool
+    predicted: bool
+    scored: bool
+
+
+def classify_settlement(games: list[GameState], now_utc: datetime) -> dict[str, list[str]]:
+    """Settled, for every game on a window date: a game with a final score AND production predictions must
+    have forward_scores rows (else ``pending``, which blocks). A game with no final score 36 h after its
+    tip is ``unplayed_or_postponed`` (listed, not blocking); before that it is ``pending``. A final game
+    with no production prediction is ``unforecast`` (listed, not blocking)."""
+    out: dict[str, list[str]] = {
+        "settled": [],
+        "pending": [],
+        "unplayed_or_postponed": [],
+        "unforecast": [],
     }
+    for g in sorted(games, key=lambda x: (x.date, x.game_id)):
+        if g.final and not g.predicted:
+            out["unforecast"].append(g.game_id)
+        elif g.final and g.scored:
+            out["settled"].append(g.game_id)
+        elif g.final:
+            out["pending"].append(g.game_id)
+        else:
+            tip = g.tip_utc or datetime(
+                g.date.year, g.date.month, g.date.day, 23, 59, tzinfo=ET
+            ).astimezone(ZoneInfo("UTC"))
+            if now_utc - tip > timedelta(hours=POSTPONED_AFTER_H):
+                out["unplayed_or_postponed"].append(g.game_id)
+            else:
+                out["pending"].append(g.game_id)
+    return out
+
+
+def load_game_states(root: Path, start: date, end: date) -> list[GameState]:
+    """Every game on an ET date in [start, end]: the schedule file's games plus ``games`` rows (season 2026)."""
+    s = pl.read_parquet(root / "data/schedule/live_tips_2026-27.parquet").with_columns(
+        pl.col("gameDateTimeEst").str.slice(0, 10).str.to_date().alias("d")
+    )
+    sched = {
+        r[0]: (r[2], datetime.fromisoformat(r[1].replace("Z", "+00:00")))
+        for r in s.select("gameId", "gameDateTimeUTC", "d").iter_rows()
+        if start <= r[2] <= end
+    }
+    con = duckdb.connect(str(root / "nba.duckdb"), read_only=True)
+    g_rows = con.execute(
+        "SELECT game_id, game_date, coalesce(home_pts, 0) > 0 AND coalesce(away_pts, 0) > 0 FROM games "
+        "WHERE season = ? AND game_date BETWEEN ? AND ?",
+        [gate.SEASON, start, end],
+    ).fetchall()
+    final = {r[0] for r in g_rows if r[2]}
+    dates = {r[0]: r[1] for r in g_rows}
+    ids = sorted(set(sched) | set(dates))
+    predicted: set[str] = set()
+    scored: set[str] = set()
+    if ids:
+        gm = ",".join("?" for _ in ids)
+        predicted = {
+            r[0]
+            for r in con.execute(
+                f"SELECT DISTINCT game_id FROM forward_predictions WHERE model_name = ? AND game_id IN ({gm})",  # noqa: S608
+                [gate.PROD, *ids],
+            ).fetchall()
+        }
+        scored = {
+            r[0]
+            for r in con.execute(
+                f"SELECT DISTINCT game_id FROM forward_scores WHERE model_name = ? AND season = ? AND game_id IN ({gm})",  # noqa: S608
+                [gate.PROD, gate.SEASON, *ids],
+            ).fetchall()
+        }
     con.close()
-    return len(sched - have)
+    return [
+        GameState(
+            gid,
+            sched[gid][0] if gid in sched else dates[gid],
+            sched[gid][1] if gid in sched else None,
+            gid in final,
+            gid in predicted,
+            gid in scored,
+        )
+        for gid in ids
+    ]
+
+
+def pinned_diff(repo: Path, commit: str) -> list[str]:
+    """Pinned files that differ (working tree included) from the freeze commit."""
+    out = _git(repo, "diff", "--name-only", commit, "--", *PINNED)
+    return [ln for ln in out.splitlines() if ln.strip()]
+
+
+def strip_pass_words(r: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Secondaries (DraftKings, EXPOSED pre-freeze) carry no pass word."""
+    if r is None:
+        return None
+    return {k: v for k, v in r.items() if k not in PASS_WORDS}
 
 
 # ------------------------------------------------------------------ frames
 
 
-def pairs_frames(root: Path) -> pl.DataFrame:
+def pairs_frames(root: Path, book: str = BOOK) -> pl.DataFrame:
     parts = []
     for s in (2023, 2024):
         p = root / f"data/ops/model_clv_pairs/pairs_{s}.parquet"
@@ -201,7 +304,7 @@ def pairs_frames(root: Path) -> pl.DataFrame:
             raise SystemExit(f"refused: {p.name} differs from its LINE_CALIBRATION pin")
         d = pl.read_parquet(
             p, columns=["book", "stat", "snapshot_kind", "season", "game_date", "over"]
-        ).filter((pl.col("book") == BOOK) & (pl.col("snapshot_kind") == "t60"))
+        ).filter((pl.col("book") == book) & (pl.col("snapshot_kind") == "t60"))
         if d["season"].n_unique() != 1 or int(d["season"][0]) != s:
             raise SystemExit("refused: unexpected season in a pairs frame")
         parts.append(d)
@@ -210,7 +313,7 @@ def pairs_frames(root: Path) -> pl.DataFrame:
 
 def c0_rates(pairs: pl.DataFrame) -> dict[str, float]:
     """The frozen harness's C0 at the static map's block: per stat, the 0.5 ** (age / 365)-weighted over
-    rate of the 2023-24 Pinnacle t60 legs, age counted from 2025-07-01, clipped to eps."""
+    rate of the 2023-24 t60 legs of the frame's book, age counted from 2025-07-01, clipped to eps."""
     out: dict[str, float] = {}
     for st in STATS:
         d = pairs.filter((pl.col("stat") == st) & pl.col("over").is_not_null())
@@ -222,8 +325,8 @@ def c0_rates(pairs: pl.DataFrame) -> dict[str, float]:
     return out
 
 
-def x_band(pairs_root: Path) -> dict[str, list[float]]:
-    return gate._pairs_x_band(pairs_root)
+def x_band(pairs_root: Path, book: str = BOOK) -> dict[str, list[float]]:
+    return gate._pairs_x_band(pairs_root, book)
 
 
 def legs_frame(legs: list[gate.Leg], band: dict[str, list[float]], c0: dict[str, float]) -> Frame:
@@ -252,6 +355,7 @@ def legs_frame(legs: list[gate.Leg], band: dict[str, list[float]], c0: dict[str,
         "mean": np.array([x.mean for x in legs]),
         "line": np.array([x.line for x in legs]),
         "x_out": out,
+        "fallback": np.array([x.fallback for x in legs], dtype=bool),
     }
 
 
@@ -485,6 +589,8 @@ def evaluate(F: Frame) -> dict[str, Any]:
         "min_sd_ge_6": msd >= gate.MIN_SD_HIGH,
         "min_sd_unknown": np.isnan(msd),
         "x_outside_fit_band": F["x_out"],
+        "fallback_rows": F["fallback"],
+        "context_model_rows": ~F["fallback"],
     }
     for mo in sorted(set(months)):
         sl[f"month_{mo}"] = months == mo
@@ -690,9 +796,18 @@ def cmd_dryrun(root: Path, today: date) -> tuple[dict[str, Any], bool]:
     return out, ok
 
 
-def cmd_run(root: Path, repo: Path, sha: str, today: date, force: bool) -> dict[str, Any]:
+def cmd_run(root: Path, repo: Path, sha: str, today: date) -> dict[str, Any]:
+    """The one look. ``today`` must be the real ET date (a test may pass another date only to see the
+    refusal)."""
+    if today != real_today():
+        raise SystemExit("refused: run uses the real clock only")
     check_doc(repo, sha)
     commit, fz = freeze_commit(repo, sha)
+    moved = pinned_diff(repo, commit)
+    if moved:
+        raise SystemExit(
+            f"refused: pinned files differ from the freeze commit {commit[:8]}: {moved}"
+        )
     start = fz + timedelta(days=1)
     lbl, _ = _load_window(root, PRE_START, min(today - timedelta(days=1), BACKSTOP), BOOK)
     lk = find_look(per_date_counts(lbl), start, today)
@@ -700,16 +815,28 @@ def cmd_run(root: Path, repo: Path, sha: str, today: date, force: bool) -> dict[
         raise SystemExit(
             f"refused: the look is not reached (window games {lk.games}, legs {lk.legs}); run `status`"
         )
-    if lk.kind == "look" and unsettled_games(root, lk.date):
-        raise SystemExit(f"refused: look date {lk.date} has unsettled scheduled games")
+    if not today > lk.date:
+        raise SystemExit("refused: the look date has not passed")
+    settle = classify_settlement(
+        load_game_states(root, start, lk.date), datetime.now(ZoneInfo("UTC"))
+    )
+    if settle["pending"]:
+        raise SystemExit(
+            f"refused: {len(settle['pending'])} window games are not settled yet (final but unscored, or not final "
+            f"within {POSTPONED_AFTER_H:.0f} h of tip)"
+        )
     out_p = repo / OUT_REL
-    if out_p.exists() and not force:
+    if out_p.exists():
         raise SystemExit(f"refused: {OUT_REL} exists (the look runs once)")
     legs, why = _load_window(root, start, lk.date, BOOK)
     lead = why.get("lead_below_55", 0)
-    if legs and lead / (len(legs) + lead) > MAX_LEAD_DROP:
+    with_line = len(legs) + sum(
+        why.get(k, 0)
+        for k in ("lead_below_55", "whole_number_line", "no_quartiles_or_starter_rate")
+    )
+    if with_line and lead / with_line > MAX_LEAD_DROP:
         raise SystemExit(
-            "stopped unscored: more than 5% of eligible legs dropped for lead < 55 min"
+            "stopped unscored: more than 5% of legs with a t60 main line dropped for lead < 55 min"
         )
     pairs = pairs_frames(root)
     band, c0 = x_band(root), c0_rates(pairs)
@@ -719,17 +846,26 @@ def cmd_run(root: Path, repo: Path, sha: str, today: date, force: bool) -> dict[
     res: dict[str, Any] = {
         "rule": RULE, "sha": sha, "freeze_commit": commit, "freeze_et_date": str(fz),
         "look": {"kind": lk.kind, "date": str(lk.date)}, "window": [str(start), str(lk.date)],
-        "map_sha256": gate.MAP_SHA, "harness_sha256": file_sha(Path(__file__)), "drops": why,
+        "map_sha256": gate.MAP_SHA,
+        "pinned_sha256": {f: file_sha(repo / f) for f in PINNED},
+        "drops": why,
+        "settlement": {k: (len(v) if k == "settled" else v) for k, v in settle.items()},
         "verdict": verdict(prim["verdict_core"], prim["games"], lk.kind), "primary": prim,
     }  # fmt: skip
     print("[run] primary done; secondaries", flush=True)
     dk, _ = _load_window(root, start, lk.date, DK)
-    res["S3_draftkings"] = (
-        evaluate(attach_outcomes(root, dk, legs_frame(dk, band, c0))) if dk else None
-    )
+    if dk:
+        dk_band, dk_c0 = x_band(root, DK), c0_rates(pairs_frames(root, DK))
+        res["S3_draftkings"] = strip_pass_words(
+            evaluate(attach_outcomes(root, dk, legs_frame(dk, dk_band, dk_c0)))
+        )
+    else:
+        res["S3_draftkings"] = None
     pre, _ = _load_window(root, PRE_START, fz, BOOK)
-    res["prefreeze_EXPOSED_no_pass"] = (
-        evaluate(attach_outcomes(root, pre, legs_frame(pre, band, c0))) if pre else None
+    res["S10_prefreeze_EXPOSED_no_pass"] = (
+        strip_pass_words(evaluate(attach_outcomes(root, pre, legs_frame(pre, band, c0))))
+        if pre
+        else None
     )
     dnp, _ = _load_window(root, start, lk.date, BOOK, status="dnp")
     side = gate.side_under(np.array([x.p_raw for x in dnp])) if dnp else np.zeros(0, bool)
@@ -750,29 +886,34 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--data-root", type=Path, default=REPO)
     ap.add_argument("--repo", type=Path, default=REPO)
     ap.add_argument("--sha")
-    ap.add_argument("--today", type=date.fromisoformat, default=date.today())
     ap.add_argument(
-        "--assume-freeze", type=date.fromisoformat, help="status only, before the freeze"
+        "--today", type=date.fromisoformat, help="status and dryrun only; run uses the real clock"
     )
     ap.add_argument(
-        "--force", action="store_true", help="overwrite results.json (never for the real look)"
+        "--assume-freeze", type=date.fromisoformat, help="status only, before the freeze"
     )
     a = ap.parse_args(argv)
     t0 = time.time()
     if a.cmd == "status":
         print(
-            json.dumps(cmd_status(a.data_root, a.repo, a.sha, a.today, a.assume_freeze), indent=1)
+            json.dumps(
+                cmd_status(a.data_root, a.repo, a.sha, a.today or real_today(), a.assume_freeze),
+                indent=1,
+            )
         )
         return 0
     if a.cmd == "dryrun":
-        out, ok = cmd_dryrun(a.data_root, a.today)
+        out, ok = cmd_dryrun(a.data_root, a.today or real_today())
         print(json.dumps(out, indent=1, default=str))
         print(f"dryrun {'OK' if ok else 'MISMATCH'} ({time.time() - t0:.1f} s)")
         return 0 if ok else 1
+    if a.today is not None or a.assume_freeze is not None:
+        print("refused: run takes no --today or --assume-freeze (real clock only)", file=sys.stderr)
+        return 2
     if not a.sha:
         print("run needs --sha", file=sys.stderr)
         return 2
-    res = cmd_run(a.data_root, a.repo, a.sha, a.today, a.force)
+    res = cmd_run(a.data_root, a.repo, a.sha, real_today())
     p = res["primary"]
     print(json.dumps({"verdict": res["verdict"], "n": p["n"], "games": p["games"],
                       "primary": p["primary_brier_cal_minus_raw"], "checks": p["checks"]}, indent=1))  # fmt: skip

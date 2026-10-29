@@ -1,13 +1,16 @@
+# ruff: noqa: E501
 """LINE_CAL_LIVE harness: rule guards, look logic, statistics and verdicts (synthetic only)."""
 
 from __future__ import annotations
 
 import inspect
+import json
 import shutil
 import subprocess
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+import duckdb
 import numpy as np
 import pytest
 
@@ -42,6 +45,7 @@ def _frame(games: int = 250, per: int = 30, seed: int = 0) -> ev.Frame:
         "mean": line + rng.normal(-0.5, 2, n),
         "line": line,
         "x_out": rng.random(n) < 0.05,
+        "fallback": rng.random(n) < 0.04,
     }
 
 
@@ -170,3 +174,159 @@ def test_side_partition_is_fixed_by_raw() -> None:
     n_under = int(gate.side_under(F["p_raw"]).sum())
     assert r["side"]["under"]["brier_cal_minus_raw"]["n"] == n_under
     assert r["side"]["over"]["brier_cal_minus_raw"]["n"] == r["n"] - n_under
+
+
+# ------------------------------------------------------------------ review B1-B3, M2, M4, m6
+
+
+def test_run_refuses_any_clock_but_the_real_one(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit, match="real clock"):
+        ev.cmd_run(tmp_path, tmp_path, "0" * 64, date(2027, 2, 1))
+
+
+def test_main_run_refuses_a_today_override() -> None:
+    assert ev.main(["run", "--sha", "0" * 64, "--today", "2027-02-01"]) == 2
+
+
+def _gs(gid: str, final: bool, predicted: bool, scored: bool, tip: datetime) -> ev.GameState:
+    return ev.GameState(gid, tip.date(), tip, final, predicted, scored)
+
+
+def test_settlement_lists_postponed_and_unforecast_without_blocking() -> None:
+    now = datetime(2026, 12, 3, 15, 0, tzinfo=UTC)
+    old = datetime(2026, 11, 28, 0, 30, tzinfo=UTC)
+    out = ev.classify_settlement(
+        [
+            _gs("ok", True, True, True, old),
+            _gs("postponed", False, True, False, old),  # never final, tip 5 days ago
+            _gs("no_forecast", True, False, False, old),
+        ],
+        now,
+    )
+    assert out == {
+        "settled": ["ok"],
+        "pending": [],
+        "unplayed_or_postponed": ["postponed"],
+        "unforecast": ["no_forecast"],
+    }
+
+
+def test_settlement_blocks_final_but_unscored_and_recent_unfinished() -> None:
+    now = datetime(2026, 12, 3, 15, 0, tzinfo=UTC)
+    out = ev.classify_settlement(
+        [
+            _gs("late_settle", True, True, False, datetime(2026, 11, 20, 0, 30, tzinfo=UTC)),
+            _gs("tonight", False, True, False, now - timedelta(hours=3)),
+        ],
+        now,
+    )
+    assert out["pending"] == ["late_settle", "tonight"]
+
+
+def test_pinned_diff_flags_a_changed_served_function(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git missing")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "config", "user.email", "t@t")
+    _git(tmp_path, "config", "user.name", "t")
+    for f in ev.PINNED:
+        (tmp_path / f).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / f).write_text("v1\n")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-q", "-m", "freeze")
+    head = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert ev.pinned_diff(tmp_path, head) == []
+    (tmp_path / "nba/parlay/top_source.py").write_text("v2\n")
+    assert ev.pinned_diff(tmp_path, head) == ["nba/parlay/top_source.py"]
+
+
+def test_secondaries_carry_no_pass_word() -> None:
+    r = ev.evaluate(ev.synth_outcomes(_frame(60, 20), "transport", seed=1))
+    s = ev.strip_pass_words(r)
+    assert s is not None
+    assert not set(ev.PASS_WORDS) & set(s)
+    assert "primary_brier_cal_minus_raw" in s
+    assert ev.strip_pass_words(None) is None
+
+
+def test_fallback_slice_is_reported() -> None:
+    r = ev.evaluate(ev.synth_outcomes(_frame(60, 20), "transport", seed=1))
+    n_fb = r["S6_slices"]["fallback_rows"]["n"]
+    assert n_fb > 0
+    assert n_fb + r["S6_slices"]["context_model_rows"]["n"] == r["n"]
+
+
+def _fixture_root(root: Path, y: float | None) -> None:
+    """A tiny season-2026 nba.duckdb + market_asof with one game, two players, pts at 10.5."""
+    tip = datetime(2026, 11, 5, 0, 0)
+    made = tip - timedelta(hours=8)
+    con = duckdb.connect(str(root / "nba.duckdb"))
+    con.execute(
+        "CREATE TABLE forward_scores (game_id VARCHAR, game_date DATE, season INT, model_name VARCHAR, "
+        "version VARCHAR, target VARCHAR, player_id INT, made_at TIMESTAMP, y DOUBLE, brier DOUBLE, "
+        "log_loss DOUBLE, crps DOUBLE, status VARCHAR)"
+    )
+    con.execute(
+        "CREATE TABLE forward_predictions (game_id VARCHAR, model_name VARCHAR, target VARCHAR, "
+        "player_id INT, made_at TIMESTAMP, prediction VARCHAR)"
+    )
+    con.execute("CREATE TABLE player_game_stats (game_id VARCHAR, player_id INT, minutes DOUBLE)")
+    con.execute(
+        "CREATE TABLE games (game_id VARCHAR, game_date DATE, season INT, home_pts INT, away_pts INT)"
+    )
+    con.execute(
+        "CREATE TABLE forward_prop_grid199 (game_id VARCHAR, player_id INT, stat VARCHAR, "
+        "made_at TIMESTAMP, model VARCHAR, q199 DOUBLE[])"
+    )
+    gid, gd = "0022600100", date(2026, 11, 4)
+    con.execute("INSERT INTO games VALUES (?, ?, 2026, 110, 100)", [gid, gd])
+    for pid, sr in ((1, 1.0), (2, 0.0)):
+        c = [max(0, 199 - 9 * k) for k in range(30)]
+        pred = {
+            "mean": 9.0, "p_play": 0.95, "proj_minutes": 28.0, "starter_rate": sr,
+            "p_ge_full": {"c": c, "n": 199}, "q_grid": [float(i) for i in range(2, 21)],
+        }  # fmt: skip
+        con.execute(
+            "INSERT INTO forward_predictions VALUES (?, 'props_context_residual', 'pts', ?, ?, ?)",
+            [gid, pid, made, json.dumps(pred)],
+        )
+        sentinel = None if y is None else 999.0
+        con.execute(
+            "INSERT INTO forward_scores VALUES (?, ?, 2026, 'props_context_residual', 'ctxres-v1', "
+            "'pts', ?, ?, ?, ?, ?, ?, 'scored')",
+            [gid, gd, pid, made, y, sentinel, sentinel, sentinel],
+        )
+    con.close()
+    (root / "data/markets").mkdir(parents=True)
+    m = duckdb.connect(str(root / "data/markets/market_asof.duckdb"))
+    m.execute(
+        "CREATE TABLE live_book_odds (game_id VARCHAR, player_id INT, market VARCHAR, book VARCHAR, "
+        "side VARCHAR, point DOUBLE, price_american INT, received_at TIMESTAMP, snapshot_kind VARCHAR, "
+        "tipoff TIMESTAMP, slate_date DATE)"
+    )
+    for pid in (1, 2):
+        for side in ("over", "under"):
+            m.execute(
+                "INSERT INTO live_book_odds VALUES (?, ?, 'player_points', 'pinnacle', ?, 10.5, -110, ?, "
+                "'t60', ?, ?)",
+                [gid, pid, side, tip - timedelta(minutes=62), tip, gd],
+            )
+    m.close()
+
+
+def test_status_output_does_not_depend_on_outcomes(tmp_path: Path) -> None:
+    outs = []
+    for i, y in enumerate((None, 12.0)):
+        root = tmp_path / f"r{i}"
+        root.mkdir()
+        _fixture_root(root, y)
+        outs.append(
+            ev.cmd_status(root, root, None, date(2026, 11, 10), assume_freeze=date(2026, 11, 1))
+        )
+    assert outs[0] == outs[1]
+    assert outs[0]["window"] == {"games": 1, "legs": 2, "dates": 1}

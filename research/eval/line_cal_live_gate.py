@@ -72,6 +72,9 @@ class Leg:
     mean: float
     p_mkt: float
     made_at: datetime | None = None
+    fallback: bool = (
+        False  # served recency-fallback row (fallback_reason set), never in the map's fit rows
+    )
 
 
 def side_under(p_raw: np.ndarray) -> np.ndarray:
@@ -147,15 +150,15 @@ def synthetic_power(
     return out
 
 
-def _pairs_x_band(root: Path) -> dict[str, list[float]]:
-    """1st/99th percentile of x = logit p_model on the map's own Pinnacle fit legs (label-free)."""
+def _pairs_x_band(root: Path, book: str = "pinnacle") -> dict[str, list[float]]:
+    """1st/99th percentile of x = logit p_model on the map's own fit legs of ``book`` (label-free)."""
     band: dict[str, list[float]] = {}
     xs: dict[str, list[np.ndarray]] = defaultdict(list)
     for s in (2023, 2024):
         d = pl.read_parquet(
             root / f"data/ops/model_clv_pairs/pairs_{s}.parquet",
             columns=["book", "stat", "p_model", "snapshot_kind", "season"],
-        ).filter((pl.col("book") == "pinnacle") & (pl.col("snapshot_kind") == "t60"))
+        ).filter((pl.col("book") == book) & (pl.col("snapshot_kind") == "t60"))
         if d["season"].max() != s:
             raise ValueError("unexpected season in pairs frame")
         for st in STATS:
@@ -273,6 +276,7 @@ def load_legs(
                 starter=float(sr) >= 0.5, p_play=None if pp is None else float(pp),
                 proj_min=None if pm is None else float(pm), min_sd=minutes_sd(prior),
                 mean=float(pred["mean"]), p_mkt=float(po_m / (po_m + pu_m)), made_at=r[4],
+                fallback=pred.get("fallback_reason") is not None,
             )
         )  # fmt: skip
     return legs, dict(why)
