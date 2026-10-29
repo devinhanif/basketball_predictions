@@ -370,3 +370,117 @@ neither can be fixed.
 
 ### Scratch files (not in the repo)
 `<scratchpad>/attack/rr_b1b2.py`, `rr_b3.py`, `rr_dryrun.out`, `rr_status.out`, `rule_d7ad.md`, fixtures `fx_b2/`, `fx_b3/`.
+
+## Third read of revision 2 (adversary, diff only), 2026-10-29 12:54 CDT (clock read by `date`)
+
+Verdict: APPROVED
+
+**Pre-freeze outcome: READY_TO_FREEZE.** N1, N2, N3, N5 and the docstring nit are applied and verified. N4 is applied, but it does
+less than its new text sentence claims. That is partly my fault: my N4 fix assumed box rows arrive on their own, and they do not
+(O1 below). O1 is a text-only nit. It can go into the freeze commit verbatim, with no further read, or it can be left out. It does
+not touch an outcome, a threshold or the question. Nothing found would make a result wrong.
+
+- Object: rule text **313a044d** (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/LINE_CAL_LIVE.md | shasum -a 256` gives
+  `313a044d88fc6a6a5867548b27b1b75770bb1d14866244cfeeb30e9b3c15b66d`), branch `agent/modeler-props-recal` HEAD 36cc342. The diff
+  f963dbf..36cc342 covers 4 files: the rule, the harness, the eval tests and this review. Nothing else changed: the gate, `nba/` and
+  `configs/` are untouched (no scope creep).
+- Model class: quantile and distribution layers, recalibration at the line (a forward transport check of a frozen map; nothing fitted).
+- Data touched: season 2026 label-free only. That means legs, counts, `games` score presence, and `player_game_stats` row existence per
+  game id (`count(*)` and `DISTINCT game_id`, no stat value). **Season 2025 never loaded. No 2026 outcome (y, brier, crps, log_loss)
+  read or attached to any CAL or RAW leg.** Every real DuckDB connection was `read_only=True`. Write connections went only to scratch
+  fixture DBs under `<scratchpad>/attack/fx_r3b2/`. The scratch git repos (`fx_r3b3/`) are throwaway `git init` fixtures, the same
+  pattern the repo tests use. The project repo was not committed to.
+
+### Checks (worktree; `PY=/Users/devin/Downloads/nba-prediction/.venv-1/bin/python`, `S=<scratchpad>/attack`, `WT=<worktree>`; nothing piped)
+
+| # | check | command | n | result | pass |
+|---|---|---|---|---|---|
+| T1 | tests | `PYTHONPATH=. $PY -m pytest -q --no-cov tests/eval/test_line_cal_live_eval.py tests/eval/test_line_cal_live_gate.py -p no:cacheprovider` | 34 tests | 34 passed, exit 0 | yes |
+| T2 | lint, format, types | `$PY -m ruff check <harness, gate, eval tests>`; `$PY -m ruff format --check <same>`; `PYTHONPATH=. $PY -m mypy <harness> <gate>` | 3 files | exit 0 / 0 / 0 | yes |
+| T3 | dryrun | `PYTHONPATH=. $PY -W ignore -m research.eval.line_cal_live_eval dryrun --data-root /Users/devin/Downloads/nba-prediction > $S/r3_dryrun.out` | 1,787 real legs, 57 games (tiled 228) | TRANSPORTS / NOT_TRANSPORTED / PARTIAL each equal to expected; `dryrun OK (0.9 s)`, exit 0 | yes |
+| T4 | status (label-free) | `$PY -W ignore -m research.eval.line_cal_live_eval status --data-root /Users/devin/Downloads/nba-prediction --assume-freeze 2026-10-29` | 6,028 scored rows | prefreeze 57 / 1,787; window 0; not_reached; exit 0 (unchanged from rev 1). With `--sha 313a044d…` it refuses "the rule is not frozen", exit 1, as intended for a draft | yes |
+| R1 | **N2: rr_b3 re-run through `cmd_run`**, every pinned file | `$PY -W ignore $S/r3_b3.py $WT $S/fx_r3b3` | 6 pinned files x 1 mutant each | For each file, a clean `--repo` whose freeze commit differs from the executing bytes: the old `pinned_diff` gives `[]` (it would have run). `cmd_run` now refuses with "the executing code differs from the freeze commit …: ['<that file>']". With an identical freeze, `bad = []`, 6 shas recorded, and `cmd_run` gets past both pin checks to the data load. A path missing from the freeze commit (`git show` fails) counts as a mismatch | **yes** |
+| R2 | N2 run-once guard | same script | 2 cases | result present in the repo only: refused. Result present in the data root only: refused. `cmd_run` calls the guard before the window load and again just before the write, and writes to both checkouts | yes |
+| R3 | N2 tests bite | `$PY -W ignore $S/r3_mut.py $WT` (monkeypatch only, no file edit) | 2 mutants | Exec check disabled: `test_run_refuses_when_the_executing_code_differs_from_the_freeze` fails. Guard reduced to repo-only: `test_run_once_guard_checks_both_checkouts` fails | yes |
+| R4 | N1 look path in the section-13 shape (cwd = a checkout, no PYTHONPATH, `--repo` defaulted) | inline `$PY -c` from `$WT` | 6 modules | All 6 modules (and `MAP_PATH`) resolve to the checkout, not the editable install on main. `REPO` defaults to the checkout. `executing_vs_freeze(REPO, 36cc342)` gives `[]`; against f963dbf it gives `['research/eval/line_cal_live_eval.py']`. With `--repo` the main checkout and the branch commit, it gives `[]` (worktrees share the object DB). Nothing in the harness, gate or `line_cal` reads `repo/data` (all data via `--data-root`), so the stale tracked `data/` of a fresh worktree is not read | yes |
+| R5 | N1 commit listing | inline `ev.main_commits_touching_pinned(main, …)` (git log, read-only) | 3 cases | since 0ae8aac: 0. Positive control `35447e9^..HEAD`: 8 commits (68d415c … listed with `%cI`). Non-git root: "unknown (…)" | yes |
+| R6 | **B2 fixture re-run** | `$PY -W ignore $S/rr_b1b2.py $WT $S/fx_r3b2_old`, then `$S/r3_b1b2.py` (the same fixture plus an empty `player_game_stats` table) | 6 planted games; real 68 | The old fixture exits 1 with `CatalogException: player_game_stats does not exist`. This is expected: `load_game_states` now queries the table, which exists in the real DB. With the table, every output equals the A7 outputs: 11-13 gives pending [203, 205], postponed [202], unforecast [204]; 11-20 gives pending [203]; 2027-02-05 gives pending [], blocks False. B1 refusals unchanged (`--today`, `--assume-freeze` give 2; a future `today` is refused). Real 10-20..10-28: settled 68, pending 0 | **yes** |
+| R7 | N4 on real data (existence only) | inline read-only SQL on `nba.duckdb`, season 2026 | 71 games | 68 with scores, 68 with box rows, box-without-score 0, score-without-box 0. The 3 unscored games are today's (10-29) | yes (see O1) |
+| R8 | N4 writers of `player_game_stats` | `grep -rn player_game_stats nba --include='*.py' \| grep -i -E "insert\|create\|delete\|replace\|write"` | 4 sites | Production writes only through `boxscores.upsert_player_game_stats`, which is fed by `missing_boxscore_game_ids` (`nba/daily/ingest_step.py:21-32`: `home_pts > 0` required). The `props/forward.py:285` insert targets an in-memory scratch (`:memory:`, line 199). No pre-game placeholder rows reach production, so a postponed game cannot become "final" and deadlock the look | yes |
+
+### Item-by-item
+- **N1 fixed.** Section 13 (lines 264-274) runs from `git worktree add <dir> <freeze commit>` with `--data-root` on main. A later edit
+  on main is now "a serving difference, descriptive; not a stop and not a new id". Section 10 (line 237) now reads "the executing code
+  of any pinned file … differs". The command block carries the worktree step. Contradiction scan (`grep -n -i "pinned|new id|git
+  diff|amendment"`): line 97 (threat table, "pinned to the freeze commit") still holds under the new meaning. No sentence still forces
+  a new id for an edit on main.
+- **N2 fixed** (R1-R4). `executing_files` maps each pinned path to the loaded module file (`gate.ts` and `served_top_source` are the
+  same module object; `_main_point` is `served_scorecard`'s). `executing_vs_freeze` compares the executing bytes with `git show
+  <commit>:<rel>` and refuses on any mismatch or a missing blob (line 863-868). `pinned_sha256` = the executing shas (line 911). The
+  guard covers both roots. The leftover `pinned_diff(repo, commit)` (line 869) is redundant but harmless: it is clean in a freeze
+  checkout.
+- **N3 fixed** (text, section 13 lines 275-276). This is procedural; the harness does not check the log. Acceptable, because the main
+  session holds the log.
+- **N4 applied** (lines 260-267 of the harness; text 2.5). It is correct and harmless, but redundant in production (R7, R8). See O1.
+- **N5 fixed.** `test_settlement_fixture_through_the_loader` and `test_box_rows_make_a_game_final_when_the_score_ingest_lags` port the
+  A7 fixture with the same expected outputs, through the real `load_game_states`. The backstop path through `cmd_run` is still not
+  driven end to end; that needs a frozen doc plus a reached look, and the classification it uses is the one tested.
+- **Docstring nit fixed** (harness lines 21-22: "Pinnacle and DraftKings t60 legs … (DraftKings for S3 only)").
+- **New contradictions in revision 2:** only O1.
+
+### O1 (nit, text 2.5 lines 66-67; my N4 fix was mis-specified)
+The new parenthetical "an ingest outage is not a postponement" is not true for the outage that actually happens. Production pulls
+box rows only for games that already have scores (`missing_boxscore_game_ids`, `home_pts > 0`). So when the daily ingest is down, both
+feeds stop together, and after 36 h the games are listed `unplayed_or_postponed` and dropped. This costs n, not bias: an outage is not
+selected on outcome, and the list is in `results.json`. But the look runs once, so a run made during a multi-day outage spends the one
+look on fewer games. **Fix (text only, verbatim, safe default):** in 2.5, replace "or `player_game_stats` holds rows for it: an ingest
+outage is not a postponement)" with "or `player_game_stats` holds rows for it; production pulls box rows only for scored games, so an
+outage of the daily ingest longer than 36 h still lists its games as `unplayed_or_postponed`)". In section 13, after the holdout-log
+bullet, add: "Before `run`, the maintainer confirms the daily ingest heartbeat has been green for the last three days (a longer outage
+drops games as postponed, and the look runs once)." The code-level guard (refuse if any window date with scheduled games has no
+final game) would be stronger, but it changes the pinned harness and needs another read. I do not ask for it.
+
+### Family, power, MDE (unchanged)
+The primary is an intersection (P1-P6; intersection-union, no BH). BH m = 4 (per stat) and m = 8 (side x stat) over the secondaries
+actually run. MDE for P1 at 200 games is about -0.0031 Brier (se about 0.00112). The P2 gap se is about 0.007 against the 0.03 bar. No
+result exists; nothing here is a claim (no n or CI to report beyond the label-free counts).
+
+### Playbook check (quantile and distribution layers; recalibration at the line)
+1. *Information or capacity:* neither. It restates production's information at the line, declared as such.
+2. *Enough data:* nothing is fit. The look is at 200 games / 5,000 legs (window 0 today).
+3. *Test validity:* valid for "the map as served at Pinnacle t60". The look now runs the frozen computation regardless of later edits on
+   main (N1), and the guard checks the bytes that execute (N2). Residual: an edit on main to `p_over` / `quartiles` / `_main_point` /
+   `CalMap.apply` inside the window makes the scored number differ from what users saw. It is listed, not corrected.
+4. *Lineage and inherited guards:* CALIBRATED_GRID, then T493, then this check. Map sha, season refusal, the clustered bootstrap and
+   the served-bench disclosure are carried. The executing-byte pin is new and tested.
+5. *Scored against:* Brier at the line, log loss as agreement, Pinnacle and C0 as references.
+
+### Single most likely failure mode now
+Not a leak and not a code-pin hole. It is operational: **the one look is run during a multi-day ingest outage and spends itself on
+fewer games** (O1). The next most likely is a mid-window edit to `p_over` on main. The look then scores the frozen number, not the one
+users were shown. The results list that commit, but the verdict would then describe the frozen code, not the live card.
+
+### What was not verified
+- The full `run` CLI from a real `git worktree add` of a real freeze commit. That needs a commit in the project repo, which I do not
+  make. R1, R4 and R5 cover each part: from a checkout, the exec check passes on identical bytes, refuses on any drift, and `cmd_run`
+  reaches the data load.
+- `results.json` persistence. If the freeze worktree is removed and the main copy is not committed, the file-based run-once guard is
+  lost. Recommended: the main session commits `reports/prereg_line_cal_live/results.json` in the same step as the look.
+- The backstop branch of `cmd_run` end to end (see N5).
+- Whether production ever back-scores a game that is final but late (unchanged from the re-review).
+
+### Recommended (main session acts; none applied by me)
+1. Freeze revision 2 (optionally with O1 verbatim) as `prereg(LINE_CAL_LIVE): <sha256>`, merged `--no-ff`. Carry the m8 ledger line.
+2. At the look: commit the HOLDOUT_ACCESS_LOG row first, run from the freeze worktree, then commit the results file on main at once.
+
+### Drafted rows (not appended; the main session acts)
+- **DECISIONS (draft):** `| 2026-10-29 | LINE_CAL_LIVE third read of revision 2 (313a044d): READY_TO_FREEZE. N1 (look runs from a
+  freeze worktree; edits on main are a listed serving difference), N2 (executing-byte check vs git show, shas recorded, run-once guard on
+  both roots; rr_b3 refused for all 6 pinned files), N3, N5 and the docstring verified; 34 tests, dryrun OK. O1 text nit: the N4 box-row
+  rule does not cover a full ingest outage (box pulls require scores); reword and check the heartbeat before run. | Follows the
+  adversary third read. | A defect found at the look in the pinned harness (a new id). |`
+- **TEST_LEDGER:** none (no result).
+
+### Scratch files (not in the repo)
+`<scratchpad>/attack/r3_b3.py`, `r3_b1b2.py`, `r3_mut.py`, `r3_dryrun.out`, `r3_status.out`, `r3_b1b2.out`, `r3_b1b2_old.out`,
+fixtures `fx_r3b3/`, `fx_r3b2/`, `fx_r3b2_old/`.

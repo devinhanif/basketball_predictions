@@ -1,6 +1,6 @@
 # LINE_CAL_LIVE: does the frozen LINE_CALIBRATION map make production's P(over) honest at Pinnacle's line on the 2026-27 live log? (pre-registration)
 
-Status: **DRAFT, revision 2, written by the modeler Thu 2026-10-29 12:46 CDT (clock read by `date`; revision 0 08:30, revision 1 12:32). Revision 1
+Status: **FROZEN 2026-10-29 12:56 CDT (from `date`; adversary READY_TO_FREEZE third read 12:54, O1 text applied verbatim; Devin "defaults" 12:05; follows advice, DECISIONS 0ae8aac). Was: DRAFT, revision 2, written by the modeler Thu 2026-10-29 12:46 CDT (clock read by `date`; revision 0 08:30, revision 1 12:32). Revision 1
 applied Devin's settled choices (section 11) and the adversary pre-freeze review (docs/reviews/LINE_CAL_LIVE_prefreeze_2026-10-29.md:
 B1-B3, M1-M4, m1-m9); revision 2 applies its re-review (N1-N5). Not frozen. No map fitted; no outcome-scored number exists for the candidate on any 2026 row.**
 - **How it becomes the rule:** the main session commits `prereg(LINE_CAL_LIVE): <sha256>` of everything above the line
@@ -63,8 +63,7 @@ is already shown to users on the card and the parlay panel, yet it has never bee
 5. **One look.** The first slate date D on which the window holds >= 200 games with at least one leg AND >= 5,000 legs (projected
    2026-12-01, section 5), counting only dates before the run date. Backstop: if not reached by 2027-01-31, D = 2027-01-31. `run`
    reads the real ET clock only (no date override), requires the real date to be after D, and requires every game on every window date
-   through D to be settled. **Settled:** a game that is final (`games.home_pts > 0 AND away_pts > 0`, or `player_game_stats` holds rows
-   for it: an ingest outage is not a postponement) and has production
+   through D to be settled. **Settled:** a game that is final (`games.home_pts > 0 AND away_pts > 0`, or `player_game_stats` holds rows for it; production pulls box rows only for scored games, so an outage of the daily ingest longer than 36 h still lists its games as `unplayed_or_postponed`) and has production
    `forward_predictions` rows has `forward_scores` rows (else pending: the run refuses and is retried later). A scheduled game with no final
    score 36 h after its tip is listed in the results as `unplayed_or_postponed` and does not block; before 36 h it is pending. A final game
    with no production prediction is listed as `unforecast` and does not block. The same rules apply to the backstop. A verdict word needs
@@ -274,6 +273,7 @@ no prop lines. Nothing repairable changes this rule's power: it is set by the li
   exists.
 - **Holdout log first:** before `run`, the main session commits a HOLDOUT_ACCESS_LOG row (rule sha, the one look, season-2026 outcomes
   read once), whether or not the season-2026 holdout rollover (at 20 games) has been done.
+- Before `run`, the maintainer confirms the daily ingest heartbeat has been green for the last three days (a longer outage drops games as postponed, and the look runs once).
 ```
 cd /Users/devin/Downloads/nba-prediction
 M="-m research.eval.line_cal_live_eval"
