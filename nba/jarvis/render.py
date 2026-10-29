@@ -216,10 +216,12 @@ def scored_line(row: dict[str, object]) -> str:
     price = float(row["price"])  # type: ignore[arg-type]
     edge = row.get("edge_cents")
     e = "n/a" if edge is None or edge != edge else f"{float(edge):+.1f}c"  # type: ignore[arg-type]
+    pnl = row.get("pnl_usd")
+    pnl_txt = "pnl n/a" if pnl is None else f"pnl ${float(pnl):+.2f}"  # type: ignore[arg-type]
     base = (
         f"{row['slate_date']} {row['matchup']} BUY {row['leg_desc']} on "
         f"{VENUE.get(str(row['venue']), row['venue'])} at {cents(price)} [{row['edge_label']} {e}] "
-        f"pnl ${float(row['pnl_usd']):+.2f}"  # type: ignore[arg-type]
+        f"{pnl_txt}"
     )
     if row.get("won") and edge is not None and edge == edge:
         ev_pct = float(edge) / (price * 100.0) * 100.0  # type: ignore[arg-type]

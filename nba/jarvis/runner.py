@@ -14,6 +14,7 @@ never re-sent in full (the delivered part counts), and a key that keeps failing 
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -48,9 +49,11 @@ from nba.jarvis.slate import (
     plan_slate,
     rank_key,
 )
-from nba.jarvis.sources import et_hour
+from nba.jarvis.sources import describe_store_busy, et_hour
 from nba.jarvis.weights import render_changes, update_weights
 from nba.parlay.assistant.backend import LLMBackend
+
+log = logging.getLogger("nba.jarvis.runner")
 
 Sender = Callable[..., SendResult]
 
@@ -283,7 +286,7 @@ def run_tick(rt: Runtime, slate: date) -> dict[str, Any]:
         return {
             "slate": str(slate),
             "at": now.isoformat(timespec="seconds"),
-            "idle": f"store busy, retry next tick ({str(exc)[:60]})",
+            "idle": f"store busy, retry next tick ({describe_store_busy(exc)})",
             "alerts": [],
         }
 
@@ -296,7 +299,13 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         "notes": st.notes,
         "alerts": [],
     }
-    rep["recap"] = _maybe_recap(rt, slate, now)
+    try:  # the recap is a courtesy: its bug must never take alerts and check-ins down with it
+        rep["recap"] = _maybe_recap(rt, slate, now)
+    except duckdb.IOException:
+        raise  # a store held by its writer: run_tick reports it and the next tick retries
+    except Exception as exc:
+        log.exception("recap failed; the tick goes on (%s)", type(exc).__name__)
+        rep["recap"] = {"kind": "recap", "ok": False, "error": type(exc).__name__}
     if not rt.dry_run:
         latch_kill_switch(rt.cfg, rt.book, slate, now)
     if not st.games:
@@ -335,7 +344,7 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         if res["ok"] and not rt.dry_run:
             rt.book.note_alert(p.key, slate, p.edge_cents, now)
         rep["alerts"].append(res)
-    rep["halftime"] = _halftime(rt, st, slate, now)
+    rep["halftime"] = _halftime(rt, st, slate, now, rep)
     try:  # in-game signals never break the tick; a busy store skips only this part
         from nba.jarvis.ingame_run import run_ingame
 
@@ -345,7 +354,32 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
     return rep
 
 
-def _halftime(rt: Runtime, st: SlateState, slate: date, now: datetime) -> list[dict[str, Any]]:
+def tick_line(rep: dict[str, Any]) -> str:
+    """The one launchd log line per tick. Anything swallowed on purpose (a failed recap, a refusing
+    halftime scorer, a check-in error) is named here so it cannot hide behind ``plays=..``."""
+    line = (
+        f"tick {rep.get('at')}: plays={rep.get('plays')} alerts={len(rep.get('alerts', []))} "
+        f"slate_send={'yes' if rep.get('slate_send') else 'no'} {rep.get('idle', '')}".strip()
+    )
+    flags = []
+    recap = rep.get("recap")
+    if isinstance(recap, dict) and recap.get("ok") is False:
+        flags.append(f"recap_error={recap.get('error')}")
+    for h in rep.get("halftime", []):
+        if h.get("ok") is False:
+            flags.append(f"{h.get('kind')}_error={h.get('error')}")
+    ig = [r for r in rep.get("ingame", []) if isinstance(r, dict) and r.get("ok") is False]
+    if ig:
+        flags.append(f"ingame_error={ig[0].get('error')}")
+    hs = rep.get("ht_scorer")
+    if hs:
+        flags.append(f"ht_scored={hs['stored']}rows/{hs['games']}games")
+    return line + (" | " + " ".join(flags) if flags else "")
+
+
+def _halftime(
+    rt: Runtime, st: SlateState, slate: date, now: datetime, rep: dict[str, Any] | None = None
+) -> list[dict[str, Any]]:
     if not rt.cfg.halftime_checkins:
         return []
     out = []
@@ -357,6 +391,11 @@ def _halftime(rt: Runtime, st: SlateState, slate: date, now: datetime) -> list[d
         )
     except Exception as exc:
         scored = {"ok": False, "error": type(exc).__name__}
+    if rep is not None and "stored" in scored:  # the scorer ran on halftime games: show that it did
+        rep["ht_scorer"] = {
+            "stored": scored["stored"], "refused": len(scored.get("refused", [])),
+            "games": scored.get("counts", {}).get("games_halftime_seen", 0),
+        }  # fmt: skip
     if scored.get("ok") is False:  # a persistent refusal must show in the tick report
         out.append({"kind": "halftime_scorer", "ok": False, "error": scored.get("error")})
     for lg in live:
@@ -473,4 +512,4 @@ def run_recap(rt: Runtime, slate: date, *, force: bool = True) -> dict[str, Any]
     return _maybe_recap(rt, slate, rt.clock(), force=force)
 
 
-__all__ = ["Runtime", "run_recap", "run_slate", "run_tick", "supports_alert"]
+__all__ = ["Runtime", "run_recap", "run_slate", "run_tick", "supports_alert", "tick_line"]

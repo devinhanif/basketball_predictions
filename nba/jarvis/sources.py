@@ -8,7 +8,9 @@ UTC throughout. Nothing here places or simulates an order.
 
 from __future__ import annotations
 
+import re
 import shutil
+import subprocess
 import tempfile
 import time
 from datetime import UTC, date, datetime
@@ -56,6 +58,33 @@ def et_today(now: datetime | None = None) -> date:
 
 
 SCRATCH = Path(tempfile.gettempdir()) / "jarvis_scratch"
+
+_LOCK_FILE = re.compile(r'on file "([^"]+)"')
+_LOCK_HOLDER = re.compile(r"held in (.+?) \(PID (\d+)\)")
+
+
+def describe_store_busy(exc: BaseException) -> str:
+    """'<store path> held by PID n (<its command line>)' from a DuckDB lock error, so a skipped tick
+    names the file and the process (the daily pretip/morning job, a replay, an agent) instead of a
+    60-character stub. DuckDB's lock is an OS file lock that dies with its holder: there is no stale
+    lock to clear, so this only names it; it never touches, deletes or waits on anything."""
+    msg = str(exc)
+    fm, hm = _LOCK_FILE.search(msg), _LOCK_HOLDER.search(msg)
+    where = fm.group(1) if fm else "unknown file"
+    if hm is None:
+        return f"{where}; holder unknown ({msg[:80]})"
+    pid = hm.group(2)
+    try:  # read-only process lookup; the holder may already be gone
+        cmd = subprocess.run(
+            ["ps", "-p", pid, "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        cmd = ""
+    return f"{where} held by PID {pid} ({cmd[:140] if cmd else hm.group(1) + '; exited since'})"
 
 
 def open_ro(

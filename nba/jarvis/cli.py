@@ -35,6 +35,7 @@ from nba.jarvis.runner import (
     run_recap,
     run_slate,
     run_tick,
+    tick_line,
 )
 from nba.jarvis.sinks import make_sender
 from nba.jarvis.sources import et_today
@@ -207,10 +208,7 @@ def cmd_watch(a: argparse.Namespace) -> int:
     rt, slate = _runtime(a, dry_run=a.dry_run)
     while True:
         rep = run_tick(rt, slate)
-        print(
-            f"tick {rep.get('at')}: plays={rep.get('plays')} alerts={len(rep.get('alerts', []))} "
-            f"slate_send={'yes' if rep.get('slate_send') else 'no'} {rep.get('idle', '')}".strip()
-        )
+        print(tick_line(rep))
         if a.once:
             return 0
         from nba.jarvis.runner import build_state
