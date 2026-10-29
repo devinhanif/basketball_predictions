@@ -204,7 +204,7 @@ def recap_lines(
         g = {"pick": "Devin's picks", "daily_dollar": "Daily Dollar"}.get(
             str(d["edge_label"]), "JARVIS"
         )
-        groups[g] += float(d["pnl_usd"])
+        groups[g] += 0.0 if d["pnl_usd"] is None else float(d["pnl_usd"])
     if not rows:
         lines.append("- nothing settled yet for that date")
     lines.append(
@@ -231,8 +231,13 @@ def recap_lines(
         )
     if kill.active:
         lines.append(kill.message())
-    elif kill.n:
+    elif kill.mean_clv is not None:
         lines.append(f"Kill switch off: mean CLV {kill.mean_clv:+.2f}c over the last {kill.n} bets")
+    elif kill.n:  # some settled bets, fewer than the minimum: no mean is computed (it is None)
+        lines.append(
+            f"Kill switch off: no settled CLV yet (n={kill.n}; needs {cfg.kill_min_bets} "
+            "settled bets with a close)"
+        )
     else:
         lines.append(
             f"Kill switch: needs {cfg.kill_min_bets} settled bets with a close (has {kill.n})"

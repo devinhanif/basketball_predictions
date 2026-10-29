@@ -163,7 +163,9 @@ halftime_overs:                 # halftime scorer (nba/jarvis/halftime_overs.py)
   store: data/jarvis/halftime_overs.duckdb
   min_edge: 0.05                # the draft's threshold; part of the rule, not tuned
   top_n: 3
-  post_without_plays: false     # the line follows the halftime check-in, which exists only for games with a pick/play
+  post_without_plays: true      # Devin 2026-10-29: he enters at halftime on his own reads, so EVERY game at the half gets the line,
+  #                               not only games with a JARVIS play. The gates stay (top_n, min_edge, display bid/spread); the
+  #                               line stays paper, UNPROVEN, Yes only, no stake. Set false to follow the check-in again.
   # Recency window for the pregame mean (draft open choice C3): null = the last 10 played games before today,
   # including 2025-26 games, which is what T508 trained on and what the daily pipeline reads. Devin's C3 = allow
   # (docs/HOLDOUT_ACCESS_LOG.md, row 105a6dc). A date such as 2026-10-01 would limit it to 2026-27 games.
