@@ -301,11 +301,12 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
     }
     try:  # the recap is a courtesy: its bug must never take alerts and check-ins down with it
         rep["recap"] = _maybe_recap(rt, slate, now)
-    except duckdb.IOException:
-        raise  # a store held by its writer: run_tick reports it and the next tick retries
     except Exception as exc:
+        if isinstance(exc, duckdb.IOException) and "lock" in str(exc).lower():
+            raise  # a store held by its writer: run_tick reports it and the next tick retries
         log.exception("recap failed; the tick goes on (%s)", type(exc).__name__)
         rep["recap"] = {"kind": "recap", "ok": False, "error": type(exc).__name__}
+        rep["recap_failed_post"] = _post_recap_failed(rt, slate, type(exc).__name__)
     if not rt.dry_run:
         latch_kill_switch(rt.cfg, rt.book, slate, now)
     if not st.games:
@@ -375,6 +376,24 @@ def tick_line(rep: dict[str, Any]) -> str:
     if hs:
         flags.append(f"ht_scored={hs['stored']}rows/{hs['games']}games")
     return line + (" | " + " ".join(flags) if flags else "")
+
+
+def _post_recap_failed(rt: Runtime, slate: date, err: str) -> dict[str, Any] | None:
+    """One line per ET date so a broken recap is seen in Discord, not only in launchd_jarvis.err.
+    Fail-soft: this courtesy of a courtesy never breaks the tick."""
+    try:
+        if not rt.dry_run and rt.book.kind_sent("recap_failed", slate, str(slate)):
+            return None
+        if not rt.dry_run and _given_up(rt, "recap_failed", slate, str(slate)):
+            return None
+        line = f"morning recap failed ({err}); see launchd_jarvis.err"
+        return _deliver(
+            rt, kind="recap_failed", texts=[line], plays=[], slate=slate, inputs=[err],
+            explanations={}, keys=[str(slate)],
+        )  # fmt: skip
+    except Exception as exc:
+        log.warning("recap-failed post did not go out (%s)", type(exc).__name__)
+        return {"kind": "recap_failed", "ok": False, "error": type(exc).__name__}
 
 
 def _halftime(

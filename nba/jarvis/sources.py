@@ -85,7 +85,7 @@ def describe_store_busy(exc: BaseException) -> str:
         ).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         cmd = ""
-    return f"{where} held by PID {pid} ({cmd if cmd else hm.group(1) + '; exited since'})"
+    return f"{where} held by PID {pid} ({cmd[:160] if cmd else hm.group(1) + '; exited since'})"
 
 
 def open_ro(

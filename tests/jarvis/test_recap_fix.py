@@ -127,3 +127,60 @@ def test_a_real_duckdb_lock_is_named_in_the_idle_report(
     finally:
         holder.kill()
         holder.wait()
+
+
+def test_a_failed_recap_is_announced_once_per_et_date(
+    cfg: JarvisConfig, rt: Runtime, sent: Sent, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_slate(rt, SLATE)
+    rt.clock = lambda: CLOCK
+
+    def boom(*a: Any, **k: Any) -> None:
+        raise TypeError("x")
+
+    monkeypatch.setattr(runner, "_maybe_recap", boom)
+    rep = run_tick(rt, SLATE)
+    assert rep["recap_failed_post"]["ok"] is True
+    run_tick(rt, SLATE)  # the next tick fails again: no second line for the same date
+    lines = [t for t in sent.texts if "morning recap failed" in t]
+    assert lines == ["morning recap failed (TypeError); see launchd_jarvis.err"]
+    nxt = SLATE + timedelta(days=1)
+    run_tick(rt, nxt)
+    assert (
+        len([t for t in sent.texts if "morning recap failed" in t]) == 2
+    )  # a new date, a new line
+
+
+def test_only_a_lock_ioexception_skips_the_tick_any_other_is_a_recap_failure(
+    rt: Runtime, sent: Sent, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_slate(rt, SLATE)
+    rt.clock = lambda: CLOCK
+
+    def other_io(*a: Any, **k: Any) -> None:
+        raise duckdb.IOException("IO Error: Cannot open file: No such file or directory")
+
+    monkeypatch.setattr(runner, "_maybe_recap", other_io)
+    rep = run_tick(rt, SLATE)
+    assert "idle" not in rep or not str(rep["idle"]).startswith("store busy")
+    assert rep["recap"] == {"kind": "recap", "ok": False, "error": "IOException"}
+    assert any("morning recap failed (IOException)" in t for t in sent.texts)
+
+    def lock_io(*a: Any, **k: Any) -> None:
+        raise duckdb.IOException('IO Error: Could not set lock on file "/x/book.duckdb"')
+
+    monkeypatch.setattr(runner, "_maybe_recap", lock_io)
+    rep = run_tick(rt, SLATE)
+    assert str(rep["idle"]).startswith("store busy") and "/x/book.duckdb" in rep["idle"]
+    assert "recap" not in rep
+
+
+def test_holder_command_line_is_cut_at_160_chars(monkeypatch: pytest.MonkeyPatch) -> None:
+    long_cmd = "python " + "x" * 400
+
+    class R:
+        stdout = long_cmd + "\n"
+
+    monkeypatch.setattr(sources.subprocess, "run", lambda *a, **k: R())
+    msg = sources.describe_store_busy(duckdb.IOException(LOCK_MSG.format(pid=123)))
+    assert long_cmd[:160] in msg and long_cmd[:161] not in msg
