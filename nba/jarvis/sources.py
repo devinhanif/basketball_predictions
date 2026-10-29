@@ -69,10 +69,11 @@ def describe_store_busy(exc: BaseException) -> str:
     60-character stub. DuckDB's lock is an OS file lock that dies with its holder: there is no stale
     lock to clear, so this only names it; it never touches, deletes or waits on anything."""
     msg = str(exc)
+    first = msg.splitlines()[0] if msg else ""
     fm, hm = _LOCK_FILE.search(msg), _LOCK_HOLDER.search(msg)
     where = fm.group(1) if fm else "unknown file"
     if hm is None:
-        return f"{where}; holder unknown ({msg[:80]})"
+        return f"{where}; holder unknown ({first})"
     pid = hm.group(2)
     try:  # read-only process lookup; the holder may already be gone
         cmd = subprocess.run(
@@ -84,7 +85,7 @@ def describe_store_busy(exc: BaseException) -> str:
         ).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         cmd = ""
-    return f"{where} held by PID {pid} ({cmd[:140] if cmd else hm.group(1) + '; exited since'})"
+    return f"{where} held by PID {pid} ({cmd if cmd else hm.group(1) + '; exited since'})"
 
 
 def open_ro(

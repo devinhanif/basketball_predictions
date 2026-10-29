@@ -1041,7 +1041,7 @@ uv run python -m nba.jarvis test-send [--dry-run]               # one short post
 the one POST in the package is this outbound message). iMessage stays as an optional sink (`delivery.sinks: [discord, imessage]`, recipient only from `JARVIS_IMESSAGE_TO`, argv-passed). Posts:
 (1) slate preview at about T-90 to the first tip, once per ET date, with the Daily Dollar line; (2) instant alerts on a new strong edge or a CONFIRMED arbitrage (same game/legs/label deduped 30 min, once per day
 per key unless the edge moved >= 1c or the label upgraded; a post that partly failed is not re-sent and a key that keeps failing is given up on after 3); (3) a halftime check-in for each game with a play
-logged (score from the live capture's `data/raw/live_<ET date>/espn_scoreboard` and its heartbeat; stale feed said so); (4) a morning recap after 08:00 ET: results (same layout win or lose, a hit is
+logged (plus, since 2026-10-29, the paper `halftime overs` line for EVERY game at the half, play or not: `halftime_overs.post_without_plays: true`, top 3 overs above `min_edge` that pass the bid/spread display gates, Yes only, UNPROVEN, no stake) (score from the live capture's `data/raw/live_<ET date>/espn_scoreboard` and its heartbeat; stale feed said so); (4) a morning recap after 08:00 ET: results (same layout win or lose, a hit is
 annotated), P&L by group, the balance against the $70 start, records, kill-switch state and any model-weight change. "Ask" in Discord is v2 (needs a bot). `--dry-run` prints and writes nothing.
 
 **Always a play, with an honest label computed from data** (`nba/jarvis/edge.py`, thresholds in `configs/jarvis.yaml`). Every play names what to BUY ("BUY LAC to win on Kalshi (NO contract)": the team or

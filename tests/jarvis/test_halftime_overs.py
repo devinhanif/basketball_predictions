@@ -111,7 +111,7 @@ def test_scorer_failure_is_fail_soft(cfg: JarvisConfig, tmp_path: Path) -> None:
 def test_config_shipped_state_is_paper_pinned_and_valid() -> None:
     c = load_config()
     ho = c.halftime_overs
-    assert ho["min_edge"] == 0.05 and ho["top_n"] <= 3 and ho["post_without_plays"] is False
+    assert ho["min_edge"] == 0.05 and ho["top_n"] <= 3 and ho["post_without_plays"] is True
     assert (
         ho["recency_min_game_date"] is None
     )  # C3 = allow (holdout log row 105a6dc): T508's own window
@@ -188,11 +188,27 @@ def test_nothing_posts_below_the_edge_threshold(
     assert _tick(cfg, rt, sent, monkeypatch, [r("A", "pts", 15, 44, 2, 0.50)]) == []
 
 
-def test_no_follow_up_for_a_game_without_plays_by_default(
+def test_shipped_config_posts_the_line_for_a_game_with_no_play(
     cfg: JarvisConfig, rt: Runtime, sent: Sent, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Devin 2026-10-29: he enters at halftime on his own reads, so every game at the half gets the
+    line (the shipped post_without_plays is true), still gated by min_edge / top_n / bid / spread."""
+    out = _tick(cfg, rt, sent, monkeypatch, [r("A", "pts", 15, 40, 2, 0.70)], with_plays=False)
+    assert len(out) == 1 and "A 15+ pts (Yes)" in out[0] and "no stake suggested" in out[0]
+    assert not any("halftime check-in" in t for t in sent.texts)  # no play, so no check-in
+
+
+def test_no_line_for_a_game_without_plays_when_switched_off(
+    cfg: JarvisConfig, kb: Any, sent: Sent, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from nba.jarvis.book import PaperBook
+    from tests.jarvis.conftest import StubModel
+
+    c2 = replace(cfg, halftime_overs={**cfg.halftime_overs, "post_without_plays": False})
+    rt2 = Runtime(cfg=c2, book=PaperBook(tmp_path / "j3" / "book.duckdb"), kb=kb, backend=None, dry_run=False, sender=sent,
+                  clock=lambda: CLOCK, out=lambda s: None, use_polymarket=False, model_factory=lambda d: StubModel())  # fmt: skip
     assert (
-        _tick(cfg, rt, sent, monkeypatch, [r("A", "pts", 15, 40, 2, 0.70)], with_plays=False) == []
+        _tick(c2, rt2, sent, monkeypatch, [r("A", "pts", 15, 40, 2, 0.70)], with_plays=False) == []
     )
 
 
