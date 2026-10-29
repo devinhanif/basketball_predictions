@@ -1,0 +1,1053 @@
+{
+ "rule": "LINE_CAL_LIVE",
+ "status": "DRAFT gate, label-free",
+ "map_sha256": "443743a1543fe5fbaaf97bd072bf6fba56e172edbca5839cd1eb85d711349b25",
+ "window": [
+  "2026-10-20",
+  "2026-10-28"
+ ],
+ "season": 2026,
+ "pinnacle": {
+  "n": 1787,
+  "games": 57,
+  "dates": 9,
+  "first_date": "2026-10-20",
+  "last_date": "2026-10-28",
+  "legs_per_game": 31.35,
+  "per_date": {
+   "2026-10-20": {
+    "legs": 75,
+    "games": 2
+   },
+   "2026-10-21": {
+    "legs": 291,
+    "games": 9
+   },
+   "2026-10-22": {
+    "legs": 42,
+    "games": 1
+   },
+   "2026-10-23": {
+    "legs": 143,
+    "games": 5
+   },
+   "2026-10-24": {
+    "legs": 220,
+    "games": 8
+   },
+   "2026-10-25": {
+    "legs": 204,
+    "games": 7
+   },
+   "2026-10-26": {
+    "legs": 291,
+    "games": 9
+   },
+   "2026-10-27": {
+    "legs": 144,
+    "games": 4
+   },
+   "2026-10-28": {
+    "legs": 377,
+    "games": 12
+   }
+  },
+  "lead_min": {
+   "median": 62.00086846666667,
+   "min": 55.2588375
+  },
+  "forecast_before_line_share": 0.9983212087297146,
+  "side_raw": {
+   "under": 1396,
+   "over": 391
+  },
+  "side_mean_vs_line_bridge": {
+   "under": 1049,
+   "over": 738,
+   "disagree_with_raw_side": 347
+  },
+  "by_stat_side": {
+   "pts": {
+    "under": 459,
+    "over": 185
+   },
+   "reb": {
+    "under": 385,
+    "over": 93
+   },
+   "ast": {
+    "under": 240,
+    "over": 54
+   },
+   "fg3m": {
+    "under": 312,
+    "over": 59
+   }
+  },
+  "starter": 1414,
+  "bench": 373,
+  "bench_by_side": {
+   "under": 319,
+   "over": 54
+  },
+  "p_play_lt_0.9": 448,
+  "p_play_missing": 0,
+  "min_sd_high": 28,
+  "min_sd_unknown": 1557,
+  "minutes_uncertain_any": 470,
+  "label_free_shift": {
+   "stated_side_p_raw": {
+    "all": 0.6195,
+    "under": 0.6322,
+    "over": 0.5745
+   },
+   "stated_side_p_cal": {
+    "all": 0.5454,
+    "under": 0.5509,
+    "over": 0.5259
+   },
+   "mean_p_over": {
+    "raw": 0.4131,
+    "cal": 0.4659,
+    "book_devig": 0.4848
+   },
+   "cal_flips_side_share": 0.0767
+  },
+  "p_cal_19_vs_199": {
+   "n_with_grid": 1711,
+   "max_abs_diff": 0.00022174723691670284
+  },
+  "x_outside_fit_band_1_99": {
+   "n": 92,
+   "share": 0.0515,
+   "band": {
+    "pts": [
+     -1.2592354830009855,
+     0.7695201593445192
+    ],
+    "reb": [
+     -1.4116121691041805,
+     0.7006943861953283
+    ],
+    "ast": [
+     -1.4438182052580772,
+     0.8883168798317488
+    ],
+    "fg3m": [
+     -1.3185761870649397,
+     0.8401293709085913
+    ]
+   }
+  },
+  "drops": {
+   "scored_rows": 6028,
+   "no_t60_line": 4241
+  },
+  "power": {
+   "lam_0.0": {
+    "all": {
+     "expected": -0.00853,
+     "per_game_sd": 0.0163,
+     "by_games": {
+      "100": {
+       "half_width": 0.0032,
+       "p_ci_upper_lt_0": 0.999,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 0.999
+      },
+      "150": {
+       "half_width": 0.00261,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "200": {
+       "half_width": 0.00226,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "250": {
+       "half_width": 0.00202,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "300": {
+       "half_width": 0.00185,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "400": {
+       "half_width": 0.0016,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      }
+     }
+    },
+    "under": {
+     "expected": -0.0097,
+     "per_game_sd": 0.0196,
+     "by_games": {
+      "100": {
+       "half_width": 0.00384,
+       "p_ci_upper_lt_0": 0.999,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 0.999
+      },
+      "150": {
+       "half_width": 0.00313,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "200": {
+       "half_width": 0.00271,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "250": {
+       "half_width": 0.00243,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "300": {
+       "half_width": 0.00221,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "400": {
+       "half_width": 0.00192,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      }
+     }
+    },
+    "over": {
+     "expected": -0.00433,
+     "per_game_sd": 0.0255,
+     "by_games": {
+      "100": {
+       "half_width": 0.005,
+       "p_ci_upper_lt_0": 0.396,
+       "p_point_le_floor": 0.866,
+       "p_pass_primary": 0.396
+      },
+      "150": {
+       "half_width": 0.00408,
+       "p_ci_upper_lt_0": 0.547,
+       "p_point_le_floor": 0.913,
+       "p_pass_primary": 0.547
+      },
+      "200": {
+       "half_width": 0.00354,
+       "p_ci_upper_lt_0": 0.669,
+       "p_point_le_floor": 0.941,
+       "p_pass_primary": 0.669
+      },
+      "250": {
+       "half_width": 0.00316,
+       "p_ci_upper_lt_0": 0.765,
+       "p_point_le_floor": 0.96,
+       "p_pass_primary": 0.765
+      },
+      "300": {
+       "half_width": 0.00289,
+       "p_ci_upper_lt_0": 0.836,
+       "p_point_le_floor": 0.973,
+       "p_pass_primary": 0.836
+      },
+      "400": {
+       "half_width": 0.0025,
+       "p_ci_upper_lt_0": 0.924,
+       "p_point_le_floor": 0.987,
+       "p_pass_primary": 0.924
+      }
+     }
+    }
+   },
+   "lam_0.25": {
+    "all": {
+     "expected": -0.00398,
+     "per_game_sd": 0.0157,
+     "by_games": {
+      "100": {
+       "half_width": 0.00308,
+       "p_ci_upper_lt_0": 0.718,
+       "p_point_le_floor": 0.943,
+       "p_pass_primary": 0.718
+      },
+      "150": {
+       "half_width": 0.00251,
+       "p_ci_upper_lt_0": 0.874,
+       "p_point_le_floor": 0.974,
+       "p_pass_primary": 0.874
+      },
+      "200": {
+       "half_width": 0.00218,
+       "p_ci_upper_lt_0": 0.948,
+       "p_point_le_floor": 0.987,
+       "p_pass_primary": 0.948
+      },
+      "250": {
+       "half_width": 0.00195,
+       "p_ci_upper_lt_0": 0.98,
+       "p_point_le_floor": 0.994,
+       "p_pass_primary": 0.98
+      },
+      "300": {
+       "half_width": 0.00178,
+       "p_ci_upper_lt_0": 0.992,
+       "p_point_le_floor": 0.997,
+       "p_pass_primary": 0.992
+      },
+      "400": {
+       "half_width": 0.00154,
+       "p_ci_upper_lt_0": 0.999,
+       "p_point_le_floor": 0.999,
+       "p_pass_primary": 0.999
+      }
+     }
+    },
+    "under": {
+     "expected": -0.00441,
+     "per_game_sd": 0.0188,
+     "by_games": {
+      "100": {
+       "half_width": 0.00369,
+       "p_ci_upper_lt_0": 0.649,
+       "p_point_le_floor": 0.939,
+       "p_pass_primary": 0.649
+      },
+      "150": {
+       "half_width": 0.00301,
+       "p_ci_upper_lt_0": 0.819,
+       "p_point_le_floor": 0.971,
+       "p_pass_primary": 0.819
+      },
+      "200": {
+       "half_width": 0.00261,
+       "p_ci_upper_lt_0": 0.912,
+       "p_point_le_floor": 0.986,
+       "p_pass_primary": 0.912
+      },
+      "250": {
+       "half_width": 0.00234,
+       "p_ci_upper_lt_0": 0.96,
+       "p_point_le_floor": 0.993,
+       "p_pass_primary": 0.96
+      },
+      "300": {
+       "half_width": 0.00213,
+       "p_ci_upper_lt_0": 0.982,
+       "p_point_le_floor": 0.996,
+       "p_pass_primary": 0.982
+      },
+      "400": {
+       "half_width": 0.00185,
+       "p_ci_upper_lt_0": 0.997,
+       "p_point_le_floor": 0.999,
+       "p_pass_primary": 0.997
+      }
+     }
+    },
+    "over": {
+     "expected": -0.00245,
+     "per_game_sd": 0.0252,
+     "by_games": {
+      "100": {
+       "half_width": 0.00493,
+       "p_ci_upper_lt_0": 0.162,
+       "p_point_le_floor": 0.647,
+       "p_pass_primary": 0.162
+      },
+      "150": {
+       "half_width": 0.00403,
+       "p_ci_upper_lt_0": 0.222,
+       "p_point_le_floor": 0.678,
+       "p_pass_primary": 0.222
+      },
+      "200": {
+       "half_width": 0.00349,
+       "p_ci_upper_lt_0": 0.28,
+       "p_point_le_floor": 0.703,
+       "p_pass_primary": 0.28
+      },
+      "250": {
+       "half_width": 0.00312,
+       "p_ci_upper_lt_0": 0.337,
+       "p_point_le_floor": 0.725,
+       "p_pass_primary": 0.337
+      },
+      "300": {
+       "half_width": 0.00285,
+       "p_ci_upper_lt_0": 0.393,
+       "p_point_le_floor": 0.744,
+       "p_pass_primary": 0.393
+      },
+      "400": {
+       "half_width": 0.00246,
+       "p_ci_upper_lt_0": 0.495,
+       "p_point_le_floor": 0.775,
+       "p_pass_primary": 0.495
+      }
+     }
+    }
+   },
+   "lam_0.4": {
+    "all": {
+     "expected": -0.001,
+     "per_game_sd": 0.0154,
+     "by_games": {
+      "100": {
+       "half_width": 0.00303,
+       "p_ci_upper_lt_0": 0.095,
+       "p_point_le_floor": 0.373,
+       "p_pass_primary": 0.095
+      },
+      "150": {
+       "half_width": 0.00247,
+       "p_ci_upper_lt_0": 0.122,
+       "p_point_le_floor": 0.346,
+       "p_pass_primary": 0.122
+      },
+      "200": {
+       "half_width": 0.00214,
+       "p_ci_upper_lt_0": 0.148,
+       "p_point_le_floor": 0.323,
+       "p_pass_primary": 0.148
+      },
+      "250": {
+       "half_width": 0.00191,
+       "p_ci_upper_lt_0": 0.174,
+       "p_point_le_floor": 0.304,
+       "p_pass_primary": 0.174
+      },
+      "300": {
+       "half_width": 0.00175,
+       "p_ci_upper_lt_0": 0.201,
+       "p_point_le_floor": 0.287,
+       "p_pass_primary": 0.201
+      },
+      "400": {
+       "half_width": 0.00151,
+       "p_ci_upper_lt_0": 0.253,
+       "p_point_le_floor": 0.259,
+       "p_pass_primary": 0.253
+      }
+     }
+    },
+    "under": {
+     "expected": -0.00114,
+     "per_game_sd": 0.0185,
+     "by_games": {
+      "100": {
+       "half_width": 0.00363,
+       "p_ci_upper_lt_0": 0.09,
+       "p_point_le_floor": 0.424,
+       "p_pass_primary": 0.09
+      },
+      "150": {
+       "half_width": 0.00296,
+       "p_ci_upper_lt_0": 0.114,
+       "p_point_le_floor": 0.407,
+       "p_pass_primary": 0.114
+      },
+      "200": {
+       "half_width": 0.00257,
+       "p_ci_upper_lt_0": 0.139,
+       "p_point_le_floor": 0.393,
+       "p_pass_primary": 0.139
+      },
+      "250": {
+       "half_width": 0.00229,
+       "p_ci_upper_lt_0": 0.163,
+       "p_point_le_floor": 0.38,
+       "p_pass_primary": 0.163
+      },
+      "300": {
+       "half_width": 0.00209,
+       "p_ci_upper_lt_0": 0.187,
+       "p_point_le_floor": 0.369,
+       "p_pass_primary": 0.187
+      },
+      "400": {
+       "half_width": 0.00181,
+       "p_ci_upper_lt_0": 0.234,
+       "p_point_le_floor": 0.35,
+       "p_pass_primary": 0.234
+      }
+     }
+    },
+    "over": {
+     "expected": -0.00049,
+     "per_game_sd": 0.0248,
+     "by_games": {
+      "100": {
+       "half_width": 0.00487,
+       "p_ci_upper_lt_0": 0.039,
+       "p_point_le_floor": 0.342,
+       "p_pass_primary": 0.039
+      },
+      "150": {
+       "half_width": 0.00397,
+       "p_ci_upper_lt_0": 0.043,
+       "p_point_le_floor": 0.309,
+       "p_pass_primary": 0.043
+      },
+      "200": {
+       "half_width": 0.00344,
+       "p_ci_upper_lt_0": 0.046,
+       "p_point_le_floor": 0.282,
+       "p_pass_primary": 0.046
+      },
+      "250": {
+       "half_width": 0.00308,
+       "p_ci_upper_lt_0": 0.049,
+       "p_point_le_floor": 0.259,
+       "p_pass_primary": 0.049
+      },
+      "300": {
+       "half_width": 0.00281,
+       "p_ci_upper_lt_0": 0.053,
+       "p_point_le_floor": 0.24,
+       "p_pass_primary": 0.053
+      },
+      "400": {
+       "half_width": 0.00243,
+       "p_ci_upper_lt_0": 0.058,
+       "p_point_le_floor": 0.207,
+       "p_pass_primary": 0.058
+      }
+     }
+    }
+   }
+  },
+  "share_of_scored_games_with_leg": 0.8382,
+  "projected_date_for_games": {
+   "100": "2026-11-14",
+   "150": "2026-11-22",
+   "200": "2026-12-01",
+   "250": "2026-12-17",
+   "300": "2026-12-25",
+   "400": "2027-01-10"
+  }
+ },
+ "draftkings": {
+  "n": 2565,
+  "games": 57,
+  "dates": 9,
+  "first_date": "2026-10-20",
+  "last_date": "2026-10-28",
+  "legs_per_game": 45.0,
+  "per_date": {
+   "2026-10-20": {
+    "legs": 105,
+    "games": 2
+   },
+   "2026-10-21": {
+    "legs": 442,
+    "games": 9
+   },
+   "2026-10-22": {
+    "legs": 49,
+    "games": 1
+   },
+   "2026-10-23": {
+    "legs": 233,
+    "games": 5
+   },
+   "2026-10-24": {
+    "legs": 328,
+    "games": 8
+   },
+   "2026-10-25": {
+    "legs": 288,
+    "games": 7
+   },
+   "2026-10-26": {
+    "legs": 410,
+    "games": 9
+   },
+   "2026-10-27": {
+    "legs": 190,
+    "games": 4
+   },
+   "2026-10-28": {
+    "legs": 520,
+    "games": 12
+   }
+  },
+  "lead_min": {
+   "median": 61.98666843333333,
+   "min": 55.2588375
+  },
+  "forecast_before_line_share": 0.9984405458089669,
+  "side_raw": {
+   "under": 1909,
+   "over": 656
+  },
+  "side_mean_vs_line_bridge": {
+   "under": 1389,
+   "over": 1176,
+   "disagree_with_raw_side": 520
+  },
+  "by_stat_side": {
+   "pts": {
+    "under": 516,
+    "over": 226
+   },
+   "reb": {
+    "under": 522,
+    "over": 166
+   },
+   "ast": {
+    "under": 390,
+    "over": 139
+   },
+   "fg3m": {
+    "under": 481,
+    "over": 125
+   }
+  },
+  "starter": 1824,
+  "bench": 741,
+  "bench_by_side": {
+   "under": 606,
+   "over": 135
+  },
+  "p_play_lt_0.9": 762,
+  "p_play_missing": 0,
+  "min_sd_high": 41,
+  "min_sd_unknown": 2254,
+  "minutes_uncertain_any": 792,
+  "label_free_shift": {
+   "stated_side_p_raw": {
+    "all": 0.6179,
+    "under": 0.6305,
+    "over": 0.5814
+   },
+   "stated_side_p_cal": {
+    "all": 0.55,
+    "under": 0.5554,
+    "over": 0.5344
+   },
+   "mean_p_over": {
+    "raw": 0.4237,
+    "cal": 0.4676,
+    "book_devig": 0.4918
+   },
+   "cal_flips_side_share": 0.0706
+  },
+  "p_cal_19_vs_199": {
+   "n_with_grid": 2445,
+   "max_abs_diff": 0.00023337289710251286
+  },
+  "drops": {
+   "scored_rows": 6028,
+   "no_t60_line": 3463
+  },
+  "power": {
+   "lam_0.0": {
+    "all": {
+     "expected": -0.0074,
+     "per_game_sd": 0.0129,
+     "by_games": {
+      "100": {
+       "half_width": 0.00252,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "150": {
+       "half_width": 0.00206,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "200": {
+       "half_width": 0.00178,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "250": {
+       "half_width": 0.00159,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "300": {
+       "half_width": 0.00146,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "400": {
+       "half_width": 0.00126,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      }
+     }
+    },
+    "under": {
+     "expected": -0.00826,
+     "per_game_sd": 0.0156,
+     "by_games": {
+      "100": {
+       "half_width": 0.00307,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "150": {
+       "half_width": 0.0025,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "200": {
+       "half_width": 0.00217,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "250": {
+       "half_width": 0.00194,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "300": {
+       "half_width": 0.00177,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      },
+      "400": {
+       "half_width": 0.00153,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 1.0
+      }
+     }
+    },
+    "over": {
+     "expected": -0.00491,
+     "per_game_sd": 0.0204,
+     "by_games": {
+      "100": {
+       "half_width": 0.00399,
+       "p_ci_upper_lt_0": 0.674,
+       "p_point_le_floor": 0.953,
+       "p_pass_primary": 0.674
+      },
+      "150": {
+       "half_width": 0.00326,
+       "p_ci_upper_lt_0": 0.839,
+       "p_point_le_floor": 0.98,
+       "p_pass_primary": 0.839
+      },
+      "200": {
+       "half_width": 0.00282,
+       "p_ci_upper_lt_0": 0.926,
+       "p_point_le_floor": 0.991,
+       "p_pass_primary": 0.926
+      },
+      "250": {
+       "half_width": 0.00252,
+       "p_ci_upper_lt_0": 0.968,
+       "p_point_le_floor": 0.996,
+       "p_pass_primary": 0.968
+      },
+      "300": {
+       "half_width": 0.0023,
+       "p_ci_upper_lt_0": 0.987,
+       "p_point_le_floor": 0.998,
+       "p_pass_primary": 0.987
+      },
+      "400": {
+       "half_width": 0.002,
+       "p_ci_upper_lt_0": 0.998,
+       "p_point_le_floor": 1.0,
+       "p_pass_primary": 0.998
+      }
+     }
+    }
+   },
+   "lam_0.25": {
+    "all": {
+     "expected": -0.00327,
+     "per_game_sd": 0.0122,
+     "by_games": {
+      "100": {
+       "half_width": 0.00239,
+       "p_ci_upper_lt_0": 0.764,
+       "p_point_le_floor": 0.927,
+       "p_pass_primary": 0.764
+      },
+      "150": {
+       "half_width": 0.00195,
+       "p_ci_upper_lt_0": 0.907,
+       "p_point_le_floor": 0.962,
+       "p_pass_primary": 0.907
+      },
+      "200": {
+       "half_width": 0.00169,
+       "p_ci_upper_lt_0": 0.966,
+       "p_point_le_floor": 0.98,
+       "p_pass_primary": 0.966
+      },
+      "250": {
+       "half_width": 0.00151,
+       "p_ci_upper_lt_0": 0.989,
+       "p_point_le_floor": 0.989,
+       "p_pass_primary": 0.989
+      },
+      "300": {
+       "half_width": 0.00138,
+       "p_ci_upper_lt_0": 0.996,
+       "p_point_le_floor": 0.994,
+       "p_pass_primary": 0.994
+      },
+      "400": {
+       "half_width": 0.0012,
+       "p_ci_upper_lt_0": 1.0,
+       "p_point_le_floor": 0.998,
+       "p_pass_primary": 0.998
+      }
+     }
+    },
+    "under": {
+     "expected": -0.00359,
+     "per_game_sd": 0.0149,
+     "by_games": {
+      "100": {
+       "half_width": 0.00292,
+       "p_ci_upper_lt_0": 0.672,
+       "p_point_le_floor": 0.919,
+       "p_pass_primary": 0.672
+      },
+      "150": {
+       "half_width": 0.00239,
+       "p_ci_upper_lt_0": 0.838,
+       "p_point_le_floor": 0.957,
+       "p_pass_primary": 0.838
+      },
+      "200": {
+       "half_width": 0.00207,
+       "p_ci_upper_lt_0": 0.926,
+       "p_point_le_floor": 0.976,
+       "p_pass_primary": 0.926
+      },
+      "250": {
+       "half_width": 0.00185,
+       "p_ci_upper_lt_0": 0.967,
+       "p_point_le_floor": 0.987,
+       "p_pass_primary": 0.967
+      },
+      "300": {
+       "half_width": 0.00169,
+       "p_ci_upper_lt_0": 0.986,
+       "p_point_le_floor": 0.992,
+       "p_pass_primary": 0.986
+      },
+      "400": {
+       "half_width": 0.00146,
+       "p_ci_upper_lt_0": 0.998,
+       "p_point_le_floor": 0.997,
+       "p_pass_primary": 0.997
+      }
+     }
+    },
+    "over": {
+     "expected": -0.00234,
+     "per_game_sd": 0.0197,
+     "by_games": {
+      "100": {
+       "half_width": 0.00386,
+       "p_ci_upper_lt_0": 0.22,
+       "p_point_le_floor": 0.665,
+       "p_pass_primary": 0.22
+      },
+      "150": {
+       "half_width": 0.00315,
+       "p_ci_upper_lt_0": 0.307,
+       "p_point_le_floor": 0.7,
+       "p_pass_primary": 0.307
+      },
+      "200": {
+       "half_width": 0.00273,
+       "p_ci_upper_lt_0": 0.39,
+       "p_point_le_floor": 0.727,
+       "p_pass_primary": 0.39
+      },
+      "250": {
+       "half_width": 0.00244,
+       "p_ci_upper_lt_0": 0.468,
+       "p_point_le_floor": 0.75,
+       "p_pass_primary": 0.468
+      },
+      "300": {
+       "half_width": 0.00223,
+       "p_ci_upper_lt_0": 0.539,
+       "p_point_le_floor": 0.77,
+       "p_pass_primary": 0.539
+      },
+      "400": {
+       "half_width": 0.00193,
+       "p_ci_upper_lt_0": 0.662,
+       "p_point_le_floor": 0.804,
+       "p_pass_primary": 0.662
+      }
+     }
+    }
+   },
+   "lam_0.4": {
+    "all": {
+     "expected": -0.00086,
+     "per_game_sd": 0.012,
+     "by_games": {
+      "100": {
+       "half_width": 0.00236,
+       "p_ci_upper_lt_0": 0.107,
+       "p_point_le_floor": 0.297,
+       "p_pass_primary": 0.107
+      },
+      "150": {
+       "half_width": 0.00192,
+       "p_ci_upper_lt_0": 0.139,
+       "p_point_le_floor": 0.257,
+       "p_pass_primary": 0.139
+      },
+      "200": {
+       "half_width": 0.00167,
+       "p_ci_upper_lt_0": 0.171,
+       "p_point_le_floor": 0.226,
+       "p_pass_primary": 0.171
+      },
+      "250": {
+       "half_width": 0.00149,
+       "p_ci_upper_lt_0": 0.203,
+       "p_point_le_floor": 0.2,
+       "p_pass_primary": 0.2
+      },
+      "300": {
+       "half_width": 0.00136,
+       "p_ci_upper_lt_0": 0.235,
+       "p_point_le_floor": 0.178,
+       "p_pass_primary": 0.178
+      },
+      "400": {
+       "half_width": 0.00118,
+       "p_ci_upper_lt_0": 0.298,
+       "p_point_le_floor": 0.143,
+       "p_pass_primary": 0.143
+      }
+     }
+    },
+    "under": {
+     "expected": -0.00089,
+     "per_game_sd": 0.0147,
+     "by_games": {
+      "100": {
+       "half_width": 0.00289,
+       "p_ci_upper_lt_0": 0.088,
+       "p_point_le_floor": 0.34,
+       "p_pass_primary": 0.088
+      },
+      "150": {
+       "half_width": 0.00236,
+       "p_ci_upper_lt_0": 0.111,
+       "p_point_le_floor": 0.306,
+       "p_pass_primary": 0.111
+      },
+      "200": {
+       "half_width": 0.00204,
+       "p_ci_upper_lt_0": 0.134,
+       "p_point_le_floor": 0.279,
+       "p_pass_primary": 0.134
+      },
+      "250": {
+       "half_width": 0.00183,
+       "p_ci_upper_lt_0": 0.157,
+       "p_point_le_floor": 0.257,
+       "p_pass_primary": 0.157
+      },
+      "300": {
+       "half_width": 0.00167,
+       "p_ci_upper_lt_0": 0.18,
+       "p_point_le_floor": 0.237,
+       "p_pass_primary": 0.18
+      },
+      "400": {
+       "half_width": 0.00145,
+       "p_ci_upper_lt_0": 0.226,
+       "p_point_le_floor": 0.204,
+       "p_pass_primary": 0.204
+      }
+     }
+    },
+    "over": {
+     "expected": -0.00077,
+     "per_game_sd": 0.0194,
+     "by_games": {
+      "100": {
+       "half_width": 0.0038,
+       "p_ci_upper_lt_0": 0.059,
+       "p_point_le_floor": 0.353,
+       "p_pass_primary": 0.059
+      },
+      "150": {
+       "half_width": 0.0031,
+       "p_ci_upper_lt_0": 0.07,
+       "p_point_le_floor": 0.322,
+       "p_pass_primary": 0.07
+      },
+      "200": {
+       "half_width": 0.00269,
+       "p_ci_upper_lt_0": 0.081,
+       "p_point_le_floor": 0.297,
+       "p_pass_primary": 0.081
+      },
+      "250": {
+       "half_width": 0.0024,
+       "p_ci_upper_lt_0": 0.091,
+       "p_point_le_floor": 0.276,
+       "p_pass_primary": 0.091
+      },
+      "300": {
+       "half_width": 0.0022,
+       "p_ci_upper_lt_0": 0.101,
+       "p_point_le_floor": 0.257,
+       "p_pass_primary": 0.101
+      },
+      "400": {
+       "half_width": 0.0019,
+       "p_ci_upper_lt_0": 0.122,
+       "p_point_le_floor": 0.226,
+       "p_pass_primary": 0.122
+      }
+     }
+    }
+   }
+  },
+  "share_of_scored_games_with_leg": 0.8382,
+  "projected_date_for_games": {
+   "100": "2026-11-14",
+   "150": "2026-11-22",
+   "200": "2026-12-01",
+   "250": "2026-12-17",
+   "300": "2026-12-25",
+   "400": "2027-01-10"
+  }
+ },
+ "wall_s": 1.5
+}
