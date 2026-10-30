@@ -3,13 +3,13 @@
 # (never in this file, the repo, a log or a test). Fees for Kalshi come from configs/parlay.yaml
 # (fee_model); Polymarket's come from the block below. No rate is hardcoded in nba/jarvis.
 
-bankroll_usd:                   # Devin 2026-10-25: $35 on Kalshi, $35 on Polymarket
-  kalshi: 35.0
-  polymarket: 35.0
+bankroll_usd:                   # per-venue cash, caps any single leg's cost (slate.py); Devin 2026-10-30: Kalshi $34.00, Polymarket $61.78 (was $35/$35 on 10-25)
+  kalshi: 34.0
+  polymarket: 61.78
 
 balance:                        # Devin updates current_usd by hand (docs/TRADING_CONTEXT.md)
   start_usd: 70.0               # Kalshi $35 + Polymarket US $35
-  current_usd: 92.78            # 2026-10-27 22:0x CDT, Devin reported total $92.78 (split not given)
+  current_usd: 95.78            # 2026-10-30, Devin reported Kalshi $34.00 + Polymarket $61.78
   floor_usd: 20.0               # at or below the floor JARVIS is PAPER-ONLY until Devin resets it
 
 caps:
