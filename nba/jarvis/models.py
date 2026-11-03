@@ -107,6 +107,9 @@ class Play:
     )
     w_model: float | None = None  # weight on (model - Pinnacle) in fair_prob; 0 until earned
     key_suffix: str = ""  # makes the dedupe key unique for picks and tickets that must not dedupe
+    #: display-only text lines (e.g. the late-report shadow, nba.jarvis.late_report); never part of
+    #: ``key`` or ``inputs``, never read by a label, edge, stake or send decision
+    display_lines: tuple[str, ...] = ()
 
     @property
     def payout_usd(self) -> float:

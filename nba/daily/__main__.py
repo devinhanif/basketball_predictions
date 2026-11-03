@@ -168,6 +168,13 @@ def _parser() -> argparse.ArgumentParser:
             help="use the nba_api season schedule (1 stats.nba.com call) instead of the "
             "collector's own tip table",
         )
+        t.add_argument(
+            "--log-late-shadow",
+            action="store_true",
+            help="run-t15 only (ignored by run-t30): after the T-15 arm, also log the LATE_REPORT "
+            "shadow props_context_residual_late (report as of the run, out + doubtful; "
+            "nba.daily.late_report); own table, own try/except, never primary",
+        )
     ig = sub.add_parser(
         "ingest",
         help="refresh the season's games and box scores (the morning job, BEFORE settle)",
@@ -235,6 +242,48 @@ def alert_shadow_errors(s: RunSummary, ops_dir: Path = OPS_DIR) -> bool:
     with (ops_dir / "ALERTS.md").open("a") as fh:
         fh.write(line)
     return True
+
+
+def _late_shadow(
+    con: duckdb.DuckDBPyConnection,
+    lcon: duckdb.DuckDBPyConnection,
+    args: argparse.Namespace,
+    ops_dir: Path | None = None,
+) -> bool:
+    """LATE_REPORT shadow after the T-15 arm (its rows are already written): own table, own
+    try/except. A failure prints and appends one ALERTS line; it never changes the T-15 arm's rows
+    or this command's exit code. True when the shadow ran without an exception."""
+    try:  # the import is inside the try: a broken shadow module cannot take the T-15 arm down
+        from nba.daily.late_report import run_late_shadow
+        from nba.daily.t30 import T30_MIN_INTERVAL_S, schedule_from_lineups
+
+        s = run_late_shadow(
+            con,
+            lcon,
+            args.date,
+            schedule_fn=schedule_from_db(con)
+            if args.schedule_from_db
+            else fetch_schedule_nba_api
+            if args.schedule_nba_api
+            else schedule_from_lineups(lcon),
+            now=args.now,
+            roster_source=args.roster_source,
+            rate_limiter=RateLimiter(max(args.rate_limit_s, T30_MIN_INTERVAL_S)),
+            roster_dir=args.roster_dir,
+        )
+        print(s)
+        return True
+    except Exception as exc:
+        msg = f"{type(exc).__name__}: {exc}".replace("\n", " ")[:160]
+        print(f"late-report shadow failed (T-15 rows unaffected): {msg}")
+        out = ops_dir or OPS_DIR
+        out.mkdir(parents=True, exist_ok=True)
+        with (out / "ALERTS.md").open("a") as fh:
+            fh.write(
+                f"- {datetime.now():%Y-%m-%d %H:%M} [lineups] late-report shadow failed "
+                f"(T-15 rows unaffected): {msg}\n"
+            )
+        return False
 
 
 def run_ingest(
@@ -397,6 +446,8 @@ def main(argv: list[str] | None = None) -> int:
             roster_dir=args.roster_dir,
         )
         print(t30)
+        if args.command == "run-t15" and args.log_late_shadow:
+            _late_shadow(con, lcon, args)
         return 0
     if args.command == "ingest":
         return run_ingest(

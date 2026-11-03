@@ -108,6 +108,7 @@ def play_lines(p: Play, tz: str) -> list[str]:
         *([pay] if pay else []),
         edge_phrase(p),
         *([view] if view else []),
+        *p.display_lines,
         *[f"note: {n}" for n in _ordered_notes(p)],
     ]
 
