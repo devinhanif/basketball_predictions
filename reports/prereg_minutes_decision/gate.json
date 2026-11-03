@@ -1,0 +1,523 @@
+{
+ "rule": "MINUTES_DECISION (DRAFT)",
+ "data": {
+  "nba_duckdb_mtime": "2026-11-02 19:58",
+  "minutes_scores_sha8": "9ad6a6ed",
+  "excluded_backfilled_games": [
+   "0022400147",
+   "0022400621",
+   "0022400633",
+   "0022401229",
+   "0022401230"
+  ],
+  "seasons_loaded": "2022-2024 (season <= 2024 asserted)"
+ },
+ "checks": [
+  {
+   "check": "G1 every 2023/2024 team-game has an as-of coach",
+   "value": {
+    "2023": true,
+    "2024": true
+   },
+   "bar": "all",
+   "pass": true
+  },
+  {
+   "check": "G9 planted future (coach and familiarity counts)",
+   "value": {
+    "rows_before_cut": 5584,
+    "identical_before_cut": true,
+    "control_rows_after_cut_changed_share": 0.987
+   },
+   "bar": "identical before cut; control >= 0.5",
+   "pass": true
+  }
+ ],
+ "history_audit": {
+  "team_coach_games_rows_2013_21": 0,
+  "team_coaches_rows_2013_21": 0,
+  "box_rows_by_season": {
+   "2013": 27526,
+   "2014": 27636,
+   "2015": 27980,
+   "2016": 27876,
+   "2017": 27844,
+   "2018": 27868,
+   "2019": 28707,
+   "2020": 31546,
+   "2021": 33848
+  },
+  "stint_games_by_season": {
+   "2013": 1319,
+   "2014": 1310,
+   "2015": 1316,
+   "2016": 1309,
+   "2017": 1312,
+   "2018": 1312,
+   "2019": 1143,
+   "2020": 1171,
+   "2021": 1323
+  }
+ },
+ "coach_coverage": {
+  "2022": {
+   "team_games": 2640,
+   "with_actual_coach": 2640,
+   "with_asof_coach": 2640,
+   "asof_equals_actual_share": 0.9989,
+   "asof_from_season_opener_reference": 30,
+   "distinct_coaches": 33
+  },
+  "2023": {
+   "team_games": 2636,
+   "with_actual_coach": 2636,
+   "with_asof_coach": 2636,
+   "asof_equals_actual_share": 0.9985,
+   "asof_from_season_opener_reference": 30,
+   "distinct_coaches": 34
+  },
+  "2024": {
+   "team_games": 2630,
+   "with_actual_coach": 2630,
+   "with_asof_coach": 2630,
+   "asof_equals_actual_share": 0.9985,
+   "asof_from_season_opener_reference": 30,
+   "distinct_coaches": 34
+  }
+ },
+ "per_season": {
+  "2023": {
+   "rows": 27619,
+   "games": 1318,
+   "player_seasons": 551,
+   "rows_missing_team": 0,
+   "asof_coach_missing_rows": 0,
+   "coach_prior_games_quantiles": {
+    "0.05": 21.0,
+    "0.25": 96.0,
+    "0.5": 121.0,
+    "0.75": 149.0
+   },
+   "rows_coach_prior_lt20_share": 0.0461,
+   "rows_coach_prior_0_share": 0.0014,
+   "ch_blow20_median": 19.0,
+   "ch_blow20_ge10_share": 0.8582,
+   "ch_mid_median": 39.0,
+   "ch_mid_ge10_share": 0.9251,
+   "ch_close_median": 62.0,
+   "ch_close_ge10_share": 0.9543,
+   "ch_b2b_median": 19.0,
+   "ch_b2b_ge10_share": 0.8866,
+   "coach_season_cells": 34,
+   "pc_with_n_quantiles": {
+    "0.05": 4.0,
+    "0.25": 21.0,
+    "0.5": 54.0,
+    "0.75": 97.0
+   },
+   "new_relationship_rows": 6503,
+   "new_relationship_player_seasons": 364,
+   "movers_first10": {
+    "rows": 1213,
+    "players": 137,
+    "with_ge1_rows": 1081,
+    "with_ge1_players": 137,
+    "with_ge20_players": 2,
+    "against_ge2_rows": 477,
+    "against_ge2_players": 52,
+    "against_median": 1.0
+   },
+   "movers_premove_familiarity": {
+    "players_with_first_game_row": 133,
+    "with_ge1": 3,
+    "with_ge20": 1,
+    "against_ge1": 80,
+    "against_ge2": 52,
+    "against_ge4": 14,
+    "against_quantiles": {
+     "0.25": 0.0,
+     "0.5": 1.0,
+     "0.75": 2.0
+    },
+    "with_quantiles": {
+     "0.5": 0.0,
+     "0.9": 0.0
+    }
+   },
+   "inseason_premove_familiarity": {
+    "players": 73,
+    "with_ge1": 1,
+    "against_ge2": 51
+   },
+   "inseason_arrivals_first10": {
+    "rows": 719,
+    "players": 77,
+    "with_ge1_players": 77
+   },
+   "team_seasons_new_coach_at_opener": 6,
+   "team_seasons_midseason_change": 3,
+   "unstable_cut_rs_sd10_from_2022": 6.339,
+   "unstable_rows": 9009,
+   "stable_rows": 18610,
+   "rs_sd10_missing_rows": 0,
+   "null_by_asof_strata": {
+    "<10|bench": {
+     "n": 2554,
+     "coach_hist0": 0.0,
+     "with0": 0.0223
+    },
+    "10-20|bench": {
+     "n": 8328,
+     "coach_hist0": 0.0014,
+     "with0": 0.0133
+    },
+    "10-20|starter": {
+     "n": 279,
+     "coach_hist0": 0.0,
+     "with0": 0.0
+    },
+    "20-28|bench": {
+     "n": 3894,
+     "coach_hist0": 0.0013,
+     "with0": 0.0087
+    },
+    "20-28|starter": {
+     "n": 3133,
+     "coach_hist0": 0.0022,
+     "with0": 0.0086
+    },
+    ">=28|bench": {
+     "n": 576,
+     "coach_hist0": 0.0017,
+     "with0": 0.0052
+    },
+    ">=28|starter": {
+     "n": 8855,
+     "coach_hist0": 0.0017,
+     "with0": 0.0047
+    }
+   },
+   "slice_rows": {
+    "all": 27619,
+    "starters": 12267,
+    "bench": 15352,
+    "teammate_out": 23246,
+    "movers_first10": 1213,
+    "new_relationship": 6503,
+    "unstable": 9009,
+    "stable": 18610,
+    "realised_blowout20": 6155,
+    "b2b": 4422
+   },
+   "power_noise_sigma0.05": {
+    "all": {
+     "rows": 27619,
+     "player_seasons": 551,
+     "games": 1318,
+     "half_width_min_mean": 0.0169,
+     "half_width_min_sd": 0.0017,
+     "binding_mode": "player_season"
+    },
+    "starters": {
+     "rows": 12267,
+     "player_seasons": 267,
+     "games": 1318,
+     "half_width_min_mean": 0.0338,
+     "half_width_min_sd": 0.004,
+     "binding_mode": "player_season"
+    },
+    "bench": {
+     "rows": 15352,
+     "player_seasons": 441,
+     "games": 1318,
+     "half_width_min_mean": 0.0109,
+     "half_width_min_sd": 0.0013,
+     "binding_mode": "player_season"
+    },
+    "teammate_out": {
+     "rows": 23246,
+     "player_seasons": 549,
+     "games": 1285,
+     "half_width_min_mean": 0.0179,
+     "half_width_min_sd": 0.0027,
+     "binding_mode": "player_season"
+    },
+    "movers_first10": {
+     "rows": 1213,
+     "player_seasons": 137,
+     "games": 488,
+     "half_width_min_mean": 0.0377,
+     "half_width_min_sd": 0.0048,
+     "binding_mode": "game"
+    },
+    "new_relationship": {
+     "rows": 6503,
+     "player_seasons": 364,
+     "games": 1174,
+     "half_width_min_mean": 0.0196,
+     "half_width_min_sd": 0.0023,
+     "binding_mode": "player_season"
+    },
+    "unstable": {
+     "rows": 9009,
+     "player_seasons": 487,
+     "games": 1313,
+     "half_width_min_mean": 0.0159,
+     "half_width_min_sd": 0.0012,
+     "binding_mode": "player_season"
+    },
+    "stable": {
+     "rows": 18610,
+     "player_seasons": 518,
+     "games": 1318,
+     "half_width_min_mean": 0.0208,
+     "half_width_min_sd": 0.0021,
+     "binding_mode": "player_season"
+    },
+    "realised_blowout20": {
+     "rows": 6155,
+     "player_seasons": 537,
+     "games": 259,
+     "half_width_min_mean": 0.0219,
+     "half_width_min_sd": 0.0014,
+     "binding_mode": "player_season"
+    },
+    "b2b": {
+     "rows": 4422,
+     "player_seasons": 529,
+     "games": 365,
+     "half_width_min_mean": 0.0251,
+     "half_width_min_sd": 0.0023,
+     "binding_mode": "player_season"
+    }
+   }
+  },
+  "2024": {
+   "rows": 27583,
+   "games": 1315,
+   "player_seasons": 551,
+   "rows_missing_team": 0,
+   "asof_coach_missing_rows": 0,
+   "coach_prior_games_quantiles": {
+    "0.05": 17.0,
+    "0.25": 112.0,
+    "0.5": 196.0,
+    "0.75": 231.0
+   },
+   "rows_coach_prior_lt20_share": 0.0546,
+   "rows_coach_prior_0_share": 0.0015,
+   "ch_blow20_median": 34.0,
+   "ch_blow20_ge10_share": 0.8657,
+   "ch_mid_median": 64.0,
+   "ch_mid_ge10_share": 0.9215,
+   "ch_close_median": 96.0,
+   "ch_close_ge10_share": 0.9471,
+   "ch_b2b_median": 31.0,
+   "ch_b2b_ge10_share": 0.8589,
+   "coach_season_cells": 34,
+   "pc_with_n_quantiles": {
+    "0.05": 4.0,
+    "0.25": 21.0,
+    "0.5": 54.0,
+    "0.75": 124.0
+   },
+   "new_relationship_rows": 6462,
+   "new_relationship_player_seasons": 371,
+   "movers_first10": {
+    "rows": 1034,
+    "players": 115,
+    "with_ge1_rows": 920,
+    "with_ge1_players": 111,
+    "with_ge20_players": 2,
+    "against_ge2_rows": 664,
+    "against_ge2_players": 71,
+    "against_median": 2.0
+   },
+   "movers_premove_familiarity": {
+    "players_with_first_game_row": 114,
+    "with_ge1": 2,
+    "with_ge20": 2,
+    "against_ge1": 89,
+    "against_ge2": 71,
+    "against_ge4": 41,
+    "against_quantiles": {
+     "0.25": 1.0,
+     "0.5": 2.0,
+     "0.75": 4.0
+    },
+    "with_quantiles": {
+     "0.5": 0.0,
+     "0.9": 0.0
+    }
+   },
+   "inseason_premove_familiarity": {
+    "players": 79,
+    "with_ge1": 0,
+    "against_ge2": 56
+   },
+   "inseason_arrivals_first10": {
+    "rows": 735,
+    "players": 82,
+    "with_ge1_players": 80
+   },
+   "team_seasons_new_coach_at_opener": 6,
+   "team_seasons_midseason_change": 4,
+   "unstable_cut_rs_sd10_from_2022": 6.339,
+   "unstable_rows": 8947,
+   "stable_rows": 18636,
+   "rs_sd10_missing_rows": 0,
+   "null_by_asof_strata": {
+    "<10|bench": {
+     "n": 2706,
+     "coach_hist0": 0.0015,
+     "with0": 0.0266
+    },
+    "10-20|bench": {
+     "n": 7837,
+     "coach_hist0": 0.001,
+     "with0": 0.0124
+    },
+    "10-20|starter": {
+     "n": 270,
+     "coach_hist0": 0.0,
+     "with0": 0.0074
+    },
+    "20-28|bench": {
+     "n": 4547,
+     "coach_hist0": 0.0009,
+     "with0": 0.0066
+    },
+    "20-28|starter": {
+     "n": 3055,
+     "coach_hist0": 0.002,
+     "with0": 0.0082
+    },
+    ">=28|bench": {
+     "n": 436,
+     "coach_hist0": 0.0023,
+     "with0": 0.0046
+    },
+    ">=28|starter": {
+     "n": 8732,
+     "coach_hist0": 0.0019,
+     "with0": 0.0066
+    }
+   },
+   "slice_rows": {
+    "all": 27583,
+    "starters": 12057,
+    "bench": 15526,
+    "teammate_out": 23115,
+    "movers_first10": 1034,
+    "new_relationship": 6462,
+    "unstable": 8947,
+    "stable": 18636,
+    "realised_blowout20": 6517,
+    "b2b": 4694
+   },
+   "power_noise_sigma0.05": {
+    "all": {
+     "rows": 27583,
+     "player_seasons": 551,
+     "games": 1315,
+     "half_width_min_mean": 0.0173,
+     "half_width_min_sd": 0.0017,
+     "binding_mode": "player_season"
+    },
+    "starters": {
+     "rows": 12057,
+     "player_seasons": 279,
+     "games": 1315,
+     "half_width_min_mean": 0.0332,
+     "half_width_min_sd": 0.0039,
+     "binding_mode": "player_season"
+    },
+    "bench": {
+     "rows": 15526,
+     "player_seasons": 433,
+     "games": 1315,
+     "half_width_min_mean": 0.0108,
+     "half_width_min_sd": 0.0011,
+     "binding_mode": "player_season"
+    },
+    "teammate_out": {
+     "rows": 23115,
+     "player_seasons": 547,
+     "games": 1273,
+     "half_width_min_mean": 0.0172,
+     "half_width_min_sd": 0.0021,
+     "binding_mode": "player_season"
+    },
+    "movers_first10": {
+     "rows": 1034,
+     "player_seasons": 115,
+     "games": 476,
+     "half_width_min_mean": 0.0407,
+     "half_width_min_sd": 0.0051,
+     "binding_mode": "player_season"
+    },
+    "new_relationship": {
+     "rows": 6462,
+     "player_seasons": 371,
+     "games": 1212,
+     "half_width_min_mean": 0.0212,
+     "half_width_min_sd": 0.0026,
+     "binding_mode": "player_season"
+    },
+    "unstable": {
+     "rows": 8947,
+     "player_seasons": 480,
+     "games": 1312,
+     "half_width_min_mean": 0.0165,
+     "half_width_min_sd": 0.0016,
+     "binding_mode": "player_season"
+    },
+    "stable": {
+     "rows": 18636,
+     "player_seasons": 527,
+     "games": 1315,
+     "half_width_min_mean": 0.0219,
+     "half_width_min_sd": 0.0027,
+     "binding_mode": "player_season"
+    },
+    "realised_blowout20": {
+     "rows": 6517,
+     "player_seasons": 535,
+     "games": 276,
+     "half_width_min_mean": 0.0209,
+     "half_width_min_sd": 0.0021,
+     "binding_mode": "player_season"
+    },
+    "b2b": {
+     "rows": 4694,
+     "player_seasons": 528,
+     "games": 379,
+     "half_width_min_mean": 0.0247,
+     "half_width_min_sd": 0.0027,
+     "binding_mode": "player_season"
+    }
+   }
+  }
+ },
+ "d2_situational_checkin_counts": {
+  "2023": {
+   "checkins_mid_period": 133229,
+   "bench_shooter_checkins_eligible": 11515,
+   "cold_events": 2105,
+   "cold_events_players": 93,
+   "cold_events_games": 501,
+   "control_events": 8058,
+   "top5_player_share_cold": 0.205
+  },
+  "2024": {
+   "checkins_mid_period": 137529,
+   "bench_shooter_checkins_eligible": 14167,
+   "cold_events": 2359,
+   "cold_events_players": 104,
+   "cold_events_games": 533,
+   "control_events": 10021,
+   "top5_player_share_cold": 0.135
+  }
+ },
+ "wall_seconds": 9.9
+}
