@@ -23,8 +23,8 @@ messages, so the row's wording is quoted):
 
 Three additions from Devin (relayed by the coordinator, 2026-11-02 evening), binding on every part:
 * **A. The simplest model is the first comparator everywhere**: production A0 (recency average plus context residual) and FULL (A0 plus the
-  5 recent-role columns, T467). Every part reports its gain as a paired difference against that simplest baseline with a game-clustered CI,
-  plus a knockout that shows what the addition carries beyond it. The question "does the simplest model already have it?" is asked
+  5 recent-role columns, T467). Every part reports its gain as a paired difference against that simplest baseline with a game-clustered CI
+  and a p (raw and BH-adjusted within a declared family; Devin 2026-11-02: "p value matters"), plus a knockout that shows what the addition carries beyond it. The question "does the simplest model already have it?" is asked
   explicitly, part by part, in section 3.
 * **B. Role stability** as an explicit feature and slice: dispersion of recent minutes and usage (sd over the last 10 played games; the
   changepoint's confidence). Stable-role and unstable-role players are scored separately; hypothesis: the decision model helps mostly for
@@ -95,7 +95,9 @@ Three additions from Devin (relayed by the coordinator, 2026-11-02 evening), bin
 
 ## 6. Pre-declared descriptives (feed parts 2-5; no floors, no verdicts)
 
-Written in full in MINUTES_DECISION section "Descriptives D1-D4" so they are frozen with that rule. Triggers (each opens a NEW id only):
+Written in full in MINUTES_DECISION section "Descriptives D1-D4" so they are frozen with that rule. Every trigger condition below also
+requires two-sided bootstrap p <= 0.05 under the binding clustering, BH q = 0.05 within the descriptive family D (m = 29 per season) and
+season, in both 2023 and 2024. Triggers (each opens a NEW id only):
 D1 reopens part 2 if FULL-minutes F has abs(mean bias) >= 1.0 min with CI excluding 0 on changepoint-flagged rows in both seasons and C's
 gain there is at least twice its gain elsewhere. D2 opens a part-4 in-game feature rule if the cold-minus-control ratio of 3PA per minute is
 >= 0.10 with CI excluding 0 in both seasons. D3 opens part 3 (after the history pull) if movers with >= 2 games against the coach converge

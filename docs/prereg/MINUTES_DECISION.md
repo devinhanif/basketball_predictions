@@ -111,6 +111,18 @@ and FULL minus A0 (reported, the simplest-baseline line Devin asked for).
 * CI: 95% percentile bootstrap, 2000 draws, seed 0 (`nba/props/metrics.py::_clustered_boot_means`), clustered by game, player-season and ISO
   week; **the widest binds**. Every cell also prints the game-clustered CI (Devin's addition A) and n.
 * p: two-sided bootstrap p under the binding clustering. BH q = 0.05 within each family and season.
+* **Reporting (Devin 2026-11-02, "p value matters"): every printed cell, in every family, table and descriptive, carries n (rows and
+  clusters), point, binding CI, game-clustered CI, raw two-sided p under the binding clustering, and the BH-adjusted p within its declared
+  family and season.** Cells outside the pass-carrying families M, P, S are assigned to declared reporting families so that the BH p is
+  defined (per season):
+  * **Family REP (reported contrasts, m = 25):** C minus R; C minus P; C minus M2; F minus R; B minus F; C minus KO_g for g in {COACH, FAM, OPP,
+    STAB, V2} (5); PL_ID minus B; PL_DONOR minus B; PL_DONOR_ALL minus F; PC minus PF, PC minus A0 and FULL minus A0, each for pts, reb, ast,
+    fg3m (12). These include the simplest-model comparator rows (F minus R, C minus F is H1, PC minus PF, FULL minus A0): the "additional
+    significance using the simplest model" Devin asked for.
+  * **Family SL (slices of H1, m = 15):** C minus F on each slice listed under "Slices".
+  * **Family D (descriptive triggers, m = 29) and family D4R (outcome-conditioned D4 cells, m = 6):** defined under "Descriptives D1-D4".
+  * Reporting families carry no verdict; their BH p only qualifies how a printed number may be read. The floors and the clear rule of
+    families M, P and S are unchanged by this paragraph.
 
 ## Families, floors, pass rules (2023 selects; 2024 is evaluated only for cells that cleared 2023)
 
@@ -155,7 +167,7 @@ and FULL minus A0 (reported, the simplest-baseline line Devin asked for).
   CI lower > 0).
 * The familiarity-for-movers claim is declared INCAPABLE of a word here (gate G8): FAM is a feature group and a knockout, never a headline.
 
-## Slices (fixed; printed with n, point and binding CI; guard g4 uses those with n >= 300)
+## Slices (fixed; printed with n, point, binding CI, raw p and family-SL BH p; guard g4 uses those with n >= 300)
 
 starters / bench (`starter10 >= 0.5`); movers' first 10 games with a new team (T500 definition) / stayers; in-season arrivals; teammate-OUT
 (`n_out_rot >= 1`); realised blowout (final abs(margin) >= 20; outcome-defined, labelled so) and pre-tip blowout risk (abs(`exp_margin`) >= 10);
@@ -164,28 +176,44 @@ new player-coach relationship (`pc_with_n < 20` raw count); rookie or short-hist
 
 ## Descriptives D1-D4 (pre-declared, run in the same harness after the arms; no floors, no verdict, each feeds a later part)
 
+Inference for every descriptive: 95% percentile bootstrap (2000 draws, seed 0) clustered by game, player-season and ISO week, the widest
+binding; two-sided bootstrap p under the binding clustering; **family D per season, m = 29 trigger-eligible tests: D1a, D1b (2); D2 (1);
+D3a, D3b (2); D4 pre-tip states (24 = 3 stat pairs x 8 states: scorer/playmaker terciles 3, minutes trend 3, stable/unstable 2)**, BH q = 0.05
+within family D and season. The 6 outcome-conditioned D4 cells (3 pairs x realised minutes up/down) form family D4R (m = 6), are printed with
+raw and BH p, and can never fire a trigger. 2022 cells (D2, D4) are printed with p and are outside family D (the triggers read 2023 and 2024).
+A trigger fires only when every condition it lists holds, including "two-sided bootstrap p <= 0.05 under the binding clustering, BH q = 0.05
+within family D and season" for each test it names, in both 2023 and 2024.
+
 * **D1, changepoint vs recent-role (part 2).** Rows with `rs_p8 >= 0.5` and >= 10 earlier games this season, 2023 and 2024: (a) share with
   abs(`wl_mean_min_l3 - min10`) < 2 (recent-role columns see no change); (b) F's mean bias and CRPS on flagged vs unflagged rows; (c) C minus F
-  on flagged vs unflagged. Trigger for a NEW ROLE_CHANGEPOINT id: abs(F bias on flagged) >= 1.0 min with CI excluding 0 in both seasons AND
-  C's gain on flagged >= 2x its gain on unflagged. Otherwise part 2 stays parked.
+  on flagged vs unflagged. Tests: D1a = F's mean bias on flagged rows (vs 0); D1b = (C minus F on flagged) minus (C minus F on unflagged).
+  Trigger for a NEW ROLE_CHANGEPOINT id: abs(D1a) >= 1.0 min with CI excluding 0 and two-sided bootstrap p <= 0.05 under the binding
+  clustering, BH q = 0.05 within family D and season, in both seasons AND C's gain on flagged >= 2x its gain on unflagged with D1b's CI
+  excluding 0 and its BH p <= 0.05 (same family) in both seasons. Otherwise part 2 stays parked.
 * **D2, situational substitutions (part 4).** Event: a bench player (as-of `starter10 < 0.5`, else his box-starter share of the prior 10 games)
   with as-of 3PA per minute >= 0.20 (prior 40 played games, >= 10 games) enters mid-period (a stint start that is not a period opener, periods
   1-4) while his team has >= 6 3PA so far and an in-game 3P% at least 5 pp below its as-of season 3P% (>= 5 earlier games). Control: his
   check-ins with the team at or above its rate. Outcome: his 3PA per on-court minute over the next 8 game minutes or until he exits, divided
-  by his as-of 3PA per minute; also the team's 3PA share while he is on. Report the cold-minus-control difference, player-clustered CI, per
-  season 2022-24. Trigger for a part-4 rule (an in-game feature for T508): difference >= 0.10 with CI excluding 0 in 2023 and 2024.
+  by his as-of 3PA per minute; also the team's 3PA share while he is on. Test D2 = the cold-minus-control difference of that ratio (binding
+  CI; the player-season clustering is expected to bind), per season 2022-24. Trigger for a part-4 rule (an in-game feature for T508):
+  difference >= 0.10 with CI excluding 0 and two-sided bootstrap p <= 0.05 under the binding clustering, BH q = 0.05 within family D and
+  season, in 2023 and 2024.
 * **D3, familiarity vs convergence (part 3).** Movers' (offseason and in-season) games with the new team, 2023-24: games until the mean of
   his last 3 played minutes is within 3 min of his mean over games 11-30 with that team; compare `pc_against_n >= 2` vs < 2 at his first game
-  with the team (player-clustered CI); `pc_with_n >= 1` is printed with its n (3 and 2 movers) and not tested; plus the new-coach cohort
-  (stayers whose coach changed: 6 team-seasons at the opener and 3 / 4 mid-season). Trigger for part 3 (after the history coach pull):
-  difference >= 2 games, CI excluding 0 in both seasons.
+  with the team (test D3a, binding CI); `pc_with_n >= 1` is printed with its n (3 and 2 movers) and not tested; plus the new-coach cohort
+  (stayers whose coach changed: 6 team-seasons at the opener and 3 / 4 mid-season): test D3b = their mean abs(mean of last 3 played minutes
+  minus their previous-season mean) over the first 10 games under the new coach, minus the same quantity for stayers whose coach did not
+  change. Trigger for part 3 (after the history coach pull): D3a difference >= 2 games with CI excluding 0 and two-sided bootstrap p <= 0.05
+  under the binding clustering, BH q = 0.05 within family D and season, in both seasons. D3b is printed with its p and BH p and does not fire
+  the trigger alone (its cohort is 9-10 team-seasons a season).
 * **D4, pts/reb/ast relationship by role state (Devin's addition C).** Same-player correlations of randomized-PIT z residuals from FULL's
   integer grids for (pts, reb), (pts, ast), (reb, ast), 2022-24 (2022 from the warm-up OOF where it exists, else 2023-24 only, printed), by:
   as-of scorer vs playmaker (player's share of team pts minus share of team ast over the prior 20 games, terciles fixed on 2022); as-of minutes
   trend (`wl_mean_min_l3 - min10` > +3 / < -3 / else); realised minutes vs `min10` up / down (outcome-conditioned, labelled); stable vs unstable.
-  Fisher-z difference from the pooled correlation with a player-season-clustered CI, compared with `nba/parlay/copula.py::estimate_pair_corr`
-  on the same rows. Trigger for a JOINT_ROLE_COPULA rule (joint log loss on same-game parlay legs vs the static copula): a pre-tip-knowable
-  state with abs(dRho) >= 0.05, CI excluding 0 in both seasons.
+  Fisher-z difference from the pooled correlation (binding CI over game, player-season and week), compared with
+  `nba/parlay/copula.py::estimate_pair_corr` on the same rows. Trigger for a JOINT_ROLE_COPULA rule (joint log loss on same-game parlay legs
+  vs the static copula): a pre-tip-knowable state with abs(dRho) >= 0.05, CI excluding 0 and two-sided bootstrap p <= 0.05 under the binding
+  clustering, BH q = 0.05 within family D and season, in both seasons.
 
 ## Minimum-data gate (non-negotiable 8), measured 2026-11-02 20:19 CDT, label-free
 
