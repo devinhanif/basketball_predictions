@@ -1,3 +1,17 @@
+# NEXT SESSION, resume here (written 2026-11-08 ~12:30 CST)
+
+**Phone summary for Devin:**
+1. **Ready for your go: three branches, all adversary-APPROVED and replay oracle IDENTICAL 89889f6d.** Merge outside a game window (e.g. tomorrow before 08:20 CST), in this order, from the main checkout:
+   `git merge --no-ff agent/steward-dst-followups && sh ops/install_launchd.sh && git merge --no-ff agent/market-out-gap && git merge --no-ff agent/modeler-late-report && git push && launchctl kickstart -k gui/$(id -u)/local.nba.jarvis`
+   The installer restarts pretip/morning/lineups/watchdog (kills a run in progress). Then Claude checks: pretip plist has 28 Hour entries, next heartbeat on the UTC-4 clock (if launchd now follows Central, `rm data/ops/schedule_tz`), JARVIS tick clean. Merging LATE_REPORT turns its T-15 shadow on at the next lineups tick.
+   - DST a5f6bf3: pretip slots to 22:xx (restores T-60 rows for 22:30/23:00 ET tips) + props-analysis lock retry.
+   - out-gap 49479d3: JARVIS/parlay refuse props of players OUT on the latest known report (266 stale pairs / 103 games since 10-20, 67 priced). Also fixes an ET-vs-UTC compare in top_source._out_names.
+   - LATE_REPORT 553f168: T-15 shadow (out + doubtful), JARVIS shows the real status.
+2. **AVG November refit (yours, ~5 min):** `/opt/homebrew/bin/rclone copy data/colab/avg_shadow_monthly/2026-11/run gdrive:nba_colab/avg_shadow_monthly/2026-11`, then Run All in Colab T4: /Users/devin/Downloads/nba-wt-avgrefit/research/colab/jobs/avg_shadow_monthly/avg_shadow_monthly.ipynb. Tell Claude when done (pull, assemble with the Oct gate per your 11-08 choice, install). Every day stale pushes AVG toward INCONCLUSIVE (>10% stale at the 01-10 look).
+3. **Applied 11-08:** data/ops/schedule_tz = Etc/GMT+4 (false morning/app-export stale alarms gone). Remove it after any reboot/relogin.
+4. **Cleanup (yours):** `rm -rf data/rehearsal/{src,oracle}_{latereport,dst,outgap}_20261108* data/rehearsal/oracle_{latereport,dst,outgap}_20261108 data/rehearsal/{lr,dst,outgap}_*`; worktrees nba-wt-{dst,outgap,avgrefit,latefix,advlate,adv-outgap,adv-dst} after merge.
+5. **Loose ends (recorded, not chased):** 63 Kalshi player names unmatched (Coby White, Strus, Huerter...) so their props never meet the model; LATE_REPORT m2 (production dedup makes 'current row' undecidable without a per-run key list); assistant toolbox caches the slate per session (m4); AVG gate refit per rule text needs a live-row loader + 19->199 support bridge before 12-01; briefings label CST as "CDT".
+
 # NEXT SESSION, resume here (written 2026-11-02 23:55 CST; this session resumed after a compaction on 11-02 evening: START A FRESH SESSION)
 
 **Phone summary for Devin:**
