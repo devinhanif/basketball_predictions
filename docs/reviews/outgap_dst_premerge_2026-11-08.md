@@ -225,3 +225,46 @@ the oracle cannot see it.
 ## Drafted rows (not appended)
 `docs/DECISIONS.md`:
 | 2026-11-08 | JARVIS and nba.parlay refuse props of players whose newest injury-report row known at serve time (as_of compared in ET) is OUT; doubtful still priced; refused, not repriced (agent/market-out-gap). Why: 266 stale (game, player) pairs / 103 games since 10-20 priced from a pre-report p_play. Logged populations change (parlay shadow log + TrackRecord gate, JARVIS paper book/CLV, top_parlays JSON); no frozen rule scores them; PARLAY_JOINT_CAL (draft) must name the gate before freezing. Reverse if: Kalshi DNP fair-price settlement is read and repricing at p_play=0 is shown safe, or the forward store starts writing a row for newly-OUT players. Follows advice (adversary review outgap_dst_premerge_2026-11-08). |
+
+---
+
+## Re-review 49479d3 (diff 70f2aba..49479d3 only)
+
+Worktree `/Users/devin/Downloads/nba-wt-adv-outgap` detached at 49479d3. 7 files, +50/-20. The oracle was not run.
+
+**Verdict: APPROVED.** Out-gap moves from WOUNDED to **SURVIVES**. There are no new blockers or majors.
+
+| Item | Fix | Check | Pass |
+|---|---|---|---|
+| M1 | `out_gate.py:40-44` `utc_to_et_naive` (ZoneInfo `America/New_York`, not a fixed -5) bound at `:78` | Re-ran `scratchpad/attack_outgap.py` (exit 0). Report 14:15 ET on 2026-11-02 (EST): serves at 09:30, 13:00 and 14:00 ET are now **not refused**; the serve at 14:30 ET is refused. DST edges: 10-31 18:15Z -> 14:15 (EDT), 11-02 19:15Z -> 14:15 (EST), 2027-03-14 06:59Z -> 01:59 and 07:01Z -> 03:01 (spring-forward gap skipped correctly). The only ambiguity is the 01:00-02:00 ET fall-back hour, when no report is published. | pass |
+| M1 tests | Fixtures store ET (`tests/parlay/test_out_gap.py:25`, `tests/jarvis/test_out_gap.py:25`, `tests/parlay/test_top_source.py:63`). New negative test `test_report_stored_in_et_is_ignored_at_18_utc_and_used_at_1930_utc` (2026-10-20, EDT: 14:15 ET = 18:15Z) | Passes. The test now fails on the old code's convention. | pass |
+| M1 pre-existing (`top_source._out_names:375`) | `as_of <= utc_to_et_naive(made_at[gid])`; a game with no `made_at` still admits every row, as with the old `datetime.max` | See "What `_out_names` feeds" below. | pass |
+| m1 | `toolbox.py:394` "ET" | | pass |
+| m2 | `AND player_id IS NOT NULL` (`out_gate.py:77`). JARVIS `load_out_players` catches `Exception` on open and on query (`sources.py:180,185`) and returns the loud "filter is OFF" note | Attack: the NULL-pid row is now ignored, with no `TypeError`. New `test_null_player_id_rows_do_not_break_the_gate` passes. | pass |
+| m3 | `open_ro(retries=10, wait_s=3.0)` | See "Tick stall" below. | pass |
+| m4, m5 | Not addressed. m4 is minor; m5 is the DECISIONS row the main session appends | | still open (minor / bookkeeping) |
+
+**What `_out_names` feeds.**
+- Its only consumer is `top_source.py:503-507`, the `teammates` list. That list goes into `drivers["teammates_out_names"]` (`:549`), which is display text only: `top_parlays.py:388` writes "X is out" in the leg's explanation.
+- It changes no probability, filter or score.
+- Behaviour change: teammates ruled OUT on reports published after the forecast row are no longer listed as drivers. Before, a report up to 4-5 h later could be listed. Now the list is "OUT as of the forecast", which is what the docstring says and the honest driver of a forecast that did not see the later report.
+- `grep teammates_out` over `docs/prereg/`, `docs/contracts/`, `FORWARD_PREREG_2026_27.md`, `research/eval/parlay_joint_cal_*` and `nba/export` finds no reader. PARLAY_JOINT_CAL (DRAFT) scores `p_joint_*`, not drivers.
+- So no frozen rule and no scored population reads it. The logged `top_parlays_*.json` text changes, and that is display only.
+
+**Tick stall (m3).**
+- Worst case is 10 tries with a 3 s sleep: about 30 s, plus the query time.
+- `gather` runs it after `load_games`, which already waited (same 10 x 3 s) and raises on failure. So the out-gate wait only starts once the DB was free moments earlier, and it is long only if a writer (pretip predict, about 30 s, or run-t30) grabs the file in between.
+- Total worst case per tick is about 60 s of DB waiting against the 120 s `StartInterval`. Launchd does not start an overlapping instance.
+- The side effect is that quotes already gathered can be up to about 30 s staler. That is minor and acceptable.
+- No collision with the Kalshi snapshot: this opens `nba.duckdb` only (the snapshot writes `kalshi.duckdb`). The retry holds no handle while it sleeps, and each successful read lasts milliseconds, so it cannot meaningfully block a writer (writers wait up to 300 s).
+
+**New contradictions found:** none. `OutNotice.as_of` is now documented as ET (`out_gate.py:62-65`) and is shown as ET.
+
+| Check | Command | Result |
+|---|---|---|
+| ruff check / format | `.venv-1/bin/ruff check nba tests`; `ruff format --check nba tests` | exit 0 / exit 0 |
+| mypy | `.venv-1/bin/mypy nba/parlay nba/jarvis` | exit 0, no issues in 66 files |
+| pytest | `python -m pytest -q --no-cov tests/parlay tests/jarvis tests/export tests/test_layering.py` | 543 passed, 2 skipped, exit 0 |
+| planted future | `PYTHONPATH=<wt> python scratchpad/attack_outgap.py` | exit 0; 0 of 3 pre-report serves refused |
+
+**Merge order is unchanged:** DST first (installer in the same sitting, D-M1), then out-gap. They merge cleanly: the 49479d3 changes do not touch `analysis.py`.
