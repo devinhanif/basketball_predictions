@@ -15,13 +15,14 @@ from nba.jarvis.config import JarvisConfig
 from nba.jarvis.forecasts import ModelView
 from nba.jarvis.models import Quote
 from nba.jarvis.slate import gather
-from nba.parlay.out_gate import OutNotice
+from nba.parlay.out_gate import OutNotice, utc_to_et_naive
 from tests.jarvis.conftest import G1, LEBRON, NOW, SLATE
 
 
 def _avail(root: Path, rows: list[tuple[int, datetime, str]]) -> None:
     con = duckdb.connect(str(root / "nba.duckdb"))
-    for pid, at, status in rows:
+    for pid, utc_at, status in rows:
+        at = utc_to_et_naive(utc_at)  # the table stores naive ET; callers give UTC instants
         con.execute(
             "INSERT INTO player_availability VALUES (?,?,?,?,'x','nba_official_report',?)",
             [pid, at, G1, status, at],

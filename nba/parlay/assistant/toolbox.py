@@ -391,7 +391,7 @@ class Toolbox:
             if note is not None:
                 raise ToolError(
                     f"refused: {self.resolver.display(leg.player_id)} is ruled OUT on the injury "
-                    f"report ({note.as_of:%Y-%m-%d %H:%M} UTC); his stored forecast predates it "
+                    f"report ({note.as_of:%Y-%m-%d %H:%M} ET); his stored forecast predates it "
                     "and is not priced"
                 )
         if len(set(legs)) != len(legs):

@@ -36,7 +36,7 @@ from nba.daily.schedule import cached_game_teams
 from nba.daily.store import withdrawn_players
 from nba.explain import names
 from nba.parlay import line_cal as lc
-from nba.parlay.out_gate import SKIP_REASON, load_out_on_report
+from nba.parlay.out_gate import SKIP_REASON, load_out_on_report, utc_to_et_naive
 from nba.parlay.top_parlays import LegCand, make_leg
 from nba.props import full_support
 from nba.props.config import THRESHOLDS
@@ -372,7 +372,8 @@ def _out_names(
     ).fetchall()
     latest: dict[tuple[str, int], str] = {}
     for gid, pid, status, as_of in rows:
-        if as_of <= made_at.get(gid, datetime.max):
+        # as_of is naive ET; made_at is naive UTC
+        if gid not in made_at or as_of <= utc_to_et_naive(made_at[gid]):
             latest[(gid, int(pid))] = str(status)
     out: dict[str, list[int]] = defaultdict(list)
     for (gid, pid), status in sorted(latest.items()):

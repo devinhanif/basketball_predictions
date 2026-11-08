@@ -21,10 +21,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 import duckdb
 
+ET = ZoneInfo("America/New_York")
 OUT_STATUS = "out"
 SKIP_REASON = "player_out_on_report"
 
@@ -33,6 +35,13 @@ SKIP_REASON = "player_out_on_report"
 class OutNotice:
     as_of: datetime
     reason: str | None
+
+
+def utc_to_et_naive(t: datetime) -> datetime:
+    """Naive UTC -> naive ET wall clock. ``player_availability.as_of`` is stored as naive ET (the
+    report's own clock, nba/daily/injury.py, nba/ingest/availability.py); comparing it with a naive
+    UTC serve time would hide a report by 4-5 hours."""
+    return t.replace(tzinfo=UTC).astimezone(ET).replace(tzinfo=None)
 
 
 def table_exists(con: duckdb.DuckDBPyConnection, prefix: str = "") -> bool:
@@ -50,8 +59,10 @@ def load_out_on_report(
     as_of: datetime,
     prefix: str = "",
 ) -> dict[tuple[str, int], OutNotice]:
-    """(game_id, player_id) -> notice for players whose newest report row with ``as_of <= as_of``
-    (naive UTC) says OUT. Empty when the table is absent (the caller says so in its notes)."""
+    """(game_id, player_id) -> notice for players whose newest report row known at ``as_of``
+    (the serve time, NAIVE UTC) says OUT. The table's ``as_of`` is naive ET, so the serve time is
+    converted before binding; ``OutNotice.as_of`` is that stored ET wall clock. Empty when the
+    table is absent (the caller says so in its notes)."""
     gids = sorted({str(g) for g in game_ids})
     if not gids or not table_exists(con, prefix):
         return {}
@@ -63,8 +74,8 @@ def load_out_on_report(
         f"SELECT game_id, player_id, lower(status), as_of, {why} FROM ("  # noqa: S608
         f"SELECT *, row_number() OVER (PARTITION BY game_id, player_id "
         f"ORDER BY as_of DESC{tie}) rn FROM {prefix}player_availability "
-        f"WHERE game_id IN ({marks}) AND as_of <= ?) WHERE rn = 1",
-        [*gids, as_of],
+        f"WHERE game_id IN ({marks}) AND player_id IS NOT NULL AND as_of <= ?) WHERE rn = 1",
+        [*gids, utc_to_et_naive(as_of)],
     ).fetchall()
     return {
         (str(g), int(p)): OutNotice(a, None if r is None else str(r))

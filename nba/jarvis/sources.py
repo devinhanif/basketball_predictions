@@ -176,12 +176,12 @@ def load_out_players(
     if not path.exists():
         return set(), f"{path.name} missing"
     try:
-        con = open_ro(path, retries=4, wait_s=1.5)
-    except duckdb.IOException as exc:
+        con = open_ro(path, retries=10, wait_s=3.0)  # the pretip job holds it for a while
+    except Exception as exc:  # noqa: BLE001 - no failure here may kill a tick
         return set(), f"{type(exc).__name__}: {str(exc)[:80]}"
     try:
         found = load_out_on_report(con, [g.game_id for g in games], now)
-    except duckdb.Error as exc:
+    except Exception as exc:  # noqa: BLE001 - no failure here may kill a tick
         return set(), f"{type(exc).__name__}: {str(exc)[:80]}"
     finally:
         con.close()

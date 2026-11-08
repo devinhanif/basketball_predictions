@@ -12,7 +12,7 @@ from nba.parlay.__main__ import drop_out_on_report
 from nba.parlay.game_model import GameModelParams
 from nba.parlay.kalshi_map import MarketRow
 from nba.parlay.legs import Leg
-from nba.parlay.out_gate import SKIP_REASON, load_out_on_report
+from nba.parlay.out_gate import SKIP_REASON, load_out_on_report, utc_to_et_naive
 from nba.parlay.slate import load_slate
 
 HOME, AWAY = 10, 20
@@ -22,8 +22,8 @@ SLATE = date(2026, 10, 20)
 GRID = [float(v) for v in range(19)]
 TIP = datetime(2026, 10, 21, 0, 30)
 MORNING = datetime(2026, 10, 20, 11, 0)  # the 07:00 ET forward row
-OUT_AT = datetime(2026, 10, 20, 18, 15)  # 14:15 ET: ruled OUT, no new forward row is written
-SERVE = datetime(2026, 10, 20, 19, 0)
+OUT_AT = datetime(2026, 10, 20, 14, 15)  # 14:15 ET (stored as naive ET): ruled OUT, no new row
+SERVE = datetime(2026, 10, 20, 19, 0)  # UTC = 15:00 ET
 
 
 def _db(avail: list[tuple[int, datetime, str]] | None) -> duckdb.DuckDBPyConnection:
@@ -89,14 +89,14 @@ def test_stale_row_case_player_ruled_out_after_the_morning_row_is_refused() -> N
 
 def test_known_at_a_report_after_the_serve_time_is_not_used() -> None:
     con = _db([(3, OUT_AT, "out")])
-    early = datetime(2026, 10, 20, 17, 0)
+    early = datetime(2026, 10, 20, 17, 0)  # UTC = 13:00 ET, before the 14:15 ET report
     info = load_slate(con, SLATE, PARAMS, prefix="nba.", as_of=early)
     assert info.out_on_report == {}
     assert set(drop_out_on_report(_mapped(), info, {})) == {"T3", "T4"}
 
 
 def test_out_then_upgraded_is_priced_again_and_doubtful_is_not_out() -> None:
-    back = datetime(2026, 10, 20, 18, 45)
+    back = datetime(2026, 10, 20, 14, 45)  # ET
     con = _db([(3, OUT_AT, "out"), (3, back, "probable"), (4, OUT_AT, "doubtful")])
     info = load_slate(con, SLATE, PARAMS, prefix="nba.", as_of=SERVE)
     assert info.out_on_report == {}
@@ -133,7 +133,7 @@ def test_top_source_refuses_a_player_ruled_out_after_the_forecast_row() -> None:
     assert len(ok.legs) == 2  # control: priced from the stored row
     nba.execute(
         "INSERT INTO player_availability VALUES (?, ?, ?, 'out')",
-        [t.PID, t.MADE + timedelta(minutes=10), t.GID],  # ruled out AFTER the forecast row
+        [t.PID, utc_to_et_naive(t.MADE + timedelta(minutes=10)), t.GID],  # ET, after the row
     )
     refused = top_source.load_legs(nba, odds, t.SLATE, now=now, calmap=lc.load_map())
     assert refused.legs == [] and refused.dropped[SKIP_REASON] == 1
@@ -142,3 +142,19 @@ def test_top_source_refuses_a_player_ruled_out_after_the_forecast_row() -> None:
         nba, odds, t.SLATE, now=t.MADE + timedelta(minutes=5), calmap=lc.load_map()
     )
     assert len(early.legs) == 2
+
+
+def test_report_stored_in_et_is_ignored_at_18_utc_and_used_at_1930_utc() -> None:
+    con = _db([(3, OUT_AT, "out")])  # 14:15 ET == 18:15 UTC
+    assert load_out_on_report(con, [GID], datetime(2026, 10, 20, 18, 0), "nba.") == {}
+    got = load_out_on_report(con, [GID], datetime(2026, 10, 20, 19, 30), "nba.")
+    assert set(got) == {(GID, 3)} and got[(GID, 3)].as_of == OUT_AT
+
+
+def test_null_player_id_rows_do_not_break_the_gate() -> None:
+    con = _db([(3, OUT_AT, "out")])
+    con.execute(
+        "INSERT INTO nba.player_availability VALUES (NULL, ?, ?, 'out', NULL, 'x', ?)",
+        [OUT_AT, GID, OUT_AT],
+    )
+    assert set(load_out_on_report(con, [GID], SERVE, "nba.")) == {(GID, 3)}
