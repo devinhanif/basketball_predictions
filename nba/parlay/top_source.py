@@ -36,6 +36,7 @@ from nba.daily.schedule import cached_game_teams
 from nba.daily.store import withdrawn_players
 from nba.explain import names
 from nba.parlay import line_cal as lc
+from nba.parlay.out_gate import SKIP_REASON, load_out_on_report
 from nba.parlay.top_parlays import LegCand, make_leg
 from nba.props import full_support
 from nba.props.config import THRESHOLDS
@@ -427,6 +428,9 @@ def load_legs(
     gids = sorted({k[0] for k in chosen})
     team_by_player = _teams(nba, gids, slate)
     out_ids = _out_names(nba, gids, {k[0]: v[1]["made_at"] for k, v in chosen.items()})
+    # live run only (``now`` set): a player ruled OUT on a report known at serve time is refused;
+    # a stale row's p_play must not price him (a history run has no serve time and is unchanged)
+    out_now = load_out_on_report(nba, gids, now) if now is not None else {}
     gm, mm = (",".join("?" for _ in xs) for xs in (gids, MARKET_STAT))
     quotes = odds.execute(
         f"""SELECT game_id, player_id, market, book, side, point, price_american, received_at,
@@ -451,6 +455,9 @@ def load_legs(
         qs = quartiles(prod)
         if qs is None:
             out.dropped["no_quartiles"] += 1
+            continue
+        if (gid, pid) in out_now:
+            out.dropped[SKIP_REASON] += 1
             continue
         team_id = team_by_player.get(pid)
         gmeta = games[gid]

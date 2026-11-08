@@ -18,6 +18,7 @@ import polars as pl
 from nba.daily.schedule import UNSCORABLE_GAME_PREFIXES
 from nba.parlay.game_model import GameModelParams, slate_total_feature
 from nba.parlay.joint import GameCtx
+from nba.parlay.out_gate import OutNotice, load_out_on_report, table_exists
 from nba.parlay.qdist import QuantileGridDist
 from nba.props.rosters import DEFAULT_ROSTER_DIR, roster_cache_path
 
@@ -36,6 +37,9 @@ class SlateInfo:
     # Players whose distributions were NOT placed in a game ctx, with the reason (never silent).
     dropped: list[dict[str, object]] = field(default_factory=list)
     roster_source: str = "recent"  # the source actually used (official falls back per slate)
+    # (game, player) ruled OUT on a report known at serve time; consumers refuse these legs (the
+    # forward store writes no row for a newly-OUT player, so his old p_play would price him).
+    out_on_report: dict[tuple[str, int], OutNotice] = field(default_factory=dict)
 
 
 def official_team_map(slate: date, team_ids: list[int], root: Path) -> dict[int, int] | None:
@@ -180,4 +184,9 @@ def load_slate(
         info.games_by_key[(slate, away, home)] = gid
         info.win_model[gid] = model
         info.tipoff[gid] = tips[gid]
+    serve = as_of if as_of is not None else datetime.now(UTC).replace(tzinfo=None)
+    if table_exists(con, prefix):
+        info.out_on_report = load_out_on_report(con, info.ctxs, serve, prefix)
+    else:
+        info.notes.append("no player_availability table: OUT-on-report gate is off")
     return info

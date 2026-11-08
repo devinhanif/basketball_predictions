@@ -26,6 +26,7 @@ from nba.jarvis.sources import (
     age_min,
     load_games,
     load_kalshi_quotes,
+    load_out_players,
     load_pinnacle,
     utcnow,
 )
@@ -104,6 +105,25 @@ def gather(
     for src in QUOTE_SOURCES:
         quotes += src(cfg, games, slate, n)
     quotes = newest_per_ticker(quotes)
+    # A player ruled OUT on a report known now is not offered: the forward store writes no row for
+    # a newly-OUT player, so his old forecast is stale (2026-11-02 Brown/George). Refused, not
+    # repriced: Kalshi's DNP settlement is unread. OUT only; doubtful is not treated as out.
+    out, out_err = load_out_players(cfg, games, n)
+    if out_err is not None:
+        notes.append(f"injury report unreadable ({out_err}): OUT-player filter is OFF")
+    else:
+        gone = [
+            q
+            for q in quotes
+            if q.kind == "prop" and q.player_id and (q.game_id, q.player_id) in out
+        ]
+        if gone:
+            quotes = [q for q in quotes if not any(q is x for x in gone)]
+            who = len({(q.game_id, q.player_id) for q in gone})
+            notes.append(
+                f"{len(gone)} prop quote(s) on {who} player(s) ruled OUT on the injury report "
+                "removed (not priced)"
+            )
     refs = load_pinnacle(cfg, games, slate, n)
     if not refs.win and games:
         notes.append("no Pinnacle reference captured yet: every label is capped at none")

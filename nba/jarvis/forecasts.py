@@ -65,6 +65,8 @@ class ModelView:
         ctx = sl.info.ctxs.get(q.game_id)
         if ctx is None:
             return None
+        if q.kind == "prop" and q.player_id and (q.game_id, q.player_id) in sl.info.out_on_report:
+            return None  # ruled OUT on a report known now: the stored (stale) forecast is not used
         try:
             if q.kind == "game_win" and q.team_id is not None:
                 return float(leg_marginal(Leg(q.game_id, 0, "win", 0.0, "yes", q.team_id), ctx))

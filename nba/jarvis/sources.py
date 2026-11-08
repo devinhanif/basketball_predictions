@@ -23,6 +23,7 @@ from nba.jarvis.config import JarvisConfig
 from nba.jarvis.edge import devig_pair
 from nba.jarvis.models import Game, Quote, Ref
 from nba.parlay.kalshi_map import load_team_abbr, parse_event
+from nba.parlay.out_gate import load_out_on_report
 
 ET = ZoneInfo("America/New_York")
 PROP_SERIES = {"KXNBAPTS": "pts", "KXNBAREB": "reb", "KXNBAAST": "ast", "KXNBA3PT": "fg3m"}
@@ -159,6 +160,32 @@ def load_games(cfg: JarvisConfig, slate: date) -> list[Game]:
             Game(gid, away, home, abbr_of.get(away, "?"), abbr_of.get(home, "?"), tips.get(gid))
         )
     return out
+
+
+def load_out_players(
+    cfg: JarvisConfig, games: list[Game], now: datetime
+) -> tuple[set[tuple[str, int]], str | None]:
+    """((game_id, player_id) ruled OUT on a report known at ``now``, error text or None).
+
+    Reads ``nba.player_availability`` read-only; only rows with ``as_of <= now`` count. OUT only
+    (doubtful is not out). An unreadable store returns an error string the caller must surface:
+    the gate is then off, and JARVIS says so rather than pricing silently."""
+    path = cfg.paths["nba_db"]
+    if not games:
+        return set(), None
+    if not path.exists():
+        return set(), f"{path.name} missing"
+    try:
+        con = open_ro(path, retries=4, wait_s=1.5)
+    except duckdb.IOException as exc:
+        return set(), f"{type(exc).__name__}: {str(exc)[:80]}"
+    try:
+        found = load_out_on_report(con, [g.game_id for g in games], now)
+    except duckdb.Error as exc:
+        return set(), f"{type(exc).__name__}: {str(exc)[:80]}"
+    finally:
+        con.close()
+    return set(found), None
 
 
 def _tips(cfg: JarvisConfig, slate: date) -> dict[str, datetime]:
