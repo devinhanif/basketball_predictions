@@ -122,10 +122,15 @@ def supports_alert(cfg: JarvisConfig, p: Play) -> bool:
 
 
 def _late_lines(rt: Runtime, plays: list[Play], now: datetime) -> list[Play]:
-    """Display-only "latest report" lines (nba.jarvis.late_report); plays unchanged otherwise."""
-    from nba.jarvis.late_report import annotate
+    """Display-only "latest report" lines (nba.jarvis.late_report); plays unchanged otherwise.
+    Never raises: the import and the config/knowledge-base lookups sit inside the guard too, so a
+    broken module or a missing key cannot take a tick down (the 10-28 every-tick crash shape)."""
+    try:
+        from nba.jarvis.late_report import annotate
 
-    return annotate(plays, rt.cfg.paths["nba_db"], rt.kb.name, now)
+        return annotate(plays, rt.cfg.paths["nba_db"], rt.kb.name, now)
+    except Exception:
+        return plays
 
 
 def build_state(rt: Runtime, slate: date) -> SlateState:

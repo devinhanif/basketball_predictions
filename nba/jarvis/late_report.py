@@ -4,7 +4,8 @@ When the LATE_REPORT shadow (``props_context_residual_late``, written at T-15 wi
 report as of that moment) differs from production (``props_context_residual``) by at least
 ``MIN_DIFF`` points of predictive mean for the play's player and stat, the play text gets one line,
 e.g. ``latest report: Tatum 27.1 vs 25.3``; when the shadow's own report excluded the player (OUT or
-DOUBTFUL at T-15), ``latest report: George OUT (production 16.7)``.
+DOUBTFUL at T-15), the status the report actually gave, e.g. ``latest report: George OUT
+(production 16.7)`` or ``latest report: George DOUBTFUL (production 16.7)``.
 
 It is a line of text and nothing else: it never changes a label, an edge, a stake, a price, the
 dedupe key or the input hash (``Play.display_lines`` is not part of ``Play.key`` or
@@ -31,6 +32,8 @@ LATE_DECISIONS = "forward_late_decisions"
 MIN_DIFF = 1.0
 
 Key = tuple[str, int, str]  # game_id, player_id, stat
+#: shown when a stored exclusion carries no status (a bare id list): never claim OUT for DOUBTFUL
+UNKNOWN_STATUS = "out/doubtful"
 
 
 def _has(con: duckdb.DuckDBPyConnection, table: str) -> bool:
@@ -42,10 +45,10 @@ def _has(con: duckdb.DuckDBPyConnection, table: str) -> bool:
 
 def read_late(
     con: duckdb.DuckDBPyConnection, game_ids: list[str], now: datetime
-) -> tuple[dict[Key, tuple[float | None, float | None]], dict[str, set[int]]]:
+) -> tuple[dict[Key, tuple[float | None, float | None]], dict[str, dict[int, str]]]:
     """``((game, player, stat) -> (production mean, late mean))`` from the latest row of each
-    model made at or before ``now`` (naive UTC), and ``game -> players the late arm's report
-    excluded`` for games it logged."""
+    model made at or before ``now`` (naive UTC), and ``game -> {player: report status}`` for the
+    players the late arm's report excluded, for games it logged."""
     if not game_ids or not _has(con, "forward_predictions"):
         return {}, {}
     marks = ",".join("?" for _ in game_ids)
@@ -65,24 +68,38 @@ def read_late(
     for gid, pid, stat, model, mean in rows:
         slot = means.setdefault((str(gid), int(pid), str(stat)), [None, None])
         slot[0 if model == PROD_MODEL else 1] = None if mean is None else float(mean)
-    outs: dict[str, set[int]] = {}
+    outs: dict[str, dict[int, str]] = {}
     if _has(con, LATE_DECISIONS):
         for gid, excl in con.execute(
             f"SELECT game_id, report_excluded FROM {LATE_DECISIONS} "  # noqa: S608
             f"WHERE outcome = 'logged' AND decided_at <= ? AND game_id IN ({marks})",
             [now, *game_ids],
         ).fetchall():
-            outs[str(gid)] = {int(p) for p in json.loads(excl or "[]")}
+            outs[str(gid)] = _parse_excluded(excl)
     return {k: (v[0], v[1]) for k, v in means.items()}, outs
 
 
+def _parse_excluded(raw: str | None) -> dict[int, str]:
+    """``report_excluded`` JSON: ``{"<pid>": "out"|"doubtful"}``; a bare id list (no status
+    stored) maps each id to :data:`UNKNOWN_STATUS`."""
+    val = json.loads(raw or "{}")
+    if isinstance(val, dict):
+        return {int(p): str(st or UNKNOWN_STATUS) for p, st in val.items()}
+    return {int(p): UNKNOWN_STATUS for p in val}
+
+
 def late_line(
-    name: str, prod: float | None, late: float | None, excluded: bool, min_diff: float = MIN_DIFF
+    name: str,
+    prod: float | None,
+    late: float | None,
+    excluded: str | None,
+    min_diff: float = MIN_DIFF,
 ) -> str | None:
-    """The display line, or None when there is nothing worth saying."""
+    """The display line, or None when there is nothing worth saying. ``excluded`` is the late
+    report's status for the player when it excluded him ('out' | 'doubtful'), else None."""
     if excluded:
         tail = "" if prod is None else f" (production {prod:.1f})"
-        return f"latest report: {name} OUT{tail}"
+        return f"latest report: {name} {excluded.upper()}{tail}"
     if prod is None or late is None or abs(late - prod) < min_diff:
         return None
     return f"latest report: {name} {late:.1f} vs {prod:.1f}"
@@ -116,7 +133,7 @@ def annotate(
         out = list(plays)
         for i, (gid, pid, stat) in keyed:
             prod, late = means.get((gid, pid, stat), (None, None))
-            line = late_line(name_of(pid), prod, late, pid in outs.get(gid, set()))
+            line = late_line(name_of(pid), prod, late, outs.get(gid, {}).get(pid))
             if line is not None:
                 out[i] = replace(out[i], display_lines=(*out[i].display_lines, line))
         return out

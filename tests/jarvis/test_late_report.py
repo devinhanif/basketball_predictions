@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import duckdb
+import pytest
 
 from nba.daily.late_report import LATE_DECISIONS_DDL
 from nba.daily.store import ensure_tables
@@ -19,8 +20,8 @@ from nba.jarvis.render import play_lines
 TIP = datetime(2026, 11, 3, 1, 30)
 NOW = TIP - timedelta(minutes=5)
 G = "0022600167"
-TATUM, WHITE, GEORGE = 1628369, 1628401, 202331
-NAMES = {TATUM: "Tatum", WHITE: "White", GEORGE: "George"}
+TATUM, WHITE, GEORGE, BROWN = 1628369, 1628401, 202331, 1627759
+NAMES = {TATUM: "Tatum", WHITE: "White", GEORGE: "George", BROWN: "Brown"}
 
 
 def _db(tmp: Path) -> Path:
@@ -32,6 +33,7 @@ def _db(tmp: Path) -> Path:
         ("props_context_residual", TIP - timedelta(hours=6), TATUM, 25.33),
         ("props_context_residual", TIP - timedelta(hours=6), WHITE, 12.71),
         ("props_context_residual", TIP - timedelta(hours=18), GEORGE, 16.73),  # stale row
+        ("props_context_residual", TIP - timedelta(hours=6), BROWN, 22.04),
         (jl.LATE_MODEL, TIP - timedelta(minutes=14), TATUM, 27.1),
         (jl.LATE_MODEL, TIP - timedelta(minutes=14), WHITE, 13.2),  # +0.49: below the bar
         ("props_context_residual_t15", TIP - timedelta(minutes=14), TATUM, 40.0),  # other arm
@@ -44,7 +46,8 @@ def _db(tmp: Path) -> Path:
     con.execute(
         "INSERT INTO forward_late_decisions VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         [G, TIP - timedelta(minutes=14), TIP, TIP - timedelta(minutes=15),
-         datetime(2026, 11, 2, 20, 15), json.dumps([GEORGE]), False, None, "logged", "ok", 2],
+         datetime(2026, 11, 2, 20, 15), json.dumps({str(GEORGE): "out", str(BROWN): "doubtful"}),
+         False, None, "logged", "ok", 2],
     )  # fmt: skip
     con.close()
     return path
@@ -58,24 +61,35 @@ def _play(pid: int, stat: str = "pts") -> Play:
 
 
 def test_late_line_rules() -> None:
-    assert jl.late_line("Tatum", 25.33, 27.1, False) == "latest report: Tatum 27.1 vs 25.3"
-    assert jl.late_line("White", 12.71, 13.2, False) is None
-    assert jl.late_line("White", 12.0, 13.0, False) == "latest report: White 13.0 vs 12.0"
-    assert jl.late_line("X", None, 20.0, False) is None
-    assert jl.late_line("X", 20.0, None, False) is None
-    out = jl.late_line("George", 16.73, None, True)
+    assert jl.late_line("Tatum", 25.33, 27.1, None) == "latest report: Tatum 27.1 vs 25.3"
+    assert jl.late_line("White", 12.71, 13.2, None) is None
+    assert jl.late_line("White", 12.0, 13.0, None) == "latest report: White 13.0 vs 12.0"
+    assert jl.late_line("X", None, 20.0, None) is None
+    assert jl.late_line("X", 20.0, None, None) is None
+    out = jl.late_line("George", 16.73, None, "out")
     assert out == "latest report: George OUT (production 16.7)"
+    out = jl.late_line("Brown", 22.04, None, "doubtful")  # DOUBTFUL is never shown as OUT
+    assert out == "latest report: Brown DOUBTFUL (production 22.0)"
+    assert jl.late_line("Brown", None, None, "doubtful") == "latest report: Brown DOUBTFUL"
+    assert jl.late_line("Tatum", 25.33, 27.1, None) == "latest report: Tatum 27.1 vs 25.3"
+
+
+def test_excluded_json_parsing() -> None:
+    assert jl._parse_excluded('{"5": "doubtful", "6": "out"}') == {5: "doubtful", 6: "out"}
+    assert jl._parse_excluded("[5]") == {5: "out/doubtful"}  # no status stored: never "OUT"
+    assert jl._parse_excluded(None) == {}
 
 
 def test_annotate_adds_display_lines_only(tmp_path: Path) -> None:
     db = _db(tmp_path)
-    plays = [_play(TATUM), _play(WHITE), _play(GEORGE), _play(TATUM, "reb")]
+    plays = [_play(TATUM), _play(WHITE), _play(GEORGE), _play(TATUM, "reb"), _play(BROWN)]
     out = jl.annotate(plays, db, NAMES.__getitem__, NOW)
     assert [p.display_lines for p in out] == [
         ("latest report: Tatum 27.1 vs 25.3",),
         (),
         ("latest report: George OUT (production 16.7)",),
         (),
+        ("latest report: Brown DOUBTFUL (production 22.0)",),
     ]
     for a, b in zip(plays, out, strict=True):  # nothing but the display line changed
         assert replace(b, display_lines=()) == a and a.key == b.key and a.inputs == b.inputs
@@ -103,3 +117,23 @@ def test_fail_soft(tmp_path: Path) -> None:
     empty = tmp_path / "empty.duckdb"
     duckdb.connect(str(empty)).close()  # no forward tables yet
     assert jl.annotate(plays, empty, NAMES.__getitem__, NOW) == plays
+
+
+def test_runner_late_lines_never_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Planted failures in the import and the lookups outside annotate return the plays as they
+    were (the 10-28 every-tick crash shape)."""
+    import sys
+    from types import SimpleNamespace
+
+    from nba.jarvis import runner
+
+    plays = [_play(TATUM)]
+    no_key = SimpleNamespace(cfg=SimpleNamespace(paths={}), kb=SimpleNamespace(name=str))
+    assert runner._late_lines(no_key, plays, NOW) is plays  # type: ignore[arg-type]
+    no_kb = SimpleNamespace(cfg=SimpleNamespace(paths={"nba_db": Path("x")}))
+    assert runner._late_lines(no_kb, plays, NOW) is plays  # type: ignore[arg-type]
+    monkeypatch.setitem(sys.modules, "nba.jarvis.late_report", None)  # import raises ImportError
+    ok = SimpleNamespace(
+        cfg=SimpleNamespace(paths={"nba_db": Path("x")}), kb=SimpleNamespace(name=str)
+    )
+    assert runner._late_lines(ok, plays, NOW) is plays  # type: ignore[arg-type]

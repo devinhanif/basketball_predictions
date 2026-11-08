@@ -27,6 +27,7 @@ from nba.daily.schedule import (
     DEFAULT_SCHEDULE_CACHE_DIR,
     ET,
     MAX_SCHEDULE_CACHE_AGE,
+    ScheduledGame,
     ScheduleFn,
     fetch_schedule_nba_api,
     load_schedule_cache,
@@ -244,29 +245,64 @@ def alert_shadow_errors(s: RunSummary, ops_dir: Path = OPS_DIR) -> bool:
     return True
 
 
+def _memo_schedule(fn: ScheduleFn) -> ScheduleFn:
+    """``fn`` called at most once per season string: the late shadow reuses the slate the T-15
+    arm already fetched (no second stats.nba.com call under ``--schedule-nba-api``)."""
+    seen: dict[str, list[ScheduledGame]] = {}
+
+    def once(season: str) -> list[ScheduledGame]:
+        if season not in seen:
+            seen[season] = fn(season)
+        return seen[season]
+
+    return once
+
+
+def _alert_once(ops_dir: Path, body: str) -> bool:
+    """Append ``- <now> <body>`` to ALERTS.md unless a line of today's date already ends with
+    ``body`` (one line per date per message, not one per 5-minute tick). True if appended."""
+    ops_dir.mkdir(parents=True, exist_ok=True)
+    path = ops_dir / "ALERTS.md"
+    now = datetime.now()
+    day = f"- {now:%Y-%m-%d} "
+    if path.exists():
+        for line in path.read_text().splitlines():
+            if line.startswith(day) and line.endswith(body):
+                return False
+    with path.open("a") as fh:
+        fh.write(f"- {now:%Y-%m-%d %H:%M} {body}\n")
+    return True
+
+
 def _late_shadow(
     con: duckdb.DuckDBPyConnection,
     lcon: duckdb.DuckDBPyConnection,
     args: argparse.Namespace,
     ops_dir: Path | None = None,
+    schedule_fn: ScheduleFn | None = None,
 ) -> bool:
     """LATE_REPORT shadow after the T-15 arm (its rows are already written): own table, own
-    try/except. A failure prints and appends one ALERTS line; it never changes the T-15 arm's rows
-    or this command's exit code. True when the shadow ran without an exception."""
+    try/except. A failure prints and appends one ALERTS line per date per message; it never
+    changes the T-15 arm's rows or this command's exit code. ``schedule_fn`` is the T-15 arm's
+    (memoized) schedule, reused; seeds the T-30/T-15 cache from ``--model-cache`` when given.
+    True when the shadow ran without an exception."""
     try:  # the import is inside the try: a broken shadow module cannot take the T-15 arm down
         from nba.daily.late_report import run_late_shadow
-        from nba.daily.t30 import T30_MIN_INTERVAL_S, schedule_from_lineups
+        from nba.daily.t30 import DEFAULT_T30_CACHE, T30_MIN_INTERVAL_S, schedule_from_lineups
 
         s = run_late_shadow(
             con,
             lcon,
             args.date,
-            schedule_fn=schedule_from_db(con)
+            schedule_fn=schedule_fn
+            if schedule_fn is not None
+            else schedule_from_db(con)
             if args.schedule_from_db
             else fetch_schedule_nba_api
             if args.schedule_nba_api
             else schedule_from_lineups(lcon),
             now=args.now,
+            seed_t30_cache=getattr(args, "model_cache", None) or DEFAULT_T30_CACHE,
             roster_source=args.roster_source,
             rate_limiter=RateLimiter(max(args.rate_limit_s, T30_MIN_INTERVAL_S)),
             roster_dir=args.roster_dir,
@@ -276,13 +312,13 @@ def _late_shadow(
     except Exception as exc:
         msg = f"{type(exc).__name__}: {exc}".replace("\n", " ")[:160]
         print(f"late-report shadow failed (T-15 rows unaffected): {msg}")
-        out = ops_dir or OPS_DIR
-        out.mkdir(parents=True, exist_ok=True)
-        with (out / "ALERTS.md").open("a") as fh:
-            fh.write(
-                f"- {datetime.now():%Y-%m-%d %H:%M} [lineups] late-report shadow failed "
-                f"(T-15 rows unaffected): {msg}\n"
+        try:
+            _alert_once(
+                ops_dir or OPS_DIR,
+                f"[lineups] late-report shadow failed (T-15 rows unaffected): {msg}",
             )
+        except Exception as aexc:  # an unwritable ALERTS file never fails the T-15 command
+            print(f"late-report alert not written: {type(aexc).__name__}: {aexc}"[:200])
         return False
 
 
@@ -430,15 +466,18 @@ def main(argv: list[str] | None = None) -> int:
 
         lcon = connect_lineups(args.lineups_db or DEFAULT_LINEUPS_DB, read_only=True)
         run_arm = run_t15 if args.command == "run-t15" else run_t30
+        sched = _memo_schedule(
+            schedule_from_db(con)
+            if args.schedule_from_db
+            else fetch_schedule_nba_api
+            if args.schedule_nba_api
+            else schedule_from_lineups(lcon)
+        )
         t30 = run_arm(
             con,
             lcon,
             args.date,
-            schedule_fn=schedule_from_db(con)
-            if args.schedule_from_db
-            else fetch_schedule_nba_api
-            if args.schedule_nba_api
-            else schedule_from_lineups(lcon),
+            schedule_fn=sched,
             now=args.now,
             model_cache=args.model_cache,
             roster_source=args.roster_source,
@@ -447,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(t30)
         if args.command == "run-t15" and args.log_late_shadow:
-            _late_shadow(con, lcon, args)
+            _late_shadow(con, lcon, args, schedule_fn=sched)
         return 0
     if args.command == "ingest":
         return run_ingest(

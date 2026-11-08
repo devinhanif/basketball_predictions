@@ -126,8 +126,8 @@ def test_player_out_between_t60_and_t15_moves_late_rows_not_production(
         "SELECT game_id, outcome, report_as_of, report_excluded, lineups_known "
         "FROM forward_late_decisions ORDER BY 1"
     ).fetchall()
-    assert dec == [(G1, "logged", SNAP_LATE, f"[{STAR}]", False),
-                   (G2, "logged", SNAP_LATE, "[]", False)]  # fmt: skip
+    assert dec == [(G1, "logged", SNAP_LATE, json.dumps({str(STAR): "out"}), False),
+                   (G2, "logged", SNAP_LATE, "{}", False)]  # fmt: skip
     stamp = con.execute("SELECT run_id, model_name, version FROM forward_model_stamps").fetchall()
     assert stamp == [(s.run_id, lr.LATE_MODEL_NAME, lr.LATE_VERSION)]
     # idempotent: a later tick decides nothing new
@@ -144,6 +144,8 @@ def test_doubtful_excludes_and_report_after_made_at_is_never_used(
     _report(con, future, {G1: {1002: "out"}})
     flagged, used = lr.late_report_outs(con, [(G1, TIP), (G2, TIP)], T14)
     assert flagged[G1] == {STAR} and used[G1] == SNAP_LATE  # doubtful counts; 1002 not yet known
+    _f, _u, status = lr.late_report_snapshot(con, [(G1, TIP), (G2, TIP)], T14)
+    assert status == {G1: {STAR: "doubtful"}, G2: {}}  # the real status, for the JARVIS line
     assert flagged[G2] == set() and used[G2] == SNAP_EARLY
     # at production's rule the same data says nobody is out (questionable only at 17:30)
     assert slate_report_outs(con, [(G1, TIP)], T14) == {G1: set()}
@@ -253,6 +255,91 @@ def test_cli_flag_is_fail_soft_and_alerts(tmp_path: Path, monkeypatch: pytest.Mo
     alert = (tmp_path / "ALERTS.md").read_text()
     assert "shadow failed (T-15 rows unaffected): RuntimeError: planted failure" in alert
     assert alert.count("\n") == 1
+    # the next due ticks fail the same way: still one line for the date (not ~30 a night)
+    for _ in range(3):
+        assert cli._late_shadow(duckdb.connect(":memory:"), lcon, args, ops_dir=tmp_path) is False  # type: ignore[arg-type]
+    assert (tmp_path / "ALERTS.md").read_text() == alert
+
+    def boom2(*_a: object, **_k: object) -> None:
+        raise ValueError("other")
+
+    monkeypatch.setattr(lr, "run_late_shadow", boom2)  # a different message is its own line
+    assert cli._late_shadow(duckdb.connect(":memory:"), lcon, args, ops_dir=tmp_path) is False  # type: ignore[arg-type]
+    assert (tmp_path / "ALERTS.md").read_text().count("\n") == 2
+
+
+def test_cli_reuses_the_t15_slate_and_seeds_from_model_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[str] = []
+
+    def sched(season: str) -> list:  # type: ignore[type-arg]
+        calls.append(season)
+        return []
+
+    memo = cli._memo_schedule(sched)
+    assert memo("2026-27") == [] and memo("2026-27") == [] and calls == ["2026-27"]
+    seen: dict[str, object] = {}
+
+    def spy(*_a: object, **k: object) -> lr.LateSummary:
+        seen.update(k)
+        return lr.LateSummary()
+
+    monkeypatch.setattr(lr, "run_late_shadow", spy)
+    args = SimpleNamespace(
+        date=D, now=None, schedule_from_db=False, schedule_nba_api=True, roster_source="recent",
+        rate_limit_s=2.5, roster_dir=None, model_cache=tmp_path / "t15cache",
+    )  # fmt: skip
+    lcon = duckdb.connect(":memory:")
+    assert cli._late_shadow(duckdb.connect(":memory:"), lcon, args, ops_dir=tmp_path,  # type: ignore[arg-type]
+                            schedule_fn=memo)  # fmt: skip
+    assert seen["schedule_fn"] is memo and seen["seed_t30_cache"] == tmp_path / "t15cache"
+    args.model_cache = None
+    assert cli._late_shadow(duckdb.connect(":memory:"), lcon, args, ops_dir=tmp_path)  # type: ignore[arg-type]
+    from nba.daily.t30 import DEFAULT_T30_CACHE
+
+    assert seen["seed_t30_cache"] == DEFAULT_T30_CACHE
+
+
+def test_official_roster_branch_is_a_cache_hit_after_the_t15_arm(
+    con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    """The live setting (roster_source='official'): the shadow reads the per-date roster cache the
+    T-15 arm just filled (no new roster fetch) and adds no players_static rows."""
+    from nba.ingest.cache import RateLimiter
+    from nba.props.rosters import parse_common_team_roster
+    from tests.daily.conftest import T1, T2, T3, T4
+
+    class NoWait(RateLimiter):
+        def wait(self) -> None:
+            return None
+
+    by_team = {T1: P1, T2: [1100 + i for i in range(8)], T3: [3000 + i for i in range(8)],
+               T4: [3100 + i for i in range(8)]}  # fmt: skip
+    calls: list[int] = []
+
+    def fetch(team: int, season: str) -> pl.DataFrame:
+        calls.append(team)
+        ids = by_team.get(team, [team % 100000])
+        return parse_common_team_roster(
+            pl.DataFrame({"PLAYER_ID": ids, "EXP": ["5"] * len(ids)}), team
+        )
+
+    kw = dict(roster_source="official", roster_dir=tmp_path / "r", roster_fetch=fetch,
+              static_fetch=lambda pid: pl.DataFrame(), rate_limiter=NoWait(2.5))  # fmt: skip
+    lcon = _store(tmp_path)
+    _fill(lcon, TIP - timedelta(minutes=20))  # confirmed fives before T-15: both arms go
+    run_t15(con, lcon, D, schedule_fn=_sched, now=T14, model_cache=tmp_path / "t30", **kw)
+    n_fetch = len(calls)
+    assert n_fetch == 30
+    n_static = con.execute("SELECT count(*) FROM players_static").fetchone()
+    s = lr.run_late_shadow(
+        con, lcon, D, schedule_fn=_sched, now=T14, model_cache=tmp_path / "late",
+        seed_ctx_cache=tmp_path / "prod", seed_t30_cache=tmp_path / "t30", **kw,  # type: ignore[arg-type]
+    )  # fmt: skip
+    assert len(calls) == n_fetch  # per-date cache: no roster call from the shadow
+    assert con.execute("SELECT count(*) FROM players_static").fetchone() == n_static
+    assert s.n_logged_games == 2 and s.n_lineup_games == 2 and s.n_rows_written > 0
 
 
 def test_replay_never_runs_the_late_shadow_and_the_dump_would_see_it(
@@ -285,7 +372,7 @@ def test_late_report_reaches_the_teammate_features_and_production_does_not(
     import nba.props.forward as fwd
 
     seen: list[set[int]] = []
-    real = fwd.build_features
+    real = fwd.build_features  # type: ignore[attr-defined]
 
     def spy(*a: object, **k: object) -> pl.DataFrame:
         flagged = a[3]

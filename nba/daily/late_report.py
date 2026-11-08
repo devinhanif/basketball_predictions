@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS {LATE_DECISIONS_TABLE} (
     tipoff TIMESTAMP,
     cutoff TIMESTAMP,              -- tip-off minus 15 min: the decision is due at/after it
     report_as_of TIMESTAMP,        -- official-report snapshot used (naive US-Eastern), NULL = none
-    report_excluded VARCHAR,       -- JSON list of player ids OUT/DOUBTFUL on that snapshot
+    report_excluded VARCHAR,       -- JSON: player id -> 'out' | 'doubtful' on that snapshot
     lineups_known BOOLEAN,         -- confirmed five fetched before tip - 15 min was used
     snapshot_id VARCHAR,           -- lineup snapshot when lineups_known
     outcome VARCHAR,               -- 'logged' | 'skipped'
@@ -124,6 +124,8 @@ class GameLate:
     excluded: frozenset[int]
     lineup: GameLineup | None
     lineup_reason: str
+    #: ``(player_id, status)`` for each excluded player, status lower-case ('out' | 'doubtful')
+    excluded_status: tuple[tuple[int, str], ...] = ()
 
 
 def ensure_late_table(con: duckdb.DuckDBPyConnection) -> None:
@@ -139,8 +141,19 @@ def late_report_outs(
     report of each game stamped at or before ``made_at`` (naive UTC; compared on the report's
     US-Eastern clock) and <= 36 h old. ``games`` = ``[(game_id, tipoff_naive_utc)]``; ``made_at``
     must be before every tip. A game with no usable report is absent (never "nobody out")."""
+    flagged, used, _status = late_report_snapshot(con, games, made_at)
+    return flagged, used
+
+
+def late_report_snapshot(
+    con: duckdb.DuckDBPyConnection,
+    games: list[tuple[str, datetime]],
+    made_at: datetime,
+) -> tuple[dict[str, set[int]], dict[str, datetime], dict[str, dict[int, str]]]:
+    """:func:`late_report_outs` plus ``game_id -> {player_id: status}`` for the excluded players,
+    read from the same snapshot (``'out'`` wins if a player carries both statuses on it)."""
     if not games:
-        return {}, {}
+        return {}, {}, {}
     tips_et = {gid: to_report_dt(tip) for gid, tip in games}
     now_et = to_report_dt(made_at)
     rows = injury_report_rows(
@@ -153,7 +166,20 @@ def late_report_outs(
     bad = sorted(g for g, t in used.items() if t > now_et or t >= tips_et[g])
     if bad:  # cannot happen through serve_pretip_flagged; a planted-future guard, not a filter
         raise LeakageError(f"late report snapshot after made_at or tip-off for games {bad[:5]}")
-    return flagged, used
+    status: dict[str, dict[int, str]] = {g: {} for g in flagged}
+    if flagged and rows.height:
+        snap = rows.filter(
+            pl.col("game_id").is_in(list(flagged)) & pl.col("status").is_in(list(LATE_STATUSES))
+        )
+        for gid, pid, st, as_of in snap.select(
+            ["game_id", "player_id", "status", "as_of"]
+        ).iter_rows():
+            g, p = str(gid), int(pid)
+            if as_of != used.get(g) or p not in flagged[g]:
+                continue
+            if status[g].get(p) != LATE_STATUSES[0]:  # 'out' wins over 'doubtful'
+                status[g][p] = str(st)
+    return flagged, used, status
 
 
 def _seed_cache(src_root: Path | None, dst: Path, run_date: date) -> bool:
@@ -178,7 +204,9 @@ def late_game_info(
     made_at: datetime,
 ) -> dict[str, GameLate]:
     """Report snapshot and (T-15 rule) confirmed lineup per game, as known at ``made_at``."""
-    flagged, used = late_report_outs(con, [(g.game_id, g.tipoff) for g in games], made_at)
+    flagged, used, status = late_report_snapshot(
+        con, [(g.game_id, g.tipoff) for g in games], made_at
+    )
     out: dict[str, GameLate] = {}
     lead = timedelta(minutes=LATE_LEAD_MINUTES)
     for g in games:
@@ -191,6 +219,7 @@ def late_game_info(
             frozenset(flagged.get(g.game_id, set())),
             gl,
             reason,
+            tuple(sorted(status.get(g.game_id, {}).items())),
         )
     return out
 
@@ -257,12 +286,20 @@ def _record(
         [
             g.game_id, now, g.tipoff, g.tipoff - timedelta(minutes=LATE_LEAD_MINUTES),
             gi.report_as_of if gi else None,
-            json.dumps(sorted(gi.excluded)) if gi else None,
+            _excluded_json(gi) if gi else None,
             bool(gi and gi.lineup is not None),
             gi.lineup.snapshot_id if gi and gi.lineup else None,
             outcome, reason, n_rows,
         ],
     )  # fmt: skip
+
+
+def _excluded_json(gi: GameLate) -> str:
+    """``{"<player_id>": "out"|"doubtful"}`` for every excluded player (status from the snapshot;
+    a player excluded without a recorded status, which the reader shows as OUT/DOUBTFUL, cannot
+    occur through :func:`late_report_snapshot` but is written as ``"out/doubtful"``)."""
+    st = dict(gi.excluded_status)
+    return json.dumps({str(p): st.get(p, "out/doubtful") for p in sorted(gi.excluded)})
 
 
 def _extra(g: ScheduledGame, gi: GameLate, meta: dict[str, Any]) -> dict[str, Any]:
