@@ -9,6 +9,14 @@ What the job is: the NEXT BLOCK of the same chain. Start from last month's saved
 unchanged) on every row dated before the 1st with `n_prior >= 3`: hist 2019-21, 2022-25 and the live season's settled rows. Same as the rebuild's install fit. Nothing is
 predicted or scored. Budget 20 T4-minutes (expected 2-4), ceiling 60 (halts, never cuts an arm). The gate refit and the export run on the Mac.
 
+## Status 2026-11-08 (steward)
+
+The November install was missed (deadline 11-01 12:00 CT); every row since is `stale_model = 1` (11,887 rows by 11-08 16:20 UTC). Every day of delay adds stale rows toward the 10% INCONCLUSIVE limit.
+The job above was built on the modeler's branch and merged unchanged by the steward (branch `agent/steward-avg-monthly-refit`); the November export was produced on 11-08 (`--db` must be given
+explicitly from a worktree: `--db /Users/devin/Downloads/nba-prediction/nba.duckdb`; from the main checkout the default works): 1,990 played rows, 88 games, 2026-10-20 to 2026-10-31,
+0 games without a real tip, data_version 22566ef2b04a, npz sha256 65df0544.... Still open and not the steward's to choose: step 1 (the gate: A deviates from the rule text, B needs a decision and code,
+see the hand-back) and step 2 (the holdout-log row). After the install the 11-01..install rows stay stale (never rewritten).
+
 ## Before 11-01 (any day this month)
 
 1. **Decide the gate (needs Devin).** The rule says the gate is refit monthly, on all earlier rows, "later months add the shadow's own stored SEQ and A0 forecasts of earlier

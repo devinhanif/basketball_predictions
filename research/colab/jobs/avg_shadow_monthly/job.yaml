@@ -1,0 +1,32 @@
+name: avg_shadow_monthly
+description: >
+  AVG_SHADOW_LIVE_2 monthly warm refit (docs/prereg/AVG_SHADOW_LIVE_2.md, frozen 9afbfeb6, "What the steward builds" 3). ONE warm block x 3 seeds
+  of the same E2 chain (hidden 64, warm 3 epochs, lr 3e-4, batch 1024, seed 1000 + k), starting from the PREVIOUS month's installed weights
+  (data/avg_shadow/bundles/<prev>) on every row dated strictly before the first day of --month with n_prior >= 3 (history 2019-21, 2022-25,
+  and the live season's settled rows). Nothing is predicted or scored; the weights are the output. The month is a parameter (export_info_live.json
+  month_block). The gate (T442) is NOT refit here: see docs/runbooks/AVG_SHADOW_MONTHLY_REFIT.md step 1 (open decision). T4, budget 20 minutes,
+  ceiling 60. Refuses unless the staged rule sha matches, the previous bundle verifies, and the staged holdout log carries the
+  'AVG_SHADOW_LIVE_2 monthly refit' row naming the month. Season-2025 labels are TRAINING rows (row 72 use 1 class); no 2025 forecast is read or scored.
+notebook: research/colab/jobs/avg_shadow_monthly/avg_shadow_monthly.ipynb
+inputs:
+  - path: data/colab/avg_shadow_monthly/2026-11/seq_ensemble_rt_live.npz
+    produce: PYTHONPATH=. uv run python -W ignore research/colab/jobs/avg_shadow_monthly/export_monthly.py --month 2026-11
+    depends_on: [nba.duckdb]
+  - path: data/colab/avg_shadow_rebuild/seq_ensemble_rt_cur25.npz
+  - path: data/colab/avg_shadow_rebuild/seq_ensemble_rt_hist.npz
+  - path: data/avg_shadow/bundles/2026-10
+  - path: docs/prereg/AVG_SHADOW_LIVE_2.md
+  - path: docs/HOLDOUT_ACCESS_LOG.md
+artifacts:
+  - seed0.pt
+  - seed1.pt
+  - seed2.pt
+  - vocab.json
+  - bundle_parts.json
+  - config.json
+  - metrics.json
+registry:
+  model_name: avg_shadow_monthly
+  tags: {rung: 3, model_method: seq_transformer_quantile_warm_refit, holdout_scored: false}
+touches_holdout: true
+preregistration_id: AVG_SHADOW_LIVE_2
