@@ -180,3 +180,62 @@ merges. No leak or production-number risk found.
 ## Drafted rows (not appended)
 
 DECISIONS (draft): `| 2026-11-08 hh:mm | Adversary pre-merge read of agent/modeler-late-report 870d8dc: WOUNDED (no leak, production rows and FORWARD_PREREG scoring unchanged, oracle expected IDENTICAL); merge after M1 (display "OUT" for DOUBTFUL players) is fixed and the oracle is IDENTICAL. Review docs/reviews/late_report_premerge_2026-11-08.md. | Follows advice (DECISIONS 2026-11-02 19:44 sequence: build -> adversary -> oracle -> Devin go). | Oracle DIFFERENT, or a T-15 tick exceeding its lock budget after install. |`
+
+## Re-review 553f168 (diff 870d8dc..553f168 only), 2026-11-08
+
+Scope: the six files in `git diff --stat 870d8dc 553f168` (nba/daily/__main__.py, nba/daily/late_report.py,
+nba/jarvis/late_report.py, nba/jarvis/runner.py and the two test files). There are no changes to settle.py, ops/ or
+any prereg, and nothing beyond the listed findings. Worktree /Users/devin/Downloads/nba-wt-advlate detached at
+553f168 (data/ still the verified symlink). Oracle not run (a steward is running it).
+
+Verdict: APPROVED
+
+Approved for merge if the steward's oracle comes back IDENTICAL; my expectation is unchanged (IDENTICAL, because the
+fix diff touches nothing the replay calls).
+
+| finding | fix in 553f168 | correct and complete? | evidence |
+|---|---|---|---|
+| M1 DOUBTFUL shown as OUT | `report_excluded` is now `{pid: status}` from the same snapshot (`late_report_snapshot`, 'out' wins on a double listing); the reader prints `status.upper()`; a legacy bare list reads as `OUT/DOUBTFUL` | **yes** | attack: earlier snapshot OUT and latest DOUBTFUL gives `doubtful` (as_of filter holds); same snapshot with both gives `out`; a T-15 decision row round-trips `{"<STAR>": "doubtful"}` to `DOUBTFUL`; legacy `[5,6]` gives `OUT/DOUBTFUL`; an empty status falls back to `OUT/DOUBTFUL`, never `OUT` |
+| m1 unguarded JARVIS lookups | `_late_lines` body in try/except, returning the plays unchanged | yes | modeler's planted-failure test passes |
+| m2 stale production row in the numeric line | SKIPPED | **the skip is right; my suggested fix was wrong** | production writes with `dedup=True` by default (pipeline.py:158, :253-254: write-on-change), so an unchanged current row keeps its old made_at, and "made_at == game max" would wrongly mark current rows as stale. Fixing this needs a per-run key list or a tombstone (the steward's out-gap work), not a consumer-side rule. Residual: display only, and the compared number is the one JARVIS prices anyway. Recorded as a loose end, not a defect. |
+| m3 seed cache / second schedule call | `_memo_schedule` wraps the one schedule function used by both the arm and the shadow; seed from `args.model_cache or DEFAULT_T30_CACHE` | yes | see the memo analysis below |
+| m4 alert spam | `_alert_once`: skip if a line dated today ends with the same body; the write is itself in a try | yes | attack below |
+| m5 mypy | fixed | yes | mypy on the 9 changed files: only the 5 errors that main already has |
+| m6 official-roster branch untested | test added | yes | 21 passed (includes it) |
+
+**Memoized schedule: does it change what the T-15 (or T-30) arm sees? No.**
+- `run_t15` and `run_t30` call `schedule_fn` exactly once per run (t30.py:389, `full = schedule_fn(season_str_for_date(run_date))`).
+  The memo's first call runs the same underlying function with the same argument at the same moment as before, so the
+  arm's input is unchanged.
+- The arm never mutates the list: `slate_for_date` builds a new sorted list, and `ScheduledGame` is `frozen=True`
+  (schedule.py:21-22). The shadow therefore receives exactly what the arm received.
+- The only behaviour change is on the shadow side. It now reuses the schedule read a few seconds before the T-15 arm,
+  instead of re-reading the lineups tip table. That puts both arms on one schedule, which is better for pairing. The memo is
+  per process (a closure inside `main`), so nothing leaks across ticks.
+- Attack: one call per season string, and the same object returned on the repeat call. Pass.
+
+**Does `_alert_once` fail open? No new defect.**
+- Dedupe is by today's local date plus an `endswith(body)` match. The body always begins with the fixed
+  `[lineups] late-report shadow failed (T-15 rows unaffected): ` prefix, so in practice the match is exact on the whole message.
+- A different error message still alerts. Yesterday's line never suppresses today's.
+- An unreadable or unwritable ALERTS.md (attack: ALERTS.md made a directory) raises inside the inner try. `_late_shadow`
+  prints `late-report alert not written: ...` to the lineups log, returns False and never raises. That alert is lost from
+  ALERTS.md but kept in the log. This is the intended trade (a T-15 command never fails on an alert), and it is fail-safe for the live path.
+- Nit, no action: a failure that persists all evening now produces one ALERTS line at its first tick. Anyone reading
+  ALERTS.md should know that one line can mean every tick since.
+
+**New contradictions checked:** none found.
+- Two docstrings disagree only in wording (module: "out + doubtful"; DDL comment: `'out' | 'doubtful'`). The code writes
+  `"out/doubtful"` only on an unreachable path, which is documented.
+
+| check | command | n | result |
+|---|---|---|---|
+| ruff | `.venv-1/bin/ruff check <9 files>` | 9 | exit 0 |
+| format | `.venv-1/bin/ruff format --check <9 files>` | 9 | exit 0 |
+| mypy | `.venv-1/bin/mypy <9 files>` | 9 | exit 1, 5 errors, all pre-existing on main (m5 gone) |
+| branch tests + earlier attacks | `pytest -q --no-cov tests/daily/test_late_report.py tests/jarvis/test_late_report.py $SCRATCH/attack/test_attack_late.py` | 21 | 21 passed, exit 0 |
+| re-review attacks | `pytest -q --no-cov $SCRATCH/attack/test_attack_553.py` | 6 | 6 passed, exit 0 |
+
+Not re-run: the 628-test neighbour suites. The fix diff touches no shared module beyond the shadow,
+`__main__` run-t30/t15 wiring and the JARVIS runner guard, and the targeted tests cover those three.
+Not verified: the oracle (steward).
