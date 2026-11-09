@@ -4,6 +4,8 @@ import type { TopContract } from "./api";
 import { playLabel, playsOn, type Desk } from "./desk";
 import { legHref } from "./router";
 import { isLegStat } from "./legTypes";
+import { legWords } from "./hedge";
+import { STAT_LABEL, type Stat } from "./types";
 
 export interface RadarRow {
   key: string;
@@ -48,7 +50,7 @@ function fromContract(c: TopContract): RadarRow {
   const edge = c.ev * 100;
   return {
     key: `export:${c.ticker}:${c.side}`, source: "export", name: c.player, team: c.team, playerId: c.player_id,
-    market: `${c.threshold.toString()}+ ${c.stat === "fg3m" ? "threes" : c.stat}, ${c.side === "over" ? "YES" : "NO"}`, matchup: c.matchup, model: c.model_prob, fair: null,
+    market: legWords(c.side === "over" ? "yes" : "no", c.threshold, (STAT_LABEL[c.stat as Stat] as string | undefined)?.toLowerCase() ?? c.stat), matchup: c.matchup, model: c.model_prob, fair: null,
     ask_c: c.price * 100, fee_c: c.fees * 100, edge_c: edge, status: statusFor(edge, null), href: isLegStat(c.stat) ? legHref(c.game_id, c.player_id, c.stat, c.side) : null, gameId: c.game_id, stat: c.stat,
   };
 }

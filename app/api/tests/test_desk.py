@@ -77,8 +77,10 @@ def test_top_contracts_sorts_by_edge_and_skips_unknown_games() -> None:
             "players": [{"player_id": 1, "side": "home"}, {"player_id": 2, "side": "away"}],
         }
     }  # fmt: skip
+    total = rec(0, 0.9)
+    total["legs"][0]["stat"] = "total"
     out = top_contracts(
-        [rec(1, -0.05), rec(2, 0.02), rec(3, 0.5, "NOPE")], {1: "One"}, games.get, n=5
+        [rec(1, -0.05), rec(2, 0.02), rec(3, 0.5, "NOPE"), total], {1: "One"}, games.get, n=5
     )
     assert out["n_priced"] == 2 and out["n_positive"] == 1
     first = out["contracts"][0]

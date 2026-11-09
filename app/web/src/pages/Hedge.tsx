@@ -8,7 +8,7 @@ import type { EdgeContract } from "../edges";
 import { Icon } from "../icons";
 import { STAT_LABEL, type Stat } from "../types";
 import {
-  candidatesFor, centsText, clampLeg, legCost, legFromContract, legFromPlay, outcomes, plainCents, summarize, totalCost,
+  candidatesFor, centsText, clampLeg, legCost, legFromContract, legFromPlay, legWords, outcomes, plainCents, summarize, totalCost,
   type Candidate, type GameCtx, type HedgeLeg,
 } from "../hedge";
 import { useLoad } from "../useLoad";
@@ -114,7 +114,7 @@ function Picker(props: { onPick: (p: Pick) => void }) {
                 <Avatar name={c.player} team={c.team} playerId={c.player_id} size="sm" />
                 <span class="pick-main">
                   <strong>
-                    {c.side === "over" ? "YES" : "NO"} · {c.player} {c.threshold.toString()}+ {statLabelOf(c.stat).toLowerCase()}
+                    {c.player}: {legWords(c.side === "over" ? "yes" : "no", c.threshold, statLabelOf(c.stat).toLowerCase())}
                   </strong>
                   <span class="small muted num">
                     {c.matchup} · ask {plainCents(c.price * 100)} + fee {plainCents(c.fees * 100)}

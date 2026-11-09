@@ -14,6 +14,7 @@ from typing import Any
 Json = dict[str, Any]
 
 _SIDES = {"yes": "over", "no": "under"}
+PLAYER_STATS = ("pts", "reb", "ast", "fg3m")
 
 
 def _num(x: object) -> float | None:
@@ -79,7 +80,7 @@ def top_contracts(
     game_of: Any,
     n: int = 12,
 ) -> Json:
-    """The engine's best-priced stored contracts (highest edge after fees first), with names.
+    """The engine's best-priced stored player contracts (highest edge after fees first), with names.
 
     ``game_of(game_id)`` returns the export's game dict or None. Contracts of games the export does
     not hold are skipped: the page could not say who plays whom. Every number is a stored field.
@@ -92,7 +93,13 @@ def top_contracts(
         leg = legs[0]
         row = _row(rec, leg)
         pid = leg.get("player_id")
-        if row is None or not isinstance(pid, int):
+        # Player contracts only: totals, spreads and winners have no player (id 0) or stat line.
+        if (
+            row is None
+            or not isinstance(pid, int)
+            or pid <= 0
+            or leg.get("stat") not in PLAYER_STATS
+        ):
             continue
         g = game_of(str(leg.get("game_id")))
         if g is None:

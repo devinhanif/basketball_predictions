@@ -65,7 +65,7 @@ export function Hero({ row, nPriced, fixture, wModel }: { row: RadarRow | null; 
   return (
     <section class="panel hero" aria-label="The closest look">
       <div class="hero-main">
-        <div class="label">The closest look{desk ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced contracts` : ""}</div>
+        <div class="label">The closest look{desk ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced player contracts` : ""}</div>
         <div class="hero-who">
           <Avatar name={row.name} team={row.team} playerId={row.playerId} size="lg" />
           <div class="hero-text">
