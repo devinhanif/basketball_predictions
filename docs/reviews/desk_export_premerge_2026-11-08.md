@@ -110,3 +110,40 @@ username. Nothing in the tests would catch it.
 ## Drafted rows (not appended)
 
 none. This is a pre-merge code review, not a ledger result.
+
+---
+
+## Re-review bdc9f9a (2026-11-08, outputs rebuilt 18:41)
+
+**Verdict: SURVIVES.** Every first-round finding is fixed, and the new tests fail against the old code. Two minor
+residuals remain, listed below; neither blocks the merge.
+
+Verdict: APPROVED
+
+| # | attack / check | evidence | n | result | pass |
+|---|---|---|---|---|---|
+| A1 | fee_cents channel | `shared_cut` nulls `fee_cents` on every play (`desk.py` shared_cut); real shared file | 137 plays | 0 non-null fee_cents | pass |
+| A2 | edge -> fee -> n | non-daily_dollar plays: implied fee = fair*100 - price - edge | 83 plays with edge | implied fee is always 1.0c or 2.0c (one-contract fee) for every contract count 0-8, so it carries no n | pass |
+| A3 | daily_dollar remnants | edge_cents, model_prob, explanation, clv, close all null; `reason` keeps "product of asks Xc, assumed fair Yc" (per contract) | 11 bundles / 32 legs | `n = floor(B/price)` gives 100/62/64/... against true 58/47/47; n is not recoverable without the private `dd.stake_usd` budget and the sizing code | pass (residual, minor) |
+| A4 | other fields | price_cents, fair_prob, model_prob, close_cents, clv_cents, daily (n, n_won, clv_mean), record | - | all per-contract or counts; none recovers contracts, stake, P&L or balance | pass |
+| A5 | paths | regex `/Users`, `"/[A-Za-z]` on the shared file | 0 / 0 | sources are relative (`data/jarvis/paper_book.duckdb: ...`); the build now fails on any absolute path | pass |
+| A6 | `$` text | regex `\$\s?\d` | 83 | all are "per $1"; no `\d+ contracts`; the 43 "devin" hits are players (Devin Booker, Devin Vassell) | pass |
+| A7 | model_review | shared = kill switch only | 1 | True (kill switch on); test proves False when the kill switch is off and the floor is closed | pass |
+| R1 | book hold | real file `book_hold_seconds` 0.012; my run on copies 0.022 s (total build 0.50 s) | 1 run | about 15-25x shorter than 0.31 s; the connection closes before `EspnNames` (build: `book.close()` then `_observations_alerts(...)`) | pass |
+| M1 | ingame_back remap | real file: `rotation / inference / corrects=None`, title "Lead shrank: flagged starters may return" | 1 | matches `ingame_run.py:178-186`; corrections now 29, all linked | pass |
+| M2 | window title | "Starter minutes frozen (game-level flag, one or more players)" | 39 | accurate | pass |
+| N | numbers unchanged | CLV n=83, -0.8795c [-1.431, -0.522]; record 128/36-92/2; brier diff +0.009492 | - | identical | pass |
+| T | new tests fail on old leaks | scratch `mutants2.py`: new tests run against 16e788f's `shared_cut` / `build` | 6 mutants | derivable-money killed, JSON `$`/path scan killed, absolute-path guard killed, old absolute sources killed, old ingame_back killed, old book-open-during-names killed: **6/6** | pass |
+| V | ruff / format / mypy / pytest | `uv run --frozen ...`, unpiped | - | 0 / 0 / 0 / 14 passed, exit 0 (`--no-cov`) | pass |
+
+Residuals (minor, recommend; not blocking):
+1. The runtime `$` scrub covers only `plays[].reason/explanation/leg_desc`. `status.kill_switch.note` and the risk
+   observation `text` carry `killswitch_log.note`. On a "cleared" row that note is free text supplied by the caller
+   (`book.py:835`), e.g. a manual note that mentions a deposit, and it would pass through. Fix: run `_has_amount`
+   over every string in `shared_cut` and null the hits. The test scan (`test_shared_json_scan`) already walks every
+   string, but only on synthetic data.
+2. The daily_dollar `reason` plus the label name plus knowledge of the private budget could still bracket n. That
+   needs config and code that are not in the shared file. Accept, or null `reason` on daily_dollar plays in shared.
+
+Still not verified: what the claude.ai bake renders. Whether the CLV half-spread reading (above) gets onto the page
+is a desk-copy question, not a code one.
