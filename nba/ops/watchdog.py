@@ -540,6 +540,7 @@ def evaluate_game_day(
     tips_fn: Callable[[Path, date], dict[str, datetime]] = todays_tips,
     kalshi_fn: Callable[[Path], tuple[datetime | None, list[str]]] = kalshi_snapshot_status,
     live_fn: Callable[[Path, datetime, Sequence[datetime], date], str | None] | None = None,
+    pulls_fn: Callable[[Path, datetime, dict[str, datetime]], list[str]] | None = None,
 ) -> list[Alert]:
     """Game-day probe: silent off game days and before 09:00 ET; otherwise the four checks.
 
@@ -639,9 +640,11 @@ def evaluate_game_day(
         fail("slate", e)
     # pre-tip window: a sleeping Mac or a dark Kalshi capture cannot be backfilled (2026-10-23)
     all_tips: list[datetime] = []
+    tip_map: dict[str, datetime] = {}
     try:
         tips = tips_fn(data, local.date())
         all_tips = list(tips.values())
+        tip_map = dict(tips)
         upcoming = [t for t in tips.values() if t > now]
         first = min(upcoming) if upcoming else None  # the NEXT tip: later games stay covered
     except Exception:
@@ -701,7 +704,31 @@ def evaluate_game_day(
             )
     except Exception as e:
         fail("livecap", e)
+    # pull orchestrator (docs/DESIGN_PULL_ORCHESTRATOR.md): Pinnacle freshness for games near
+    # tip, and the pulls job heartbeat. Unknown (store held by a writer, nothing captured yet)
+    # never alerts.
+    try:
+        for why in (pulls_fn or pulls_problems_default)(ops_dir, now, tip_map):
+            half = "00" if local.minute < 30 else "30"
+            kind = "heartbeat" if why.startswith("pulls job") else "pinnacle"
+            alerts.append(
+                Alert(f"{prefix}:pulls-{kind}@{local:%H}{half}", f"pull orchestrator: {why}")
+            )
+    except Exception as e:
+        fail("pulls", e)
     return alerts
+
+
+def pulls_problems_default(ops_dir: Path, now: datetime, tips: dict[str, datetime]) -> list[str]:
+    from nba.odds.live_close import load_live_config
+    from nba.pulls.config import load_pulls_config
+    from nba.pulls.freshness import pulls_problems
+
+    # the 60-minute rule leans on the hourly kinds (t240..t480, `extended`); without them it would
+    # alarm on most games, so it is skipped rather than guessed at. Playoff ids (004/005) are out of
+    # REGULAR_SEASON_PREFIX, so the check is silent then too.
+    hourly = any(e.kind == "t240" for e in load_live_config().active_schedule())
+    return pulls_problems(load_pulls_config(), ops_dir, now, tips, check_pinnacle=hourly)
 
 
 def live_capture_problem(

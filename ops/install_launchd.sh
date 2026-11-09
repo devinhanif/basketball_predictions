@@ -5,6 +5,7 @@
 #   local.nba.daily-morning  08:00 (settle, report, post-game ingest, data snapshot/check, backup)
 #   local.nba.lineups        every 5 min (T-30 lineup collector + shadow run-t30; idle outside game windows)
 #   local.nba.watchdog       every 10 min: independent "did it run?" check of the jobs above + Kalshi (nba.ops.watchdog)
+#   local.nba.pulls          every 2 min: pull orchestrator tick (ops/nba_pulls.sh; docs/DESIGN_PULL_ORCHESTRATOR.md)
 # Uninstall: ops/install_launchd.sh --uninstall
 set -eu
 ROOT=/Users/devin/Downloads/nba-prediction
@@ -18,7 +19,7 @@ mkdir -p "$AGENTS" "$ROOT/data/ops"
 unload() { launchctl bootout "gui/$(id -u)/$1" 2>/dev/null || true; }
 
 if [ "${1:-}" = "--uninstall" ]; then
-  for l in local.nba.daily-pretip local.nba.daily-morning local.nba.lineups local.nba.watchdog; do unload $l; rm -f "$AGENTS/$l.plist"; done
+  for l in local.nba.daily-pretip local.nba.daily-morning local.nba.lineups local.nba.watchdog local.nba.pulls; do unload $l; rm -f "$AGENTS/$l.plist"; done
   echo "uninstalled"; exit 0
 fi
 
@@ -65,6 +66,9 @@ LINEUPS_ENV="<key>EnvironmentVariables</key><dict><key>HOME</key><string>$HOME</
 [ -n "$CLAUDE_BIN" ] && LINEUPS_ENV="$LINEUPS_ENV<key>NBA_CLAUDE_BIN</key><string>$CLAUDE_BIN</string>"
 LINEUPS_ENV="$LINEUPS_ENV</dict>"
 write_plist local.nba.lineups lineups "<key>StartInterval</key><integer>300</integer>$LINEUPS_ENV" ops/nba_lineups.sh
+# pull orchestrator (docs/DESIGN_PULL_ORCHESTRATOR.md P1): serves JARVIS's Pinnacle pull requests every 2 min; off unless
+# NBA_CLOSE_CAPTURE=1 (environment or .env), like the scheduled capture; idle ticks make no network call
+write_plist local.nba.pulls pulls "<key>StartInterval</key><integer>120</integer>" ops/nba_pulls.sh
 cat > "$AGENTS/local.nba.watchdog.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -183,6 +183,7 @@ def slate_texts(
     first_tip: datetime | None,
     n_games: int,
     extra_lines: list[str] | None = None,
+    plays_held: bool = False,
 ) -> list[str]:
     tz = cfg.display_tz
     head = (
@@ -199,7 +200,7 @@ def slate_texts(
             q.kind == "prop" and q.side == "no" for p in plays for q in p.legs
         ):
             lines.append("prop No: Kalshi's DNP rule is unverified, label held at thin")
-    else:
+    elif not plays_held:  # every play held for a stale sharp price: the held line says so
         lines.append("No live prices read yet for tonight's games (snapshot feed stale or down).")
     lines += extra_lines or []
     return chunk([ln for ln in lines if ln], cfg.max_chars, cfg.max_texts)

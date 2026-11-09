@@ -194,6 +194,16 @@ exit_warning:                   # DON'T SELL line when a position's bid is far b
   max_spread: 0.25              # no venue-mid "fair" from a book wider than this (Devin's call to change)
   max_age_min: 20               # snapshots arrive about every 15 min (p50 15.3, p99 73): older is suppressed
 
+pulls:                          # pull orchestrator (configs/pulls.yaml, docs/DESIGN_PULL_ORCHESTRATOR.md)
+  hold_stale_alerts: true       # an alert whose Pinnacle reference is older than pulls.yaml freshness.pinnacle_alert_max_age_min
+                                # is not sent; one pull request is filed (deduped) and the alert goes out on a later tick once
+                                # the reference is fresh. Labels, edges and stakes are untouched. false = the old behaviour.
+                                # The hold exists only while the pulls job is alive (fresh data/ops/heartbeat/pulls.json, not
+                                # gated off) and releases a game whose last request ended refused/failed/expired.
+  hold_stale_slate: true        # the same for the slate preview: ~15 min before it, one request per stale game (pulls.yaml
+                                # slate.prefetch_lead_min); at preview time plays on a stale sharp line are left out and one
+                                # line says how many. Labels, edges and stakes of the other plays are untouched.
+
 paths:
   paper_book: data/jarvis/paper_book.duckdb
   fan_knowledge: docs/FAN_KNOWLEDGE.md

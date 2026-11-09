@@ -301,6 +301,10 @@ def prior_teams(con: Any, player_ids: Sequence[int]) -> dict[int, int]:
     return {int(p): int(t) for p, t in raw if t is not None}
 
 
+def _is_ondemand(kind: object) -> bool:
+    return str(kind).startswith("ondemand")
+
+
 def load_closing_lines(
     odds: Any, game_ids: Sequence[str], until: date
 ) -> dict[tuple[str, int, str], dict[str, Any]]:
@@ -334,7 +338,12 @@ def load_closing_lines(
         if close:
             pool, kind = close, "close"
         else:
-            pool, kind = [r for r in rs if r[9] is not None and r[7] < r[9]], "latest_pre_tip"
+            # on-demand pulls (nba.pulls) are JARVIS's activity, not part of the benchmark: the scheduled
+            # snapshots only, so the diagnostic never depends on whether an alert asked for a pull
+            pool, kind = (
+                [r for r in rs if r[9] is not None and r[7] < r[9] and not _is_ondemand(r[8])],
+                "latest_pre_tip",
+            )
         newest: dict[tuple[str, str, float], tuple[datetime, int]] = {}
         for r in pool:
             k = (r[3], r[4], float(r[5]))
@@ -413,7 +422,7 @@ def load_book_lines(
         groups[(r[0], int(r[1]), MARKET_STAT[r[2]])].append(r)
     out: dict[tuple[str, int, str], dict[str, Any]] = {}
     for key, rs in groups.items():
-        pre = [r for r in rs if r[9] is not None and r[7] < r[9]]
+        pre = [r for r in rs if r[9] is not None and r[7] < r[9] and not _is_ondemand(r[8])]
         close = [r for r in rs if r[8] == "close"]
         pool, kind = (close, "close") if close else (pre, "latest_pre_tip")
         if kind == "latest_pre_tip" and pool:

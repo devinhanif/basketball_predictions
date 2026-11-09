@@ -1,0 +1,40 @@
+# Pull orchestrator (nba/pulls, docs/DESIGN_PULL_ORCHESTRATOR.md P1). It decides WHEN to pull; the existing fetcher
+# (nba/odds/live_close.py) still decides HOW. Pinnacle per-event pulls only in P1. Read-only toward markets: GET only,
+# the key comes from THE_ODDS_API_KEY and is never stored here. No credential, no order, no execution.
+# Off unless NBA_CLOSE_CAPTURE=1 in the job environment, exactly like the scheduled capture (ops/nba_pulls.sh).
+enabled: true                   # false = tick does nothing and JARVIS stops holding alerts
+
+paths:
+  requests_db: data/ops/pulls.duckdb      # pull_requests; JARVIS and the tick write it in short transactions
+
+freshness:
+  pinnacle_alert_max_age_min: 30      # a Pinnacle reference older than this may not carry an alert (JARVIS holds it)
+  request_need_by_min: 15             # default: a request not served within this many minutes expires
+  cooldown_min: 10                    # a refused/failed request for the same game blocks a new one this long
+
+budget:
+  # Priority close > ondemand > scheduled, inside the daily cap of configs/odds_live.yaml (daily_max_credits).
+  # An on-demand pull may run only while: cap_remaining - call_cost >= reserve, where
+  #   reserve = (games not yet tipped and without a stored close) x close_slots_reserved x call_cost.
+  # The server floor (min_server_remaining) is held back by the same reserve.
+  close_slots_reserved: 1             # close pulls kept in reserve per remaining game
+  ondemand_max_per_game: 4            # on-demand pulls per game per day
+  close_guard_min: 10                 # no on-demand pull while any slate game is this close to tip (its close owns the
+                                      # market-store write slot and the ledger); requests stay open
+  ondemand_daily_credit_cap: 20000    # on-demand credits per ET day (about 75 calls at 267 credits); 0 = no extra cap
+
+slate:                                # the slate preview path (JARVIS, docs/DESIGN_PULL_ORCHESTRATOR.md)
+  prefetch_lead_min: 15               # starting this long before the preview window, JARVIS files one request per stale game
+
+tick:
+  interval_s: 120                     # launchd StartInterval (ops/launchd/local.nba.pulls.plist)
+  store_retries: 3                    # market_asof.duckdb is single-writer; the lineups job also writes it
+  store_wait_s: 2.0
+  reopen_retries: 6                   # after a PAID call the result must be stored: the capture's own 6 x 5 s budget
+  reopen_wait_s: 5.0
+
+watchdog:                             # nba.ops.watchdog, game days only
+  window_h: 3                         # games within this many hours of tip
+  warn_pinnacle_age_min: 60           # newest Pinnacle row older than this warns
+  warn_grace_min: 5                   # plus one 5-minute lineups tick: a scheduled pull lands up to 5 min late
+  heartbeat_max_age_min: 10           # the pulls job heartbeat must be this fresh (5 missed ticks)
