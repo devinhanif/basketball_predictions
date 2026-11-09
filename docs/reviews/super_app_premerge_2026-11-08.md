@@ -117,3 +117,38 @@ tripped kill switch are not on that card, so it reads as a bet. Separately, page
 ## Drafted rows (not appended)
 
 none. This is a pre-merge code review, not a ledger result.
+
+---
+
+## Re-review 7269460 (2026-11-08; artifact rebuilt, 6,216,626 bytes)
+
+**SURVIVES.** Every blocker and minor from the first round is fixed, and each fix has a test that fails when the fix
+is reverted. Nothing new blocks the merge. Three small residuals are listed below.
+
+Verdict: APPROVED
+
+| # | attack | evidence | n | result | pass |
+|---|---|---|---|---|---|
+| R1 | paths, money, derivation on the new bake | `extract.py`, `scan.py`, `shards.py`, `edge.py` rerun (scratch `sa2/`, `sa/baked2.json`) | 137 plays, 26 shards | `desk.source = "desk_shared.json"`. 0 hits for `/Users`, `/home`, email, `$\d` (except 83 "per $1"), env or token in the JSON, the JS or the CSS. Money fields all null. Baked desk = `desk_shared.json` (cmp exit 0). Implied fee 1c/2c on 83/83 | pass |
+| R2 | consumer-gate mutants | `mut.py` against `check_desk` (`desk.py:53-76`) | 4 | contracts, `fee_cents`, "staked $12.40" and the absolute `sources` path: **4/4 refused**. `test_desk.py` now holds the same 5 cases plus a "per $1" allow case. A bake-level scan test exists (`test_edges_and_bake.py`). `build-artifact.mjs` also fails the build on an absolute path | pass |
+| R3 | write-path tests catch a wrong path | copy of `app/web` in scratch `mutweb/` (node_modules symlinked), one-line path mutants, `npx vitest run src/sync.test.ts` | 4 mutants | `watch/x<id>`, `data/users/<id>/other`, `photos/x<pid>`, admin clear to `picks/<uid>x`: **4/4 killed** (exit 1; baseline exit 0) | pass |
+| R4 | hero stale logic | `fairAgeMin` parses only the stored `reason` (`discover.ts:46-50`); my Python port of the regex | 105 reasons | parses 83/83 plays that have an edge; the 22 unparsed have no fair price. On 11-08, six rows are 238 min old and one is 1 min old. `pickHero` chooses **Norman Powell, -0.4c** (1 min). Screenshot `artifact_today_1440_dark_simple.png` confirms the hero, the stored note, and "kill switch is on (36-92 on 128 settled) · keep your money". Stale rows show "fair price 238 min old (stale)" in the radar. Mutants `pickHero -> rows[0]` and removing "keep your money": both killed | pass |
+| R5 | clustered win-rate interval | `clusteredRate` (`desk.ts`), single bets only, date bootstrap | 96 singles, 12 dates | page: 38% [28%, 48%], 2,000 resamples, seed 20261108; my bootstrap (20,000 resamples): 37.5% [28.0%, 47.2%]. 32 daily-dollar legs are excluded and the page says so. Mutant `isSingle -> true`: killed | pass |
+| R6 | review-line condition | `History.tsx:39-41` shows the line only when `n === 83 && |mean + 0.8795| < 0.001`, else a generic sentence | 83 | it shows today (screenshot `artifact_history_1440_light_analyst.png`), with text identical to round one | pass |
+| R7 | Position lab, fee unknown | `fee_set` flag (`hedge.ts`); heading, cost line and note say "before fee"; a note on Kalshi's order-level fee rounding added. Threshold-0 duplicate bucket removed | - | mutant `before_fee: false`: killed. Hedge screenshot (390 px) shows correct payoffs (-40c / +60c) and correct gap/complement labels | pass |
+| R8 | hash routing | `router.ts` `hashForRoute`: only plain names (`#discover`, `#prefs`, ...) reach the hash; detail and dated views stay in memory. `sync.test.ts:124-145` | - | tested. The reserved-name list itself is still not in the 0.2.96 `.d.ts` (not verified) | pass |
+| R9 | other minors | `Shell.tsx`: no vendor name; `Signals.tsx`: stored edge after fee plus "model X%, unproven"; `photos.ts` id regex widened; `platform.ts` 10 s capability timeout (tested); admin clear also deletes `watch/<uid>` and says it is a tidy-up, not a block | - | fixed | pass |
+| R10 | rendered DOM | 40 screenshots in `p1shots/rev_art/`, `artifact_audit.json` | 40 | no horizontal overflow, clipped, small or low-contrast items reported. Footer, disclosure and the snapshot banner are present on the pages I looked at (Discover, Model History, Position lab) | pass |
+| V | verification (worktree, unpiped) | pytest; vitest (scratch copy of the same tree); `tsc --noEmit`; eslint | - | 318 passed 1 skipped, exit 0; 212 passed, exit 0; exit 0; exit 0 | pass |
+
+Residuals (minor; recommended, not blocking):
+1. `discover.ts` `heroFootnote`: when the kill switch is **off**, a positive desk row reads "Unproven." with no
+   "keep your money". Content spec 0.5 wants the verdict until the live log proves skill. Fix: append " · keep your
+   money" in both branches.
+2. The Position lab picker offers the desk's stale plays (Reaves, 238 min) with no stale mark (`Hedge.tsx` Picker).
+   It makes no edge claim, so this is minor. Fix: append the radar's "(stale)" status to the picker row.
+3. Model History day chart: 12 dates, but the 11/07 bar sits off the visible area at 1440 px (horizontal scroll). The
+   selected-day panel shows it, so this is cosmetic.
+
+Not verified: reserved hash names (no rule text available); live claude.ai behaviour of the db rules (only fakes
+tested).
