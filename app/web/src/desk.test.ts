@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { buildNotices, categoryOfKind, filterNotices, markRead, unreadCount, NOTIFY_DEFAULTS } from "./alerts";
+import { buildNotices, categoryOfKind, filterNotices, markRead, unreadCount, withOlderRead, NOTIFY_DEFAULTS } from "./alerts";
 import {
   barScale, calibration, clvRate, correctionLinks, dayBars, dayTally, filterLedger, ledgerCsv, parseDesk, settledPlays, signedCents, winRate,
   type Desk, type DeskObservation, type DeskPlay,
@@ -123,6 +123,18 @@ describe("notices and read state", () => {
     expect(a1?.fallback).toContain("Foul trouble");
     expect(a1?.matchup).toBe("A@B");
   });
+  it("older alerts start as read; the newest night and the kill-switch notice do not", () => {
+    const old = { id: "a0", ts: "2026-11-05T20:00:00Z", slate_date: "2026-11-05", kind: "ingame_foul", mode: null, title: "Old", text: null, play_ids: [], observation_ids: [] };
+    const list = buildNotices({ ...d, alerts: [...d.alerts, old] });
+    const newest = list.filter((n) => n.source !== "status").map((n) => n.slate_date).sort().at(-1);
+    const read = withOlderRead(list, new Set());
+    for (const n of list) {
+      if (n.source === "status") expect(read.has(n.id)).toBe(false);
+      else expect(read.has(n.id)).toBe(n.slate_date < (newest ?? ""));
+    }
+    expect(unreadCount(list, read, NOTIFY_DEFAULTS)).toBeLessThan(unreadCount(list, new Set(), NOTIFY_DEFAULTS));
+    expect(withOlderRead([], new Set(["x"])).has("x")).toBe(true); // what you marked stays marked
+  });
   it("filters and counts unread; mark read is a copy and capped", () => {
     const list = buildNotices(d);
     const read = new Set([list[1]?.id ?? ""]);
@@ -190,7 +202,11 @@ describe("Discover rows and search", () => {
     expect(ex[0]?.status).toBe("Negative after fees");
     expect(edgeSentence(ex[0] as NonNullable<(typeof ex)[0]>)).toBe("Model 75.5% vs ask 81c + fee 2c = edge -7.5c per $1");
     const noFee = radarRows(desk({ plays: [play("9", { fee_cents: null, edge_cents: 11.4, model_prob: 0.665, price_cents: 38 })] }), "2026-11-07", null)[0];
-    expect(edgeSentence(noFee as NonNullable<typeof noFee>)).toContain("fee is not in the shared cut");
+    // JARVIS's edge is the sharp book's fair price less the ask and fee; the model is never shown as its input.
+    expect(edgeSentence(noFee as NonNullable<typeof noFee>)).toBe("Fair price 40% (sharp book) - ask 38c = +2.0c before fee; stored edge after fee +11.4c");
+    const withFee = radarRows(desk({ plays: [play("7", { fee_cents: 2, edge_cents: 0.5, price_cents: 38, fair_prob: 0.405 })] }), "2026-11-07", null)[0];
+    expect(edgeSentence(withFee as NonNullable<typeof withFee>)).toBe("Fair price 40.5% (sharp book) - ask 38c - fee 2c = edge +0.5c per $1");
+    expect(edgeSentence(withFee as NonNullable<typeof withFee>)).not.toMatch(/model/i);
     expect(radarRows(desk({ plays: [play("8", { player_name: null, player_id: null, leg_desc: "BKN to win", stat: null, threshold: null })] }), "2026-11-07", null)[0]?.name).toBe("BKN to win");
     expect(radarRows(null, "2026-11-07", { report_date: "2026-11-08", contracts: [c] })).toEqual([]);
   });

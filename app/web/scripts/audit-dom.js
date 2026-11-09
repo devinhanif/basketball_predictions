@@ -43,7 +43,7 @@ function () {
   };
   const sel = (el) => el.tagName.toLowerCase() + (typeof el.className === "string" && el.className ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : "");
 
-  const small = [], lowContrast = [];
+  const small = [], lowContrast = [], broken = [];
   const seen = new Set();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let t = walker.nextNode(); t; t = walker.nextNode()) {
@@ -75,6 +75,14 @@ function () {
       const r = ratio(fg, bg);
       if (r < worst) { worst = r; worstFg = `${Math.round(fg.r)},${Math.round(fg.g)},${Math.round(fg.b)}`; worstBg = `${Math.round(bg.r)},${Math.round(bg.g)},${Math.round(bg.b)}`; }
     }
+    // Text squeezed into a sliver: a narrow box whose text takes more line fragments than it has words (a word broken mid-word).
+    const er = el.getBoundingClientRect();
+    if (er.width < 80 && text.length > 4) {
+      const range = document.createRange();
+      range.selectNodeContents(t);
+      const lines = new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size;
+      if (lines > text.split(/\s+/).length) broken.push({ text: text.slice(0, 40), sel: sel(el), width: Math.round(er.width), lines });
+    }
     const need = large ? 3 : 4.5;
     if (worst < need) lowContrast.push({ ratio: Math.round(worst * 100) / 100, text: text.slice(0, 40), sel: sel(el), fg: worstFg, bg: worstBg, px: Math.round(px) });
   }
@@ -99,5 +107,6 @@ function () {
     innerWidth: window.innerWidth,
     small: dedupe(small).slice(0, 40),
     lowContrast: dedupe(lowContrast).slice(0, 40),
+    broken: dedupe(broken).slice(0, 40),
   };
 }

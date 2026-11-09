@@ -8,7 +8,7 @@ import type { EdgeContract } from "../edges";
 import { Icon } from "../icons";
 import { STAT_LABEL, type Stat } from "../types";
 import {
-  candidatesFor, centsText, clampLeg, legCost, legFromContract, newId, outcomes, plainCents, summarize, totalCost,
+  candidatesFor, centsText, clampLeg, legCost, legFromContract, legFromPlay, outcomes, plainCents, summarize, totalCost,
   type Candidate, type GameCtx, type HedgeLeg,
 } from "../hedge";
 import { useLoad } from "../useLoad";
@@ -51,11 +51,10 @@ async function pickFromPlay(p: DeskPlay): Promise<Pick | null> {
   // viewer enters one (0 until then). The ask is the desk's stored ask.
   const side = p.side === "no" ? "no" : "yes";
   const row = stored.find((s) => s.threshold === p.threshold && s.side === (side === "yes" ? "over" : "under"));
-  const fee = p.fee_cents ?? (row ? row.fees * 100 : 0);
-  return {
-    matchup: p.matchup ?? "game not stored", game: gameFromMatchup(p.matchup), player: p.player_name ?? "Unnamed player", playerId: p.player_id, team: p.team, stat, statLabel: label, stored,
-    base: clampLeg({ id: newId(), kind: "stat", side, label: `${side === "no" ? "NO" : "YES"} · ${playLabel(p)}`, threshold: p.threshold, contracts: 1, ask_c: p.price_cents, fee_c: fee, source: p.fee_cents !== null || row ? "stored" : "entered" }),
-  };
+  const fee = p.fee_cents ?? (row ? row.fees * 100 : null);
+  const base = legFromPlay(p, label.toLowerCase(), fee, fee !== null ? "stored" : "entered");
+  if (!base) return null;
+  return { matchup: p.matchup ?? "game not stored", game: gameFromMatchup(p.matchup), player: p.player_name ?? "Unnamed player", playerId: p.player_id, team: p.team, stat, statLabel: label, stored, base };
 }
 
 async function pickFromContract(c: TopContract): Promise<Pick> {
@@ -63,7 +62,7 @@ async function pickFromContract(c: TopContract): Promise<Pick> {
   const label = statLabelOf(c.stat);
   const stored = await storedFor(c.game_id, c.player_id, c.stat);
   const row = stored.find((s) => s.ticker === c.ticker && s.side === c.side) ?? { ...c, order_type: "", price_ts: c.price_ts };
-  return { matchup: c.matchup, game: gameFromMatchup(c.matchup), player: c.player, playerId: c.player_id, team: c.team, stat, statLabel: label, stored, base: legFromContract(row, `${c.player} ${label.toLowerCase()}`) };
+  return { matchup: c.matchup, game: gameFromMatchup(c.matchup), player: c.player, playerId: c.player_id, team: c.team, stat, statLabel: label, stored, base: legFromContract(row, label.toLowerCase(), 1, c.player) };
 }
 
 function Picker(props: { onPick: (p: Pick) => void }) {
@@ -196,7 +195,7 @@ function Lab({ pick, onReset }: { pick: Pick; onReset: () => void }) {
         <div class="kicker">Position lab</div>
         <h1 class="answer">
           {sum
-            ? `Worst case ${centsText(sum.worst_c)} across ${os.length.toString()} outcomes at the prices entered`
+            ? `Worst case ${centsText(sum.worst_c)}, best case ${centsText(sum.best_c)}, across ${os.length.toString()} outcomes at the prices entered`
             : "Enter contracts and an ask to see every outcome"}
         </h1>
         <p class="muted answer-src">{NOTE}</p>
@@ -207,7 +206,7 @@ function Lab({ pick, onReset }: { pick: Pick; onReset: () => void }) {
           <div class="label">Your paper position</div>
           <h2>{base.label}</h2>
           <p class="muted small num">
-            {pick.matchup} · {base.contracts} {base.side.toUpperCase()} contract{base.contracts === 1 ? "" : "s"} · {plainCents(origCost)} total cost
+            {pick.matchup} · {base.contracts} contract{base.contracts === 1 ? "" : "s"} · {plainCents(origCost)} total cost
           </p>
         </div>
         <div class="hp-pay num">
@@ -356,7 +355,7 @@ export function Hedge(props: { game: string | null; player: number | null; stat:
           const stat = props.stat as Stat;
           setPick({
             matchup: `${g.away.abbr} @ ${g.home.abbr}`, game: { home: g.home.abbr, away: g.away.abbr }, player: pl?.name ?? "Unnamed player", playerId: props.player, team: pl ? (pl.side === "home" ? g.home.abbr : g.away.abbr) : null,
-            stat, statLabel: STAT_LABEL[stat], stored: rows, base: legFromContract(best, `${pl?.name ?? ""} ${STAT_LABEL[stat].toLowerCase()}`),
+            stat, statLabel: STAT_LABEL[stat], stored: rows, base: legFromContract(best, STAT_LABEL[stat].toLowerCase(), 1, pl?.name),
           });
         } catch {
           /* the picker stays */

@@ -995,8 +995,22 @@ table.ledger td:first-child {
   background: linear-gradient(135deg, var(--accent-soft), var(--surface) 75%);
 }
 .hp-main {
-  flex: 1;
-  min-width: 200px;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+@media (max-width: 639px) {
+  .hero-pos {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+  .hero-pos .hp-pay {
+    grid-column: 1 / -1;
+  }
+  .hero-pos .avatar.lg {
+    width: 56px;
+    height: 56px;
+  }
 }
 .hp-main h2 {
   font-size: 1.6rem;
@@ -1213,4 +1227,11 @@ table.radar {
   .topbar-in {
     gap: 6px;
   }
+}
+
+.hero-text {
+  min-width: 0;
+}
+.hero-who {
+  flex-wrap: nowrap;
 }

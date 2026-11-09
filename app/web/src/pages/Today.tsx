@@ -182,7 +182,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
       </header>
       <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
       <div class="two-col">
-        <Hero row={radar.rows[0] ?? null} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} />
+        <Hero row={radar.rows[0] ?? null} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} wModel={radar.desk?.status.w_model ?? null} />
         <Court game={featured} final_={played} />
       </div>
       {radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}

@@ -32,7 +32,7 @@ export function headline(i: HeadlineInput): Headline {
   const g = gamesPhrase(i.games);
   const p = i.engine;
   if (p === null) {
-    return { text: `${g} · pricing check unavailable · keep your money`, verdict: "keep", source: "The engine's check could not be read, which is not a verdict." };
+    return { text: `${g} · pricing check unavailable · keep your money`, verdict: "keep", source: "Source: the parlay engine. Its check could not be read, which is not a verdict." };
   }
   if (!i.speaks) {
     const t = i.tickets;
@@ -40,7 +40,7 @@ export function headline(i: HeadlineInput): Headline {
     return {
       text: has ? `${g} · unproven tickets listed (paper only) · keep your money` : `${g} · no pricing check is stored for this night · keep your money`,
       verdict: "keep",
-      source: "The parlay engine's stored check is for a different night, so it is not shown as this night's.",
+      source: "Source: the parlay engine. Its stored check is for a different night, so it is not shown as this night's.",
     };
   }
   const priced = n(p.counts, "n_contracts");
@@ -51,15 +51,15 @@ export function headline(i: HeadlineInput): Headline {
     return {
       text: `${g} · ${flagged.toLocaleString("en-US")} of ${priced.toLocaleString("en-US")} priced contracts flagged by the engine (paper only, unproven)${record}${keep}`,
       verdict: "flagged",
-      source: "From the parlay engine's stored check for this night.",
+      source: "Source: the parlay engine. It weighs the model and judges each contract at the low end of its range.",
     };
   }
   if (priced !== null && p.headline_verdict === "no_positive_ev_found") {
     return {
       text: `${g} · 0 of ${priced.toLocaleString("en-US")} priced contracts clear an edge after fees · keep your money`,
       verdict: "keep",
-      source: "From the parlay engine's stored check for this night: every contract priced at the ask, with the taker fee.",
+      source: "Source: the parlay engine. It weighs the model and judges each contract at the low end of its range, at the ask with the taker fee.",
     };
   }
-  return { text: `${g} · ${p.title.toLowerCase()} · keep your money`, verdict: "keep", source: "From the parlay engine's stored check for this night." };
+  return { text: `${g} · ${p.title.toLowerCase()} · keep your money`, verdict: "keep", source: "Source: the parlay engine. It weighs the model and judges each contract at the low end of its range." };
 }

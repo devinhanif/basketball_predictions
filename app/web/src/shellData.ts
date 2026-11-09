@@ -1,7 +1,7 @@
 // Data the shell needs on every screen: the notices (for the bell and the Alerts badge) and the search index.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { api } from "./api";
-import { buildNotices, unreadCount, type Notice } from "./alerts";
+import { buildNotices, unreadCount, withOlderRead, type Notice } from "./alerts";
 import { deskOf, useDesk } from "./deskStore";
 import { canSeeAdmin, useIdentity } from "./identity";
 import { gameHref, legHref, topHref } from "./router";
@@ -23,7 +23,7 @@ export function useNotices(): Notices {
     const d = deskOf(desk);
     if (!d) return { list: [], unread: 0, hasDesk: false };
     const list = buildNotices(d);
-    return { list, unread: unreadCount(list, us.read, us.notify), hasDesk: true };
+    return { list, unread: unreadCount(list, withOlderRead(list, us.read), us.notify), hasDesk: true };
   }, [desk, us]);
 }
 

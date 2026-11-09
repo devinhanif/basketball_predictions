@@ -153,11 +153,44 @@ export function newId(): string {
   return `leg-${seq.toString()}`;
 }
 
+/**
+ * A leg in words that carry their own side: YES on "k+" is "k or more", NO on "k+" is "fewer than k". The side is said once,
+ * so a NO is never also written "NO fewer than".
+ */
+export function legWords(side: "yes" | "no", threshold: number, statLabel: string): string {
+  return side === "yes" ? `${threshold.toString()} or more ${statLabel}` : `fewer than ${threshold.toString()} ${statLabel}`;
+}
+
 /** A leg from one stored contract row (price and fee come from the row: dollars to cents). */
-export function legFromContract(c: EdgeContract, statLabel: string, contracts = 1): HedgeLeg {
+export function legFromContract(c: EdgeContract, statLabel: string, contracts = 1, who?: string): HedgeLeg {
+  const side = c.side === "over" ? "yes" : "no";
   return clampLeg({
-    id: newId(), kind: "stat", side: c.side === "over" ? "yes" : "no", label: `${c.side === "over" ? "YES" : "NO"} · ${c.threshold.toString()}+ ${statLabel}`,
+    id: newId(), kind: "stat", side, label: `${who ? `${who}: ` : ""}${legWords(side, c.threshold, statLabel)}`,
     threshold: c.threshold, contracts, ask_c: c.price * 100, fee_c: c.fees * 100, source: "stored",
+  });
+}
+
+/** The pieces of a desk play the position lab needs. */
+export interface PlayLike {
+  side: string;
+  threshold: number | null;
+  price_cents: number | null;
+  fee_cents: number | null;
+  leg_desc: string | null;
+  player_name: string | null;
+}
+
+/**
+ * A leg from a desk play. The play's own wording (leg_desc) already says the side ("fewer than 6 assists"), so it is the label
+ * as is. `side` "no" on threshold k pays when the count is below k; "yes" pays at k or more. `fee_c` is the stored fee, else
+ * the one the caller found in a stored contract row, else 0 until the viewer enters one. Null when the play has no stat line.
+ */
+export function legFromPlay(p: PlayLike, statLabel: string, fee_c: number | null, source: "stored" | "entered"): HedgeLeg | null {
+  if (p.threshold === null || p.price_cents === null) return null;
+  const side = p.side === "no" ? "no" : "yes";
+  return clampLeg({
+    id: newId(), kind: "stat", side, label: p.leg_desc ?? `${p.player_name ?? "Unnamed player"}: ${legWords(side, p.threshold, statLabel)}`,
+    threshold: p.threshold, contracts: 1, ask_c: p.price_cents, fee_c: fee_c ?? 0, source,
   });
 }
 
@@ -195,13 +228,13 @@ export function candidatesFor(base: HedgeLeg, stored: readonly EdgeContract[], s
   const hasExact = out.some((c) => c.leg.kind === "stat" && c.leg.threshold === base.threshold && c.leg.side !== base.side);
   if (!hasExact && base.kind === "stat") {
     out.unshift({
-      leg: clampLeg({ id: newId(), kind: "stat", side: base.side === "yes" ? "no" : "yes", label: `${base.side === "yes" ? "NO" : "YES"} · ${(base.threshold ?? 0).toString()}+ ${statLabel}`, threshold: base.threshold, contracts: 0, ask_c: 0, fee_c: base.fee_c, source: "entered" }),
+      leg: clampLeg({ id: newId(), kind: "stat", side: base.side === "yes" ? "no" : "yes", label: legWords(base.side === "yes" ? "no" : "yes", base.threshold ?? 0, statLabel), threshold: base.threshold, contracts: 0, ask_c: 0, fee_c: base.fee_c, source: "entered" }),
       note: "Exact complement: one of the two always pays. No stored price: enter contracts and your own ask",
     });
   }
   for (const team of ["home", "away"] as const) {
     out.push({
-      leg: clampLeg({ id: newId(), kind: "team", side: "yes", team, label: `YES · ${team === "home" ? game.home : game.away} wins`, contracts: 0, ask_c: 0, fee_c: base.fee_c, source: "entered" }),
+      leg: clampLeg({ id: newId(), kind: "team", side: "yes", team, label: `${team === "home" ? game.home : game.away} wins`, contracts: 0, ask_c: 0, fee_c: base.fee_c, source: "entered" }),
       note: "No stored price: enter contracts and your own ask. Both positions can lose",
     });
   }

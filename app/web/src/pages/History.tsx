@@ -1,6 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { Avatar } from "../Avatar";
-import { DeskGate, SectionNote } from "../DeskUI";
+import { DeskGate } from "../DeskUI";
 import {
   barScale, calibration, cents, labelText, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd, winRate,
   type DayBar, type Desk, type DeskPlay, type LedgerFilter,
@@ -85,7 +85,7 @@ function Tiles({ desk }: { desk: Desk }) {
           {ks.since ? `, since ${longDate(ks.since.slice(0, 10))}` : ""}
         </div>
         <div class="tile-n muted">
-          {ks.note ?? ""} This is a different population from the closing-line value tile. The model weight is {desk.status.w_model ?? "not stored"}
+          {ks.note ? `${ks.note.replace(/[.\s]+$/, "")}. ` : ""}This is a different population from the closing-line value tile. The model weight is {desk.status.w_model ?? "not stored"}
           {Object.keys(desk.status.w_model_by_stat).length > 0 ? ` (${Object.entries(desk.status.w_model_by_stat).map(([k, v]) => `${k} ${v.toString()}`).join(", ")})` : ""}.
         </div>
       </div>
@@ -380,7 +380,7 @@ function LedgerCard({ desk }: { desk: Desk }) {
           Show more ({(view.length - shown).toLocaleString("en-US")} left)
         </button>
       ) : null}
-      {desk.privacy === "shared" ? <SectionNote desk={desk} k="shared_cut" /> : null}
+      {desk.privacy === "shared" ? <p class="small muted section-note">Dollar amounts, contract counts and fees are left out of this shared page.</p> : null}
     </section>
   );
 }

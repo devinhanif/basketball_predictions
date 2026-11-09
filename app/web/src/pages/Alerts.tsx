@@ -1,5 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
-import { buildNotices, filterNotices, NOTICE_FILTERS, unreadCount, type Notice, type NoticeFilter } from "../alerts";
+import { buildNotices, filterNotices, newestNight, NOTICE_FILTERS, unreadCount, withOlderRead, type Notice, type NoticeFilter } from "../alerts";
 import { DeskGate, SectionNote } from "../DeskUI";
 import { correctionLinks, type Desk } from "../desk";
 import { longDate, stamp } from "../format";
@@ -44,12 +44,14 @@ function Item({ n, read, onOpen }: { n: Notice; read: boolean; onOpen: () => voi
 function Body({ desk }: { desk: Desk }) {
   const us = useUserState();
   const all = useMemo(() => buildNotices(desk), [desk]);
+  const read = useMemo(() => withOlderRead(all, us.read), [all, us.read]);
+  const newest = newestNight(all);
   const links = useMemo(() => correctionLinks(desk.observations), [desk]);
   const [filter, setFilter] = useState<NoticeFilter>("all");
   const [shown, setShown] = useState(PAGE);
-  const list = useMemo(() => filterNotices(all, filter, us.read), [all, filter, us.read]);
-  const unread = unreadCount(all, us.read, { fouls: true, risk: true, corrections: true });
-  const unreadIn = (f: NoticeFilter): number => filterNotices(all, f, us.read).filter((n) => !us.read.has(n.id)).length;
+  const list = useMemo(() => filterNotices(all, filter, read), [all, filter, read]);
+  const unread = unreadCount(all, read, { fouls: true, risk: true, corrections: true });
+  const unreadIn = (f: NoticeFilter): number => filterNotices(all, f, read).filter((n) => !read.has(n.id)).length;
   const linked = [...links.correctedBy.keys()].length;
   return (
     <div class="stack">
@@ -60,7 +62,9 @@ function Body({ desk }: { desk: Desk }) {
             <h1 class="answer">
               {all.length.toLocaleString("en-US")} alerts and observations · {unread.toLocaleString("en-US")} unread
             </h1>
-            <p class="muted answer-src">What changed and what is still not known. Read marks are kept for you only.</p>
+            <p class="muted answer-src">
+              What changed and what is still not known. Read marks are kept for you only; {newest ? `alerts older than ${longDate(newest).replace(/, \d{4}$/, "")} start as read.` : "older alerts start as read."}
+            </p>
           </div>
           <button
             type="button"
@@ -85,7 +89,7 @@ function Body({ desk }: { desk: Desk }) {
             <button
               type="button"
               class="btn"
-              disabled={list.every((n) => us.read.has(n.id))}
+              disabled={list.every((n) => read.has(n.id))}
               onClick={() => {
                 markIdsRead(list.map((n) => n.id));
               }}
@@ -118,7 +122,7 @@ function Body({ desk }: { desk: Desk }) {
                 <Item
                   key={n.id}
                   n={n}
-                  read={us.read.has(n.id)}
+                  read={read.has(n.id)}
                   onOpen={() => {
                     markIdsRead([n.id]);
                   }}

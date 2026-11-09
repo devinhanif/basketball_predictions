@@ -49,8 +49,8 @@ function fmtModel(m: number | null): string {
   return m === null ? "-" : pct(m);
 }
 
-/** "The closest look": the best row by edge after fees. Honest about a negative edge. */
-export function Hero({ row, nPriced, fixture }: { row: RadarRow | null; nPriced: number | null; fixture: boolean }) {
+/** "The closest look": the best row by edge after fees. Honest about a negative edge, and about what the edge is made of. */
+export function Hero({ row, nPriced, fixture, wModel }: { row: RadarRow | null; nPriced: number | null; fixture: boolean; wModel: number | null }) {
   if (!row) {
     return (
       <section class="panel hero" aria-label="The closest look">
@@ -61,13 +61,14 @@ export function Hero({ row, nPriced, fixture }: { row: RadarRow | null; nPriced:
     );
   }
   const neg = row.edge_c !== null && row.edge_c <= 0;
+  const desk = row.source === "desk";
   return (
     <section class="panel hero" aria-label="The closest look">
       <div class="hero-main">
-        <div class="label">The closest look{row.source === "desk" ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced contracts` : ""}</div>
+        <div class="label">The closest look{desk ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced contracts` : ""}</div>
         <div class="hero-who">
           <Avatar name={row.name} team={row.team} playerId={row.playerId} size="lg" />
-          <div>
+          <div class="hero-text">
             <h2 class="hero-name">{row.name}</h2>
             <p class="muted">
               {row.market}
@@ -77,8 +78,8 @@ export function Hero({ row, nPriced, fixture }: { row: RadarRow | null; nPriced:
         </div>
         <div class="hero-nums num">
           <div>
-            <div class="hero-v">{fmtModel(row.model)}</div>
-            <div class="small muted">model chance{row.source === "desk" && fixture ? " (fixture)" : ""}</div>
+            <div class="hero-v">{desk ? fmtModel(row.fair) : fmtModel(row.model)}</div>
+            <div class="small muted">{desk ? "fair price (sharp book)" : `model chance${fixture ? " (fixture)" : ""}`}</div>
           </div>
           <div>
             <div class="hero-v">{row.ask_c !== null ? plainCents(row.ask_c) : "-"}</div>
@@ -90,7 +91,14 @@ export function Hero({ row, nPriced, fixture }: { row: RadarRow | null; nPriced:
           </div>
         </div>
         <p class="small num edge-line">{edgeSentence(row)}</p>
+        {desk ? (
+          <p class="small muted num">
+            Separately, our model says {fmtModel(row.model)}. Model weight {wModel === null ? "is not stored" : wModel.toString()}
+            {wModel === 0 ? ": the model is not used in this edge." : "."}
+          </p>
+        ) : null}
         <p class="small muted">
+          {desk ? "Source: JARVIS's price check against the sharp book's fair price. " : "Source: the parlay engine's stored contracts. "}
           {neg ? "The edge is not positive after fees, so this is not a bet: keep your money. " : "Unproven: the model has no track record yet. "}Paper only.
         </p>
         {row.href ? (
@@ -191,7 +199,11 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
       <div class="row between wrap">
         <div>
           <h2 id="radar-h">On your radar</h2>
-          <p class="small muted">{rows[0]?.source === "desk" ? "The desk's plays for this night, best edge first." : "The best-priced stored contracts for this night, by edge after fees."}</p>
+          <p class="small muted">
+            {rows[0]?.source === "desk"
+              ? "The desk's plays for this night, best edge first. Source: JARVIS's price check against the sharp book's fair price, a different check from the headline above."
+              : "The best-priced stored contracts for this night, by edge after fees. Source: the same parlay engine check as the headline."}
+          </p>
         </div>
         <div class="seg" role="group" aria-label="Which rows">
           <button type="button" class="seg-btn" aria-pressed={!only} onClick={() => { setOnly(false); }}>
@@ -211,6 +223,7 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
             <thead>
               <tr>
                 <th>Player / market</th>
+                <th class="r">Fair</th>
                 <th class="r">Model</th>
                 <th class="r">Ask</th>
                 <th>Status</th>
@@ -233,6 +246,7 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
                         </span>
                       </span>
                     </td>
+                    <td class="r">{fmtModel(r.fair)}</td>
                     <td class="r">{fmtModel(r.model)}</td>
                     <td class="r">{r.ask_c !== null ? plainCents(r.ask_c) : "-"}</td>
                     <td class="small">{r.status}</td>
@@ -256,7 +270,7 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
           </table>
         </div>
       )}
-      <p class="small muted">Stored prices only. Unproven model chances; paper only; nothing here suggests a stake.</p>
+      <p class="small muted">Stored prices only. "Fair" is the sharp book's price without its margin; "Model" is our own unproven chance. Paper only; nothing here suggests a stake.</p>
     </section>
   );
 }

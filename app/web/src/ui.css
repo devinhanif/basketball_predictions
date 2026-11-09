@@ -478,7 +478,7 @@ svg {
 .game,
 .panel,
 .tile {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 @media (max-width: 1023px) {

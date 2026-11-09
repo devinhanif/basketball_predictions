@@ -158,10 +158,11 @@ for (const [, w, h] of sizes) {
   }
 }
 writeFileSync(join(outDir, `${kind}_audit.json`), JSON.stringify(audit, null, 1));
-const bad = audit.filter((a) => a.small.length || a.lowContrast.length || a.overflowX);
+const bad = audit.filter((a) => a.small.length || a.lowContrast.length || a.overflowX || (a.broken || []).length);
 console.log(`${audit.length} screens audited; ${bad.length} with findings`);
 for (const a of bad.slice(0, 30)) {
-  console.log(`- ${a.name}: pokes=${(a.pokes||[]).join(";")} overflowX=${a.overflowX} small=${a.small.length} lowContrast=${a.lowContrast.length}`);
+  console.log(`- ${a.name}: pokes=${(a.pokes||[]).join(";")} overflowX=${a.overflowX} small=${a.small.length} lowContrast=${a.lowContrast.length} broken=${(a.broken || []).length}`);
+  for (const s of (a.broken || []).slice(0, 5)) console.log(`    broken ${s.width}px x${s.lines} lines "${s.text}" (${s.sel})`);
   for (const s of a.small.slice(0, 4)) console.log(`    small ${s.px}px "${s.text}" (${s.sel})`);
   for (const s of a.lowContrast.slice(0, 5)) console.log(`    contrast ${s.ratio} "${s.text}" (${s.sel}) fg=${s.fg} bg=${s.bg}`);
 }

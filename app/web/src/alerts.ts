@@ -90,7 +90,7 @@ export function buildNotices(desk: Desk): Notice[] {
         : "";
     list.unshift({
       id: `status:review:${ks.since ?? "now"}`, ts: ks.since ?? desk.built_at, slate_date: (ks.since ?? desk.built_at).slice(0, 10), category: "risk", source: "status",
-      title: "The model is in review", text: `${clv}${ks.on ? "The kill switch is latched" : "The gate is closed"}; the model does not back a bet.${ks.note ? ` Log: ${ks.note}.` : ""}`,
+      title: "The model is in review", text: `${clv}${ks.on ? "The kill switch is latched" : "The gate is closed"}; the model does not back a bet.${ks.note ? ` Log: ${ks.note.replace(/[.\s]+$/, "")}.` : ""}`,
       fallback: "", matchup: null, when: null, certainty: "Reported fact", link: "#/history",
     });
   }
@@ -127,4 +127,20 @@ export function markRead(read: ReadonlySet<string>, ids: readonly string[], cap 
   const next = new Set(read);
   for (const id of ids) next.add(id);
   return new Set([...next].slice(-cap));
+}
+
+/**
+ * Notices from before the newest night in the list start as read, so a first visit does not open on hundreds of unread
+ * alerts. The desk's own status notice (the kill switch) is never marked read for you.
+ */
+export function withOlderRead(list: readonly Notice[], read: ReadonlySet<string>): Set<string> {
+  const out = new Set(read);
+  const newest = list.filter((n) => n.source !== "status").map((n) => n.slate_date).sort().at(-1);
+  if (newest === undefined) return out;
+  for (const n of list) if (n.source !== "status" && n.slate_date < newest) out.add(n.id);
+  return out;
+}
+
+export function newestNight(list: readonly Notice[]): string | null {
+  return list.filter((n) => n.source !== "status").map((n) => n.slate_date).sort().at(-1) ?? null;
 }

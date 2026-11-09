@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { EdgeContract } from "./edges";
 import {
-  buckets, candidatesFor, centsText, clampLeg, legCost, legFromContract, legWins, outcomes, summarize, totalCost, type HedgeLeg,
+  legFromPlay, legWords, buckets, candidatesFor, centsText, clampLeg, legCost, legFromContract, legWins, outcomes, summarize, totalCost, type HedgeLeg,
 } from "./hedge";
 
 const G = { home: "PHX", away: "ORL" };
@@ -66,5 +66,36 @@ describe("position lab arithmetic", () => {
     const none = candidatesFor(base, [row({})], "threes", G);
     expect(none[0]?.leg).toMatchObject({ side: "no", ask_c: 0, contracts: 0 });
     expect(none.filter((c) => c.leg.kind === "team").every((c) => c.leg.ask_c === 0)).toBe(true);
+  });
+});
+
+describe("sides and wording (the lab's payoff direction matches the play)", () => {
+  const play = (side: string, threshold: number, leg_desc: string | null) => ({ side, threshold, price_cents: 38, fee_cents: 2, leg_desc, player_name: "Austin Reaves" });
+  it("says the side once: YES is 'or more', NO is 'fewer than'", () => {
+    expect(legWords("yes", 6, "assists")).toBe("6 or more assists");
+    expect(legWords("no", 6, "assists")).toBe("fewer than 6 assists");
+    expect(legFromContract(row({ side: "under", threshold: 6 }), "assists", 1, "A B").label).toBe("A B: fewer than 6 assists");
+  });
+  it("uses the play's own wording as the label, never a second NO/YES prefix", () => {
+    const l = legFromPlay(play("no", 6, "Austin Reaves: fewer than 6 assists"), "assists", 2, "stored");
+    expect(l?.label).toBe("Austin Reaves: fewer than 6 assists");
+    expect(legFromPlay(play("yes", 6, null), "assists", null, "entered")?.label).toBe("Austin Reaves: 6 or more assists");
+    expect(legFromPlay({ ...play("yes", 6, null), threshold: null }, "assists", null, "entered")).toBeNull();
+  });
+  it("pays in the direction of the side and threshold: NO on 6 ('fewer than 6' / under 5.5) wins at 5, loses at 6", () => {
+    const no6 = legFromPlay(play("no", 6, "x"), "assists", 2, "stored") as HedgeLeg;
+    expect([no6.side, legWins(no6, 5, null), legWins(no6, 6, null), legWins(no6, 9, null)]).toEqual(["no", true, false, false]);
+    const yes6 = legFromPlay(play("yes", 6, "x"), "assists", 2, "stored") as HedgeLeg;
+    expect([yes6.side, legWins(yes6, 5, null), legWins(yes6, 6, null), legWins(yes6, 9, null)]).toEqual(["yes", false, true, true]);
+    // over 5.5 = YES 6+, under 5.5 = NO 6+ : the same two legs, from the export's rows
+    const over = legFromContract(row({ side: "over", threshold: 6 }), "assists");
+    const under = legFromContract(row({ side: "under", threshold: 6 }), "assists");
+    expect([legWins(over, 6, null), legWins(over, 5, null), legWins(under, 5, null), legWins(under, 6, null)]).toEqual([true, false, true, false]);
+  });
+  it("the grid of a lone NO 6+ at 38c + 2c: +60 below the line, -40 at or above it", () => {
+    const no6 = legFromPlay(play("no", 6, "x"), "assists", 2, "stored") as HedgeLeg;
+    expect(outcomes([no6], G).map((o) => [o.label, o.net_c])).toEqual([["0-5", 60], ["6+", -40]]);
+    const s = summarize([no6], G);
+    expect([s?.worst_c, s?.best_c]).toEqual([-40, 60]);
   });
 });
