@@ -300,9 +300,7 @@ a.back-link {
 .ol-name {
   font-weight: 700;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .ol-say {
   flex: none;

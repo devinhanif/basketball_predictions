@@ -333,7 +333,7 @@ function LedgerCard({ desk }: { desk: Desk }) {
         <p class="muted empty-line">No records match this filter.</p>
       ) : (
         <div class="table-wrap">
-          <table class="ledger num">
+          <table class="ledger cards num">
             <thead>
               <tr>
                 <th>Player / contract</th>
@@ -356,13 +356,13 @@ function LedgerCard({ desk }: { desk: Desk }) {
                       </span>
                     </span>
                   </td>
-                  <td class="r">{cents(p.price_cents)}</td>
-                  <td>
+                  <td class="r" data-l="Entry">{cents(p.price_cents)}</td>
+                  <td data-l="Signal">
                     {labelText(p.edge_label)} {p.edge_cents !== null ? signedCents(p.edge_cents, 1) : ""}
                   </td>
-                  <td class="r">{signedCents(p.result?.clv_cents ?? null)}</td>
-                  <td>{resultWord(p)}</td>
-                  {withMoney ? <td class="r">{p.result?.pnl_usd != null ? usd(p.result.pnl_usd) : "not stored"}</td> : null}
+                  <td class="r" data-l="Closing-line value">{signedCents(p.result?.clv_cents ?? null)}</td>
+                  <td data-l="Result">{resultWord(p)}</td>
+                  {withMoney ? <td class="r" data-l="Net P&amp;L">{p.result?.pnl_usd != null ? usd(p.result.pnl_usd) : "not stored"}</td> : null}
                 </tr>
               ))}
             </tbody>

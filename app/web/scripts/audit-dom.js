@@ -43,7 +43,8 @@ function () {
   };
   const sel = (el) => el.tagName.toLowerCase() + (typeof el.className === "string" && el.className ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : "");
 
-  const small = [], lowContrast = [], broken = [];
+  const small = [], lowContrast = [], broken = [], clipped = [];
+  const SCROLLERS = ".chart-wrap, .tabs, .leg-tabs, .modal-back, .welcome, .search-results";
   const seen = new Set();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let t = walker.nextNode(); t; t = walker.nextNode()) {
@@ -83,6 +84,18 @@ function () {
       const lines = new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size;
       if (lines > text.split(/\s+/).length) broken.push({ text: text.slice(0, 40), sel: sel(el), width: Math.round(er.width), lines });
     }
+    // Content cut off by an ancestor that clips or scrolls (a wide table in a scroll box): the reader loses it.
+    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+      const ox = getComputedStyle(n).overflowX;
+      if (ox === "visible") continue;
+      if (n.matches(SCROLLERS)) break;
+      const nr = n.getBoundingClientRect();
+      const range2 = document.createRange();
+      range2.selectNodeContents(t);
+      const rr = range2.getBoundingClientRect();
+      if (rr.width > 0 && rr.right > nr.right + 1) clipped.push({ text: text.slice(0, 40), sel: sel(el), over: Math.round(rr.right - nr.right), box: sel(n) });
+      break;
+    }
     const need = large ? 3 : 4.5;
     if (worst < need) lowContrast.push({ ratio: Math.round(worst * 100) / 100, text: text.slice(0, 40), sel: sel(el), fg: worstFg, bg: worstBg, px: Math.round(px) });
   }
@@ -108,5 +121,6 @@ function () {
     small: dedupe(small).slice(0, 40),
     lowContrast: dedupe(lowContrast).slice(0, 40),
     broken: dedupe(broken).slice(0, 40),
+    clipped: dedupe(clipped).slice(0, 40),
   };
 }

@@ -219,7 +219,7 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
         <p class="muted empty-line">{only ? "Nothing on your watchlist for this night yet. Use the star on a row to add it." : "No priced rows are stored for this night."}</p>
       ) : (
         <div class="table-wrap">
-          <table class="radar num">
+          <table class="radar cards num">
             <thead>
               <tr>
                 <th>Player / market</th>
@@ -246,11 +246,11 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
                         </span>
                       </span>
                     </td>
-                    <td class="r">{fmtModel(r.fair)}</td>
-                    <td class="r">{fmtModel(r.model)}</td>
-                    <td class="r">{r.ask_c !== null ? plainCents(r.ask_c) : "-"}</td>
-                    <td class="small">{r.status}</td>
-                    <td>
+                    <td class="r" data-l="Fair">{fmtModel(r.fair)}</td>
+                    <td class="r" data-l="Model">{fmtModel(r.model)}</td>
+                    <td class="r" data-l="Ask">{r.ask_c !== null ? plainCents(r.ask_c) : "-"}</td>
+                    <td class="small status">{r.status}</td>
+                    <td class="watch-cell">
                       <button
                         type="button"
                         class={`watch${on ? " on" : ""}`}

@@ -114,7 +114,7 @@ const SCREENS = artifact
 
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
 if (ONLY) for (let i = SCREENS.length - 1; i >= 0; i--) if (!ONLY.has(SCREENS[i][0])) SCREENS.splice(i, 1);
-const sizes = [["m", 390, 844], ["d", 1440, 900]];
+const sizes = [["m", 390, 844], ["d", 1440, 900]].filter((s) => !process.env.W || String(s[1]) === process.env.W);
 const audit = [];
 async function idle(max = 20000) {
   const t0 = Date.now();
@@ -158,10 +158,11 @@ for (const [, w, h] of sizes) {
   }
 }
 writeFileSync(join(outDir, `${kind}_audit.json`), JSON.stringify(audit, null, 1));
-const bad = audit.filter((a) => a.small.length || a.lowContrast.length || a.overflowX || (a.broken || []).length);
+const bad = audit.filter((a) => a.small.length || a.lowContrast.length || a.overflowX || (a.broken || []).length || (a.clipped || []).length);
 console.log(`${audit.length} screens audited; ${bad.length} with findings`);
 for (const a of bad.slice(0, 30)) {
   console.log(`- ${a.name}: pokes=${(a.pokes||[]).join(";")} overflowX=${a.overflowX} small=${a.small.length} lowContrast=${a.lowContrast.length} broken=${(a.broken || []).length}`);
+  for (const s of (a.clipped || []).slice(0, 5)) console.log(`    clipped by ${s.box} (${s.over}px) "${s.text}" (${s.sel})`);
   for (const s of (a.broken || []).slice(0, 5)) console.log(`    broken ${s.width}px x${s.lines} lines "${s.text}" (${s.sel})`);
   for (const s of a.small.slice(0, 4)) console.log(`    small ${s.px}px "${s.text}" (${s.sel})`);
   for (const s of a.lowContrast.slice(0, 5)) console.log(`    contrast ${s.ratio} "${s.text}" (${s.sel}) fg=${s.fg} bg=${s.bg}`);

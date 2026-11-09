@@ -1235,3 +1235,57 @@ table.radar {
 .hero-who {
   flex-wrap: nowrap;
 }
+
+/* ---- narrow screens: radar and ledger rows become two-line cards instead of clipped tables ---- */
+@media (max-width: 639px) {
+  table.cards,
+  table.radar {
+    min-width: 0;
+  }
+  table.cards thead {
+    display: none;
+  }
+  table.cards,
+  table.cards tbody {
+    display: block;
+  }
+  table.cards tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    position: relative;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  table.cards td {
+    display: block;
+    border: 0;
+    padding: 0;
+    white-space: normal;
+    text-align: left;
+  }
+  table.cards td:first-child {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding-right: 52px;
+  }
+  table.cards td[data-l]::before {
+    content: attr(data-l) " ";
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  table.cards td.status {
+    flex: 1 1 100%;
+  }
+  table.cards td.watch-cell {
+    position: absolute;
+    top: 8px;
+    right: 0;
+  }
+  table.ledger td:first-child {
+    min-width: 0;
+  }
+}
