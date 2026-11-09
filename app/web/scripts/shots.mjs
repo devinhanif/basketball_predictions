@@ -112,6 +112,8 @@ const SCREENS = artifact
       ["welcome", "#/", ""],
     ];
 
+const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
+if (ONLY) for (let i = SCREENS.length - 1; i >= 0; i--) if (!ONLY.has(SCREENS[i][0])) SCREENS.splice(i, 1);
 const sizes = [["m", 390, 844], ["d", 1440, 900]];
 const audit = [];
 async function idle(max = 20000) {

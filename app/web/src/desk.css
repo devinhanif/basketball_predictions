@@ -305,6 +305,12 @@ input[type="number"] {
 .search-input {
   border: 0;
   background: transparent;
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+.search-box {
+  min-width: 0;
 }
 .search-results {
   list-style: none;
@@ -1179,6 +1185,12 @@ details.panel > summary {
 .modal {
   min-width: 0;
   max-width: 100%;
+}
+.search-row > * {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
 }
 .search-row {
   flex-direction: column;
