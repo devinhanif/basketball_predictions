@@ -30,6 +30,8 @@ tick:
   interval_s: 120                     # launchd StartInterval (ops/launchd/local.nba.pulls.plist)
   store_retries: 3                    # market_asof.duckdb is single-writer; the lineups job also writes it
   store_wait_s: 2.0
+  reopen_retries: 6                   # after a PAID call the result must be stored: the capture's own 6 x 5 s budget
+  reopen_wait_s: 5.0
 
 watchdog:                             # nba.ops.watchdog, game days only
   window_h: 3                         # games within this many hours of tip

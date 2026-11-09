@@ -28,6 +28,8 @@ class PullsConfig:
     interval_s: int = 120
     store_retries: int = 3
     store_wait_s: float = 2.0
+    reopen_retries: int = 6
+    reopen_wait_s: float = 5.0
     wd_window_h: float = 3.0
     wd_warn_pinnacle_age_min: float = 60.0
     wd_warn_grace_min: float = 5.0
@@ -71,6 +73,8 @@ def load_pulls_config(path: Path | None = None) -> PullsConfig:
         ("interval_s", tk, int),
         ("store_retries", tk, int),
         ("store_wait_s", tk, float),
+        ("reopen_retries", tk, int),
+        ("reopen_wait_s", tk, float),
         ("slate_prefetch_lead_min", sl, float),
     ):
         if key in src:

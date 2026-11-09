@@ -219,7 +219,8 @@ def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any
         latch_kill_switch(rt.cfg, rt.book, slate, now)
     plays = plan_slate(rt.cfg, st, rt.book)
     n_planned = len(plays)
-    plays, held_line, n_held = _hold_for_preview(rt, plays, slate, now)
+    plays, held_line, held_plays = _hold_for_preview(rt, plays, slate, now)
+    n_held = len(held_plays)
     rep: dict[str, Any] = {
         "slate": str(slate),
         "games": len(st.games),
@@ -228,6 +229,7 @@ def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any
     }
     if n_held:
         rep["slate_held"] = n_held
+        rep["held_keys"] = [p.key for p in held_plays]
     tips = sorted(g.tipoff for g in st.games if g.tipoff is not None and g.tipoff > now)
     first_tip = tips[0] if tips else None
     if not force and not rt.dry_run and rt.book.slate_summary_sent(slate):
@@ -276,7 +278,34 @@ def _daily_dollar(rt: Runtime, st: SlateState, slate: date) -> tuple[Play | None
     room = min(
         rt.cfg.nightly_cap - real - other, rt.cfg.nightly_cap - rt.cfg.reserve_for_strong - other
     )
-    return dailydollar.build(rt.cfg, st, rt.kb, room=max(0.0, room))
+    play, why = dailydollar.build(rt.cfg, st, rt.kb, room=max(0.0, room))
+    if play is None:
+        return play, why
+    held = _stale_ticket_reason(rt, st, play, slate)
+    return (None, held) if held else (play, why)
+
+
+def _stale_ticket_reason(rt: Runtime, st: SlateState, play: Play, slate: date) -> str | None:
+    """Daily Dollar legs priced from a Pinnacle line older than the pull rule are held like the
+    preview's plays (the ticket is skipped with one line). ``None`` = post it as before."""
+    now = rt.clock()
+    gate = _gate(rt, now, "hold_stale_slate")
+    if gate is None:
+        return None
+    try:
+        by_ticker = {q.ticker: q for q in st.quotes}
+        oldest = 0.0
+        for leg in play.legs:
+            q = by_ticker.get(leg.ticker)
+            ref = st.refs.for_quote(q) if q is not None else None
+            if ref is not None:
+                oldest = max(oldest, (now - ref.ts).total_seconds() / 60.0)
+        if oldest <= gate.limit or gate.released(play.game_id, slate) is not None:
+            return None
+    except Exception as exc:  # noqa: BLE001 - fail open
+        log.warning("daily dollar hold unavailable (%s); posting as before", type(exc).__name__)
+        return None
+    return f"held: sharp price not refreshed (oldest {oldest:.0f} min)"
 
 
 def slate_due(rt: Runtime, st: SlateState) -> bool:
@@ -330,6 +359,7 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         wanted = rt.book.open_tickers(slate)
         rep["quotes_logged"] = rt.book.log_quotes(q for q in st.quotes if q.ticker in wanted)
     sent_keys: set[str] = set()
+    held_keys: set[str] = set()  # left out of this tick's preview: not alerted on the same price
     if not rt.dry_run and rt.book.slate_summary_sent(slate):
         pre = None
     else:
@@ -341,6 +371,7 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         rep["slate_send"] = sl.get("send")
         if sl.get("slate_held"):
             rep["slate_held"] = sl["slate_held"]
+            held_keys = set(sl.get("held_keys", []))
         if sl.get("send", {}).get("ok"):
             sent_keys = set(sl.get("announced_keys", [p.key for p in plays]))
     n_lead = _lead_capped_after_hold(rt, plays, slate, now)
@@ -348,6 +379,14 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         rep["lead_capped_after_hold"] = n_lead
     for p in plays:
         if p.key in sent_keys or not supports_alert(rt.cfg, p):
+            continue
+        if p.key in held_keys:  # the preview just left it out on this stale reference
+            rec = _hold_stale_reference(rt, p, slate, now) or {
+                "key": p.key,
+                "game_id": p.game_id,
+                "why": "held out of this tick's preview (same stale reference)",
+            }
+            rep.setdefault("held", []).append(rec)
             continue
         if not rt.dry_run:
             if rt.book.sent_recently(p.key, rt.cfg.dedupe_minutes, now):
@@ -455,15 +494,15 @@ def _hold_stale_reference(
 
 def _hold_for_preview(
     rt: Runtime, plays: list[Play], slate: date, now: datetime
-) -> tuple[list[Play], str | None, int]:
+) -> tuple[list[Play], str | None, list[Play]]:
     """The slate preview without the plays priced on a stale sharp line.
 
-    Returns ``(plays to post, the one summary line or None, number held)``. A play is left out when
+    Returns ``(plays to post, one summary line or None, the plays held)``. A play is left out when
     its Pinnacle reference is older than the pull rule, the orchestrator is alive and the game's
     request has not ended without data. Labels, edges and stakes of the rest are untouched."""
     gate = _gate(rt, now, "hold_stale_slate")
     if gate is None:
-        return plays, None, 0
+        return plays, None, []
     kept: list[Play] = []
     held: list[Play] = []
     try:
@@ -475,14 +514,14 @@ def _hold_for_preview(
                 kept.append(p)
     except Exception as exc:  # noqa: BLE001 - fail open
         log.warning("preview hold unavailable (%s); sending as before", type(exc).__name__)
-        return plays, None, 0
+        return plays, None, []
     if not held:
-        return plays, None, 0
+        return plays, None, []
     oldest = max(p.ref_age_min or 0.0 for p in held)
     return (
         kept,
         f"{len(held)} plays held: sharp price not refreshed (oldest {oldest:.0f} min)",
-        len(held),
+        held,
     )
 
 

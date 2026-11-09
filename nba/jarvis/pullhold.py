@@ -43,10 +43,12 @@ class Gate:
         """The game's newest request when it ended without data inside ``cooldown_min`` (the hold
         then lets the play go), else ``None``."""
         last = self.store.latest_for_game(SOURCE, game_id, slate)
-        if (
-            last is not None
-            and last.status in RELEASE_STATUSES
-            and self.now - last.status_at_utc <= timedelta(minutes=self.pc.cooldown_min)
+        if last is None:
+            return None
+        if last.status == "open" and self.now >= last.need_by_utc:
+            return last  # past its deadline unserved (a dying tick never expires it): JARVIS does
+        if last.status in RELEASE_STATUSES and self.now - last.status_at_utc <= timedelta(
+            minutes=self.pc.cooldown_min
         ):
             return last
         return None

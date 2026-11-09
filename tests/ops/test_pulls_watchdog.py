@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import duckdb
+import pytest
 
 from nba.ops.watchdog import Alert, evaluate_game_day
 from nba.pulls.config import PullsConfig
@@ -155,3 +156,27 @@ def test_pulls_alive_needs_enabled_a_fresh_beat_and_not_gated_off(tmp_path: Path
     assert (
         pulls_alive(PullsConfig(enabled=False, requests_db=ops / "pulls.duckdb"), NOW)[0] is False
     )
+
+
+def test_default_watchdog_probe_skips_the_pinnacle_rule_without_t240(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from dataclasses import replace
+
+    from nba.odds import live_close as lc
+    from nba.ops.watchdog import pulls_problems_default
+
+    ops = tmp_path / "data" / "ops"
+    _market(ops, [("G1", _naive_utc(NOW - timedelta(minutes=80)), "t120")])
+    base = lc.load_live_config()
+    hourly = replace(
+        base, schedule=(lc.ScheduleEntry("close", 0, 5), lc.ScheduleEntry("t240", 237.5, 242.5))
+    )
+    bare = replace(
+        base, schedule=(lc.ScheduleEntry("close", 0, 5), lc.ScheduleEntry("t120", 117.5, 122.5))
+    )
+    tips = {"G1": _utc(2.5)}
+    monkeypatch.setattr(lc, "load_live_config", lambda *a, **k: hourly)
+    assert len(pulls_problems_default(ops, NOW, tips)) == 1  # rule applies with the hourly kinds
+    monkeypatch.setattr(lc, "load_live_config", lambda *a, **k: bare)
+    assert pulls_problems_default(ops, NOW, tips) == []  # t240 not scheduled: rule skipped

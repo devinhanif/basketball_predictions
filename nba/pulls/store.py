@@ -218,6 +218,13 @@ class PullStore:
         )
         return rows[0] if rows else None
 
+    def request_ids_for_game(self, source: str, game_id: str, slate_date: date) -> set[str]:
+        rows = self._select(
+            "WHERE source = ? AND scope_game_id = ? AND slate_date = ?",
+            [source, game_id, slate_date],
+        )
+        return {r.request_id for r in rows}
+
     def list_requests(
         self, *, since: datetime | None = None, status: str | None = None, limit: int = 200
     ) -> list[PullRequest]:

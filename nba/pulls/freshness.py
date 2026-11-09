@@ -135,6 +135,9 @@ def pulls_alive(cfg: PullsConfig, now: datetime) -> tuple[bool, str]:
     beat = beat_time(hb)
     if beat is None:
         return False, "pulls heartbeat unreadable"
+    rc = hb.get("rc")
+    if rc not in (0, 4, None):
+        return False, f"pulls tick failing (rc {rc})"
     if "disabled" in str(hb.get("detail", "")):
         return False, "pulls job is gated off (NBA_CLOSE_CAPTURE != 1)"
     n = now if now.tzinfo else now.replace(tzinfo=UTC)

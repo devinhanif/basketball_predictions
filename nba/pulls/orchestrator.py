@@ -26,6 +26,7 @@ never takes ``heavy.lock``; the one store it writes besides ``pulls.duckdb`` is
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import time
@@ -112,6 +113,29 @@ def _next_kind(con: duckdb.DuckDBPyConnection, game_id: str) -> str:
     return f"{lc.ONDEMAND_PREFIX}{used + 1}"
 
 
+def _ledger_usage(lcfg: lc.LiveConfig, day: date, request_ids: set[str]) -> tuple[int, int]:
+    """(paid on-demand calls for this game's requests, on-demand credits for the day) from the
+    credit ledger's call lines that carry a ``request_id``."""
+    path = (lcfg.ledger_dir / f"{lc.SOURCE}_{day.isoformat()}").with_suffix(".jsonl")
+    calls = credits = 0
+    try:
+        text = path.read_text()
+    except OSError:
+        return 0, 0
+    for line in text.splitlines():
+        try:
+            x = json.loads(line)
+        except ValueError:
+            continue
+        rid = x.get("request_id") if isinstance(x, dict) else None
+        if not rid:
+            continue
+        credits += int(x.get("cost") or 0)
+        if x.get("endpoint") == "event_odds" and rid in request_ids:
+            calls += 1
+    return calls, credits
+
+
 def _ondemand_usage(
     con: duckdb.DuckDBPyConnection, game_ids: list[str], game_id: str
 ) -> tuple[int, int]:
@@ -164,13 +188,23 @@ class _Store:
     def __init__(self, lcfg: lc.LiveConfig, pc: PullsConfig) -> None:
         self.lcfg, self.pc = lcfg, pc
         self.con: duckdb.DuckDBPyConnection | None = None
+        self.after_network = False  # a vendor call has been made: the result MUST be stored
 
     def get(self) -> duckdb.DuckDBPyConnection:
         if self.con is None:
-            self.con = lc.open_store(
-                self.lcfg.out_db, retries=self.pc.store_retries, wait_s=self.pc.store_wait_s
+            # before any vendor call a busy store just defers the request; once a (paid) call has been
+            # made, wait as long as the capture does (6 x 5 s) so the credits are not spent for nothing
+            retries, wait = (
+                (self.pc.reopen_retries, self.pc.reopen_wait_s)
+                if self.after_network
+                else (self.pc.store_retries, self.pc.store_wait_s)
             )
+            self.con = lc.open_store(self.lcfg.out_db, retries=retries, wait_s=wait)
         return self.con
+
+    def before_network(self) -> None:
+        self.release()
+        self.after_network = True
 
     def release(self) -> None:
         if self.con is not None:
@@ -191,6 +225,7 @@ class _HookedClient(lc.LiveClient):
     """The existing live client, except the store is released before every vendor request."""
 
     before_network: Callable[[], None] | None = None
+    paid_calls = 0  # event-odds calls answered (credits spent) through this client
 
     def live_events(self, commence_from: datetime, commence_to: datetime) -> tuple[Any, int]:
         if self.before_network:
@@ -200,7 +235,9 @@ class _HookedClient(lc.LiveClient):
     def live_event_odds(self, event_id: str) -> tuple[Any, int, dict[str, str]]:
         if self.before_network:
             self.before_network()
-        return super().live_event_odds(event_id)
+        out = super().live_event_odds(event_id)
+        self.paid_calls += 1
+        return out
 
 
 def _read_slate_retry(
@@ -305,13 +342,27 @@ def tick(
     # 2. freshness, reserve, pull. The market store is opened per request and closed before every
     # vendor call (never held across the network).
     _serve(
-        rep, pc, lcfg, work, slate_games, finish, t, environ, client, resolver, nap, http_get, clock
+        rep,
+        st,
+        pc,
+        lcfg,
+        work,
+        slate_games,
+        finish,
+        t,
+        environ,
+        client,
+        resolver,
+        nap,
+        http_get,
+        clock,
     )
     return rep
 
 
 def _serve(
     rep: TickReport,
+    st: PullStore,
     pc: PullsConfig,
     lcfg: lc.LiveConfig,
     work: list[tuple[PullRequest, lc.LiveGame]],
@@ -332,7 +383,7 @@ def _serve(
     for req, game in sorted(work, key=lambda w: (w[1].tipoff, w[0].created_at_utc)):
         try:
             _serve_one(
-                rep, pc, lcfg, store, state, req, game, slate_games, finish, t, environ, sleep,
+                rep, st, pc, lcfg, store, state, req, game, slate_games, finish, t, environ, sleep,
                 http_get, wall,
             )  # fmt: skip
         except (duckdb.Error, OSError) as exc:
@@ -344,6 +395,7 @@ def _serve(
 
 def _serve_one(
     rep: TickReport,
+    st: PullStore,
     pc: PullsConfig,
     lcfg: lc.LiveConfig,
     store: _Store,
@@ -382,6 +434,14 @@ def _serve_one(
     per_game, od_credits = _ondemand_usage(
         store.get(), [g.game_id for g in day_games], game.game_id
     )
+    # paid calls are counted from the ledger too: a call whose result could not be stored has no
+    # capture-log row, but its credits are real
+    led_calls, led_credits = _ledger_usage(
+        lcfg,
+        now_w.replace(tzinfo=UTC).astimezone(lc.ET).date(),
+        st.request_ids_for_game(req.source, game.game_id, req.slate_date),
+    )
+    per_game, od_credits = max(per_game, led_calls), max(od_credits, led_credits)
     if per_game >= pc.ondemand_max_per_game:
         finish(req, "refused_budget", f"per-game cap: {per_game} on-demand pulls today")
         return
@@ -400,7 +460,7 @@ def _serve_one(
             return
         state["cli"] = cli
     if isinstance(cli, _HookedClient):
-        cli.before_network = store.release
+        cli.before_network = store.before_network
     if state["res"] is None:
         state["res"] = default_resolver()
     done_closes = lc.done_games(store.get(), "close", lcfg.max_attempts_per_game)
@@ -420,11 +480,22 @@ def _serve_one(
     kind = _next_kind(store.get(), game.game_id)
     cli.request_id = req.request_id
     sub = lc.LiveReport(slate=req.slate_date, kind=kind)
+    store.after_network = False
+    paid_before = getattr(cli, "paid_calls", 0)
     try:
         lc._pull_all(sub, store, cli, state["res"], [game], req.slate_date, kind, lcfg, wall)  # type: ignore[arg-type]
     except HistoryError as exc:
         finish(req, "failed", f"{type(exc).__name__}: {redact(str(exc))}")
         return
+    except (duckdb.Error, OSError) as exc:
+        if getattr(cli, "paid_calls", 0) > paid_before:  # paid, but the store never came back
+            finish(
+                req,
+                "failed",
+                f"{kind}: paid call not stored, market store busy ({type(exc).__name__}); not re-pulled",
+            )
+            return
+        raise
     finally:
         cli.request_id = None
     rep.credits += sub.credits
