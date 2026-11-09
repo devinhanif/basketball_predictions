@@ -374,3 +374,68 @@ export function correctionLinks(obs: readonly DeskObservation[]): {
 export function newestFirst<T extends { ts: string }>(xs: readonly T[]): T[] {
   return [...xs].sort((a, b) => b.ts.localeCompare(a.ts));
 }
+
+/* ------------------------------------------------------------------ record rate, clustered on date */
+/** Bundle legs of the "daily dollar" product: they settle together, so they are not independent single bets. */
+export function isSingle(p: DeskPlay): boolean {
+  return p.edge_label !== "daily_dollar";
+}
+
+export interface ClusteredRate {
+  /** Decided single bets, and how many won. */
+  n: number;
+  won: number;
+  rate: number | null;
+  ci: [number, number] | null;
+  nDates: number;
+  /** Decided bundle legs left out of the rate. */
+  excluded: number;
+  reps: number;
+  seed: number;
+  reason: string | null;
+}
+
+function mulberry(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Win rate of decided single bets with a percentile bootstrap that resamples whole dates (seeded, so it reproduces). */
+export function clusteredRate(plays: readonly DeskPlay[], minDates = 5, reps = 2000, seed = 20261108): ClusteredRate {
+  const decided = plays.filter((p) => p.result !== null && p.result.won !== null);
+  const singles = decided.filter(isSingle);
+  const byDate = new Map<string, { won: number; n: number }>();
+  for (const p of singles) {
+    const c = byDate.get(p.slate_date) ?? { won: 0, n: 0 };
+    c.n += 1;
+    if (p.result?.won === true) c.won += 1;
+    byDate.set(p.slate_date, c);
+  }
+  const groups = [...byDate.values()];
+  const n = singles.length;
+  const won = groups.reduce((s, g) => s + g.won, 0);
+  const base = { n, won, nDates: groups.length, excluded: decided.length - n, reps, seed };
+  if (n === 0) return { ...base, rate: null, ci: null, reason: "No decided single bets yet." };
+  const rate = won / n;
+  if (groups.length < minDates) return { ...base, rate, ci: null, reason: `Only ${groups.length.toString()} dates: not enough to say.` };
+  const rnd = mulberry(seed);
+  const draws: number[] = [];
+  for (let r = 0; r < reps; r++) {
+    let w = 0;
+    let m = 0;
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[Math.floor(rnd() * groups.length)] as { won: number; n: number };
+      w += g.won;
+      m += g.n;
+    }
+    draws.push(m > 0 ? w / m : 0);
+  }
+  draws.sort((a, b) => a - b);
+  return { ...base, rate, ci: [draws[Math.floor(0.025 * reps)] as number, draws[Math.min(reps - 1, Math.floor(0.975 * reps))] as number], reason: null };
+}

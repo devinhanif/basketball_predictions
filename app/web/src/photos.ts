@@ -4,10 +4,11 @@
 // downsized image kept on this device. Asset ids from the db are checked before they become an <img> address.
 import { useEffect, useState } from "preact/hooks";
 import { IS_ARTIFACT } from "./env";
-import { getPlatform } from "./platform";
+import { getPlatform, type Platform } from "./platform";
 import { readKey, writeKey } from "./prefs";
 
-const ASSET_RE = /^[A-Za-z0-9]{16,64}$/;
+// The contract says only "an opaque id" (32 characters today); accept any URL-safe token of a sane length.
+const ASSET_RE = /^[A-Za-z0-9_-]{16,64}$/;
 const LOCAL_KEY = "ph.photos.v1";
 const MAX_LOCAL = 60;
 
@@ -110,11 +111,11 @@ function shrink(file: File, max = 96): Promise<string> {
 }
 
 /** Save a photo for a player. Shared page: platform assets then the db pointer; regular build: on this device. */
-export async function savePhoto(playerId: number, file: File): Promise<PhotoResult> {
+export async function savePhoto(playerId: number, file: File, platform?: Platform): Promise<PhotoResult> {
   const pid = playerId.toString();
   if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return { ok: false, reason: "Use a PNG, JPEG, WebP or GIF image." };
-  if (IS_ARTIFACT) {
-    const p = await getPlatform();
+  if (IS_ARTIFACT || platform) {
+    const p = platform ?? (await getPlatform());
     if (!p.assets || !p.db) return { ok: false, reason: "Uploading photos is not available in this view (editors only)." };
     try {
       const up = await p.assets.upload(file);
@@ -135,10 +136,10 @@ export async function savePhoto(playerId: number, file: File): Promise<PhotoResu
   }
 }
 
-export async function removePhoto(playerId: number): Promise<PhotoResult> {
+export async function removePhoto(playerId: number, platform?: Platform): Promise<PhotoResult> {
   const pid = playerId.toString();
-  if (IS_ARTIFACT) {
-    const p = await getPlatform();
+  if (IS_ARTIFACT || platform) {
+    const p = platform ?? (await getPlatform());
     if (!p.db) return { ok: false, reason: "Not available in this view." };
     try {
       await p.db.doc(`photos/${pid}`).delete();

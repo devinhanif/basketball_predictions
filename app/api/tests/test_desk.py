@@ -94,3 +94,29 @@ def test_contracts_top_endpoint(export_client: TestClient) -> None:
     assert r.status_code == 200
     body = r.json()
     assert {"n_priced", "n_positive", "contracts", "report_date"} <= set(body)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "needle"),
+    [
+        (lambda d: d["plays"][0].__setitem__("contracts", 58), "contracts"),
+        (lambda d: d["plays"][0].__setitem__("fee_cents", 4.0), "fee_cents"),
+        (lambda d: d["plays"][0].__setitem__("reason", "staked $12.40 here"), "dollar"),
+        (
+            lambda d: d.__setitem__("sources", {"book": "/Users/someone/data/paper_book.duckdb"}),
+            "path",
+        ),
+        (lambda d: d["plays"][0].__setitem__("explanation", "see C:\\Users\\x\\file"), "path"),
+    ],
+)
+def test_the_consumer_refuses_a_shared_cut_that_regrows_money(mutate: Any, needle: str) -> None:
+    d = _shared()
+    mutate(d)
+    with pytest.raises(DeskRefused, match=needle):
+        check_desk(d)
+
+
+def test_per_one_dollar_unit_text_is_allowed() -> None:
+    d = _shared()
+    d["plays"][0]["reason"] = "edge -0.1c per $1"
+    assert money_fields(check_desk(d)) == []

@@ -5,7 +5,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { markRead, NOTIFY_DEFAULTS, type NotifyPrefs } from "./alerts";
 import { IS_ARTIFACT } from "./env";
-import { getPlatform } from "./platform";
+import { getPlatform, type Platform } from "./platform";
 import { isUsableId } from "./sharedPicks";
 import { readKey, writeKey } from "./prefs";
 
@@ -67,6 +67,7 @@ export function setNotify(patch: Partial<NotifyPrefs>): void {
 export function resetUserState(): void {
   state = null;
   push = null;
+  started = false;
 }
 
 export function useUserState(): UserState {
@@ -85,10 +86,10 @@ export function useUserState(): UserState {
 
 let started = false;
 /** Shared page only: mirror to the viewer's private document, once. */
-export async function startUserStateSync(): Promise<void> {
-  if (!IS_ARTIFACT || started) return;
+export async function startUserStateSync(platform?: Platform): Promise<void> {
+  if ((!IS_ARTIFACT && !platform) || started) return;
   started = true;
-  const p = await getPlatform();
+  const p = platform ?? (await getPlatform());
   if (!p.db || !p.user) return;
   const uid = await p.user.id().catch(() => null);
   if (!isUsableId(uid)) return;

@@ -130,7 +130,7 @@ function Picker(props: { onPick: (p: Pick) => void }) {
   );
 }
 
-function Field(props: { label: string; value: number; min: number; max: number; step?: number; onChange: (n: number) => void; id: string }) {
+function Field(props: { label: string; value: number | null; min: number; max: number; step?: number; onChange: (n: number, empty: boolean) => void; id: string }) {
   return (
     <label class="field" for={props.id}>
       <span class="label">{props.label}</span>
@@ -141,10 +141,10 @@ function Field(props: { label: string; value: number; min: number; max: number; 
         min={props.min}
         max={props.max}
         step={props.step ?? 1}
-        value={props.value === 0 ? "" : props.value}
+        value={props.value === null ? "" : props.value}
         placeholder="-"
         onInput={(e) => {
-          props.onChange(Number(e.currentTarget.value));
+          props.onChange(Number(e.currentTarget.value), e.currentTarget.value === "");
         }}
       />
     </label>
@@ -170,11 +170,11 @@ function LegEditor(props: { leg: HedgeLeg; removable: boolean; onChange: (l: Hed
         ) : null}
       </div>
       <div class="fields">
-        <Field id={`${leg.id}-n`} label="Contracts" value={leg.contracts} min={0} max={1000} onChange={(n) => { set({ contracts: n }); }} />
-        <Field id={`${leg.id}-a`} label="Ask (c)" value={leg.ask_c} min={1} max={99} onChange={(n) => { set({ ask_c: n, source: "entered" }); }} />
-        <Field id={`${leg.id}-f`} label="Fee (c)" value={leg.fee_c} min={0} max={50} step={0.1} onChange={(n) => { set({ fee_c: n }); }} />
+        <Field id={`${leg.id}-n`} label="Contracts" value={leg.contracts === 0 ? null : leg.contracts} min={0} max={1000} onChange={(n) => { set({ contracts: n }); }} />
+        <Field id={`${leg.id}-a`} label="Ask (c)" value={leg.ask_c === 0 ? null : leg.ask_c} min={1} max={99} onChange={(n) => { set({ ask_c: n, source: "entered" }); }} />
+        <Field id={`${leg.id}-f`} label="Fee (c)" value={leg.fee_set ? leg.fee_c : null} min={0} max={50} step={0.1} onChange={(n, empty) => { set({ fee_c: n, fee_set: !empty }); }} />
       </div>
-      <div class="small muted num leg-cost">Cost: {plainCents(legCost(leg))}</div>
+      <div class="small muted num leg-cost">Cost: {plainCents(legCost(leg))}{leg.fee_set ? "" : " before fee (fee unknown: enter it)"}</div>
     </div>
   );
 }
@@ -195,7 +195,7 @@ function Lab({ pick, onReset }: { pick: Pick; onReset: () => void }) {
         <div class="kicker">Position lab</div>
         <h1 class="answer">
           {sum
-            ? `Worst case ${centsText(sum.worst_c)}, best case ${centsText(sum.best_c)}, across ${os.length.toString()} outcomes at the prices entered`
+            ? `Worst case ${centsText(sum.worst_c)}, best case ${centsText(sum.best_c)}${sum.before_fee ? " before fee" : ""}, across ${os.length.toString()} outcomes at the prices entered`
             : "Enter contracts and an ask to see every outcome"}
         </h1>
         <p class="muted answer-src">{NOTE}</p>
@@ -246,6 +246,7 @@ function Lab({ pick, onReset }: { pick: Pick; onReset: () => void }) {
             </ul>
             {sum ? (
               <p class="note-box small">
+                {sum.before_fee ? "Fee unknown: every number here is before fee. " : ""}
                 {sum.positive_everywhere
                   ? "Positive across every modeled outcome at the prices entered. "
                   : "Not positive in every outcome at the prices entered. "}
@@ -259,7 +260,8 @@ function Lab({ pick, onReset }: { pick: Pick; onReset: () => void }) {
             </summary>
             <p class="small">
               Each contract pays 100c if it wins and nothing if it loses. Cost is contracts x (ask + fee). The net of an outcome is what
-              the winning contracts pay minus the cost of every contract you hold.
+              the winning contracts pay minus the cost of every contract you hold. Kalshi rounds its fee on a whole order, so contracts x the
+              per-contract fee can be a little high.
             </p>
             <div class="math num">
               <div>

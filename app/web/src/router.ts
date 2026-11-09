@@ -35,8 +35,8 @@ export function gameHref(gameId: string): string {
 }
 
 /** Hash for a top-level view. The artifact frame passes only plain `#name` hashes, so there they carry no slash. */
-export function topHref(name: TopName): string {
-  if (IS_ARTIFACT) return `#${ARTIFACT_NAME[name]}`;
+export function topHref(name: TopName, artifact: boolean = IS_ARTIFACT): string {
+  if (artifact) return `#${ARTIFACT_NAME[name]}`;
   return name === "today" ? "#/" : `#/${name === "settings" ? "prefs" : name}`;
 }
 
@@ -113,6 +113,12 @@ export function plainName(route: Route): TopName | null {
   }
 }
 
+/** The hash the artifact frame may be given for a route: a plain name or nothing (detail pages stay in memory). */
+export function hashForRoute(route: Route, artifact: boolean): string | null {
+  const plain = plainName(route);
+  return plain === null ? null : topHref(plain, artifact);
+}
+
 function useArtifactRoute(): Route {
   const [route, setRoute] = useState<Route>(() => startRoute(window.location.hash));
   useEffect(() => {
@@ -120,11 +126,8 @@ function useArtifactRoute(): Route {
       const next = parse(href);
       setRoute(next);
       window.scrollTo(0, 0);
-      const plain = plainName(next);
-      if (plain !== null) {
-        const want = topHref(plain);
-        if (window.location.hash !== want) window.location.hash = want;
-      }
+      const want = hashForRoute(next, true);
+      if (want !== null && window.location.hash !== want) window.location.hash = want;
     };
     const onClick = (e: MouseEvent): void => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

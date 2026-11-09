@@ -120,7 +120,7 @@ export function Settings() {
             <div>
               <strong>{id.name || (id.source === "platform" ? "Someone" : "Guest")}</strong>
               <div class="small muted">
-                {id.source === "platform" ? "Signed in through claude.ai. The platform tells us your name; we store only an id." : "A name kept on this device. It is never sent anywhere."}
+                {id.source === "platform" ? "Signed in to your account. The page's host tells us your name; we store only an id." : "A name kept on this device. It is never sent anywhere."}
               </div>
             </div>
           </div>
@@ -153,7 +153,7 @@ export function Settings() {
           <h2>Ready to connect</h2>
           <p class="small muted">What is connected in this view, said honestly.</p>
           <ul class="status-list">
-            <Status name="Identity" value={id.source === "platform" ? "claude.ai sign-in" : "Local name"} kind="ok" />
+            <Status name="Identity" value={id.source === "platform" ? "Signed-in account" : "Local name"} kind="ok" />
             <Status name="Data" value={dataLine} kind="ok" />
             <Status name="Desk" value={desk ? `${desk.privacy} cut${desk.fixture ? ", synthetic fixture" : ""}` : "Not in this build"} kind={desk ? "ok" : "off"} />
             <Status name="Market data" value="Stored quotes only" />

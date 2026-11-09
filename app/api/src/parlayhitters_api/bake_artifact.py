@@ -245,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     desk = baked["desk"]
     if desk["present"] and desk["privacy"] != "shared" and not args.money:
         raise SystemExit("refusing to bake a private desk cut without --money")
-    desk["source"] = str(desk_file) if desk_file else None
+    desk["source"] = desk_file.name if desk_file else None  # the file name only, never a path
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps(baked, separators=(",", ":"), ensure_ascii=False), encoding="utf-8"

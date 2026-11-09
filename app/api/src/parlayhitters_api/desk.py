@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -32,20 +34,45 @@ def desk_path() -> Path:
     return Path(__file__).resolve().parents[4] / "data" / "export_private" / "desk.json"
 
 
+_DOLLAR = re.compile(r"\$\s?\d")
+_PER_ONE = re.compile(r"per \$1\b")
+_PATH = re.compile(r"(^|[\s(\"'=])(/(Users|home|private|var|tmp|etc)/|[A-Za-z]:\\)")
+
+
+def _strings(x: Any) -> Iterator[str]:
+    if isinstance(x, str):
+        yield x
+    elif isinstance(x, dict):
+        for k, v in x.items():
+            yield str(k)
+            yield from _strings(v)
+    elif isinstance(x, list):
+        for v in x:
+            yield from _strings(v)
+
+
 def money_fields(d: Json) -> list[str]:
-    """Names of money fields that are filled. A shared cut must have none."""
+    """What a shared cut must not carry: a money field, a dollar amount or an absolute path.
+
+    Checked here as well as by the producer, so a field that returns is refused at the door."""
     found: list[str] = []
     if d.get("balance") is not None:
         found.append("balance")
     for p in d.get("plays", []):
-        if p.get("stake_usd") is not None:
-            found.append("plays.stake_usd")
+        for k in ("stake_usd", "contracts", "fee_cents"):
+            if p.get(k) is not None:
+                found.append(f"plays.{k}")
         r = p.get("result")
         if isinstance(r, dict) and r.get("pnl_usd") is not None:
             found.append("plays.result.pnl_usd")
     for day in d.get("daily", []):
         if day.get("pnl_usd") is not None:
             found.append("daily.pnl_usd")
+    for s in _strings(d):
+        if _DOLLAR.search(_PER_ONE.sub("", s)):
+            found.append("a string with a dollar amount")
+        if _PATH.search(s):
+            found.append("a string with an absolute path")
     return sorted(set(found))
 
 

@@ -3,7 +3,7 @@ import { Avatar } from "../Avatar";
 import { CertaintyChip, DeskGate, SectionNote } from "../DeskUI";
 import { correctionLinks, newestFirst, type Desk, type DeskObservation } from "../desk";
 import { longDate } from "../format";
-import { cents } from "../desk";
+import { cents, signedCents } from "../desk";
 import { pct } from "../format";
 import { statLabelOf } from "./DiscoverParts";
 import { Icon } from "../icons";
@@ -135,8 +135,9 @@ function Body({ desk }: { desk: Desk }) {
                       </span>
                     </span>
                     <span class="num keep-nums">
-                      <b>{h.model_prob !== null ? pct(h.model_prob) : "-"}</b>
-                      <span class="muted small">{h.price_cents !== null ? `${cents(h.price_cents)} ask` : "no price stored"}</span>
+                      <b>{h.edge_cents !== null ? signedCents(h.edge_cents, 1) : "-"}</b>
+                      <span class="muted small">{h.price_cents !== null ? `${cents(h.price_cents)} ask · stored edge after fee` : "no price stored"}</span>
+                      <span class="muted small">{h.model_prob !== null ? `model ${pct(h.model_prob)}, unproven` : ""}</span>
                     </span>
                   </li>
                 ))}

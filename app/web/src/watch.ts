@@ -3,7 +3,7 @@
 // resolved at render. Other viewers' documents are validated and capped.
 import { useEffect, useState } from "preact/hooks";
 import { IS_ARTIFACT } from "./env";
-import { getPlatform } from "./platform";
+import { getPlatform, type Platform } from "./platform";
 import { readKey, writeKey } from "./prefs";
 import { isUsableId } from "./sharedPicks";
 
@@ -100,6 +100,7 @@ export function toggleWatch(item: Omit<WatchItem, "at">, now: Date = new Date())
 export function resetWatch(): void {
   st = null;
   push = null;
+  started = false;
 }
 export function useWatch(): WatchState {
   const [s, setS] = useState(getWatch);
@@ -117,10 +118,10 @@ export function useWatch(): WatchState {
 
 let started = false;
 /** Shared page only. */
-export async function startWatchSync(): Promise<void> {
-  if (!IS_ARTIFACT || started) return;
+export async function startWatchSync(platform?: Platform): Promise<void> {
+  if ((!IS_ARTIFACT && !platform) || started) return;
   started = true;
-  const p = await getPlatform();
+  const p = platform ?? (await getPlatform());
   if (!p.db) return;
   const uid = p.user ? await p.user.id().catch(() => null) : null;
   const self = isUsableId(uid) ? uid : null;

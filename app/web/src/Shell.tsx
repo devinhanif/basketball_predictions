@@ -204,7 +204,7 @@ function ProfileMenu(props: { onClose: () => void }) {
         <Avatar name={name} src={id.avatarUrl} size="md" />
         <div>
           <strong>{name}</strong>
-          <div class="muted small">{id.source === "platform" ? "Signed in through claude.ai" : "Name kept on this device"}</div>
+          <div class="muted small">{id.source === "platform" ? "Signed in to your account" : "Name kept on this device"}</div>
         </div>
       </div>
       <div class="pop-row">
@@ -368,7 +368,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
             <Avatar name={name} src={id.avatarUrl} size="md" />
             <span class="ws-text">
               <strong>{name}</strong>
-              <span class="small muted">{id.source === "platform" ? "claude.ai" : "this device"}</span>
+              <span class="small muted">{id.source === "platform" ? "signed in" : "this device"}</span>
             </span>
           </button>
         </div>

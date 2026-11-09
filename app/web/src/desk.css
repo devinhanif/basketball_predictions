@@ -1229,6 +1229,14 @@ table.radar {
   }
 }
 
+.hero-v.stale {
+  color: var(--ink);
+}
+.stale-note {
+  border-left: 3px solid var(--tonight);
+  padding-left: 10px;
+  margin: 8px 0;
+}
 .hero-text {
   min-width: 0;
 }

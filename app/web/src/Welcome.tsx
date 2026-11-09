@@ -39,7 +39,7 @@ export function Welcome() {
                     <strong>{id.loading ? "Checking..." : id.name || "Someone"}</strong>
                     <div class="small muted">
                       {id.source === "platform" && id.id !== null
-                        ? "Signed in through claude.ai. There is no password here: the platform tells us who you are."
+                        ? "Signed in to your account. There is no password here: the page's host tells us who you are."
                         : "No identity came from the platform in this view, so your picks stay on this device."}
                     </div>
                   </div>

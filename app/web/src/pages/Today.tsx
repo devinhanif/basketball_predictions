@@ -9,6 +9,7 @@ import { useLoad } from "../useLoad";
 import type { GameSummary, ParlayState, Slate } from "../types";
 import { STAT_LABEL, STAT_SHORT } from "../types";
 import { VerdictStrip } from "../VerdictStrip";
+import { pickHero } from "../discover";
 import { Court, DeskTiles, Discipline, Hero, Insight, LeagueTabs, Radar, useRadar } from "./DiscoverParts";
 import { compareLine, doesText, rangeSentence } from "../words";
 import type { TpResult } from "../topParlays";
@@ -147,7 +148,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const speaks = engine !== null && engineSpeaksFor(date, engine.report_date);
   const radar = useRadar(date, engine);
   const featured =
-    slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === radar.rows[0]?.gameId) ?? slate.data.games[0] ?? null) : null;
+    slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === pickHero(radar.rows)?.gameId) ?? slate.data.games[0] ?? null) : null;
   const played = featured !== null && Date.parse(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const head =
     slate.status === "ready" && eng.status !== "loading" && tp.status !== "loading"
@@ -182,7 +183,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
       </header>
       <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
       <div class="two-col">
-        <Hero row={radar.rows[0] ?? null} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} wModel={radar.desk?.status.w_model ?? null} />
+        <Hero row={pickHero(radar.rows)} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} desk={radar.desk} />
         <Court game={featured} final_={played} />
       </div>
       {radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}

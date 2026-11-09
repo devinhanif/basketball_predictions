@@ -51,22 +51,36 @@ export interface Platform {
 const NONE: Platform = { db: null, user: null, assets: null, downloads: null };
 let cached: Promise<Platform> | null = null;
 
-async function cap<T>(name: string): Promise<T | null> {
+export const CAP_TIMEOUT_MS = 10_000;
+export interface ClaudeUse {
+  use?: (n: string) => Promise<unknown>;
+}
+
+/** One capability: null when absent, refused, or silent for 10 s (the host may never answer; the page renders without it). */
+export async function cap<T>(c: ClaudeUse | undefined, name: string, ms = CAP_TIMEOUT_MS): Promise<T | null> {
   try {
-    const c = (window as unknown as { claude?: { use?: (n: string) => Promise<unknown> } }).claude;
     if (!c || typeof c.use !== "function") return null;
-    return ((await c.use(name)) as T | null) ?? null;
+    const silent = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        resolve(null);
+      }, ms);
+    });
+    return ((await Promise.race([c.use(name), silent])) as T | null) ?? null;
   } catch {
     return null;
   }
 }
 
+export function resolvePlatform(c: ClaudeUse | undefined, ms = CAP_TIMEOUT_MS): Promise<Platform> {
+  return Promise.all([cap<FullDb>(c, "db", ms), cap<UserNs>(c, "user", ms), cap<AssetsNs>(c, "assets", ms), cap<DownloadsNs>(c, "downloads", ms)]).then(
+    ([db, user, assets, downloads]) => ({ db, user, assets, downloads }),
+  );
+}
+
 /** Resolves once every capability has answered (each is null when absent; null after about 10 s when the host is silent). */
 export function getPlatform(): Promise<Platform> {
   if (!IS_ARTIFACT) return Promise.resolve(NONE);
-  cached ??= Promise.all([cap<FullDb>("db"), cap<UserNs>("user"), cap<AssetsNs>("assets"), cap<DownloadsNs>("downloads")]).then(
-    ([db, user, assets, downloads]) => ({ db, user, assets, downloads }),
-  );
+  cached ??= resolvePlatform((window as unknown as { claude?: ClaudeUse }).claude);
   return cached;
 }
 

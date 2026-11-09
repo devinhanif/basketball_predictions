@@ -68,6 +68,7 @@ const forbidden = [
   [/\.download\s*=|<a[^>]*\sdownload[\s=>]/, "download link"],
   [/<link[^>]+rel=["']?manifest/i, "manifest"],
   [/https?:\/\//, "an http(s) URL"],
+  [/\/Users\/|\/home\/|\/private\/(?:var|tmp)|[A-Za-z]:\\\\Users/, "an absolute file path"],
   [/<(?:script|link|img|iframe)[^>]+\s(?:src|href)=["']?(?:https?:)?\/\//i, "an external resource"],
 ];
 for (const [re, what] of forbidden) {

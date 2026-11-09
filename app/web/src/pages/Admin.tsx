@@ -3,6 +3,7 @@ import { api } from "../api";
 import { Avatar } from "../Avatar";
 import { deskOf, useDesk } from "../deskStore";
 import { useIdentity } from "../identity";
+import { clearViewer } from "../adminActions";
 import { getPlatform, usePlatform } from "../platform";
 import { removePhoto, savePhoto, usePhotos } from "../photos";
 import { useIsAdmin } from "../shellData";
@@ -162,10 +163,9 @@ function People() {
   const ids = [...new Set([...Object.keys(shared.others), ...Object.keys(watch.others)])];
   const clear = (uid: string): void => {
     void getPlatform().then(async (p) => {
-      if (!p.db) return;
       try {
-        await p.db.doc(`picks/${uid}`).delete();
-        pushToast("People", "That viewer's picks were cleared.");
+        if (!(await clearViewer(p, uid))) return;
+        pushToast("People", "Their shared picks and watchlist were cleared.");
       } catch {
         pushToast("People", "Could not clear them (owner only).");
       }
@@ -213,6 +213,9 @@ function People() {
         ))}
       </ul>
       {ids.length === 0 ? <p class="muted">Nobody else has picks or a watchlist yet.</p> : null}
+      {id.isOwner && IS_ARTIFACT ? (
+        <p class="small muted">Clearing removes someone's shared picks and watchlist now. Their own device keeps its copy and publishes it again the next time they pick, so this is a tidy-up, not a block.</p>
+      ) : null}
     </section>
   );
 }

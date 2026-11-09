@@ -5,7 +5,7 @@ import {
 } from "./hedge";
 
 const G = { home: "PHX", away: "ORL" };
-const leg = (o: Partial<HedgeLeg>): HedgeLeg => ({ id: "x", kind: "stat", side: "yes", label: "l", threshold: 3, contracts: 2, ask_c: 39, fee_c: 1, source: "entered", ...o });
+const leg = (o: Partial<HedgeLeg>): HedgeLeg => ({ id: "x", kind: "stat", side: "yes", label: "l", threshold: 3, contracts: 2, ask_c: 39, fee_c: 1, fee_set: true, source: "entered", ...o });
 const row = (o: Partial<EdgeContract>): EdgeContract => ({ side: "over", threshold: 3, title: "", ticker: "k", price: 0.39, fees: 0.01, ev: -0.01, ev_low: null, model_prob: 0.4, prob_lo: null, prob_hi: null, order_type: "", price_ts: "", ...o });
 
 describe("position lab arithmetic", () => {

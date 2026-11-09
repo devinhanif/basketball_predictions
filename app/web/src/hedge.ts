@@ -16,6 +16,8 @@ export interface HedgeLeg {
   /** team legs: YES wins when that team wins. */
   team?: "home" | "away";
   contracts: number;
+  /** False until a fee is stored or typed: results are then "before fee", never silently counted as a zero fee. */
+  fee_set: boolean;
   /** Ask in cents, 1 to 99. 0 means not entered yet (the leg is left out until it is). */
   ask_c: number;
   /** Fee per contract in cents. */
@@ -72,7 +74,7 @@ export function buckets(legs: readonly HedgeLeg[]): Bucket[] {
   if (ts.length === 0) return [{ label: "any count", from: 0 }];
   const out: Bucket[] = [];
   const first = ts[0] as number;
-  out.push({ label: first <= 1 ? "0" : `0-${(first - 1).toString()}`, from: 0 });
+  if (first > 0) out.push({ label: first === 1 ? "0" : `0-${(first - 1).toString()}`, from: 0 });
   ts.forEach((t, i) => {
     const nxt = ts[i + 1];
     if (nxt === undefined) out.push({ label: `${t.toString()}+`, from: t });
@@ -123,6 +125,8 @@ export function outcomes(legs: readonly HedgeLeg[], game: GameCtx): Outcome[] {
 export interface Summary {
   worst_c: number;
   best_c: number;
+  /** True when a live leg has no fee yet: every net here is before fee. */
+  before_fee: boolean;
   /** True when every outcome nets above zero at the prices entered (still unverified settlement). */
   positive_everywhere: boolean;
   cost_c: number;
@@ -134,7 +138,7 @@ export function summarize(legs: readonly HedgeLeg[], game: GameCtx): Summary | n
   const os = outcomes(live, game);
   const nets = os.map((o) => o.net_c);
   const worst = Math.min(...nets);
-  return { worst_c: worst, best_c: Math.max(...nets), positive_everywhere: worst > 0, cost_c: totalCost(live) };
+  return { worst_c: worst, best_c: Math.max(...nets), positive_everywhere: worst > 0, cost_c: totalCost(live), before_fee: live.some((l) => !l.fee_set) };
 }
 
 export function centsText(c: number): string {
@@ -166,7 +170,7 @@ export function legFromContract(c: EdgeContract, statLabel: string, contracts = 
   const side = c.side === "over" ? "yes" : "no";
   return clampLeg({
     id: newId(), kind: "stat", side, label: `${who ? `${who}: ` : ""}${legWords(side, c.threshold, statLabel)}`,
-    threshold: c.threshold, contracts, ask_c: c.price * 100, fee_c: c.fees * 100, source: "stored",
+    threshold: c.threshold, contracts, ask_c: c.price * 100, fee_c: c.fees * 100, fee_set: true, source: "stored",
   });
 }
 
@@ -190,7 +194,7 @@ export function legFromPlay(p: PlayLike, statLabel: string, fee_c: number | null
   const side = p.side === "no" ? "no" : "yes";
   return clampLeg({
     id: newId(), kind: "stat", side, label: p.leg_desc ?? `${p.player_name ?? "Unnamed player"}: ${legWords(side, p.threshold, statLabel)}`,
-    threshold: p.threshold, contracts: 1, ask_c: p.price_cents, fee_c: fee_c ?? 0, source,
+    threshold: p.threshold, contracts: 1, ask_c: p.price_cents, fee_c: fee_c ?? 0, fee_set: fee_c !== null, source,
   });
 }
 
@@ -228,13 +232,13 @@ export function candidatesFor(base: HedgeLeg, stored: readonly EdgeContract[], s
   const hasExact = out.some((c) => c.leg.kind === "stat" && c.leg.threshold === base.threshold && c.leg.side !== base.side);
   if (!hasExact && base.kind === "stat") {
     out.unshift({
-      leg: clampLeg({ id: newId(), kind: "stat", side: base.side === "yes" ? "no" : "yes", label: legWords(base.side === "yes" ? "no" : "yes", base.threshold ?? 0, statLabel), threshold: base.threshold, contracts: 0, ask_c: 0, fee_c: base.fee_c, source: "entered" }),
+      leg: clampLeg({ id: newId(), kind: "stat", side: base.side === "yes" ? "no" : "yes", label: legWords(base.side === "yes" ? "no" : "yes", base.threshold ?? 0, statLabel), threshold: base.threshold, contracts: 0, ask_c: 0, fee_c: base.fee_c, fee_set: base.fee_set, source: "entered" }),
       note: "Exact complement: one of the two always pays. No stored price: enter contracts and your own ask",
     });
   }
   for (const team of ["home", "away"] as const) {
     out.push({
-      leg: clampLeg({ id: newId(), kind: "team", side: "yes", team, label: `${team === "home" ? game.home : game.away} wins`, contracts: 0, ask_c: 0, fee_c: base.fee_c, source: "entered" }),
+      leg: clampLeg({ id: newId(), kind: "team", side: "yes", team, label: `${team === "home" ? game.home : game.away} wins`, contracts: 0, ask_c: 0, fee_c: base.fee_c, fee_set: base.fee_set, source: "entered" }),
       note: "No stored price: enter contracts and your own ask. Both positions can lose",
     });
   }

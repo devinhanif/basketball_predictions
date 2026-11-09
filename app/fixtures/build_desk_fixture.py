@@ -52,7 +52,7 @@ def build(private: bool) -> dict:
                 "tipoff": f"{day}T{23 + 0}:00:00Z", "source": "fixture", "venue": "kalshi", "kind": "prop", "side": "yes",
                 "player_id": 9000000 + n, "player_name": f"Sample Player {n}", "team": home, "stat": stat,
                 "threshold": float(thr), "leg_desc": f"Sample Player {n} {thr}+ {word}", "price_cents": float(price),
-                "fee_cents": float(fee), "fair_prob": fair, "model_prob": model, "edge_cents": edge,
+                "fee_cents": float(fee) if private else None, "fair_prob": fair, "model_prob": model, "edge_cents": edge,
                 "edge_label": "thin" if edge > 0 else "none", "reason": "fixture row", "explanation": None,
                 "delivered": "discord", "contracts": 2 if private else None, "stake_usd": round(2 * (price + fee) / 100, 2) if private else None,
                 "result": result,

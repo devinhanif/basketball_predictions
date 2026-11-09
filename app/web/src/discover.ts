@@ -18,6 +18,11 @@ export interface RadarRow {
   matchup: string | null;
   /** Model chance, 0-1. */
   model: number | null;
+  /** The desk's stored note for the row, verbatim, and the age of its fair price in minutes when the note states one. */
+  reason: string | null;
+  fairAge: number | null;
+  /** The fair price is older than STALE_MIN minutes: the edge is not shown as a good number. */
+  stale: boolean;
   /** The desk's sharp-book fair price, 0-1 (desk rows only). The desk's edge is built from this, not from the model. */
   fair: number | null;
   ask_c: number | null;
@@ -36,12 +41,24 @@ export function statusFor(edge: number | null, label: string | null): string {
   return label && label !== "none" ? `${label[0]?.toUpperCase() ?? ""}${label.slice(1)} edge · ${sign.toLowerCase()}` : sign;
 }
 
+export const STALE_MIN = 60;
+
+/** The fair price's age, only as the stored note states it: "... no-vig 51.4c (o5.5, 238 min old) ...". Null when it says none. */
+export function fairAgeMin(reason: string | null): number | null {
+  if (!reason) return null;
+  const m = /no-vig[^()]*\([^)]*?(\d+)\s*min old/i.exec(reason);
+  return m?.[1] ? Number(m[1]) : null;
+}
+
 function fromPlay(p: Desk["plays"][number]): RadarRow {
+  const fairAge = fairAgeMin(p.reason);
+  const stale = fairAge !== null && fairAge > STALE_MIN;
   // A game-result play has no player: its own description is the name.
   const name = p.player_name ?? p.leg_desc ?? "Unnamed play";
   return {
     key: `desk:${p.play_id}`, source: "desk", name, team: p.team, playerId: p.player_id, market: p.player_name ? playLabel(p).replace(`${p.player_name}: `, "").replace(`${p.player_name} `, "") : "game result",
-    matchup: p.matchup, model: p.model_prob, fair: p.fair_prob, ask_c: p.price_cents, fee_c: p.fee_cents, edge_c: p.edge_cents, status: statusFor(p.edge_cents, p.edge_label),
+    matchup: p.matchup, model: p.model_prob, fair: p.fair_prob, ask_c: p.price_cents, fee_c: p.fee_cents, edge_c: p.edge_cents, status: statusFor(p.edge_cents, p.edge_label) + (stale ? ` · fair price ${String(fairAge)} min old (stale)` : ""),
+    reason: p.reason, fairAge, stale,
     href: p.game_id && p.player_id !== null && p.stat && isLegStat(p.stat) ? legHref(p.game_id, p.player_id, p.stat) : null, gameId: p.game_id, stat: p.stat,
   };
 }
@@ -50,7 +67,7 @@ function fromContract(c: TopContract): RadarRow {
   const edge = c.ev * 100;
   return {
     key: `export:${c.ticker}:${c.side}`, source: "export", name: c.player, team: c.team, playerId: c.player_id,
-    market: legWords(c.side === "over" ? "yes" : "no", c.threshold, (STAT_LABEL[c.stat as Stat] as string | undefined)?.toLowerCase() ?? c.stat), matchup: c.matchup, model: c.model_prob, fair: null,
+    market: legWords(c.side === "over" ? "yes" : "no", c.threshold, (STAT_LABEL[c.stat as Stat] as string | undefined)?.toLowerCase() ?? c.stat), matchup: c.matchup, model: c.model_prob, fair: null, reason: null, fairAge: null, stale: false,
     ask_c: c.price * 100, fee_c: c.fees * 100, edge_c: edge, status: statusFor(edge, null), href: isLegStat(c.stat) ? legHref(c.game_id, c.player_id, c.stat, c.side) : null, gameId: c.game_id, stat: c.stat,
   };
 }
@@ -91,4 +108,27 @@ export function edgeSentence(r: RadarRow): string {
   }
   if (r.model === null) return "No edge arithmetic is stored for this row.";
   return `Model ${pctText(r.model)} vs ask ${c(r.ask_c)} + fee ${c(r.fee_c ?? 0)} = edge ${edge} per $1`;
+}
+
+/** The hero: the best row whose fair price is not stale; if every candidate is stale, the best of them (shown as stale). */
+export function pickHero(rows: readonly RadarRow[]): RadarRow | null {
+  return rows.find((r) => !r.stale) ?? rows[0] ?? null;
+}
+
+/**
+ * The line under the hero. A desk row is JARVIS's price check: it says where JARVIS stands (kill switch, record) and never
+ * "the model has no track record", because the model is not an input to that edge. An engine row is worded for the engine.
+ */
+export function heroFootnote(r: RadarRow, desk: Desk | null): string {
+  const neg = r.edge_c !== null && r.edge_c <= 0;
+  const keep = neg ? " The edge is not positive after fees, so this is not a bet: keep your money." : "";
+  if (r.source === "desk") {
+    const ks = desk?.status.kill_switch;
+    const rec = desk?.record;
+    const where = ks
+      ? `JARVIS's kill switch is ${ks.on ? "on" : "off"}${rec ? ` (${rec.n_won.toString()}-${rec.n_lost.toString()} on ${(rec.n_won + rec.n_lost).toString()} settled)` : ""}${ks.on ? " · keep your money" : ". Unproven"}.`
+      : "JARVIS's kill switch state is not stored.";
+    return `Source: JARVIS's price check against the sharp book's fair price. ${where}${keep} Paper only.`;
+  }
+  return `Source: the parlay engine's stored contracts. The model is unproven there: no track record yet, so the engine defers to the market.${keep} Paper only.`;
 }

@@ -2,7 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { Avatar } from "../Avatar";
 import { DeskGate } from "../DeskUI";
 import {
-  barScale, calibration, cents, labelText, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd, winRate,
+  barScale, calibration, cents, clusteredRate, labelText, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd,
   type DayBar, type Desk, type DeskPlay, type LedgerFilter,
 } from "../desk";
 import { longDate, pct } from "../format";
@@ -19,7 +19,7 @@ function ciText(ci: [number, number] | null, unit: "c" | "%"): string {
 
 function Tiles({ desk }: { desk: Desk }) {
   const clv = clvRate(desk);
-  const rec = winRate(desk.record);
+  const cr = clusteredRate(desk.plays);
   const mvm = desk.track_record?.model_vs_market ?? null;
   const ks = desk.status.kill_switch;
   const c = desk.clv_summary;
@@ -36,8 +36,9 @@ function Tiles({ desk }: { desk: Desk }) {
         </div>
         <div class="tile-n muted">All settled plays with a stored close. JARVIS's kill-switch rule uses a different sample (below).</div>
         <div class="tile-n muted num">
-          From the 2026-11-08 review (not in the desk file): of the {c?.mean_cents != null ? signedCents(c.mean_cents, 2) : "mean"}, about 0.69c is half the closing spread paid by buying at the ask. The
-          line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero.
+          {c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001
+            ? "From the 2026-11-08 review (not in the desk file): of the -0.88c, about 0.69c is half the closing spread paid by buying at the ask. The line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero."
+            : "The 2026-11-08 review split this figure into half the closing spread and line movement; that split applies to the n = 83 snapshot only and is not shown for these numbers."}
         </div>
       </div>
       <div class="tile big">
@@ -49,8 +50,9 @@ function Tiles({ desk }: { desk: Desk }) {
           {desk.record ? `n = ${(desk.record.n_won + desk.record.n_lost).toLocaleString("en-US")} decided, ${desk.record.n_void.toString()} void` : ""}
         </div>
         <div class="tile-n muted num">
-          {rec.value !== null ? `Won ${pct(rec.value)}. ` : ""}
-          {rec.ci ? ciText(rec.ci, "%") : (rec.reason ?? "")}
+          {cr.rate !== null ? `Single bets won ${pct(cr.rate)} of n = ${cr.n.toString()}. ` : ""}
+          {cr.ci ? `95% interval ${pct(cr.ci[0])} to ${pct(cr.ci[1])} (bootstrap resampling whole dates: ${cr.nDates.toString()} dates, ${cr.reps.toLocaleString("en-US")} resamples, seed ${cr.seed.toString()}). ` : (cr.reason ?? "")}
+          {cr.excluded > 0 ? `${cr.excluded.toString()} daily-dollar legs are in the record but not in this rate: they settle together.` : ""}
         </div>
         <div class="tile-n muted">Win rate is not the measure of edge: price matters more than hits.</div>
       </div>

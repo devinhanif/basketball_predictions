@@ -5,7 +5,7 @@ import { TeamTag, WinBars } from "../components";
 import { clvRate, newestFirst, signedCents, winRate, type Desk } from "../desk";
 import { CertaintyChip } from "../DeskUI";
 import { deskOf, useDesk } from "../deskStore";
-import { edgeSentence, radarRows, watchKey, type RadarRow } from "../discover";
+import { edgeSentence, heroFootnote, radarRows, watchKey, type RadarRow } from "../discover";
 import { longDate, pct, tipTime } from "../format";
 import { Icon } from "../icons";
 import { useLoad } from "../useLoad";
@@ -49,8 +49,8 @@ function fmtModel(m: number | null): string {
   return m === null ? "-" : pct(m);
 }
 
-/** "The closest look": the best row by edge after fees. Honest about a negative edge, and about what the edge is made of. */
-export function Hero({ row, nPriced, fixture, wModel }: { row: RadarRow | null; nPriced: number | null; fixture: boolean; wModel: number | null }) {
+/** "The closest look": the best row by edge after fees. Honest about a stale price, a negative edge, and what the edge is made of. */
+export function Hero({ row, nPriced, fixture, desk }: { row: RadarRow | null; nPriced: number | null; fixture: boolean; desk: Desk | null }) {
   if (!row) {
     return (
       <section class="panel hero" aria-label="The closest look">
@@ -61,11 +61,12 @@ export function Hero({ row, nPriced, fixture, wModel }: { row: RadarRow | null; 
     );
   }
   const neg = row.edge_c !== null && row.edge_c <= 0;
-  const desk = row.source === "desk";
+  const isDesk = row.source === "desk";
+  const wModel = desk?.status.w_model ?? null;
   return (
     <section class="panel hero" aria-label="The closest look">
       <div class="hero-main">
-        <div class="label">The closest look{desk ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced player contracts` : ""}</div>
+        <div class="label">The closest look{isDesk ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced player contracts` : ""}</div>
         <div class="hero-who">
           <Avatar name={row.name} team={row.team} playerId={row.playerId} size="lg" />
           <div class="hero-text">
@@ -78,29 +79,32 @@ export function Hero({ row, nPriced, fixture, wModel }: { row: RadarRow | null; 
         </div>
         <div class="hero-nums num">
           <div>
-            <div class="hero-v">{desk ? fmtModel(row.fair) : fmtModel(row.model)}</div>
-            <div class="small muted">{desk ? "fair price (sharp book)" : `model chance${fixture ? " (fixture)" : ""}`}</div>
+            <div class="hero-v">{isDesk ? fmtModel(row.fair) : fmtModel(row.model)}</div>
+            <div class="small muted">{isDesk ? "fair price (sharp book)" : `model chance${fixture ? " (fixture)" : ""}`}</div>
           </div>
           <div>
             <div class="hero-v">{row.ask_c !== null ? plainCents(row.ask_c) : "-"}</div>
             <div class="small muted">ask</div>
           </div>
           <div>
-            <div class={`hero-v ${neg ? "neg" : "pos"}`}>{row.edge_c !== null ? signedCents(row.edge_c, 1) : "-"}</div>
-            <div class="small muted">edge after fees</div>
+            <div class={`hero-v ${row.stale ? "stale" : neg ? "neg" : "pos"}`}>{row.edge_c !== null ? signedCents(row.edge_c, 1) : "-"}</div>
+            <div class="small muted">edge after fees{row.stale ? " (stale price)" : ""}</div>
           </div>
         </div>
+        {row.stale ? (
+          <p class="small stale-note" role="note">
+            <strong>Stale:</strong> the fair price is {row.fairAge} min old, so the edge above is not a current number.
+          </p>
+        ) : null}
         <p class="small num edge-line">{edgeSentence(row)}</p>
-        {desk ? (
+        {row.reason ? <p class="small muted">Stored note: {row.reason}</p> : null}
+        {isDesk ? (
           <p class="small muted num">
             Separately, our model says {fmtModel(row.model)}. Model weight {wModel === null ? "is not stored" : wModel.toString()}
             {wModel === 0 ? ": the model is not used in this edge." : "."}
           </p>
         ) : null}
-        <p class="small muted">
-          {desk ? "Source: JARVIS's price check against the sharp book's fair price. " : "Source: the parlay engine's stored contracts. "}
-          {neg ? "The edge is not positive after fees, so this is not a bet: keep your money. " : "Unproven: the model has no track record yet. "}Paper only.
-        </p>
+        <p class="small muted">{heroFootnote(row, desk)}</p>
         {row.href ? (
           <a class="btn" href={row.href}>
             Open the breakdown <Icon name="arrow" />

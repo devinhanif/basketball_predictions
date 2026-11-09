@@ -3,8 +3,11 @@ from __future__ import annotations
 import base64
 import gzip
 import json
+import os
+from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from parlayhitters_api.bake_artifact import FORMAT, bake
@@ -76,3 +79,28 @@ def test_bake_dumps_what_the_pages_ask_for(export_client: TestClient) -> None:
     assert any(
         p.startswith(f"/api/breakdown/{gid}/") and p.endswith("?side=under") for p in entries
     )
+
+
+def test_the_baked_file_holds_no_path_email_or_dollar_amount(
+    export_client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import re
+
+    from parlayhitters_api.bake_artifact import main
+
+    fixture = Path(__file__).resolve().parents[2] / "fixtures" / "desk_fixture_shared.json"
+    out = tmp_path / "baked.json"
+    monkeypatch.setenv("APP_EXPORT_DIR", os.environ["APP_EXPORT_DIR"])
+    assert (
+        main(["--out", str(out), "--dates", "1", "--players-per-team", "1", "--desk", str(fixture)])
+        == 0
+    )
+    baked = json.loads(out.read_text())
+    assert baked["desk"]["source"] == "desk_fixture_shared.json"  # a file name, not a path
+    texts = [out.read_text()]
+    for blob in baked["shards"].values():
+        texts.append(gzip.decompress(base64.b64decode(blob)).decode())
+    bad = re.compile(r"/Users/|/home/|/private/|[A-Za-z]:\\\\|[\w.+-]+@[\w-]+\.[a-z]{2,}")
+    for t in texts:
+        assert not bad.search(t)
+        assert not re.search(r"\$\s?\d", re.sub(r"per \$1\b", "", t))
