@@ -716,11 +716,24 @@ def build(
 # A dollar amount in free text: "$" then a digit, except the unit "per $1".
 _DOLLAR = re.compile(r"\$\s?\d")
 _PER_ONE = re.compile(r"per \$1(?!\d)")
-_FREE_TEXT = ("reason", "explanation", "leg_desc")
 
 
 def _has_amount(text: str) -> bool:
     return bool(_DOLLAR.search(_PER_ONE.sub("", text)))
+
+
+def _scrub_amounts(x: Any) -> None:
+    """In place: any string value holding a dollar amount becomes null ('title' is required, so
+    it gets a fixed placeholder). Walks every dict value and list item of the shared document."""
+    items = x.items() if isinstance(x, dict) else enumerate(x) if isinstance(x, list) else ()
+    for k, v in list(items):
+        if isinstance(v, str) and _has_amount(v):
+            if isinstance(x, dict):
+                x[k] = "[amount removed]" if k == "title" else None
+            else:
+                x[k] = "[amount removed]"  # list item: keep the list length
+        elif isinstance(v, dict | list):
+            _scrub_amounts(v)
 
 
 def shared_cut(doc: dict[str, Any]) -> dict[str, Any]:
@@ -741,9 +754,8 @@ def shared_cut(doc: dict[str, Any]) -> dict[str, Any]:
         p["fee_cents"] = None
         if p["edge_label"] == "daily_dollar":
             p["edge_cents"] = None
-        for k in _FREE_TEXT:
-            if isinstance(p[k], str) and _has_amount(p[k]):
-                p[k] = None
+        if p["edge_label"] == "daily_dollar":
+            p["reason"] = None  # its reason quotes the bundle's product of asks
         if p["result"] is not None:
             p["result"]["pnl_usd"] = None
     for d in out["daily"]:
@@ -753,6 +765,7 @@ def shared_cut(doc: dict[str, Any]) -> dict[str, Any]:
         "edge_cents is null on daily_dollar plays; model_review = kill switch only; free text "
         "with a dollar amount is nulled"
     )
+    _scrub_amounts(out)
     blob = json.dumps(out)
     if "/Users/" in blob or re.search(r'"/[A-Za-z]', blob):
         raise DeskExportError("absolute path in the shared cut")

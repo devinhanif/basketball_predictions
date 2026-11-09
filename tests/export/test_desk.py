@@ -350,3 +350,24 @@ def test_book_closed_before_name_parsing(tmp_path: Path, monkeypatch: pytest.Mon
     doc = desk.build(root, reps=20)
     assert seen and all(seen)
     assert doc["book_hold_seconds"] >= 0
+
+
+def test_shared_scrub_covers_every_string(tmp_path: Path) -> None:
+    doc = desk.build(_root(tmp_path), reps=50)
+    doc["status"]["kill_switch"]["note"] = "bonus $5.00 used"
+    doc["observations"][0]["title"] = "stake $12.40 flagged"
+    doc["alerts"][0]["title"] = "sent $3"
+    sh = desk.shared_cut(doc)
+    assert sh["status"]["kill_switch"]["note"] is None
+    assert sh["observations"][0]["title"] == "[amount removed]"
+    assert sh["alerts"][0]["title"] == "[amount removed]"
+    doc["plays"][0]["reason"] = "edge per $1 after fee"
+    assert desk.shared_cut(doc)["plays"][0]["reason"] == "edge per $1 after fee"
+
+
+def test_daily_dollar_reason_null_in_shared(tmp_path: Path) -> None:
+    doc = desk.build(_root(tmp_path), reps=50)
+    dd = next(p for p in doc["plays"] if p["play_id"] == "pdd")
+    dd["reason"] = "product of asks 0.70c, assumed fair 0.82c"
+    sh = desk.shared_cut(doc)
+    assert next(p for p in sh["plays"] if p["play_id"] == "pdd")["reason"] is None
