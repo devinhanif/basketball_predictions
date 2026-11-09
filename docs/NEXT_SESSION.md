@@ -465,3 +465,6 @@ Finished items and the pre-prune text: docs/archive/next_session_done_2026-10.md
 - Loose end: `parlay_of_day.json` `prob_interval` is zero-width on all 2,956 rows (low == high), so the spec's "80% interval" does not exist; the app prints "range not stored". Upstream in nba/parlay; not chased.
 - Loose end: export `players` stores placeholder names like "Player 1643411"; the app shows "Unnamed player (id …)".
 - Next: P2 Track record, P3 private Desk, P2b private Cloudflare site (Devin has a Cloudflare account; awaiting his domain / Zero Trust check).
+- 2026-11-08 late: every prototype screen built; app approved (a24431f), desk export approved. Merge when Devin says go: `git merge --no-ff agent/market-desk-export && git merge --no-ff agent/app-super-shell && git push` (app/ + nba/export/desk.py only; no oracle needed). Refresh the shared page: `uv run python -m nba.export.desk` then in app/: bake + `npm run build:artifact`, republish the same file path.
+- Not yet proven: real two-person db writes (picks/watch). Ask Devin to make one pick, then ArtifactData list picks.
+- Finding for Devin (not acted on): ~0.69c of JARVIS's -0.88c mean CLV is half the closing spread; line-movement part -0.19c [-0.74, +0.15]. The kill-switch rule "mean CLV < 0" effectively tests "edge > half spread". Options write-up owed.
