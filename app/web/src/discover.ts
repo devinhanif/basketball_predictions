@@ -126,7 +126,7 @@ export function heroFootnote(r: RadarRow, desk: Desk | null): string {
     const ks = desk?.status.kill_switch;
     const rec = desk?.record;
     const where = ks
-      ? `JARVIS's kill switch is ${ks.on ? "on" : "off"}${rec ? ` (${rec.n_won.toString()}-${rec.n_lost.toString()} on ${(rec.n_won + rec.n_lost).toString()} settled)` : ""}${ks.on ? " · keep your money" : ". Unproven"}.`
+      ? `JARVIS's kill switch is ${ks.on ? "on" : "off"}${rec ? ` (${rec.n_won.toString()}-${rec.n_lost.toString()} on ${(rec.n_won + rec.n_lost).toString()} settled)` : ""}${ks.on ? "" : " · unproven"} · keep your money.`
       : "JARVIS's kill switch state is not stored.";
     return `Source: JARVIS's price check against the sharp book's fair price. ${where}${keep} Paper only.`;
   }

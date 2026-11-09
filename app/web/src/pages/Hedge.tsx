@@ -13,6 +13,7 @@ import {
 } from "../hedge";
 import { useLoad } from "../useLoad";
 import { statLabelOf } from "./DiscoverParts";
+import { fairAgeMin, STALE_MIN } from "../discover";
 
 const NOTE =
   "Paper arithmetic on the prices shown. Settlement rules, fees and execution are unverified. Nothing here places an order, and no size is suggested.";
@@ -93,7 +94,10 @@ function Picker(props: { onPick: (p: Pick) => void }) {
                   <Avatar name={p.player_name ?? "Unnamed"} playerId={p.player_id} size="sm" />
                   <span class="pick-main">
                     <strong>{playLabel(p)}</strong>
-                    <span class="small muted">{p.matchup ?? ""} · ask {plainCents(p.price_cents ?? 0)}</span>
+                    <span class="small muted">
+                      {p.matchup ?? ""} · ask {plainCents(p.price_cents ?? 0)}
+                      {fairAgeMin(p.reason) !== null && (fairAgeMin(p.reason) ?? 0) > STALE_MIN ? ` · fair price ${String(fairAgeMin(p.reason))} min old (stale)` : ""}
+                    </span>
                   </span>
                   <Icon name="plus" />
                 </button>

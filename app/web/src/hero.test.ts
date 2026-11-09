@@ -49,6 +49,14 @@ describe("the hero is never a stale number dressed as a bet", () => {
       expect(t).not.toMatch(/no track record/i);
     }
   });
+  it("with the kill switch off it still says keep your money (and that JARVIS is unproven)", () => {
+    const d = desk([play("1", { reason: REASON_FRESH })]);
+    const off = { ...d, status: { ...d.status, kill_switch: { ...d.status.kill_switch, on: false } } };
+    const r = radarRows(off, "2026-11-08", null)[0] as NonNullable<ReturnType<typeof radarRows>[0]>;
+    const t = heroFootnote(r, off);
+    expect(t).toContain("JARVIS's kill switch is off (36-92 on 128 settled) · unproven · keep your money.");
+    expect(t).not.toMatch(/no track record/i);
+  });
   it("an engine row's footnote is worded for the engine", () => {
     const c = { side: "over" as const, threshold: 3, title: "", ticker: "T", price: 0.5, fees: 0.01, ev: 0.02, ev_low: null, model_prob: 0.55, prob_lo: null, prob_hi: null, price_ts: "", game_id: "g", player_id: 1, player: "P", team: "AAA", stat: "fg3m", matchup: "AAA @ BBB", tip_utc: null };
     const r = radarRows(null, "2026-11-08", { report_date: "2026-11-08", contracts: [c] })[0];

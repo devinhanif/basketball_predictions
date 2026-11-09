@@ -1,4 +1,4 @@
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Avatar } from "../Avatar";
 import { DeskGate } from "../DeskUI";
 import {
@@ -97,15 +97,20 @@ function Tiles({ desk }: { desk: Desk }) {
 
 function DayChart(props: { bars: DayBar[]; selected: string | null; onSelect: (d: string) => void }) {
   const { bars } = props;
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Show the newest day first: where the chart is wider than its box, start scrolled to the end (once per data set, so picking a bar does not move it).
+    if (box.current) box.current.scrollLeft = box.current.scrollWidth;
+  }, [bars.length]);
   const scale = barScale(bars);
-  const W = Math.max(560, bars.length * 52 + 70);
+  const W = Math.max(480, bars.length * 44 + 70);
   const H = 240;
   const mid = 120;
   const unit = 78 / scale;
   const x0 = 56;
   const step = (W - x0 - 10) / Math.max(1, bars.length);
   return (
-    <div class="chart-wrap">
+    <div class="chart-wrap" ref={box}>
       <svg viewBox={`0 0 ${W.toString()} ${H.toString()}`} width={W} height={H} role="group" aria-label="Mean closing-line value by day, in cents">
         <line class="axis" x1={x0} x2={W - 6} y1={mid} y2={mid} />
         <text class="tick" x={x0 - 6} y={mid + 4} text-anchor="end">0c</text>
