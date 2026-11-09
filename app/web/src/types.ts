@@ -74,6 +74,8 @@ export interface SlateListItem {
   label: string;
   games: number;
   props: number;
+  /** Set only by the single-file snapshot: false when the night has no swipe deck to grade picks against. */
+  deck?: boolean;
 }
 
 export interface PropView {

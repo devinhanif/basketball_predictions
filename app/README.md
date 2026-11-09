@@ -211,7 +211,7 @@ added by `fixtures/add_best_model_rows.py`) and `fixtures/export_best_real` (wri
 
 ## Fonts and the line slider
 
-Fonts are self-hosted woff2 under `app/web/src/fonts/` (Barlow Condensed for headings and big numbers, IBM Plex Sans for text;
+Fonts are self-hosted woff2 under `app/web/src/fonts/` (Manrope for display, DM Sans for text;
 both SIL OFL 1.1, licences beside the files). No font service is contacted. Numbers use tabular figures everywhere.
 
 The swipe card's "Stats and line slider" reads `/api/card/...`: P(Y >= k) from the stored full-support table (P(over k.5) =
@@ -236,3 +236,51 @@ substituted. A missing column reads as NULL, so older exports render as before. 
 validates, a violation drops the whole value). The details footer names both maps. The synthetic fixture rows (Jaylen Brown, game
 0022400001: pts with line_cal, ast `no_book_line`, reb `grid_mismatch`) are planted by `uv run --script app/fixtures/add_line_cal_example.py`
 after the rung one; the calibrated value there is synthetic.
+
+## Super app shell (P1, docs/DESIGN_SUPER_APP.md)
+
+Tokens, fonts, base and the shell are in `web/src/theme.css` (dark first, full light theme, purple accent, orange only for
+"tonight"); new surfaces in `web/src/ui.css`. Sidebar from 1024 px, top bar and bottom tabs below. Today opens with the
+night's answer from stored counts (`headline.ts`). Simple (plain cards) and Analyst (line ladder, splits, calibration, and
+"Edge after fees": model % [range] vs ask + fee = edge, copied from the engine's stored rows via `/api/edges/...`) and
+Settings (theme, mode, opens-on) are per-device preferences in localStorage (`prefs.ts`).
+`node scripts/shots.mjs` (see its header) screenshots every screen at 390 and 1440, dark and light, and audits text size
+(>= 12 px), contrast (>= 4.5:1; 3:1 for large text) and sideways overflow.
+
+## The artifact (one self-contained page)
+
+```
+cd app/api && APP_EXPORT_DIR=<export dir> PYTHONPATH=src uv run python -m parlayhitters_api.bake_artifact \
+    --out ../web/artifact-data/baked.json          # the API's own code over the export, read-only; newest 3 nights
+cd ../web && npm run build:artifact                 # -> dist-artifact/parlayhitters.html (+ preview.html for local viewing)
+```
+
+`web/vite.config.artifact.ts` swaps `transport.ts` (fetch) for `transport.static.ts`, so the page asks nothing of any
+server: answers come from the baked data, gzip shards opened on first use. Page content only (no doctype/html/head/body),
+fonts as data: URIs, hash routes `#today #swipe #picks #prefs`, detail pages are in-memory state. The build fails if the
+page holds fetch, a service worker, an http(s) URL, alert/confirm/prompt, print or a download link. Swipe uses the
+played nights only (replay clock 30 minutes before the first tip) so picks can be graded. Shared paper picks
+(`sharedPicks.ts`): `picks/<user id>` documents through the platform db, ids only, names resolved at render, other
+viewers' data validated; without db it is the same local ledger. Publish with capabilities
+`{"db":{"rules":[{"path":"picks","read":"view","write":"owner"},{"path":"picks/{self}","write":"interact"},{"path":"watch","read":"view","write":"owner"},{"path":"watch/{self}","write":"interact"},{"path":"photos","read":"view","write":"admin"}]},"user":{"scopes":["profile"]},"assets":{},"downloads":true}`.
+(`data/users/<id>/state`, the private read-state document, needs no rule: the default keeps each viewer's own subtree private.)
+The line slider is off in the snapshot (only the posted line is baked).
+
+## Jarvis Desk screens (docs/contracts/desk_export_v1.md)
+
+Discover, Signals, Hedge Finder (the position lab), Model History, Alerts, Admin studio, Preferences, a first-run welcome,
+search (Ctrl/Cmd+K), the bell, the profile menu and the About modal all read the desk export through `/api/desk`
+(`api/src/parlayhitters_api/desk.py`), which answers only when the API runs with `PH_PRIVATE=1` (bind 127.0.0.1 or the LAN):
+
+```
+PH_PRIVATE=1 APP_DESK_FILE=data/export_private/desk.json uv run uvicorn parlayhitters_api.main:app --app-dir src --host 127.0.0.1 --port 8000
+```
+
+Without a desk file every desk screen says so plainly. The artifact bake takes `desk_shared.json` (directory from
+`APP_DESK_DIR`, default `<repo>/data/export_private`), else the synthetic fixture in `fixtures/desk_fixture_shared.json`
+(built by `fixtures/build_desk_fixture.py`, labelled as a fixture on every screen); `--money` bakes the private `desk.json`
+and is not for a shared page. The API refuses a shared cut that carries any money field.
+`/api/contracts/top` (best stored contracts by edge after fees) feeds Discover's closest look and the position lab.
+Identity: the platform user in the shared page, a locally typed name in the regular build; never a password. Admin studio:
+`user.isOwner()` or `canEdit()` in the shared page (photos through the `assets` capability into `photos/<player id>`),
+the private build locally.

@@ -1,0 +1,404 @@
+/* Fonts are self-hosted (SIL OFL 1.1; licences beside the files in ./fonts). No font service is contacted. */
+@font-face {
+  font-family: "Manrope";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/manrope-latin-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Manrope";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/manrope-latin-800-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/dm-sans-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/dm-sans-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/dm-sans-latin-700-normal.woff2") format("woff2");
+}
+
+/* Design tokens. Dark first; the full light theme follows the system unless the page sets data-theme.
+   Purple is the one accent. Orange appears only as the "tonight" highlight. Green and red always travel with a
+   sign or a word, never as the only signal. Secondary text (--muted) is at least 4.5:1 on every surface. */
+:root {
+  --bg: #10131d;
+  --head: #0c0f18;
+  --surface: #191d2a;
+  --surface-2: #202536;
+  --surface-3: #252c3d;
+  --ink: #f4f5fa;
+  --muted: #a4abc0;
+  --line: #2a3040;
+  --accent: #8f7cf8;
+  --accent-ink: #b0a4ff;
+  --on-accent: #120d33;
+  --accent-soft: #272248;
+  --tonight: #ffa45c;
+  --tonight-soft: #3a2616;
+  --book: #9aa3b8;
+  --focus: #c1b8ff;
+  --notice-bg: #3a2f12;
+  --notice-ink: #f4dc9a;
+  --win: #6fdcae;
+  --loss: #f58f9d;
+  --shadow: 0 10px 40px #00000040;
+  --font: "DM Sans", "Helvetica Neue", Arial, sans-serif;
+  --display: "Manrope", "DM Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f5f5fa;
+    --head: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f0eff8;
+    --surface-3: #e7e4f3;
+    --ink: #29263b;
+    --muted: #5d5a74;
+    --line: #dcdbe8;
+    --accent: #6b56c8;
+    --accent-ink: #5a45b4;
+    --on-accent: #ffffff;
+    --accent-soft: #ece8fb;
+    --tonight: #a14d0a;
+    --tonight-soft: #fdebd9;
+    --book: #5f6679;
+    --focus: #4b36a8;
+    --notice-bg: #fff1d6;
+    --notice-ink: #583b00;
+    --win: #1b7552;
+    --loss: #b13049;
+    --shadow: 0 10px 40px #38304a22;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f5fa;
+  --head: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f0eff8;
+  --surface-3: #e7e4f3;
+  --ink: #29263b;
+  --muted: #5d5a74;
+  --line: #dcdbe8;
+  --accent: #6b56c8;
+  --accent-ink: #5a45b4;
+  --on-accent: #ffffff;
+  --accent-soft: #ece8fb;
+  --tonight: #a14d0a;
+  --tonight-soft: #fdebd9;
+  --book: #5f6679;
+  --focus: #4b36a8;
+  --notice-bg: #fff1d6;
+  --notice-ink: #583b00;
+  --win: #1b7552;
+  --loss: #b13049;
+  --shadow: 0 10px 40px #38304a22;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a {
+  color: var(--accent-ink);
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: -0.01em;
+  font-weight: 800;
+}
+h1 {
+  font-size: 1.7rem;
+}
+h2 {
+  font-size: 1.25rem;
+}
+h3 {
+  font-size: 1.05rem;
+  margin-bottom: 5px;
+}
+p {
+  margin: 0 0 0.75em;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.85rem;
+}
+.center {
+  text-align: center;
+  justify-content: center;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.label,
+.kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kicker {
+  margin-bottom: 4px;
+}
+.lead {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 8px 0 10px;
+}
+.big-num {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- shell: sidebar from 1024px, top bar and bottom tabs below ---- */
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar {
+  display: none;
+}
+.topbar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 20;
+  background: var(--head);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  padding: 8px var(--gutter-r) 8px var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.15rem;
+  color: var(--ink);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.brand svg {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+.spacer {
+  flex: 1;
+}
+.nav-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  background: var(--head);
+  border-top: 1px solid var(--line);
+  padding: 0 var(--gutter-r) env(safe-area-inset-bottom, 0px) var(--gutter);
+}
+.nav-bottom a {
+  flex: 1;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 700;
+  text-align: center;
+  font-size: 0.75rem;
+  padding: 6px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 56px;
+  justify-content: center;
+}
+.nav-bottom a[aria-current="page"] {
+  color: var(--accent-ink);
+}
+.nav-bottom svg {
+  width: 22px;
+  height: 22px;
+}
+.icon-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.banner,
+.datanote {
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  font-size: 0.85rem;
+  padding: 8px var(--gutter-r) 8px var(--gutter);
+  text-align: center;
+}
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 18px var(--gutter-r) 40px var(--gutter);
+  min-width: 0;
+}
+.footer {
+  border-top: 1px solid var(--line);
+  padding: 18px var(--gutter-r) 96px var(--gutter);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.footer-in {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.footer .nowrap {
+  white-space: nowrap;
+}
+.footer strong {
+  color: var(--ink);
+}
+.footer a {
+  color: var(--accent-ink);
+}
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 10px 14px;
+  z-index: 50;
+}
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100dvh;
+    width: 248px;
+    flex: none;
+    background: var(--head);
+    border-right: 1px solid var(--line);
+    padding: 22px 14px 16px;
+    gap: 6px;
+  }
+  .nav-bottom {
+    display: none;
+  }
+  .footer {
+    padding-bottom: 32px;
+  }
+  main {
+    padding-top: 28px;
+    padding-bottom: 48px;
+  }
+}

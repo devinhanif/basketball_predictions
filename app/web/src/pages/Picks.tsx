@@ -1,7 +1,9 @@
-import { useMemo, useState } from "preact/hooks";
+import { useMemo } from "preact/hooks";
 import { Explain, RecordBoard, ResetPicks } from "../components";
 import { american, lineText, longDate, pct } from "../format";
-import { loadLedger, PICKS_NOTE, summarize, viewTag, type Pick, type Settled } from "../ledger";
+import { IS_ARTIFACT } from "../env";
+import { PICKS_NOTE, summarize, viewTag, type Pick, type Settled } from "../ledger";
+import { FriendsPicks, ShareNote, useLedger } from "../SharedUI";
 import { MIN_LEGS } from "../stats";
 import { useSettled } from "../useSettled";
 import { didText } from "../words";
@@ -46,7 +48,7 @@ function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: bo
 }
 
 export function Picks() {
-  const [picks, setPicks] = useState<Pick[]>(loadLedger);
+  const picks = useLedger();
   const { results, settled, open } = useSettled(picks);
   const sum = useMemo(() => summarize(picks, settled), [picks, settled]);
 
@@ -63,6 +65,8 @@ export function Picks() {
             Make some picks
           </a>
         </div>
+        <ShareNote />
+        <FriendsPicks />
       </div>
     );
   }
@@ -71,7 +75,12 @@ export function Picks() {
     <div class="stack">
       <div class="page-head">
         <h1>My picks</h1>
-        <p class="muted">Pretend picks, saved only on this device. Each is graded against the real box score.</p>
+        <p class="muted">
+          {IS_ARTIFACT
+            ? "Pretend picks, saved on this device and shared with the people who open this link. Each is graded against the real box score."
+            : "Pretend picks, saved only on this device. Each is graded against the real box score."}
+        </p>
+        <ShareNote />
       </div>
 
       {results.status === "error" ? (
@@ -123,16 +132,14 @@ export function Picks() {
 
       <section class="panel" aria-labelledby="led-h">
         <div class="row between wrap">
-          <h2 id="led-h">Every card you answered ({picks.length})</h2>
+          <h2 id="led-h">Your picks ({picks.length})</h2>
           <div class="row">
-            <button type="button" class="btn" onClick={() => { download(picks); }}>
-              Download
-            </button>
-            <ResetPicks
-              onReset={() => {
-                setPicks([]);
-              }}
-            />
+            {IS_ARTIFACT ? null : (
+              <button type="button" class="btn" onClick={() => { download(picks); }}>
+                Download
+              </button>
+            )}
+            <ResetPicks onReset={() => undefined} />
           </div>
         </div>
         <ul class="picks">
@@ -142,6 +149,7 @@ export function Picks() {
         </ul>
         <p class="small muted">{PICKS_NOTE}</p>
       </section>
+      <FriendsPicks />
     </div>
   );
 }

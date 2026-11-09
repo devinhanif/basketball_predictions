@@ -12,7 +12,12 @@ import type {
 } from "./types";
 import { httpErrorMessage } from "./errors";
 import type { LegBreakdown, Side } from "./legTypes";
+import type { LegEdges } from "./edges";
 import type { TopParlays, TpResult } from "./topParlays";
+import { getRaw, warmGames } from "./transport";
+import { parseDesk, type Desk } from "./desk";
+
+export { warmGames };
 
 /** Result of a fetch: the data, and whether the service worker served a saved copy. */
 export interface Loaded<T> {
@@ -21,25 +26,25 @@ export interface Loaded<T> {
 }
 
 export async function getJson<T>(path: string): Promise<Loaded<T>> {
-  const res = await fetch(path, { headers: { Accept: "application/json" } });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
-    throw new Error(httpErrorMessage(res.status, res.statusText, path, typeof body.detail === "string" ? body.detail : null));
+  const r = await getRaw(path);
+  if (r.status < 200 || r.status >= 300) {
+    const detail = (r.body as { detail?: unknown } | null)?.detail;
+    throw new Error(httpErrorMessage(r.status, r.statusText, path, typeof detail === "string" ? detail : null));
   }
-  return { data: (await res.json()) as T, fromCache: res.headers.get("X-From-Cache") === "1" };
+  return { data: r.body as T, fromCache: r.fromCache };
 }
 
 /** Top-parlays file for a date. 404 means no file (a first-class state); 422 means the API refused it. */
 export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
-  const res = await fetch(`/api/top-parlays/${encodeURIComponent(date)}`, { headers: { Accept: "application/json" } });
-  const fromCache = res.headers.get("X-From-Cache") === "1";
-  if (res.status === 404) return { data: { kind: "missing" }, fromCache };
-  if (res.status === 422) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string };
-    return { data: { kind: "refused", detail: body.detail ?? "refused" }, fromCache };
+  const path = `/api/top-parlays/${encodeURIComponent(date)}`;
+  const r = await getRaw(path);
+  if (r.status === 404) return { data: { kind: "missing" }, fromCache: r.fromCache };
+  if (r.status === 422) {
+    const detail = (r.body as { detail?: string } | null)?.detail;
+    return { data: { kind: "refused", detail: detail ?? "refused" }, fromCache: r.fromCache };
   }
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for /api/top-parlays/${date}`);
-  return { data: { kind: "ok", data: (await res.json()) as TopParlays }, fromCache };
+  if (r.status < 200 || r.status >= 300) throw new Error(`${r.status.toString()} ${r.statusText} for ${path}`);
+  return { data: { kind: "ok", data: r.body as TopParlays }, fromCache: r.fromCache };
 }
 
 export const api = {
@@ -61,23 +66,51 @@ export const api = {
   card: (gameId: string, playerId: number, stat: string) =>
     getJson<CardView>(`/api/card/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}`),
   parlay: () => getJson<ParlayState>("/api/parlay-of-the-day"),
+  edges: (gameId: string, playerId: number, stat: string) =>
+    getJson<LegEdges>(`/api/edges/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}`),
   propAtLine: (gameId: string, playerId: number, stat: string, line: number) =>
     getJson<ProbAtLine>(
       `/api/props/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}?line=${line.toString()}`,
     ),
 };
 
-/**
- * After a slate loads, fetch its game pages once so the service worker keeps a copy: a game page opened for the first
- * time while offline still works (F15). Only when the worker is in control; one at a time, errors ignored.
- */
-export async function warmGames(ids: readonly string[], limit = 20): Promise<void> {
-  if (typeof navigator === "undefined" || !navigator.serviceWorker.controller) return;
-  for (const id of ids.slice(0, limit)) {
-    try {
-      await fetch(`/api/games/${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
-    } catch {
-      return;
-    }
-  }
+export interface TopContract {
+  side: Side;
+  threshold: number;
+  title: string;
+  ticker: string;
+  price: number;
+  fees: number;
+  ev: number;
+  ev_low: number | null;
+  model_prob: number;
+  prob_lo: number | null;
+  prob_hi: number | null;
+  price_ts: string;
+  game_id: string;
+  player_id: number;
+  player: string;
+  team: string | null;
+  stat: string;
+  matchup: string;
+  tip_utc: string | null;
+}
+export interface TopContracts {
+  report_date: string | null;
+  n_priced: number;
+  n_positive: number;
+  contracts: TopContract[];
+}
+export const getTopContracts = (n = 12): Promise<Loaded<TopContracts>> => getJson<TopContracts>(`/api/contracts/top?n=${n.toString()}`);
+
+export type DeskState = { kind: "absent" } | { kind: "refused"; detail: string } | { kind: "ready"; desk: Desk };
+
+/** The Jarvis Desk export. 404 means this API does not serve one (public API, or none written yet): a normal state. */
+export async function getDesk(): Promise<DeskState> {
+  const r = await getRaw("/api/desk");
+  if (r.status === 404) return { kind: "absent" };
+  if (r.status === 422) return { kind: "refused", detail: (r.body as { detail?: string } | null)?.detail ?? "refused" };
+  if (r.status < 200 || r.status >= 300) return { kind: "absent" };
+  const desk = parseDesk(r.body);
+  return desk ? { kind: "ready", desk } : { kind: "refused", detail: "the desk file is not a schema 1 export" };
 }

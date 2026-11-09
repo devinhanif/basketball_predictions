@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import statistics
 from collections import defaultdict
 from collections.abc import Callable
@@ -261,6 +262,13 @@ def _pick_latest(
     return {k: v[1] for k, v in best.items()}
 
 
+def _display_name(pid: int, name: object) -> str:
+    text = str(name or "").strip()
+    if not text or re.fullmatch(r"Player \d+", text):
+        return f"Unnamed player (id {pid})"
+    return text
+
+
 class ExportStore:
     """Same surface as the fixture Store, backed by an export directory."""
 
@@ -331,8 +339,11 @@ class ExportStore:
     # ------------------------------------------------------------------ building
 
     def _build(self, tables: dict[str, list[Json]]) -> None:
+        # The export sometimes stores a placeholder ("Player 1643411") where it has no name. Show it
+        # as what it is, not as something that looks like a name. No name is looked up elsewhere.
         self.names: dict[int, str] = {
-            int(r["player_id"]): r["full_name"] for r in tables["players"]
+            int(r["player_id"]): _display_name(int(r["player_id"]), r["full_name"])
+            for r in tables["players"]
         }
         self.teams: dict[int, Json] = {}
         for r in tables["teams"]:
@@ -613,7 +624,7 @@ class ExportStore:
             out.append(
                 {
                     "player_id": pid,
-                    "name": self.names.get(pid, f"Player {pid}"),
+                    "name": self.names.get(pid, f"Unnamed player (id {pid})"),
                     "side": side,
                     "result": {"minutes": float(row["minutes"]), "starter": bool(row["starter"])}
                     if did_play and row is not None
@@ -712,6 +723,8 @@ class ExportStore:
 
     def _parlay(self) -> Json:
         p = json.loads((self.root / PARLAY_NAME).read_text(encoding="utf-8"))
+        recs = p.get("records")
+        self.parlay_records: list[Json] = recs if isinstance(recs, list) else []
         status, verdict = p.get("status"), p.get("verdict")
         n, npos = int(p.get("n_evaluated", 0)), int(p.get("n_positive", 0))
         base: Json = {

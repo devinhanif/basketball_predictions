@@ -1,6 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { ScrollNav, restoreScroll } from "./scrollNav";
 import { isLegStat, type LegStat, type Side } from "./legTypes";
+import { IS_ARTIFACT } from "./env";
+import { getPrefs, type Screen } from "./prefs";
 
 export type Route =
   | { name: "today"; date: string | null }
@@ -8,7 +10,19 @@ export type Route =
   | { name: "leg"; gameId: string; playerId: number; stat: LegStat; side: Side }
   | { name: "swipe"; date: string | null }
   | { name: "picks" }
-  | { name: "parlay"; date: string | null };
+  | { name: "parlay"; date: string | null }
+  | { name: "settings" }
+  | { name: "signals" }
+  | { name: "hedge"; game: string | null; player: number | null; stat: string | null }
+  | { name: "history" }
+  | { name: "alerts" }
+  | { name: "admin" };
+
+/** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
+export type TopName = "today" | "signals" | "hedge" | "history" | "alerts" | "swipe" | "picks" | "admin" | "settings";
+const ARTIFACT_NAME: Record<TopName, string> = {
+  today: "discover", signals: "signals", hedge: "hedge", history: "history", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs",
+};
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
 export function legHref(gameId: string, playerId: number, stat: LegStat, side: Side = "over"): string {
@@ -18,6 +32,12 @@ export function legHref(gameId: string, playerId: number, stat: LegStat, side: S
 /** Hash for a game page. */
 export function gameHref(gameId: string): string {
   return `#/game/${encodeURIComponent(gameId)}`;
+}
+
+/** Hash for a top-level view. The artifact frame passes only plain `#name` hashes, so there they carry no slash. */
+export function topHref(name: TopName, artifact: boolean = IS_ARTIFACT): string {
+  if (artifact) return `#${ARTIFACT_NAME[name]}`;
+  return name === "today" ? "#/" : `#/${name === "settings" ? "prefs" : name}`;
 }
 
 export function parse(hash: string): Route {
@@ -41,6 +61,19 @@ export function parse(hash: string): Route {
       return { name: "picks" };
     case "parlay":
       return { name: "parlay", date: q.get("date") };
+    case "settings":
+    case "prefs":
+      return { name: "settings" };
+    case "signals":
+      return { name: "signals" };
+    case "hedge":
+      return { name: "hedge", game: q.get("game"), player: q.get("player") ? Number(q.get("player")) : null, stat: q.get("stat") };
+    case "history":
+      return { name: "history" };
+    case "alerts":
+      return { name: "alerts" };
+    case "admin":
+      return { name: "admin" };
     default:
       return { name: "today", date: q.get("date") };
   }
@@ -51,8 +84,74 @@ export function nightHref(date: string): string {
   return `#/?date=${encodeURIComponent(date)}`;
 }
 
-export function useRoute(): Route {
-  const [route, setRoute] = useState<Route>(() => parse(window.location.hash));
+const SCREEN_HASH: Record<Screen, string> = { today: "", signals: "#/signals", swipe: "#/swipe", picks: "#/picks" };
+
+/** The route to open at start: the hash if there is one, else the device's default screen. */
+export function startRoute(hash: string, screen: Screen = getPrefs().screen): Route {
+  if (hash.replace(/^#\/?/, "") === "") return parse(SCREEN_HASH[screen]);
+  return parse(hash);
+}
+
+/** Is this the plain hash of a top-level view (what the artifact frame understands)? */
+export function plainName(route: Route): TopName | null {
+  switch (route.name) {
+    case "today":
+      return route.date === null ? "today" : null;
+    case "swipe":
+      return route.date === null ? "swipe" : null;
+    case "hedge":
+      return route.game === null ? "hedge" : null;
+    case "picks":
+    case "settings":
+    case "signals":
+    case "history":
+    case "alerts":
+    case "admin":
+      return route.name;
+    default:
+      return null;
+  }
+}
+
+/** The hash the artifact frame may be given for a route: a plain name or nothing (detail pages stay in memory). */
+export function hashForRoute(route: Route, artifact: boolean): string | null {
+  const plain = plainName(route);
+  return plain === null ? null : topHref(plain, artifact);
+}
+
+function useArtifactRoute(): Route {
+  const [route, setRoute] = useState<Route>(() => startRoute(window.location.hash));
+  useEffect(() => {
+    const go = (href: string): void => {
+      const next = parse(href);
+      setRoute(next);
+      window.scrollTo(0, 0);
+      const want = hashForRoute(next, true);
+      if (want !== null && window.location.hash !== want) window.location.hash = want;
+    };
+    const onClick = (e: MouseEvent): void => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target instanceof Element ? e.target.closest("a") : null;
+      const href = a?.getAttribute("href") ?? "";
+      if (!href.startsWith("#") || href === "#main" || href === "#") return;
+      e.preventDefault();
+      go(href);
+    };
+    const onHash = (): void => {
+      setRoute(parse(window.location.hash));
+    };
+    window.addEventListener("hashchange", onHash);
+    document.addEventListener("click", onClick);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      document.removeEventListener("click", onClick);
+    };
+  }, []);
+  return route;
+}
+
+function useHashRoute(): Route {
+  const [route, setRoute] = useState<Route>(() => startRoute(window.location.hash));
   useEffect(() => {
     window.history.scrollRestoration = "manual";
     const nav = new ScrollNav(window.location.hash);
@@ -88,4 +187,9 @@ export function useRoute(): Route {
     };
   }, []);
   return route;
+}
+
+export function useRoute(): Route {
+  // The build is one or the other for its whole life, so the hook order never changes.
+  return IS_ARTIFACT ? useArtifactRoute() : useHashRoute();
 }

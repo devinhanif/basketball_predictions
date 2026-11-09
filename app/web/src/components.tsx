@@ -8,76 +8,50 @@ import { teamColor } from "./teams";
 import type { PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
 import { errorCopy } from "./errors";
-import type { Route } from "./router";
+import { Icon } from "./icons";
+import { effectiveDark, setPref, usePrefs } from "./prefs";
 import { FOOTER_DISCLOSURE } from "./config";
 import { lineMarkLabel, winSentence } from "./words";
 import { plainModel, plainModelSentence } from "./plain";
 
-/* ------------------------------------------------------------------ icons */
-const I = {
-  today: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z",
-  swipe: "M4 7h16v10H4zM8 3h8M8 21h8",
-  picks: "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4",
-};
-
-function Icon({ d }: { d: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d={d} />
-    </svg>
-  );
-}
-
-function Logo() {
-  return (
-    <svg viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="10" fill="#0f1115" />
-      <rect x="14" y="36" width="9" height="14" rx="1" fill="#f3f3f0" />
-      <rect x="27.5" y="20" width="9" height="30" rx="1" fill="#ff7a1a" />
-      <rect x="41" y="29" width="9" height="21" rx="1" fill="#f3f3f0" />
-    </svg>
-  );
-}
-
-/* ------------------------------------------------------------------ shell */
-const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] = [
-  { name: "today", href: "#/", label: "Today", icon: I.today },
-  { name: "swipe", href: "#/swipe", label: "Swipe", icon: I.swipe },
-  { name: "picks", href: "#/picks", label: "My picks", icon: I.picks },
-];
-
-function isCurrent(route: Route, name: Route["name"]): boolean {
-  if (name === "today") return route.name === "today" || route.name === "game" || route.name === "leg" || route.name === "parlay";
-  return route.name === name;
-}
-
-function effectiveDark(): boolean {
-  const t = document.documentElement.dataset["theme"];
-  if (t === "dark") return true;
-  if (t === "light") return false;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function ThemeToggle() {
-  const [dark, setDark] = useState(effectiveDark);
+/* ------------------------------------------------------------------ shell pieces shared by pages */
+export function ThemeToggle() {
+  const { theme } = usePrefs();
+  const dark = effectiveDark(theme);
   return (
     <button
       type="button"
       class="icon-btn"
-      aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={dark ? "Switch to the light theme" : "Switch to the dark theme"}
       onClick={() => {
-        const next = dark ? "light" : "dark";
-        document.documentElement.dataset["theme"] = next;
-        try {
-          localStorage.setItem("ph.theme", next);
-        } catch {
-          /* storage blocked: the choice lasts for this visit only */
-        }
-        setDark(!dark);
+        setPref("theme", dark ? "light" : "dark");
       }}
     >
-      {dark ? "Light" : "Dark"}
+      <Icon name={dark ? "sun" : "moon"} />
+      <span class="icon-btn-text">{dark ? "Light" : "Dark"}</span>
     </button>
+  );
+}
+
+/** Simple (plain cards) or Analyst (the Leg-page depth inline). A per-device preference. */
+export function ModeToggle() {
+  const { mode } = usePrefs();
+  return (
+    <div class="seg" role="group" aria-label="Detail level">
+      {(["simple", "analyst"] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          class="seg-btn"
+          aria-pressed={mode === m}
+          onClick={() => {
+            setPref("mode", m);
+          }}
+        >
+          {m === "simple" ? "Simple" : "Analyst"}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -93,61 +67,6 @@ export function Footer() {
         <p>{FOOTER_DISCLOSURE}</p>
       </div>
     </footer>
-  );
-}
-
-export function Shell(props: {
-  route: Route;
-  replayNote: string | null;
-  offline: boolean;
-  children: ComponentChildren;
-}) {
-  return (
-    <div class="shell">
-      <a
-        class="skip-link"
-        href="#main"
-        onClick={(e) => {
-          e.preventDefault();
-          document.getElementById("main")?.focus();
-        }}
-      >
-        Skip to content
-      </a>
-      <header class="topbar">
-        <div class="topbar-in">
-          <a class="brand" href="#/" aria-label="parlayhitters, home">
-            <Logo />
-            parlayhitters
-          </a>
-          <nav class="nav-desktop" aria-label="Main">
-            {NAV.map((n) => (
-              <a key={n.name} href={n.href} aria-current={isCurrent(props.route, n.name) ? "page" : undefined}>
-                {n.label}
-              </a>
-            ))}
-          </nav>
-          <span class="spacer" />
-          <ThemeToggle />
-        </div>
-        {props.replayNote ? <div class="banner">{props.replayNote}</div> : null}
-        {props.offline ? (
-          <div class="banner" role="status">
-            You are offline, or the data server is not answering. Showing the last copy we saved.
-          </div>
-        ) : null}
-      </header>
-      <main id="main" tabIndex={-1}>{props.children}</main>
-      <Footer />
-      <nav class="nav-bottom" aria-label="Main">
-        {NAV.map((n) => (
-          <a key={n.name} href={n.href} aria-current={isCurrent(props.route, n.name) ? "page" : undefined}>
-            <Icon d={n.icon} />
-            {n.label}
-          </a>
-        ))}
-      </nav>
-    </div>
   );
 }
 
