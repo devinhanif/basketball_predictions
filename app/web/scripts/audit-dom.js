@@ -88,7 +88,7 @@ function () {
     let held = false;
     for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
       const ox = getComputedStyle(n).overflowX;
-      if (ox === "auto" || ox === "scroll" || ox === "hidden") { held = true; break; }
+      if ((ox === "auto" || ox === "scroll" || ox === "hidden") && !n.matches(".welcome, .modal-back")) { held = true; break; }
     }
     if (!held && getComputedStyle(el).position !== "fixed") poking.push(sel(el) + " right=" + Math.round(r.right));
   }

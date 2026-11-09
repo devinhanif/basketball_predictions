@@ -380,7 +380,7 @@ function LedgerCard({ desk }: { desk: Desk }) {
           Show more ({(view.length - shown).toLocaleString("en-US")} left)
         </button>
       ) : null}
-      <SectionNote desk={desk} k="shared_cut" />
+      {desk.privacy === "shared" ? <SectionNote desk={desk} k="shared_cut" /> : null}
     </section>
   );
 }
