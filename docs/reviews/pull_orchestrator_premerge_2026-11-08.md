@@ -170,3 +170,103 @@ with the dedupe gates.
 
 ## Drafted DECISIONS row (not appended)
 | 2026-11-08 | Adversary review of agent/market-pull-orchestrator 219636f: WOUNDED / BLOCKED (docs/reviews/pull_orchestrator_premerge_2026-11-08.md). The hold covers strong alerts only; the 11-08 stale post was a slate preview (0 alert sends all season), so P1 as built would not have changed it. Blocking: config-load crash in the JARVIS tick (F1), market-store write lock held across vendor calls during close windows (F3), hold fails closed without an orchestrator liveness check (F4). Devin to decide whether P1 extends to the slate preview and how a held alert clears max_ref_lead_min (F2). | Follows the adversary review. | The three fixes land with tests and the scope question is answered. |
+
+---
+
+## Re-review 539fa84
+
+_2026-11-08. Diff 219636f..539fa84 (20 files, +1032/-138); decisions on main 7e73962 (21:42 row). Same constraints:
+`git archive` copies of 8936003 (base) and 539fa84 in the scratchpad, CoW clone of the market store, fake vendor,
+`.venv-1`, targeted paths only._
+
+**Verdict: WOUNDED.** F1, F3, F4 (mostly), F5-F10 are fixed and the fixes hold under attack. One new fail-closed path
+remains (R1): it reopens the silence that F4 was meant to close. The fix is cheap.
+
+Verdict: BLOCKED
+
+### Checks
+
+| # | Check | How | Result | Pass |
+|---|---|---|---|---|
+| 1 | Flag off identical to base 8936003, alert and slate paths | the same driver test in both trees, 8 ticks 20:00..23:40 (one alert, one slate preview); diff of texts, tick reports and every paper-book table (`o_base.json` vs `o_rev_off.json`) | texts, reports and book all identical | PASS |
+| 1b | Flags on, pulls job dead (no heartbeat) | same driver, `o_rev_dead.json` | identical to base | PASS |
+| 2a | Preview: held plays not recorded as announced | `test_adv_slate.py` (alive beat, RULE 20, 12 one-minute ticks, slate due at 20:00) | `plays` holds only the G2 play; `alert_state` empty; `sends.slate` keys exclude G1 | PASS |
+| 2b | Count line | same | "1 plays held: sharp price not refreshed (oldest 30 min)" | PASS |
+| 2c | No double post later | same, 12 ticks, served and unserved | one slate send; no later alert for the held key (with both flags on) | PASS |
+| 2d | Preview on time when the job is dead or slow | dead: 1b; slow (alive, never served, expires at need_by): `test_adv_alive.py` | the preview goes out in its first due tick (22:58) every run; prefetch filed 2 then deduped | PASS |
+| 3a | Lock never held across a vendor call | `lockhold2.py`: the fake vendor opens the store for write from a subprocess *during* each call | events rc 0, odds rc 0 (writer got the lock); tick 2.18 s | PASS |
+| 3b | Close guard | same script, a second game 7 min from tip | "a game is within 10 min of tip; on-demand waits", 0 vendor calls | PASS |
+| 3c | Store busy after the paid call | `lockhold3.py`: another writer takes the store during the odds call and holds it 12 s | **237 credits in the ledger; no `live_capture_log` row, no odds rows, request still `open`**; raw file written | **FAIL (R2)** |
+| 4 | Mutants | `mut_rev.py`: 32 (the 18 from round 1 re-targeted, plus 14 new) | 27 killed. Both round-1 survivors (M2, M10) now killed. Survivors: M8b, N6, N6b, N8, N10 | partial (R5) |
+| 5 | New crash or silence | code read of every new call site plus `test_adv_crashloop.py` | no new exception escapes `run_tick`, but there is a new silence path | **FAIL (R1)** |
+| - | Targeted suites in the worktree | `pytest tests/jarvis tests/odds tests/ops tests/pulls tests/forward` | 759 passed, exit 0 | PASS |
+| - | ruff / format / mypy | changed packages | 0 / 0 / 0 | PASS |
+
+### Findings
+
+**R1 (blocker, cheap).** The orchestrator can crash every tick while the heartbeat stays fresh, and then JARVIS holds
+plays without end. `pulls_alive` (`nba/pulls/freshness.py:124-143`) checks age and "disabled" only, not `rc`.
+`ops/nba_pulls.sh` writes a fresh heartbeat with `rc != 0` after every failing tick. Requests become `expired` only
+when an orchestrator tick reaches step 1. So a tick that dies before step 1 (an import error after a bad merge,
+`open_requests` raising) leaves requests `open` forever. `Gate.released` (`nba/jarvis/pullhold.py:44-54`) then never
+releases them.
+
+Shown by `test_adv_crashloop.py`: a 3-hour-old request, past its need_by, with a fresh beat and `rc: 1`. The alert is
+held ("already open") and the preview leaves the play out ("1 plays held").
+
+*Fix, both parts, about 6 lines:*
+- In `Gate.released`, treat an `open` request with `self.now >= last.need_by_utc` as released. JARVIS then enforces
+  the deadline itself.
+- In `pulls_alive`, return `(False, "pulls tick failing")` when the beat's `rc` is not in `(0, 4, None)`.
+
+Add a test with this scenario.
+
+**R2 (major, bounded).** A paid on-demand call can become invisible to the caps (`orchestrator.py` `_Store.get`
+reopening after `live_event_odds`). With `store_retries` 3 x `store_wait_s` 2 s, a lineups tick holding the store
+for more than 6 s after the paid call raises `IOException`. `_serve` then logs "market store busy; requests stay
+open": the credits sit in the ledger but there is no `live_capture_log` row and no odds rows. The next tick pays again
+under the same `ondemand1`. The per-game cap (4) and the daily on-demand cap (20,000) are counted from
+`live_capture_log`, so they never see these spends; only the 102k ledger cap does. Repeats are bounded by need_by (15
+min, at most about 7 ticks).
+
+*Fix:* once the paid response is in hand no network is held, so retry the reopen with the capture's budget
+(`open_store` default, 6 x 5 s). Count caps from the ledger lines that carry `request_id`, not only from
+`live_capture_log`. On final failure, ingest the raw file on the next tick instead of pulling again.
+
+**R3 (minor).** Mismatched flags post the play on the same stale price anyway. With `hold_stale_slate: true` and
+`hold_stale_alerts: false`, a strong play held out of the preview is alerted in the same tick on the same stale price
+(`test_adv_slate.py` case 2: `sends` has `slate` then `alert` at 20:00). The shipped config sets both to true, so
+this is latent. *Fix:* load_config refuses `hold_stale_slate` without `hold_stale_alerts`, or document that they go
+together.
+
+**R4 (minor).** The Daily Dollar is not gated. `dailydollar._leg_fair` (`nba/jarvis/dailydollar.py:30-32`) uses
+`st.refs` with no age check, so the ticket in the same preview can be priced on the stale Pinnacle line that held the
+other plays. *Fix:* when the slate gate is open, treat a leg whose ref is older than `gate.limit` as having no
+Pinnacle price (fall back to the venue mid, as the module already does).
+
+**R5 (minor, tests).** Survivors:
+- **M8b:** a dry run would file real prefetch requests, which cost real credits once served. Add a dry-run prefetch
+  test.
+- **N10:** the watchdog's `t240` skip is untested. Add one test with `active_schedule()` lacking t240.
+- **N8:** reverting `sent_keys` to all plays goes uncaught. Assert that a held strong play reaches the alert hold
+  in the preview tick.
+- **N6, N6b:** equivalent mutants (two fail-open layers each catch the other). No action.
+
+**F2 (open, Devin's call, as logged).** Measured with the new counter: in the served case, the play is held at
+20:00-20:01, the pull lands, then `lead_capped_after_hold=1` every tick 20:02-20:11 and no alert is sent. The 3-night
+measurement in the DECISIONS row is the right next step. It will report thin caps, not latency.
+
+Checked and fine: the config is loaded once per Runtime and a bad file fails open (killed mutant). Every new JARVIS
+call site is wrapped. Request-store reads retry up to 3 s and then fail open on the first error (bounded). The
+scorecard excludes on-demand rows in both loaders (killed N5, N5b). The slate read retry, the monthly plan rule and the
+server floor are all tested (killed N11, N9, M10).
+
+### Biggest risk
+R1: the change promised to fail open, but an orchestrator that dies every tick and keeps beating makes JARVIS silent
+on stale plays and trims the preview, with nothing but ALERTS.md lines to show for it.
+
+### Not verified
+The replay oracle, real launchd/TCC behaviour, real lock contention with the live lineups job, and a real vendor call.
+
+### Drafted DECISIONS row (not appended)
+| 2026-11-08 | Adversary re-review of agent/market-pull-orchestrator 539fa84: WOUNDED / BLOCKED on one item (docs/reviews/pull_orchestrator_premerge_2026-11-08.md, "Re-review 539fa84"). Flag-off and dead-job runs are identical to 8936003 over 8 ticks; the lock is released during vendor calls; the close guard and the slate hold behave. Blocking: R1 (a crash-looping orchestrator with a fresh heartbeat holds plays forever; fix = JARVIS treats open past need_by as released, and pulls_alive requires rc 0/4). Major, non-blocking: R2 (paid call invisible to the caps when the store reopen fails). | Follows the adversary review. | R1 fixed with a test; R2 scheduled. |
