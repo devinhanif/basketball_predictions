@@ -27,6 +27,7 @@ from nba.parlay.__main__ import (
     ROOT,
     SingleContract,
     _load_model,
+    drop_out_on_report,
     load_open_markets,
     map_markets,
     pretip_only,
@@ -372,6 +373,7 @@ def build_analysis(
     unmatched: list[str] = []
     mapped, skipped = map_markets(markets, info, unmatched)
     mapped = pretip_only(mapped, info, now, skipped)
+    mapped = drop_out_on_report(mapped, info, skipped)
     singles: list[Candidate] = []
     rows: list[dict[str, Any]] = []
     for sc in price_singles(mapped, info, model, cfg, dnp_policy, tr, skipped):
