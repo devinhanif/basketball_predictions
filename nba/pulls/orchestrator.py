@@ -133,6 +133,94 @@ def _ondemand_usage(
     return int(per_game[0]) if per_game else 0, int(credits[0]) if credits else 0
 
 
+def monthly_plan_ok(lcfg: lc.LiveConfig, pc: PullsConfig) -> tuple[bool, str]:
+    """The plan rule: the active schedule's monthly estimate plus on-demand's worst case must stay
+    within ``plan.max_plan_fraction`` of the plan's monthly credits (the same budget the schedule's
+    ``extended`` entries are gated on, ``LiveConfig.active_schedule``)."""
+    plan = lcfg.plan
+    sched = lc.estimate_credits(lcfg, plan.games_per_month, lcfg.active_schedule())
+    per_game = plan.games_per_month * pc.ondemand_max_per_game * lcfg.expected_cost()
+    od = (
+        min(pc.ondemand_daily_credit_cap * 31, per_game)
+        if pc.ondemand_daily_credit_cap
+        else per_game
+    )
+    limit = plan.max_plan_fraction * plan.monthly_credits
+    if sched + od > limit:
+        return False, (
+            f"monthly plan rule: schedule {sched} + on-demand worst case {od} > "
+            f"{plan.max_plan_fraction:g} x {plan.monthly_credits}"
+        )
+    return True, ""
+
+
+class _Store:
+    """The market store, opened on first use and closed by :meth:`release`.
+
+    The orchestrator must never hold the single-writer slot across a network call (a close pull from
+    the lineups job would wait behind it). ``_HookedClient`` calls :meth:`release` before each vendor
+    request; the next use reopens. Quacks like a connection for ``_pull_all``/``write_snapshot``."""
+
+    def __init__(self, lcfg: lc.LiveConfig, pc: PullsConfig) -> None:
+        self.lcfg, self.pc = lcfg, pc
+        self.con: duckdb.DuckDBPyConnection | None = None
+
+    def get(self) -> duckdb.DuckDBPyConnection:
+        if self.con is None:
+            self.con = lc.open_store(
+                self.lcfg.out_db, retries=self.pc.store_retries, wait_s=self.pc.store_wait_s
+            )
+        return self.con
+
+    def release(self) -> None:
+        if self.con is not None:
+            self.con.close()
+            self.con = None
+
+    def execute(self, *a: Any, **k: Any) -> Any:
+        return self.get().execute(*a, **k)
+
+    def register(self, *a: Any, **k: Any) -> Any:
+        return self.get().register(*a, **k)
+
+    def unregister(self, *a: Any, **k: Any) -> Any:
+        return self.get().unregister(*a, **k)
+
+
+class _HookedClient(lc.LiveClient):
+    """The existing live client, except the store is released before every vendor request."""
+
+    before_network: Callable[[], None] | None = None
+
+    def live_events(self, commence_from: datetime, commence_to: datetime) -> tuple[Any, int]:
+        if self.before_network:
+            self.before_network()
+        return super().live_events(commence_from, commence_to)
+
+    def live_event_odds(self, event_id: str) -> tuple[Any, int, dict[str, str]]:
+        if self.before_network:
+            self.before_network()
+        return super().live_event_odds(event_id)
+
+
+def _read_slate_retry(
+    lcfg: lc.LiveConfig, pc: PullsConfig, day: date, sleep: Callable[[float], None]
+) -> list[lc.LiveGame]:
+    """``read_slate`` opens lineups.duckdb read-only without a retry; the lineups job writes it every
+    5 minutes, so a lock is retried here instead of failing the requests."""
+    last: Exception | None = None
+    tries = max(1, pc.store_retries)
+    for i in range(tries):
+        try:
+            return lc.read_slate(lcfg.tips_db, day, lcfg.games_db)
+        except duckdb.IOException as exc:
+            last = exc
+            if i + 1 < tries:
+                sleep(pc.store_wait_s)
+    assert last is not None
+    raise last
+
+
 def tick(
     now: datetime | None = None,
     *,
@@ -170,17 +258,21 @@ def tick(
     if not opens:
         return rep
     lcfg = live_cfg or lc.load_live_config()
-    slates: dict[date, list[lc.LiveGame]] = {}
+    nap = sleep or time.sleep
+    slates: dict[date, list[lc.LiveGame] | None] = {}
 
-    def slate_games(d: date) -> list[lc.LiveGame]:
+    def slate_games(d: date) -> list[lc.LiveGame] | None:
+        """The slate, or ``None`` when it could not be read (its requests then stay open)."""
         if d not in slates:
             try:
-                slates[d] = (games_fn or (lambda s: lc.read_slate(lcfg.tips_db, s, lcfg.games_db)))(
-                    d
+                slates[d] = (
+                    games_fn(d) if games_fn is not None else _read_slate_retry(lcfg, pc, d, nap)
                 )
             except Exception as exc:  # noqa: BLE001 - one unreadable slate must not stop the tick
-                rep.messages.append(f"slate {d}: read failed ({type(exc).__name__})")
-                slates[d] = []
+                rep.messages.append(
+                    f"slate {d}: read failed ({type(exc).__name__}); requests stay open"
+                )
+                slates[d] = None
         return slates[d]
 
     def finish(req: PullRequest, status: str, detail: str) -> None:
@@ -195,9 +287,10 @@ def tick(
         if req.source not in SUPPORTED_SOURCES:
             finish(req, "failed", f"source {req.source!r} not supported in P1")
             continue
-        game = next(
-            (g for g in slate_games(req.slate_date) if g.game_id == req.scope_game_id), None
-        )
+        games = slate_games(req.slate_date)
+        if games is None:
+            continue  # unreadable slate: unknown, not "no game"; the next tick retries
+        game = next((g for g in games if g.game_id == req.scope_game_id), None)
         if game is not None and t >= game.tipoff:
             finish(req, "refused_post_tip", f"tip {game.tipoff:%H:%M:%S}Z has passed; never pulled")
         elif t >= req.need_by_utc:
@@ -209,102 +302,134 @@ def tick(
     if not work:
         return rep
 
-    # 2. the market store: freshness check, reserve, pull. Opened once, closed before returning.
-    try:
-        con = lc.open_store(lcfg.out_db, retries=pc.store_retries, wait_s=pc.store_wait_s)
-    except (duckdb.Error, OSError) as exc:
-        rep.messages.append(f"market store busy ({type(exc).__name__}); requests stay open")
-        return rep  # the next tick retries; need_by expires them if it never frees
-    try:
-        _serve(rep, st, pc, lcfg, con, work, slate_games, finish, t, environ, client, resolver,
-               sleep, http_get, clock)  # fmt: skip
-    finally:
-        con.close()
+    # 2. freshness, reserve, pull. The market store is opened per request and closed before every
+    # vendor call (never held across the network).
+    _serve(
+        rep, pc, lcfg, work, slate_games, finish, t, environ, client, resolver, nap, http_get, clock
+    )
     return rep
 
 
 def _serve(
     rep: TickReport,
-    st: PullStore,
     pc: PullsConfig,
     lcfg: lc.LiveConfig,
-    con: duckdb.DuckDBPyConnection,
     work: list[tuple[PullRequest, lc.LiveGame]],
-    slate_games: Callable[[date], list[lc.LiveGame]],
+    slate_games: Callable[[date], list[lc.LiveGame] | None],
     finish: Callable[[PullRequest, str, str], None],
     t: datetime,
     environ: Mapping[str, str] | None,
     client: lc.LiveClient | None,
     resolver: NameResolver | None,
-    sleep: Callable[[float], None] | None,
+    sleep: Callable[[float], None],
     http_get: Callable[..., Any] | None,
     clock: Callable[[], datetime] | None,
 ) -> None:
     wall = clock or (lambda: datetime.now(UTC))
-    cli = client
-    res = resolver
+    store = _Store(lcfg, pc)
+    state: dict[str, Any] = {"cli": client, "res": resolver}
     # earliest tip first: the game that tips soonest has the least time left
     for req, game in sorted(work, key=lambda w: (w[1].tipoff, w[0].created_at_utc)):
-        newest = newest_pinnacle(con, [game.game_id], t).get(game.game_id)
-        if newest is not None:
-            age = (t - newest.requested_at).total_seconds() / 60
-            if age <= req.max_age_min:
-                finish(
-                    req,
-                    "done",
-                    f"already fresh: {newest.kind} row {age:.0f} min old; nothing spent",
-                )
-                continue
-        day_games = slate_games(req.slate_date)
-        per_game, od_credits = _ondemand_usage(con, [g.game_id for g in day_games], game.game_id)
-        if per_game >= pc.ondemand_max_per_game:
-            finish(req, "refused_budget", f"per-game cap: {per_game} on-demand pulls today")
-            continue
-        if pc.ondemand_daily_credit_cap and od_credits >= pc.ondemand_daily_credit_cap:
-            finish(
-                req, "refused_budget", f"on-demand credit cap {pc.ondemand_daily_credit_cap} used"
-            )
-            continue
-        if cli is None:
-            try:
-                cli = lc.LiveClient(
-                    lcfg, environ=environ, sleep=sleep or time.sleep, http_get=http_get,
-                    day=wall().astimezone(lc.ET).date(),
-                )  # fmt: skip
-            except HistoryError as exc:  # key missing / bad config
-                finish(req, "failed", f"{type(exc).__name__}: {redact(str(exc))}")
-                continue
-        if res is None:
-            res = default_resolver()
-        done_closes = lc.done_games(con, "close", lcfg.max_attempts_per_game)
-        outstanding = sum(1 for g in day_games if g.tipoff > t and g.game_id not in done_closes)
-        ok, why = ondemand_allowed(
-            cap=lcfg.daily_max_credits,
-            spent_today=cli.ledger.spent(),
-            call_cost=lcfg.expected_cost(),
-            outstanding_closes=max(
-                outstanding, 1
-            ),  # this game's own close, even if the tip list lags
-            close_slots=pc.close_slots_reserved,
-            server_remaining=cli.ledger.server_remaining(),
-            server_floor=lcfg.min_server_remaining,
-        )
-        if not ok:
-            finish(req, "refused_budget", why)
-            continue
-        kind = _next_kind(con, game.game_id)
-        cli.request_id = req.request_id
-        sub = lc.LiveReport(slate=req.slate_date, kind=kind)
         try:
-            lc._pull_all(sub, con, cli, res, [game], req.slate_date, kind, lcfg, wall)
-        except HistoryError as exc:
-            finish(req, "failed", f"{type(exc).__name__}: {redact(str(exc))}")
-            continue
+            _serve_one(
+                rep, pc, lcfg, store, state, req, game, slate_games, finish, t, environ, sleep,
+                http_get, wall,
+            )  # fmt: skip
+        except (duckdb.Error, OSError) as exc:
+            rep.messages.append(f"market store busy ({type(exc).__name__}); requests stay open")
+            break  # the next tick retries; need_by expires them if it never frees
         finally:
-            cli.request_id = None
-        rep.credits += sub.credits
-        rep.messages.extend(redact(m) for m in sub.messages)
-        _settle(finish, req, game, sub, kind, con)
+            store.release()
+
+
+def _serve_one(
+    rep: TickReport,
+    pc: PullsConfig,
+    lcfg: lc.LiveConfig,
+    store: _Store,
+    state: dict[str, Any],
+    req: PullRequest,
+    game: lc.LiveGame,
+    slate_games: Callable[[date], list[lc.LiveGame] | None],
+    finish: Callable[[PullRequest, str, str], None],
+    t: datetime,
+    environ: Mapping[str, str] | None,
+    sleep: Callable[[float], None],
+    http_get: Callable[..., Any] | None,
+    wall: Callable[[], datetime],
+) -> None:
+    """Serve one request, or leave it open on purpose (a game inside its close window)."""
+    day_games = slate_games(req.slate_date) or [game]
+    now_w = utc_naive(wall())
+    # the close of any game inside its window keeps the lineups job's write slot and the ledger
+    if any(0 <= (g.tipoff - now_w).total_seconds() / 60 <= pc.close_guard_min for g in day_games):
+        rep.messages.append(
+            f"{req.request_id}: a game is within {pc.close_guard_min:g} min of tip; on-demand waits"
+        )
+        return
+    ok, why = monthly_plan_ok(lcfg, pc)
+    if not ok:
+        finish(req, "refused_budget", why)
+        return
+    newest = newest_pinnacle(store.get(), [game.game_id], t).get(game.game_id)
+    if newest is not None:
+        age = (t - newest.requested_at).total_seconds() / 60
+        if age <= req.max_age_min:
+            finish(
+                req, "done", f"already fresh: {newest.kind} row {age:.0f} min old; nothing spent"
+            )
+            return
+    per_game, od_credits = _ondemand_usage(
+        store.get(), [g.game_id for g in day_games], game.game_id
+    )
+    if per_game >= pc.ondemand_max_per_game:
+        finish(req, "refused_budget", f"per-game cap: {per_game} on-demand pulls today")
+        return
+    if pc.ondemand_daily_credit_cap and od_credits >= pc.ondemand_daily_credit_cap:
+        finish(req, "refused_budget", f"on-demand credit cap {pc.ondemand_daily_credit_cap} used")
+        return
+    cli = state["cli"]
+    if cli is None:
+        try:
+            cli = _HookedClient(
+                lcfg, environ=environ, sleep=sleep, http_get=http_get,
+                day=wall().astimezone(lc.ET).date(),
+            )  # fmt: skip
+        except HistoryError as exc:  # key missing / bad config
+            finish(req, "failed", f"{type(exc).__name__}: {redact(str(exc))}")
+            return
+        state["cli"] = cli
+    if isinstance(cli, _HookedClient):
+        cli.before_network = store.release
+    if state["res"] is None:
+        state["res"] = default_resolver()
+    done_closes = lc.done_games(store.get(), "close", lcfg.max_attempts_per_game)
+    outstanding = sum(1 for g in day_games if g.tipoff > t and g.game_id not in done_closes)
+    ok, why = ondemand_allowed(
+        cap=lcfg.daily_max_credits,
+        spent_today=cli.ledger.spent(),
+        call_cost=lcfg.expected_cost(),
+        outstanding_closes=max(outstanding, 1),  # this game's own close, even if the tip list lags
+        close_slots=pc.close_slots_reserved,
+        server_remaining=cli.ledger.server_remaining(),
+        server_floor=lcfg.min_server_remaining,
+    )
+    if not ok:
+        finish(req, "refused_budget", why)
+        return
+    kind = _next_kind(store.get(), game.game_id)
+    cli.request_id = req.request_id
+    sub = lc.LiveReport(slate=req.slate_date, kind=kind)
+    try:
+        lc._pull_all(sub, store, cli, state["res"], [game], req.slate_date, kind, lcfg, wall)  # type: ignore[arg-type]
+    except HistoryError as exc:
+        finish(req, "failed", f"{type(exc).__name__}: {redact(str(exc))}")
+        return
+    finally:
+        cli.request_id = None
+    rep.credits += sub.credits
+    rep.messages.extend(redact(m) for m in sub.messages)
+    _settle(finish, req, game, sub, kind, store)
 
 
 def _settle(
@@ -313,7 +438,7 @@ def _settle(
     game: lc.LiveGame,
     sub: lc.LiveReport,
     kind: str,
-    con: duckdb.DuckDBPyConnection,
+    con: Any,
 ) -> None:
     s = sub.statuses
     tag = f"{kind}, {sub.credits} credits"

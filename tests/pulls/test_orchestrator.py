@@ -159,7 +159,9 @@ def test_response_arriving_after_tip_is_refused_by_the_existing_check(
     ticks = iter(
         [now, now + timedelta(seconds=2), now + timedelta(seconds=90)]
     )  # client day, request, reply after tip
-    rep = run_tick(now, pcfg, lcfg, store, FakeHttp(), clock=lambda: next(ticks))
+    rep = run_tick(
+        now, replace(pcfg, close_guard_min=0), lcfg, store, FakeHttp(), clock=lambda: next(ticks)
+    )
     assert rep.statuses["refused_post_tip"] == 1
     assert market_rows(lcfg, "SELECT count(*) FROM live_book_odds") == [(0,)]
 

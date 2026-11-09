@@ -9,7 +9,7 @@
   Every 2 minutes it serves open pull requests (JARVIS files one when an alert's Pinnacle reference is stale) with one per-event
   Pinnacle pull each. Idle (no request) it exits in about a second with no network. OFF unless NBA_CLOSE_CAPTURE=1 (environment or a
   line in .env), the same gate as the scheduled capture. Read-only: public GETs only; THE_ODDS_API_KEY comes from .env through
-  `uv run --env-file`, never from this file. No nba.duckdb, no data/ops/lock, no heavy.lock. Own lock data/ops/pulls_lock, heartbeat
+  `uv run --env-file`, never from this file. Never writes nba.duckdb (read-only for schedule teams), no data/ops/lock, no heavy.lock. Own lock data/ops/pulls_lock, heartbeat
   data/ops/heartbeat/pulls.json, ALERTS.md lines tagged [pulls].
   Launched through uv (never /bin/sh directly: TCC blocks sh from reading ~/Downloads).
 -->

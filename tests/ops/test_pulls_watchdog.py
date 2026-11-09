@@ -132,3 +132,26 @@ def test_a_crashing_pulls_probe_never_takes_the_rest_down(tmp_path: Path) -> Non
     )  # fmt: skip
     keys = [a.key for a in alerts]
     assert "gameday:2026-10-21:probe-pulls" in keys and "gameday:2026-10-21:battery" in keys
+
+
+def test_pinnacle_rule_is_skipped_when_the_hourly_kinds_are_not_scheduled(tmp_path: Path) -> None:
+    ops = tmp_path / "ops"
+    _market(ops, [("G1", _naive_utc(NOW - timedelta(minutes=80)), "t240")])
+    assert len(pulls_problems(PC, ops, NOW, {"G1": _utc(2.5)})) == 1
+    assert pulls_problems(PC, ops, NOW, {"G1": _utc(2.5)}, check_pinnacle=False) == []
+
+
+def test_pulls_alive_needs_enabled_a_fresh_beat_and_not_gated_off(tmp_path: Path) -> None:
+    from nba.pulls.freshness import pulls_alive
+
+    ops = tmp_path / "ops"
+    cfg = PullsConfig(requests_db=ops / "pulls.duckdb")
+    assert pulls_alive(cfg, NOW)[0] is False  # no heartbeat
+    _beat(ops, NOW - timedelta(minutes=3))
+    assert pulls_alive(cfg, NOW) == (True, "")
+    assert (
+        pulls_alive(cfg, NOW.replace(tzinfo=None) + timedelta(hours=9))[0] is False
+    )  # naive = UTC
+    assert (
+        pulls_alive(PullsConfig(enabled=False, requests_db=ops / "pulls.duckdb"), NOW)[0] is False
+    )

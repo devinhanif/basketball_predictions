@@ -23,6 +23,8 @@ class PullsConfig:
     close_slots_reserved: int = 1
     ondemand_max_per_game: int = 4
     ondemand_daily_credit_cap: int = 20000
+    close_guard_min: float = 10.0
+    slate_prefetch_lead_min: float = 15.0
     interval_s: int = 120
     store_retries: int = 3
     store_wait_s: float = 2.0
@@ -55,7 +57,9 @@ def load_pulls_config(path: Path | None = None) -> PullsConfig:
         upd["enabled"] = bool(raw["enabled"]) is True
     if (raw.get("paths") or {}).get("requests_db"):
         upd["requests_db"] = _p(raw["paths"]["requests_db"])
-    fr, bu, tk, wd = (raw.get(k) or {} for k in ("freshness", "budget", "tick", "watchdog"))
+    fr, bu, tk, wd, sl = (
+        raw.get(k) or {} for k in ("freshness", "budget", "tick", "watchdog", "slate")
+    )
     for key, src, cast in (
         ("pinnacle_alert_max_age_min", fr, float),
         ("request_need_by_min", fr, float),
@@ -63,9 +67,11 @@ def load_pulls_config(path: Path | None = None) -> PullsConfig:
         ("close_slots_reserved", bu, int),
         ("ondemand_max_per_game", bu, int),
         ("ondemand_daily_credit_cap", bu, int),
+        ("close_guard_min", bu, float),
         ("interval_s", tk, int),
         ("store_retries", tk, int),
         ("store_wait_s", tk, float),
+        ("slate_prefetch_lead_min", sl, float),
     ):
         if key in src:
             upd[key] = cast(src[key])

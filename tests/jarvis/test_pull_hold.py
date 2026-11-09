@@ -5,8 +5,9 @@ behaviour. Tmp stores and fakes only."""
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -31,9 +32,20 @@ def pcfg(tmp_path: Path) -> PullsConfig:
     )
 
 
+def beat(pcfg: PullsConfig, ended: datetime, detail: str = "tick ended") -> None:
+    """The pulls job's heartbeat (what ops/nba_pulls.sh writes), ``ended`` naive UTC."""
+    hb = pcfg.ops_dir / "heartbeat"
+    hb.mkdir(parents=True, exist_ok=True)
+    stamp = ended.replace(tzinfo=UTC).isoformat()
+    (hb / "pulls.json").write_text(
+        json.dumps({"job": "pulls", "start_ts": stamp, "end_ts": stamp, "rc": 0, "detail": detail})
+    )
+
+
 @pytest.fixture
 def hold_rt(rt: Runtime, pcfg: PullsConfig) -> Runtime:
     rt.pulls_cfg = pcfg
+    beat(pcfg, NOW - timedelta(minutes=1))  # the orchestrator is alive
     assert rt.cfg.pulls["hold_stale_alerts"] is True  # the shipped config turns it on
     return rt
 
@@ -138,14 +150,13 @@ def test_dry_run_reports_the_hold_and_writes_nothing(
     assert not pcfg.requests_db.exists() and not hold_rt.book.path.exists() and sent.texts == []
 
 
-def test_a_broken_request_store_still_holds_the_stale_alert(hold_rt: Runtime, sent: Sent) -> None:
+def test_a_broken_request_store_releases_the_alert(hold_rt: Runtime, sent: Sent) -> None:
     def boom(**_kw: object) -> None:
         raise OSError("disk")
 
     hold_rt.pull_requester = boom
-    rep = run_tick(hold_rt, SLATE)
-    assert rep["alerts"] == [] and rep["held"][0]["request"] == "request failed (OSError)"
-    assert not any("ALERT" in t for t in sent.texts)
+    rep = run_tick(hold_rt, SLATE)  # nothing can serve a request: send as before
+    assert len(rep["alerts"]) == 1 and "held" not in rep
 
 
 def test_an_alert_without_a_pinnacle_reference_is_never_held(

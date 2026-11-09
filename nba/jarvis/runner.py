@@ -40,6 +40,7 @@ from nba.jarvis.knowledge import Knowledge
 from nba.jarvis.live import feed_age_min, latest_scoreboard
 from nba.jarvis.models import Play
 from nba.jarvis.posts import halftime_lines, recap_lines, todays_rows
+from nba.jarvis.pullhold import Gate, open_gate
 from nba.jarvis.sinks import make_sinks
 from nba.jarvis.slate import (
     ModelLike,
@@ -53,7 +54,6 @@ from nba.jarvis.sources import describe_store_busy, et_hour
 from nba.jarvis.weights import render_changes, update_weights
 from nba.parlay.assistant.backend import LLMBackend
 from nba.pulls.config import PullsConfig, load_pulls_config
-from nba.pulls.store import request_pull
 
 log = logging.getLogger("nba.jarvis.runner")
 
@@ -84,6 +84,7 @@ class Runtime:
     report: dict[str, Any] = field(default_factory=dict)
     pulls_cfg: PullsConfig | None = None  # tests; default configs/pulls.yaml
     pull_requester: Callable[..., Any] | None = None  # tests; default nba.pulls.store.request_pull
+    pulls_loaded: bool = False  # configs/pulls.yaml is read once per Runtime (a bad file = no gate)
 
     def send(self, text: str) -> SendResult:
         """Deliver one message. With the real sinks each is deduped on its own (a sink that already
@@ -217,12 +218,16 @@ def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any
     if not rt.dry_run:
         latch_kill_switch(rt.cfg, rt.book, slate, now)
     plays = plan_slate(rt.cfg, st, rt.book)
+    n_planned = len(plays)
+    plays, held_line, n_held = _hold_for_preview(rt, plays, slate, now)
     rep: dict[str, Any] = {
         "slate": str(slate),
         "games": len(st.games),
-        "plays": len(plays),
+        "plays": n_planned,
         "notes": st.notes,
     }
+    if n_held:
+        rep["slate_held"] = n_held
     tips = sorted(g.tipoff for g in st.games if g.tipoff is not None and g.tipoff > now)
     first_tip = tips[0] if tips else None
     if not force and not rt.dry_run and rt.book.slate_summary_sent(slate):
@@ -238,14 +243,17 @@ def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any
     ordered = sorted(plays, key=rank_key, reverse=True)
     dd_play, dd_why = _daily_dollar(rt, st, slate)
     extra = dailydollar.lines(dd_play, dd_why) if rt.cfg.daily_dollar.get("enabled", True) else []
+    if held_line:
+        extra = [*extra, held_line]
     for p in ordered:  # the plays this post carries count as announced for alert dedupe
         if supports_alert(rt.cfg, p) and not rt.dry_run:
             rt.book.note_alert(p.key, slate, p.edge_cents, now)
     texts = R.slate_texts(
         rt.cfg, ordered, top_text,
         date_label=slate.strftime("%a %-m/%-d"), first_tip=first_tip, n_games=len(st.games),
-        extra_lines=extra,
+        extra_lines=extra, plays_held=bool(n_held),
     )  # fmt: skip
+    rep["announced_keys"] = [p.key for p in ordered]
     rep["texts"] = texts
     rep["explanation_source"] = src
     rep["daily_dollar"] = None if dd_play is None else dd_play.key
@@ -322,11 +330,22 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         wanted = rt.book.open_tickers(slate)
         rep["quotes_logged"] = rt.book.log_quotes(q for q in st.quotes if q.ticker in wanted)
     sent_keys: set[str] = set()
+    if not rt.dry_run and rt.book.slate_summary_sent(slate):
+        pre = None
+    else:
+        pre = _prefetch_slate(rt, st, slate, now)
+    if pre is not None:
+        rep["prefetch"] = pre
     if slate_due(rt, st) and (rt.dry_run or not rt.book.slate_summary_sent(slate)):
         sl = run_slate(rt, slate, force=True)
         rep["slate_send"] = sl.get("send")
+        if sl.get("slate_held"):
+            rep["slate_held"] = sl["slate_held"]
         if sl.get("send", {}).get("ok"):
-            sent_keys = {p.key for p in plays}
+            sent_keys = set(sl.get("announced_keys", [p.key for p in plays]))
+    n_lead = _lead_capped_after_hold(rt, plays, slate, now)
+    if n_lead:
+        rep["lead_capped_after_hold"] = n_lead
     for p in plays:
         if p.key in sent_keys or not supports_alert(rt.cfg, p):
             continue
@@ -363,53 +382,176 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
     return rep
 
 
+def _pulls_config(rt: Runtime) -> PullsConfig | None:
+    """configs/pulls.yaml, loaded once per Runtime. A bad file is logged and means "no gate": JARVIS
+    sends as before (a pulls config error must never stop the watch loop)."""
+    if rt.pulls_cfg is not None:
+        return rt.pulls_cfg
+    if not rt.pulls_loaded:
+        rt.pulls_loaded = True
+        try:
+            rt.pulls_cfg = load_pulls_config()
+        except Exception as exc:  # noqa: BLE001 - fail open
+            log.warning("configs/pulls.yaml unusable (%s); sending as before", type(exc).__name__)
+    return rt.pulls_cfg
+
+
+def _gate(rt: Runtime, now: datetime, flag: str) -> Gate | None:
+    """The pull gate for ``pulls.<flag>``, or ``None`` = send as before (flag off, orchestrator
+    disabled or not alive, config or store unreadable)."""
+    try:
+        if not bool(rt.cfg.pulls.get(flag, False)):
+            return None
+        return open_gate(True, _pulls_config(rt), now)
+    except Exception as exc:  # noqa: BLE001 - fail open
+        log.warning("pull gate unavailable (%s); sending as before", type(exc).__name__)
+        return None
+
+
 def _hold_stale_reference(
     rt: Runtime, p: Play, slate: date, now: datetime
 ) -> dict[str, Any] | None:
-    """Hold an alert whose Pinnacle reference is older than ``pulls.pinnacle_alert_max_age_min`` and
-    file ONE deduped pull request for that game (docs/DESIGN_PULL_ORCHESTRATOR.md). Returns the log
-    record of the hold, or ``None`` (send as before). Touches no label, edge or stake: it only
-    decides
-    whether a play that already passed ``supports_alert`` is sent on THIS tick; the next tick prices
-    it again with whatever reference exists then. Off unless ``pulls.hold_stale_alerts`` is true."""
-    if not bool(rt.cfg.pulls.get("hold_stale_alerts", False)) or p.ref_age_min is None:
+    """Hold an alert whose Pinnacle reference is older than the pull rule and file ONE deduped pull
+    request for that game (docs/DESIGN_PULL_ORCHESTRATOR.md). Returns the log record of the hold, or
+    ``None`` (send as before). Touches no label, edge or stake: it only decides whether a play that
+    already passed ``supports_alert`` is sent on THIS tick; the next tick prices it again with
+    whatever reference exists then. Off unless ``pulls.hold_stale_alerts`` is true, and only while
+    the orchestrator is alive and has not given up on this game (:mod:`nba.jarvis.pullhold`)."""
+    if p.ref_age_min is None:
         return None
-    pc = rt.pulls_cfg or load_pulls_config()
-    if not pc.enabled or p.ref_age_min <= pc.pinnacle_alert_max_age_min:
+    gate = _gate(rt, now, "hold_stale_alerts")
+    if gate is None or p.ref_age_min <= gate.limit:
         return None
     rec: dict[str, Any] = {
         "key": p.key,
         "game_id": p.game_id,
         "ref_age_min": round(p.ref_age_min, 1),
-        "max_age_min": pc.pinnacle_alert_max_age_min,
+        "max_age_min": gate.limit,
         "why": (
-            f"Pinnacle reference {p.ref_age_min:.0f} min old "
-            f"(limit {pc.pinnacle_alert_max_age_min:g}); alert held"
+            f"Pinnacle reference {p.ref_age_min:.0f} min old (limit {gate.limit:g}); alert held"
         ),
     }
-    if rt.dry_run:
-        rec["request"] = "dry run: none filed"
-        return rec
     try:
-        res = (rt.pull_requester or request_pull)(
-            source="pinnacle",
-            scope_game_id=p.game_id,
-            slate_date=slate,
-            requester="jarvis",
-            reason=(
-                f"alert {p.key} needs a Pinnacle reference "
-                f"<= {pc.pinnacle_alert_max_age_min:g} min old"
-            ),
-            max_age_min=pc.pinnacle_alert_max_age_min,
-            now=now,
-            cfg=pc,
+        done = gate.released(p.game_id, slate)
+        if done is not None:
+            log.info("hold released for %s: last pull request %s", p.game_id, done.status)
+            return None
+        if rt.dry_run:
+            rec["request"] = "dry run: none filed"
+            return rec
+        res = gate.request(
+            p.game_id,
+            slate,
+            f"alert {p.key} needs a Pinnacle reference <= {gate.limit:g} min old",
+            rt.pull_requester,
         )
         rec["request_id"] = res.request.request_id
         rec["request"] = "filed" if res.created else f"already {res.request.status}"
-    except Exception as exc:  # noqa: BLE001 - a broken request store still holds the stale alert
-        log.warning("pull request failed (%s); alert held anyway", type(exc).__name__)
-        rec["request"] = f"request failed ({type(exc).__name__})"
+    except Exception as exc:  # noqa: BLE001 - a broken request store cannot serve anything: release
+        log.warning("pull request failed (%s); sending as before", type(exc).__name__)
+        return None
     return rec
+
+
+def _hold_for_preview(
+    rt: Runtime, plays: list[Play], slate: date, now: datetime
+) -> tuple[list[Play], str | None, int]:
+    """The slate preview without the plays priced on a stale sharp line.
+
+    Returns ``(plays to post, the one summary line or None, number held)``. A play is left out when
+    its Pinnacle reference is older than the pull rule, the orchestrator is alive and the game's
+    request has not ended without data. Labels, edges and stakes of the rest are untouched."""
+    gate = _gate(rt, now, "hold_stale_slate")
+    if gate is None:
+        return plays, None, 0
+    kept: list[Play] = []
+    held: list[Play] = []
+    try:
+        for p in plays:
+            stale = p.ref_age_min is not None and p.ref_age_min > gate.limit
+            if stale and gate.released(p.game_id, slate) is None:
+                held.append(p)
+            else:
+                kept.append(p)
+    except Exception as exc:  # noqa: BLE001 - fail open
+        log.warning("preview hold unavailable (%s); sending as before", type(exc).__name__)
+        return plays, None, 0
+    if not held:
+        return plays, None, 0
+    oldest = max(p.ref_age_min or 0.0 for p in held)
+    return (
+        kept,
+        f"{len(held)} plays held: sharp price not refreshed (oldest {oldest:.0f} min)",
+        len(held),
+    )
+
+
+def _prefetch_slate(
+    rt: Runtime, st: SlateState, slate: date, now: datetime
+) -> dict[str, Any] | None:
+    """Ahead of the slate preview (lead in configs/pulls.yaml), file one deduped Pinnacle request
+    for every unplayed game whose newest Pinnacle row is older than the rule, so the preview prices
+    fresh lines. Window: after the preview opens minus the lead, before it opens."""
+    gate = _gate(rt, now, "hold_stale_slate")
+    if gate is None:
+        return None
+    try:
+        tips = sorted(g.tipoff for g in st.games if g.tipoff is not None and g.tipoff > now)
+        if not tips:
+            return None
+        remaining = (tips[0] - now).total_seconds() / 60.0
+        opens_at = rt.cfg.slate_lead_min + 2
+        if not opens_at < remaining <= opens_at + gate.pc.slate_prefetch_lead_min:
+            return None
+        newest: dict[str, datetime] = {}
+        for (gid, _tid), r in st.refs.win.items():
+            newest[gid] = max(newest.get(gid, r.ts), r.ts)
+        for (gid, *_rest), r in st.refs.prop.items():
+            newest[gid] = max(newest.get(gid, r.ts), r.ts)
+        out: dict[str, Any] = {"filed": [], "existing": [], "dry_run": rt.dry_run}
+        for g in st.games:
+            if g.tipoff is None or g.tipoff <= now:
+                continue
+            ts = newest.get(g.game_id)
+            if ts is not None and (now - ts).total_seconds() / 60.0 <= gate.limit:
+                continue
+            if rt.dry_run:
+                out["filed"].append(g.game_id)
+                continue
+            res = gate.request(
+                g.game_id,
+                slate,
+                f"slate preview in ~{remaining - opens_at:.0f} min needs a fresh Pinnacle line",
+                rt.pull_requester,
+            )
+            out["filed" if res.created else "existing"].append(g.game_id)
+        return out
+    except Exception as exc:  # noqa: BLE001 - fail open
+        log.warning("slate prefetch failed (%s)", type(exc).__name__)
+        return None
+
+
+def _lead_capped_after_hold(rt: Runtime, plays: list[Play], slate: date, now: datetime) -> int:
+    """Plays priced ``thin`` only because Pinnacle is newer than the Kalshi snapshot
+    (``max_ref_lead_min``) for a game whose pull we requested: the rule is unchanged, this counts
+    how often a refresh runs into it (measured over three nights)."""
+    capped = [p for p in plays if any("min newer than this price" in n for n in p.notes)]
+    if not capped:
+        return 0
+    gate = _gate(rt, now, "hold_stale_slate") or _gate(rt, now, "hold_stale_alerts")
+    if gate is None:
+        return 0
+    try:
+        n = sum(
+            1
+            for p in capped
+            if gate.store.latest_for_game("pinnacle", p.game_id, slate) is not None
+        )
+    except Exception:  # noqa: BLE001 - a counter never breaks the tick
+        return 0
+    if n:
+        log.info("lead cap after a pull request: %d play(s) capped at thin", n)
+    return n
 
 
 def tick_line(rep: dict[str, Any]) -> str:
@@ -431,6 +573,13 @@ def tick_line(rep: dict[str, Any]) -> str:
         flags.append(f"ingame_error={ig[0].get('error')}")
     if rep.get("held"):
         flags.append(f"held_stale_ref={len(rep['held'])}")
+    if rep.get("slate_held"):
+        flags.append(f"slate_held={rep['slate_held']}")
+    pf = rep.get("prefetch")
+    if pf and (pf.get("filed") or pf.get("existing")):
+        flags.append(f"prefetch={len(pf['filed'])}new/{len(pf['existing'])}open")
+    if rep.get("lead_capped_after_hold"):
+        flags.append(f"lead_capped_after_hold={rep['lead_capped_after_hold']}")
     hs = rep.get("ht_scorer")
     if hs:
         flags.append(f"ht_scored={hs['stored']}rows/{hs['games']}games")

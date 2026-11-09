@@ -19,7 +19,12 @@ budget:
   # The server floor (min_server_remaining) is held back by the same reserve.
   close_slots_reserved: 1             # close pulls kept in reserve per remaining game
   ondemand_max_per_game: 4            # on-demand pulls per game per day
+  close_guard_min: 10                 # no on-demand pull while any slate game is this close to tip (its close owns the
+                                      # market-store write slot and the ledger); requests stay open
   ondemand_daily_credit_cap: 20000    # on-demand credits per ET day (about 75 calls at 267 credits); 0 = no extra cap
+
+slate:                                # the slate preview path (JARVIS, docs/DESIGN_PULL_ORCHESTRATOR.md)
+  prefetch_lead_min: 15               # starting this long before the preview window, JARVIS files one request per stale game
 
 tick:
   interval_s: 120                     # launchd StartInterval (ops/launchd/local.nba.pulls.plist)

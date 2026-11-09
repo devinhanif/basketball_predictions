@@ -84,7 +84,9 @@ class JarvisConfig:
     # pull orchestrator (configs/pulls.yaml): hold_stale_alerts = hold an alert whose Pinnacle
     # reference is older than pulls.pinnacle_alert_max_age_min and file a pull request instead
     # (DECISIONS 2026-11-08 21:06)
-    pulls: dict[str, Any] = field(default_factory=lambda: {"hold_stale_alerts": False})
+    pulls: dict[str, Any] = field(
+        default_factory=lambda: {"hold_stale_alerts": False, "hold_stale_slate": False}
+    )
 
     def props_sides_for(self, venue: str | None) -> tuple[str, ...]:
         """Sides a player prop may be bought on at ``venue`` (``None``: the global default)."""
@@ -249,7 +251,7 @@ def load_config(
         props_sides=props_default,
         props_by_venue=props_venue,
         halftime_overs=dict(raw.get("halftime_overs", {"enabled": False})),
-        pulls=dict(raw.get("pulls", {"hold_stale_alerts": False})),
+        pulls=dict(raw.get("pulls", {"hold_stale_alerts": False, "hold_stale_slate": False})),
     )
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]
     if missing:

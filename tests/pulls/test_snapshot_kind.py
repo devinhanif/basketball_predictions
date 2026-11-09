@@ -85,13 +85,23 @@ def test_scorecard_close_wins_over_a_later_labelled_ondemand() -> None:
     assert book[("G1", 7, "pts")]["kind"] == "close"
 
 
-def test_scorecard_without_a_close_labels_ondemand_as_latest_pre_tip_never_close() -> None:
+def test_scorecard_fallback_ignores_ondemand_rows() -> None:
+    """Without a close the benchmark falls back to the latest scheduled snapshot, never JARVIS's pulls."""
     con = _lines_db()
     con.execute("DELETE FROM live_book_odds WHERE snapshot_kind = 'close'")
     out = scorecard.load_closing_lines(con, ["G1"], DAY)
-    assert out[("G1", 7, "pts")]["kind"] == "latest_pre_tip"
+    row = out[("G1", 7, "pts")]
+    assert (
+        row["kind"] == "latest_pre_tip" and abs(row["p_over_raw"] - 110 / 210) < 1e-9
+    )  # the t60 price
     book = scorecard.load_book_lines(con, ["G1"], DAY, "pinnacle")
     assert book[("G1", 7, "pts")]["kind"] == "latest_pre_tip"
+    assert abs(book[("G1", 7, "pts")]["p_over_raw"] - 110 / 210) < 1e-9
+    con.execute("DELETE FROM live_book_odds WHERE snapshot_kind = 't60'")
+    assert (
+        scorecard.load_closing_lines(con, ["G1"], DAY) == {}
+    )  # only an ondemand row: no line at all
+    assert scorecard.load_book_lines(con, ["G1"], DAY, "pinnacle") == {}
 
 
 def test_freshness_takes_the_newest_row_of_any_kind() -> None:

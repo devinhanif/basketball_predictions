@@ -7,7 +7,7 @@
 # Read-only w.r.t. markets (GET only); no orders, no credentials in this file. The key is passed to python by
 # `uv run --env-file .env` (THE_ODDS_API_KEY), never read or echoed here. OFF unless NBA_CLOSE_CAPTURE=1, in the
 # environment or as a line in $ROOT/.env: the same gate as the scheduled capture in ops/nba_lineups.sh.
-# Takes NEITHER data/ops/lock NOR data/ops/heavy.lock and never opens nba.duckdb. Own lock: data/ops/pulls_lock
+# Takes NEITHER data/ops/lock NOR data/ops/heavy.lock and never WRITES nba.duckdb (read-only for schedule teams). Own lock: data/ops/pulls_lock
 # (owner pid inside; a dead owner is cleared at once, a live one is never stolen). Own heartbeat:
 # data/ops/heartbeat/pulls.json (judged by nba.ops.watchdog). A non-zero tick appends a line to data/ops/ALERTS.md.
 set -u

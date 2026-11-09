@@ -720,10 +720,15 @@ def evaluate_game_day(
 
 
 def pulls_problems_default(ops_dir: Path, now: datetime, tips: dict[str, datetime]) -> list[str]:
+    from nba.odds.live_close import load_live_config
     from nba.pulls.config import load_pulls_config
     from nba.pulls.freshness import pulls_problems
 
-    return pulls_problems(load_pulls_config(), ops_dir, now, tips)
+    # the 60-minute rule leans on the hourly kinds (t240..t480, `extended`); without them it would
+    # alarm on most games, so it is skipped rather than guessed at. Playoff ids (004/005) are out of
+    # REGULAR_SEASON_PREFIX, so the check is silent then too.
+    hourly = any(e.kind == "t240" for e in load_live_config().active_schedule())
+    return pulls_problems(load_pulls_config(), ops_dir, now, tips, check_pinnacle=hourly)
 
 
 def live_capture_problem(

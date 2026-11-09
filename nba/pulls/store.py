@@ -209,6 +209,15 @@ class PullStore:
             where + " ORDER BY need_by_utc, created_at_utc", [source] if source else []
         )
 
+    def latest_for_game(self, source: str, game_id: str, slate_date: date) -> PullRequest | None:
+        """The newest request (any status) for the game on that slate, or ``None``."""
+        rows = self._select(
+            "WHERE source = ? AND scope_game_id = ? AND slate_date = ? "
+            "ORDER BY created_at_utc DESC LIMIT 1",
+            [source, game_id, slate_date],
+        )
+        return rows[0] if rows else None
+
     def list_requests(
         self, *, since: datetime | None = None, status: str | None = None, limit: int = 200
     ) -> list[PullRequest]:

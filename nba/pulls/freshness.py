@@ -13,7 +13,7 @@ import json
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -104,7 +104,7 @@ def freshness_view(
 # --------------------------------------------------------------------------------- watchdog
 
 
-def _beat_time(hb: object) -> datetime | None:
+def beat_time(hb: object) -> datetime | None:
     if not isinstance(hb, dict):
         return None
     stamps = []
@@ -121,12 +121,36 @@ def _beat_time(hb: object) -> datetime | None:
     return best
 
 
+def pulls_alive(cfg: PullsConfig, now: datetime) -> tuple[bool, str]:
+    """Is the orchestrator job running? Enabled in ``configs/pulls.yaml``, a heartbeat no older than
+    ``wd_heartbeat_max_age_min``, and not the "disabled" beat the script writes with the env gate off.
+    JARVIS holds a play only while this is true: a hold nobody can serve is a silent outage."""
+    if not cfg.enabled:
+        return False, "disabled in configs/pulls.yaml"
+    path = cfg.ops_dir / "heartbeat" / f"{HEARTBEAT_NAME}.json"
+    try:
+        hb = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return False, "no pulls heartbeat"
+    beat = beat_time(hb)
+    if beat is None:
+        return False, "pulls heartbeat unreadable"
+    if "disabled" in str(hb.get("detail", "")):
+        return False, "pulls job is gated off (NBA_CLOSE_CAPTURE != 1)"
+    n = now if now.tzinfo else now.replace(tzinfo=UTC)
+    age = (n - beat).total_seconds() / 60
+    if age > cfg.wd_heartbeat_max_age_min:
+        return False, f"pulls heartbeat {age:.0f} min old"
+    return True, ""
+
+
 def pulls_problems(
     cfg: PullsConfig,
     ops_dir: Path,
     now: datetime,
     tips: dict[str, datetime],
     market_db: Path | None = None,
+    check_pinnacle: bool = True,
 ) -> list[str]:
     """Game-day problems for ``nba.ops.watchdog`` (empty = fine or unknowable).
 
@@ -142,7 +166,7 @@ def pulls_problems(
         g: t for g, t in tips.items() if 0 < (t - now).total_seconds() <= cfg.wd_window_h * 3600
     }
     mdb = market_db or ops_dir.parent / "markets" / "market_asof.duckdb"
-    if soon:
+    if soon and check_pinnacle:
         newest = newest_pinnacle_ro(mdb, list(soon), now)
         if newest is not None:
             limit = cfg.wd_warn_pinnacle_age_min + cfg.wd_warn_grace_min
@@ -166,7 +190,7 @@ def pulls_problems(
         hb = json.loads(path.read_text())
     except (OSError, ValueError):
         hb = None
-    beat = _beat_time(hb)
+    beat = beat_time(hb)
     if hb is not None and beat is not None:
         age_min = (now - beat).total_seconds() / 60
         if age_min > cfg.wd_heartbeat_max_age_min:
