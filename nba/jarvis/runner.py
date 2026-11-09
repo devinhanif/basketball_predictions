@@ -121,6 +121,18 @@ def supports_alert(cfg: JarvisConfig, p: Play) -> bool:
     return e >= cfg.strong_cents
 
 
+def _late_lines(rt: Runtime, plays: list[Play], now: datetime) -> list[Play]:
+    """Display-only "latest report" lines (nba.jarvis.late_report); plays unchanged otherwise.
+    Never raises: the import and the config/knowledge-base lookups sit inside the guard too, so a
+    broken module or a missing key cannot take a tick down (the 10-28 every-tick crash shape)."""
+    try:
+        from nba.jarvis.late_report import annotate
+
+        return annotate(plays, rt.cfg.paths["nba_db"], rt.kb.name, now)
+    except Exception:
+        return plays
+
+
 def build_state(rt: Runtime, slate: date) -> SlateState:
     model = rt.model_factory(slate) if rt.model_factory else None
     return gather(
@@ -212,7 +224,7 @@ def run_slate(rt: Runtime, slate: date, *, force: bool = False) -> dict[str, Any
     st = build_state(rt, slate)
     if not rt.dry_run:
         latch_kill_switch(rt.cfg, rt.book, slate, now)
-    plays = plan_slate(rt.cfg, st, rt.book)
+    plays = _late_lines(rt, plan_slate(rt.cfg, st, rt.book), now)
     rep: dict[str, Any] = {
         "slate": str(slate),
         "games": len(st.games),
@@ -312,7 +324,7 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
     if not st.games:
         rep["idle"] = "no games"
         return rep
-    plays = plan_slate(rt.cfg, st, rt.book)
+    plays = _late_lines(rt, plan_slate(rt.cfg, st, rt.book), now)
     rep["plays"] = len(plays)
     if not rt.dry_run:
         wanted = rt.book.open_tickers(slate)
