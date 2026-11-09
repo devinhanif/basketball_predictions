@@ -96,7 +96,7 @@ def test_cron_block_matches_launchd_schedule() -> None:
         env={**os.environ, "NBA_ROOT": "/srv/r", "NBA_UV": "/srv/uv"},
     )
     out = res.stdout
-    assert "20,50 9-21 * * * cd /srv/r && sh ops/nba_daily.sh pretip" in out
+    assert "20,50 9-22 * * * cd /srv/r && sh ops/nba_daily.sh pretip" in out
     assert "0 8 * * * cd /srv/r && sh ops/nba_daily.sh morning" in out
     assert "*/5 * * * * cd /srv/r && sh ops/nba_lineups.sh" in out
     assert "*/15 * * * *" in out and "nba.kalshi snapshot" in out
