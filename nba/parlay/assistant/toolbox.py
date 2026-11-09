@@ -384,6 +384,16 @@ class Toolbox:
 
     def _legs_from(self, specs: list[dict[str, Any]], sl: _Slate) -> list[Leg]:
         legs = [self._parse_leg(s, sl) for s in specs]
+        for leg in legs:
+            note = (
+                sl.info.out_on_report.get((leg.game_id, leg.player_id)) if leg.player_id else None
+            )
+            if note is not None:
+                raise ToolError(
+                    f"refused: {self.resolver.display(leg.player_id)} is ruled OUT on the injury "
+                    f"report ({note.as_of:%Y-%m-%d %H:%M} ET); his stored forecast predates it "
+                    "and is not priced"
+                )
         if len(set(legs)) != len(legs):
             raise ToolError("duplicate legs")
         return legs
@@ -554,6 +564,7 @@ class Toolbox:
             "p_ge_if_plays": p_cond,
             "p_play": p_play,
             "p_ge_unconditional_no_refund": p_play * p_cond,
+            "out_on_report": sl.info.out_on_report.get((gid, pid)) is not None,
             "stored_prediction": stored,
             "made_at": sl.made_at.get(keys[0]),
             "routed_to": raw.get("routed_to"),

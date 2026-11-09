@@ -95,7 +95,7 @@ JOBS: tuple[JobSpec, ...] = (
         "slots",
         timedelta(minutes=25),
         minutes=(20, 50),  # keep in step with ops/install_launchd.sh and ops/vm/install_cron.sh
-        hours=tuple(range(9, 22)),
+        hours=tuple(range(9, 23)),
         max_skips=3,
     ),
     JobSpec(

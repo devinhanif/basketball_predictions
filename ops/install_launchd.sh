@@ -1,6 +1,6 @@
 #!/bin/sh
-# Install (or reinstall) the daily pipeline launchd jobs. Times are the Mac's local time (US/Central).
-#   local.nba.daily-pretip   at :20 and :50 of every hour 09-21 (pre-tip predictions + parlay shadow). :20/:50, not
+# Install (or reinstall) the daily pipeline launchd jobs. Times are launchd calendar time: a fixed UTC-4 clock on the dev Mac (docs/DAILY_PIPELINE.md).
+#   local.nba.daily-pretip   at :20 and :50 of every hour 09-22 (pre-tip predictions + parlay shadow). :20/:50, not
 #                            :00/:30, so the newest run before a :00/:30 tip starts >= 70 min ahead and is T-60 eligible
 #   local.nba.daily-morning  08:00 (settle, report, post-game ingest, data snapshot/check, backup)
 #   local.nba.lineups        every 5 min (T-30 lineup collector + shadow run-t30; idle outside game windows)
@@ -46,7 +46,7 @@ EOF
 
 PRETIP="<array>"
 h=9
-while [ $h -le 21 ]; do
+while [ $h -le 22 ]; do
   for m in 20 50; do
     PRETIP="$PRETIP<dict><key>Hour</key><integer>$h</integer><key>Minute</key><integer>$m</integer></dict>"
   done

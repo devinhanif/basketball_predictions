@@ -161,7 +161,7 @@ def test_last_due_slots() -> None:
     pretip = next(s for s in JOBS if s.name == "daily-pretip")
     assert last_due(pretip, NOW).isoformat() == "2026-10-09T14:20:00-05:00"
     early = datetime.fromisoformat("2026-10-09T07:00:00-05:00")
-    assert last_due(pretip, early).isoformat() == "2026-10-08T21:50:00-05:00"
+    assert last_due(pretip, early).isoformat() == "2026-10-08T22:50:00-05:00"
 
 
 CT = ZoneInfo("America/Chicago")
@@ -174,29 +174,29 @@ def test_pretip_slots_are_20_and_50() -> None:
         2026, 10, 20, 14, 20, tzinfo=CT
     )
     assert last_due(PRETIP, datetime(2026, 10, 20, 14, 50, 1, tzinfo=CT)).minute == 50
-    # before the first slot of the day: yesterday's last slot (21:50)
+    # before the first slot of the day: yesterday's last slot (22:50)
     assert last_due(PRETIP, datetime(2026, 10, 20, 8, 0, tzinfo=CT)) == datetime(
-        2026, 10, 19, 21, 50, tzinfo=CT
+        2026, 10, 19, 22, 50, tzinfo=CT
     )
 
 
 def test_last_due_is_dst_correct_across_fall_back() -> None:
-    # 2026-11-01 02:00 CDT -> 01:00 CST. Yesterday's 21:50 slot (Oct 31, CDT = UTC-5) is 1 h
+    # 2026-11-01 02:00 CDT -> 01:00 CST. Yesterday's 22:50 slot (Oct 31, CDT = UTC-5) is 1 h
     # earlier in UTC than a fixed-offset guess built from today's CST offset (UTC-6).
     now = datetime(2026, 11, 1, 8, 5, tzinfo=CT)  # CST
     due = last_due(PRETIP, now)
-    assert due == datetime(2026, 10, 31, 21, 50, tzinfo=CT)
+    assert due == datetime(2026, 10, 31, 22, 50, tzinfo=CT)
     assert due.utcoffset() == timedelta(hours=-5)
     morning = next(s for s in JOBS if s.name == "daily-morning")
     assert last_due(morning, datetime(2026, 11, 1, 7, 59, tzinfo=CT)) == datetime(
         2026, 10, 31, 8, 0, tzinfo=CT
     )
-    # a job that ran at its Oct 31 21:50 CDT slot is NOT stale at 08:05 CST on Nov 1
-    hb = datetime(2026, 10, 31, 21, 50, 30, tzinfo=CT)
+    # a job that ran at its Oct 31 22:50 CDT slot is NOT stale at 08:05 CST on Nov 1
+    hb = datetime(2026, 10, 31, 22, 50, 30, tzinfo=CT)
     assert hb.utcoffset() == timedelta(hours=-5)
     # spring forward mirror: Mar 8 2027 02:00 CST -> CDT
     due2 = last_due(PRETIP, datetime(2027, 3, 8, 8, 5, tzinfo=CT))
-    assert due2 == datetime(2027, 3, 7, 21, 50, tzinfo=CT) and due2.utcoffset() == timedelta(
+    assert due2 == datetime(2027, 3, 7, 22, 50, tzinfo=CT) and due2.utcoffset() == timedelta(
         hours=-6
     )
 
@@ -239,20 +239,20 @@ def test_schedule_tz_env_then_file_then_default(
 
 
 def test_launchd_on_eastern_slots_no_false_stale_after_last_run(tmp_path: Path) -> None:
-    """2026-10-11 incident: launchd fires 'Hour 9..21' on Eastern time while the clock is Central.
-    The last pretip start is 20:50 CDT (= 21:50 ET) and the morning job starts 07:00 CDT (08:00 ET);
+    """2026-10-11 incident: launchd fires 'Hour 9..22' on Eastern time while the clock is Central.
+    The last pretip start is 21:50 CDT (= 22:50 ET) and the morning job starts 07:00 CDT (08:00 ET);
     judged in Central both looked stale every night. Judged in the zone launchd uses, neither is."""
     hb = tmp_path / "hb"
     hb.mkdir()
     for job, mode, start in (
-        ("daily-pretip", "pretip", "2026-10-11T20:50:02-05:00"),
+        ("daily-pretip", "pretip", "2026-10-11T21:50:02-05:00"),
         ("daily-morning", "morning", "2026-10-11T07:00:05-05:00"),
-        ("lineups", "lineups", "2026-10-11T22:55:00-05:00"),
+        ("lineups", "lineups", "2026-10-11T23:15:00-05:00"),
     ):
         (hb / f"{job}.json").write_text(
             json.dumps({"job": job, "mode": mode, "start_ts": start, "end_ts": start, "rc": 0})
         )
-    now = datetime(2026, 10, 11, 22, 18, tzinfo=CT)
+    now = datetime(2026, 10, 11, 23, 20, tzinfo=CT)
     seen = datetime(2026, 10, 9, tzinfo=CT)
     central = {a.key for a in evaluate(now, hb, "", seen, tz=CT)}
     assert {"daily-pretip:stale", "daily-morning:stale"} <= central  # the old false alarms

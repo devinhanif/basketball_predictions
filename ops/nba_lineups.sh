@@ -183,8 +183,11 @@ if "$UV" run --no-sync python -m nba.lineups due --lead-minutes 15 >> "$LOG" 2>&
     log "run-t15 already in progress (another tick); not starting a second"
   else
     T15_LOCK_HELD=$T15_LOCK
+    # --log-late-shadow: the LATE_REPORT shadow (nba.daily.late_report, DECISIONS 2026-11-02) runs in the
+    # same process AFTER the T-15 arm's rows are written, under this lock; its failure is an ALERTS line
+    # and never changes run-t15's rows or exit code. Remove the flag to turn the shadow off.
     NBA_DB_LOCK_WAIT_S=${NBA_T15_DB_LOCK_WAIT_S:-240} \
-      "$UV" run --no-sync python -m nba.daily run-t15 --date "$TODAY_ET" --roster-source "$ROSTER" >> "$LOG" 2>&1
+      "$UV" run --no-sync python -m nba.daily run-t15 --date "$TODAY_ET" --roster-source "$ROSTER" --log-late-shadow >> "$LOG" 2>&1
     rc=$?
     log "run-t15 rc=$rc"
     if [ "$rc" -eq 75 ]; then

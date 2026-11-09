@@ -20,12 +20,14 @@ from typing import Any
 
 import duckdb
 
+from nba.db.connect import attach_read_only_with_retry
 from nba.parlay.__main__ import (
     DEFAULT_MODEL,
     ENGINE_KIND,
     ROOT,
     SingleContract,
     _load_model,
+    drop_out_on_report,
     load_open_markets,
     map_markets,
     pretip_only,
@@ -333,10 +335,10 @@ def build_analysis(
         names = NameResolver.default()
     abbr_of = {v: k for k, v in load_team_abbr().items()}
     con = duckdb.connect(":memory:")
-    con.execute(f"ATTACH '{nba_db}' AS nba (READ_ONLY)")
+    attach_read_only_with_retry(con, nba_db, "nba")
     have_k = Path(kalshi_db).exists()
     if have_k:
-        con.execute(f"ATTACH '{kalshi_db}' AS kal (READ_ONLY)")
+        attach_read_only_with_retry(con, kalshi_db, "kal")
     try:
         info = load_slate(con, slate, params, prefix="nba.", as_of=now, roster_source=roster_source)
         markets = load_open_markets(con, before=now) if have_k else []
@@ -371,6 +373,7 @@ def build_analysis(
     unmatched: list[str] = []
     mapped, skipped = map_markets(markets, info, unmatched)
     mapped = pretip_only(mapped, info, now, skipped)
+    mapped = drop_out_on_report(mapped, info, skipped)
     singles: list[Candidate] = []
     rows: list[dict[str, Any]] = []
     for sc in price_singles(mapped, info, model, cfg, dnp_policy, tr, skipped):

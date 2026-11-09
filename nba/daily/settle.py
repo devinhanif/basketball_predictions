@@ -246,6 +246,7 @@ PREREG_MODELS: tuple[str, ...] = (
     "props_context_residual",
     "props_context_residual_t30",
     "props_context_residual_t15",
+    "props_context_residual_late",
     "props_context_residual_int",
     "props_context_residual_lt",
     "rung0_injury_elo",
@@ -253,7 +254,10 @@ PREREG_MODELS: tuple[str, ...] = (
 )
 T30_MODEL = "props_context_residual_t30"
 T15_MODEL = "props_context_residual_t15"
-LEAD_MINUTES: dict[str, int] = {T30_MODEL: 30, T15_MODEL: 15}
+#: LATE_REPORT shadow (nba.daily.late_report): written once per game in [tip - 15 min, tip) with the
+#: report as of made_at, so its eligibility is the store's own rule, made_at < tipoff (lead 0)
+LATE_MODEL = "props_context_residual_late"
+LEAD_MINUTES: dict[str, int] = {T30_MODEL: 30, T15_MODEL: 15, LATE_MODEL: 0}
 DEFAULT_LEAD_MINUTES = 60
 
 ELIG_DDL = """
@@ -303,6 +307,9 @@ WITH elig AS (
                THEN made_at < tipoff AND TRY_CAST(
                         json_extract_string(prediction, '$.snapshot_fetched_at') AS TIMESTAMP)
                     < tipoff - ? * INTERVAL 1 MINUTE
+               -- LATE_REPORT shadow: its information cutoff is made_at itself (report as_of <=
+               -- made_at, checked when written); any row before tip-off is eligible
+               WHEN model_name = ? THEN made_at < tipoff
                ELSE made_at <= tipoff - ? * INTERVAL 1 MINUTE END
 ),
 box AS (
@@ -348,6 +355,7 @@ def settle_eligible_pending(con: duckdb.DuckDBPyConnection, scored_at: datetime)
         LEAD_MINUTES[T30_MODEL],
         T15_MODEL,
         LEAD_MINUTES[T15_MODEL],
+        LATE_MODEL,
         DEFAULT_LEAD_MINUTES,
         WIN_TARGET,
         SETTLE_AFTER_TIP_HOURS,

@@ -40,6 +40,7 @@ from nba.parlay.joint import (
 )
 from nba.parlay.kalshi_map import MarketRow, load_team_abbr, map_market
 from nba.parlay.legs import Leg
+from nba.parlay.out_gate import SKIP_REASON
 from nba.parlay.papertrade import log_trade, settle_trades
 from nba.parlay.shadow import (
     TrackRecord,
@@ -139,6 +140,25 @@ def pretip_only(
                 why = "price_not_pretip"
         if why is not None:
             skipped[why] = skipped.get(why, 0) + 1
+        else:
+            kept[tk] = (m, leg)
+    return kept
+
+
+def drop_out_on_report(
+    mapped: dict[str, tuple[MarketRow, Leg]],
+    info: SlateInfo,
+    skipped: dict[str, int],
+) -> dict[str, tuple[MarketRow, Leg]]:
+    """Refuse a contract whose player is ruled OUT on a report known at serve time. The forward
+    store writes no row for a newly-OUT player, so his stale ``p_play`` would price him; we do not
+    reprice (Kalshi's DNP settlement is unread), we refuse. Counted in ``skipped``."""
+    if not info.out_on_report:
+        return mapped
+    kept: dict[str, tuple[MarketRow, Leg]] = {}
+    for tk, (m, leg) in mapped.items():
+        if leg.player_id and (leg.game_id, int(leg.player_id)) in info.out_on_report:
+            skipped[SKIP_REASON] = skipped.get(SKIP_REASON, 0) + 1
         else:
             kept[tk] = (m, leg)
     return kept
@@ -309,6 +329,7 @@ def cmd_evaluate(a: argparse.Namespace) -> int:
     unmatched_tickers: list[str] = []
     mapped, skipped = map_markets(markets, info, unmatched_tickers)
     mapped = pretip_only(mapped, info, now, skipped)
+    mapped = drop_out_on_report(mapped, info, skipped)
     out: list[dict[str, Any]] = []
     n_logged = 0
     for sc in price_singles(mapped, info, model, cfg, policy, tr, skipped):

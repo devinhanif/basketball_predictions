@@ -236,7 +236,7 @@ recalibration; rookies and offseason moves are invisible until a first box score
 
 | Job | When | Steps |
 |---|---|---|
-| `local.nba.daily-pretip` | at :20 and :50 of every hour, 09:20-21:50 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
+| `local.nba.daily-pretip` | at :20 and :50 of every hour, plist hours 09-22 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
 | `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, **early forecast + early briefing** (below), last night's coverage + scorecard, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; each fetch capped at 30 min, `postgame_load` at 20; skipped while a backfill or the ingest queue runs), `stints_nightly` (advisory: stints and possession lineups for last night's final games, section below), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 **Optional fact-store rebuild (drafted 2026-10-11; approved ON by Devin 2026-10-11, switch NOT yet in the job environment).** `ops/nba_daily.sh morning` has a step `facts` right after
@@ -443,18 +443,25 @@ open of a 0444 file fails, theirs succeeds), and a static scan that every `ATTAC
 
 A step in the 5-minute lineups tick (`ops/nba_lineups.sh`), after the odds capture and before the T-30 block, launches `ops/llm_shadow_bg.sh` DETACHED (own process group, nohup) only when `NBA_LLM_SHADOW=1`; it runs `python -m nba.shadow_llm run` in the background so a 35-60 s `claude -p` call per game never delays the T-30 / T-15 blocks or the next tick. One run at a time: lock `data/ops/llm_shadow_bg.lock` (pid and owner tag inside; a stale lock is cleared only when this mechanism created it and its pid is dead); log `data/ops/llm_shadow_YYYYMMDD.log`; heartbeat `data/ops/heartbeat/llm_shadow.json` (START/END; not yet in the watchdog's job list); rc not in {0, 4, 75} -> one `[lineups] llm_shadow rc=` line in `ALERTS.md`. It reads the pretip run's T-60 rows and writes `llm_shadow` rows pre-tip. The lineups agent needs `HOME`, `USER`, `LOGNAME`, `NBA_CLAUDE_BIN` in its plist `EnvironmentVariables` (`ops/install_launchd.sh`). See `docs/LLM_SHADOW.md`.
 
-## launchd calendar timezone (found 2026-10-11)
+## launchd calendar timezone (found 2026-10-11, corrected 2026-11-08)
 
 launchd evaluates `StartCalendarInterval` in the zone it captured at its own start, not the current
-one. This Mac's launchd (up 99 days) fires on **Eastern** time while the wall clock is Central:
-plist `Hour 9..21` ran at 08:20..20:50 CDT, the morning job (`Hour 8`) at 07:00 CDT. So the last
-pretip start of a day is 20:50 CDT (21:50 ET) and the watchdog's Central slots (21:20, 21:50 CDT)
-raised two false "daily-pretip stale" alerts a night plus one "daily-morning stale" (expected 08:00
-CDT). Nothing was missed. The watchdog now judges slots in `schedule_tz()` (env `NBA_SCHEDULE_TZ`,
-else the one-line untracked file `data/ops/schedule_tz`, else Central; the VM's cron really is
-Central). The Mac has `data/ops/schedule_tz = America/New_York`. After a reboot or relogin launchd
-re-reads the zone and the plists then mean Central (pretip until 21:50 CDT, morning 08:00 CDT):
-delete that file then. Whether to keep Eastern or reinstall for Central is the maintainer's call.
+one. On this Mac it behaves as a **fixed UTC-4 clock**, not "Eastern": it matched Eastern until the
+2026-11-01 fall back and then did not follow it. The plist `Hour 9..22` runs at 08:20..21:50 CDT (summer)
+and the morning job (`Hour 8`) at 07:00 CDT; in winter the same UTC instants read 07:20..20:50 CST /
+06:00 CST, i.e. morning 07:00 EST and the last pretip 21:50 EST. The watchdog judges slots in
+`schedule_tz()` (env `NBA_SCHEDULE_TZ`, else the one-line untracked file `data/ops/schedule_tz`, else
+Central; the VM's cron really is Central). The Mac has `data/ops/schedule_tz = Etc/GMT+4` (IANA
+UTC-4, no DST) since 2026-11-08; `America/New_York` raised false stale alerts on every EST day
+(2026-11-02 review, docs/reviews/dst_change_2026-11-02.md). Pretip hours are 9..22 (slots :20/:50) so
+that on a fixed UTC-4 clock the last start is 22:50 UTC-4 = 21:50 EST, which still precedes a 23:00 ET
+tip by more than 70 minutes; keep `ops/install_launchd.sh`, `ops/vm/install_cron.sh` and
+`nba.ops.watchdog.JOBS` in step.
+
+After a reboot or relogin launchd re-reads the zone and the plists then mean Central with DST:
+**remove `data/ops/schedule_tz`** (`rm data/ops/schedule_tz`) and recheck the first morning start
+(07:00/08:00 expected in the heartbeat, no stale alert) before trusting the schedule. Whether to keep
+the fixed clock or reinstall for Central is the maintainer's call.
 
 ## P(play) shadow: recent-role model R (flag-gated; ON in the pretip job since 2026-10-12)
 

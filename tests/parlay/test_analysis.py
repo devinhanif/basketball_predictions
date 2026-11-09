@@ -14,6 +14,7 @@ import pytest
 from test_joint import HOME, _build_dbs, _run
 
 import nba.parlay.analysis as analysis_mod
+from nba.db.connect import attach_read_only_with_retry
 from nba.parlay.__main__ import main
 from nba.parlay.analysis import Candidate, build_analysis
 from nba.parlay.assistant.backend import LLMReply, OllamaUnavailable
@@ -150,6 +151,20 @@ def test_no_writes_to_source_dbs(tmp_path: Path) -> None:
     assert rep["budget"]["mode"] == "target"
     assert [_sha(f) for f in files] == before
     assert not (tmp_path / "paper.duckdb").exists()
+
+
+def test_attaches_use_lock_retry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Both source DBs open through the bounded lock-retry (Kalshi snapshot collision)."""
+    seen: list[str] = []
+    real = attach_read_only_with_retry
+
+    def spy(con: Any, path: Any, alias: str, **kw: Any) -> None:
+        seen.append(alias)
+        real(con, path, alias, **kw)
+
+    monkeypatch.setattr(analysis_mod, "attach_read_only_with_retry", spy)
+    _an(tmp_path)
+    assert seen == ["nba", "kal"]
 
 
 def test_cli_writes_md_and_json_only(tmp_path: Path) -> None:

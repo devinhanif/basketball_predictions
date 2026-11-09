@@ -14,6 +14,7 @@ import pytest
 from nba.export import best_model
 from nba.parlay import line_cal as lc
 from nba.parlay import top_source as ts
+from nba.parlay.out_gate import utc_to_et_naive
 from nba.props import full_support
 
 SLATE = date(2026, 10, 28)
@@ -59,7 +60,7 @@ def build_nba(*, with_avg: bool = False, avg_fresh: bool = True) -> duckdb.DuckD
     con.execute("INSERT INTO player_game_stats VALUES ('0022500999', 2544, ?)", [HOME])
     con.execute(
         "INSERT INTO player_availability VALUES (2544, ?, ?, 'out')",
-        [MADE - timedelta(hours=2), GID],
+        [utc_to_et_naive(MADE - timedelta(hours=2)), GID],  # as_of is naive ET
     )
     con.execute(
         "CREATE TABLE forward_predictions (run_id VARCHAR, made_at TIMESTAMP, game_id VARCHAR, tipoff TIMESTAMP, "
