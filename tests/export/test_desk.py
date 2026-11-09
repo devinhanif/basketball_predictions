@@ -69,6 +69,12 @@ def _mk_book(path: Path, dates: tuple[str, ...] = ("2026-11-01", "2026-11-02")) 
         "NULL, NULL, NULL, '', NULL, NULL)"
     )
     con.execute(
+        "INSERT INTO plays SELECT * REPLACE ('pdd' AS play_id, 'daily_dollar' AS edge_label, "
+        "4.0/47 AS fee_cents, 0.07 AS edge_cents, "
+        "'staked $12.40; product of asks 0.70c, edge per $1' AS reason, "
+        "'/Users/devin/x $3.50' AS explanation) FROM plays WHERE play_id = 'p00'"
+    )
+    con.execute(
         "INSERT INTO killswitch_log VALUES (TIMESTAMP '2026-11-03 13:00:00', DATE '2026-11-03', "
         "'tripped', 30, -1.28, 'mean CLV below 0')"
     )
@@ -81,6 +87,7 @@ def _mk_book(path: Path, dates: tuple[str, ...] = ("2026-11-01", "2026-11-02")) 
         ("s2", "ingame_returned", '["401:99"]', "[]"),
         ("s3", "slate", '["x"]', '["p00"]'),
         ("s4", "halftime", '["002260"]', "[]"),
+        ("s5", "ingame_back", '["401"]', "[]"),
     ]
     for sid, kind, keys, pids in sends:
         con.execute(
@@ -154,7 +161,7 @@ def test_shape_and_values(tmp_path: Path) -> None:
     doc = desk.build(_root(tmp_path), reps=200)
     assert doc["schema"] == 1 and doc["privacy"] == "private"
     assert doc["built_at"].endswith("Z") and doc["data_as_of"].endswith("Z")
-    assert len(doc["plays"]) == 5
+    assert len(doc["plays"]) == 6
     p = next(x for x in doc["plays"] if x["play_id"] == "p00")
     assert p["player_name"] == "Nikola Jokic" and p["price_cents"] == 50.0
     assert p["result"]["clv_cents"] == 1.0 and p["result"]["close_cents"] == 50.0
@@ -165,7 +172,7 @@ def test_shape_and_values(tmp_path: Path) -> None:
     assert doc["status"]["w_model"] == 0.0
     assert doc["balance"] == {"start_usd": 70.0, "current_usd": 69.0, "floor_usd": 20.0}
     assert len(doc["halftime"]) == 1 and doc["halftime"][0]["edge_cents"] == pytest.approx(15.0)
-    assert all(a["text"] is None for a in doc["alerts"]) and len(doc["alerts"]) == 4
+    assert all(a["text"] is None for a in doc["alerts"]) and len(doc["alerts"]) == 5
     kinds = {o["kind"] for o in doc["observations"]}
     assert {"rotation", "correction", "halftime", "risk"} <= kinds
     corr = next(o for o in doc["observations"] if o["kind"] == "correction")
@@ -267,3 +274,79 @@ def test_no_execution_surface() -> None:
     for bad in ("nba.jarvis", "nba.duckdb", "heavy.lock", "requests", "urllib", "httpx"):
         assert f"import {bad}" not in src and f"from {bad}" not in src
     assert "read_only=true" in src
+
+
+def test_shared_cut_blocks_derivable_money(tmp_path: Path) -> None:
+    doc = desk.build(_root(tmp_path), reps=50)
+    sh = desk.shared_cut(doc)
+    assert all(p["fee_cents"] is None for p in sh["plays"])
+    dd = next(p for p in sh["plays"] if p["play_id"] == "pdd")
+    assert dd["edge_cents"] is None and dd["reason"] is None and dd["explanation"] is None
+    priv = next(p for p in doc["plays"] if p["play_id"] == "pdd")
+    assert priv["fee_cents"] == pytest.approx(4 / 47)  # the private cut keeps it
+    # model_review in the shared cut is the kill switch alone, never the balance floor
+    low = json.loads(json.dumps(doc))
+    low["status"]["kill_switch"]["on"] = False
+    low["status"]["model_review"] = True  # floor-closed in the private cut
+    assert desk.shared_cut(low)["status"]["model_review"] is False
+
+
+def _strings(x: Any) -> list[str]:
+    if isinstance(x, str):
+        return [x]
+    if isinstance(x, dict):
+        return [s for v in x.values() for s in _strings(v)]
+    if isinstance(x, list):
+        return [s for v in x for s in _strings(v)]
+    return []
+
+
+def test_shared_json_scan(tmp_path: Path) -> None:
+    import re
+
+    root = _root(tmp_path)
+    out = tmp_path / "o"
+    desk.run(root, out, reps=50)
+    for name in ("desk.json", "desk_shared.json"):
+        doc = json.loads((out / name).read_text())
+        assert all(not s.startswith("/") and "/Users/" not in s for s in _strings(doc["sources"]))
+    raw = (out / "desk_shared.json").read_text()
+    assert "/Users/" not in raw and str(tmp_path) not in raw
+    for s in _strings(json.loads(raw)):
+        assert not re.search(r"\$\s?\d", s.replace("per $1", "")), s
+    assert "12.40" not in raw
+
+
+def test_absolute_path_fails_shared_build(tmp_path: Path) -> None:
+    doc = desk.build(_root(tmp_path), reps=50)
+    doc["sources"]["x"] = "/Users/devin/secret"
+    with pytest.raises(desk.DeskExportError):
+        desk.shared_cut(doc)
+
+
+def test_ingame_back_is_inference_not_correction(tmp_path: Path) -> None:
+    doc = desk.build(_root(tmp_path), reps=50)
+    back = next(o for o in doc["observations"] if o["id"].startswith("s5:"))
+    assert back["kind"] == "rotation" and back["certainty"] == "inference"
+    assert back["corrects"] is None
+    assert sum(o["kind"] == "correction" for o in doc["observations"]) == 1
+
+
+def test_book_closed_before_name_parsing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = _root(tmp_path)
+    book = root / "data/jarvis/paper_book.duckdb"
+    seen: list[bool] = []
+    real = desk.EspnNames.player
+
+    def spy(self: Any, slate: str, game: str, pid: str) -> Any:
+        try:  # a writer can open the file only if our read-only handle is closed
+            duckdb.connect(str(book)).close()
+            seen.append(True)
+        except duckdb.Error:
+            seen.append(False)
+        return real(self, slate, game, pid)
+
+    monkeypatch.setattr(desk.EspnNames, "player", spy)
+    doc = desk.build(root, reps=20)
+    assert seen and all(seen)
+    assert doc["book_hold_seconds"] >= 0

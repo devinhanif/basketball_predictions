@@ -23,6 +23,7 @@ import json
 import math
 import os
 import random
+import re
 import time
 from collections.abc import Callable
 from datetime import UTC, date, datetime
@@ -305,8 +306,7 @@ def _record_daily(plays: list[dict[str, Any]]) -> tuple[dict[str, int], list[dic
     return rec, daily
 
 
-def _kill(book: duckdb.DuckDBPyConnection) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    rows = fetch(book, "SELECT * FROM killswitch_log ORDER BY ts")
+def _kill(rows: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any] | None]:
     if not rows:
         ks: dict[str, Any] = {
             "on": False,
@@ -347,13 +347,17 @@ def _kill(book: duckdb.DuckDBPyConnection) -> tuple[dict[str, Any], dict[str, An
 
 
 def _observations_alerts(
-    book: duckdb.DuckDBPyConnection, names: EspnNames, plays: list[dict[str, Any]]
+    flags: list[dict[str, Any]],
+    sends: list[dict[str, Any]],
+    kill_rows: list[dict[str, Any]],
+    names: EspnNames,
+    plays: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     nba_matchup = {p["game_id"]: p["matchup"] for p in plays if p["game_id"] and p["matchup"]}
     obs: list[dict[str, Any]] = []
     flag_ids: dict[tuple[str, str], str] = {}
 
-    for f in fetch(book, "SELECT * FROM ingame_flags ORDER BY ts"):
+    for f in flags:
         slate, key = day(f["slate_date"]), f["flag_key"]
         game, _, pid = key.partition(":")
         oid = f"flag:{slate}:{key}"
@@ -375,8 +379,6 @@ def _observations_alerts(
             }
         )
 
-    sends = fetch(book, "SELECT * FROM sends ORDER BY ts")
-    window_ids: dict[tuple[str, str], str] = {}
     send_obs: dict[str, list[str]] = {}
     for s in sends:
         kind, slate = s["kind"], day(s["slate_date"])
@@ -424,18 +426,17 @@ def _observations_alerts(
                 row = {
                     "game_id": k,
                     "matchup": names.matchup(slate, k),
-                    "kind": "correction",
-                    "title": "Correction: flagged players back in the game",
-                    "certainty": "correction",
-                    "corrects": window_ids.get((slate, k)),
+                    "kind": "rotation",
+                    "title": "Lead shrank: flagged starters may return (JARVIS 'STARTERS BACK?')",
+                    "certainty": "inference",
+                    "corrects": None,
                 }
             else:  # ingame_window
-                window_ids.setdefault((slate, k), oid)
                 row = {
                     "game_id": k,
                     "matchup": names.matchup(slate, k),
                     "kind": "rotation",
-                    "title": "Several players' minutes frozen at once (game-level flag)",
+                    "title": "Starter minutes frozen (game-level flag, one or more players)",
                     "certainty": "inference",
                     "corrects": None,
                 }
@@ -450,7 +451,7 @@ def _observations_alerts(
                 }
             )
 
-    _, kobs = _kill(book)
+    _, kobs = _kill(kill_rows)
     if kobs is not None:
         obs.append(kobs)
     obs.sort(key=lambda o: (o["ts"] or "", o["id"]))
@@ -593,16 +594,19 @@ def build(
 ) -> dict[str, Any]:
     """The private document (a dict). Raises ``DeskExportError``; writes nothing."""
     now = now or datetime.now(UTC)
-    book_p, ht_p = root / PAPER_BOOK, root / HALFTIME
+    book_p, ht_p = root / PAPER_BOOK, root / HALFTIME  # sources show the relative PAPER_BOOK
 
     stamps: list[datetime] = []
     sources: dict[str, str] = {}
 
+    # Hold the JARVIS book only long enough to copy the rows; ESPN gz parsing happens after close.
+    t_open = time.monotonic()
     book = open_ro(book_p, tries, sleep_s, sleep)
     try:
         plays = _plays(book)
-        ks, _ = _kill(book)
-        obs, alerts = _observations_alerts(book, EspnNames(root), plays)
+        kill_rows = fetch(book, "SELECT * FROM killswitch_log ORDER BY ts")
+        flags = fetch(book, "SELECT * FROM ingame_flags ORDER BY ts")
+        sends = fetch(book, "SELECT * FROM sends ORDER BY ts")
         for table, col in (
             ("plays", "ts"),
             ("scores", "scored_at"),
@@ -614,9 +618,12 @@ def build(
             t = scalar(book, f"SELECT max({col}) FROM {table}")
             if isinstance(t, datetime):
                 stamps.append(t)
-            sources[table] = f"{book_p}: {table} {n} rows, newest {iso(t)}"
+            sources[table] = f"{PAPER_BOOK}: {table} {n} rows, newest {iso(t)}"
     finally:
         book.close()
+    hold_s = time.monotonic() - t_open
+    ks, _ = _kill(kill_rows)
+    obs, alerts = _observations_alerts(flags, sends, kill_rows, EspnNames(root), plays)
 
     ht = open_ro(ht_p, tries, sleep_s, sleep)
     try:
@@ -627,7 +634,7 @@ def build(
         ht.close()
     if isinstance(ht_t, datetime):
         stamps.append(ht_t)
-    sources["halftime_scored"] = f"{ht_p}: {ht_n} rows, newest {iso(ht_t)}"
+    sources["halftime_scored"] = f"{HALFTIME}: {ht_n} rows, newest {iso(ht_t)}"
 
     rec, daily = _record_daily(plays)
     clv_rows = [
@@ -686,6 +693,7 @@ def build(
         "built_at": iso(now.astimezone(UTC).replace(tzinfo=None)),
         "data_as_of": data_as_of,
         "sources": sources,
+        "book_hold_seconds": round(hold_s, 3),
         "status": {
             "kill_switch": ks,
             "model_review": bool(ks["on"]) or floor_closed,
@@ -705,18 +713,49 @@ def build(
     }
 
 
+# A dollar amount in free text: "$" then a digit, except the unit "per $1".
+_DOLLAR = re.compile(r"\$\s?\d")
+_PER_ONE = re.compile(r"per \$1(?!\d)")
+_FREE_TEXT = ("reason", "explanation", "leg_desc")
+
+
+def _has_amount(text: str) -> bool:
+    return bool(_DOLLAR.search(_PER_ONE.sub("", text)))
+
+
 def shared_cut(doc: dict[str, Any]) -> dict[str, Any]:
-    """Deep copy with every money field null and ``privacy`` = shared."""
+    """Deep copy with every money field null and ``privacy`` = shared.
+
+    Nulled beyond the named fields: ``fee_cents`` (a daily-dollar bundle stores fee/contracts, so it
+    reveals the contract count), ``edge_cents`` on daily_dollar plays (edge = fair - ask - fee, so
+    it gives the fee back), and ``model_review`` is the kill switch alone (no balance-floor input).
+    Free text that contains a dollar amount is SCRUBBED to null (not failed): the build must not
+    die because one reason string changed. A leaked absolute path fails the build."""
     out: dict[str, Any] = json.loads(json.dumps(doc))
     out["privacy"] = "shared"
     out["balance"] = None
+    out["status"]["model_review"] = bool(out["status"]["kill_switch"]["on"])
     for p in out["plays"]:
         p["stake_usd"] = None
         p["contracts"] = None
+        p["fee_cents"] = None
+        if p["edge_label"] == "daily_dollar":
+            p["edge_cents"] = None
+        for k in _FREE_TEXT:
+            if isinstance(p[k], str) and _has_amount(p[k]):
+                p[k] = None
         if p["result"] is not None:
             p["result"]["pnl_usd"] = None
     for d in out["daily"]:
         d["pnl_usd"] = None
+    out["section_notes"]["shared_cut"] = (
+        "balance, stake_usd, contracts, fee_cents, result.pnl_usd and daily.pnl_usd are null; "
+        "edge_cents is null on daily_dollar plays; model_review = kill switch only; free text "
+        "with a dollar amount is nulled"
+    )
+    blob = json.dumps(out)
+    if "/Users/" in blob or re.search(r'"/[A-Za-z]', blob):
+        raise DeskExportError("absolute path in the shared cut")
     return out
 
 
