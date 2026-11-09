@@ -1,6 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { buildNotices, filterNotices, newestNight, NOTICE_FILTERS, unreadCount, withOlderRead, type Notice, type NoticeFilter } from "../alerts";
-import { DeskGate, SectionNote } from "../DeskUI";
+import { DeskGate } from "../DeskUI";
 import { correctionLinks, type Desk } from "../desk";
 import { longDate, stamp } from "../format";
 import { Icon } from "../icons";
@@ -141,7 +141,7 @@ function Body({ desk }: { desk: Desk }) {
               Show more ({(list.length - shown).toLocaleString("en-US")} left)
             </button>
           ) : null}
-          <SectionNote desk={desk} k="alerts.text" />
+          <p class="small muted section-note">Where no message text was stored, an alert is described from its kind and what it links; nothing is written in its place.</p>
         </section>
         <aside class="stack side-col">
           <section class="panel" aria-label="What is tracked">
