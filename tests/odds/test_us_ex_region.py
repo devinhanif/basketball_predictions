@@ -183,9 +183,9 @@ def test_production_daily_guard_bounds_a_night_at_three_regions(tmp_path: Path) 
             break
         ledger.record({"cost": call})
         allowed += 1
-    assert allowed == c.daily_max_credits // call == 269  # bounded, never past the cap
+    assert allowed == c.daily_max_credits // call == 382  # bounded, never past the cap
     assert ledger.spent() <= c.daily_max_credits
-    # a 15-game night over the full 12-point schedule (180 calls) and a 16th game all fit
+    # a 15-game night over the full 17-point schedule (255 calls) and a 16th game all fit
     assert 16 * len(c.schedule) <= allowed
     # the monthly estimate still fits the plan rule, so every market group stays on
     assert lc.estimate_credits(c, c.plan.games_per_month) <= 0.5 * c.plan.monthly_credits

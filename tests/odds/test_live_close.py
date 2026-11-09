@@ -518,6 +518,11 @@ EXPECTED = [
     "t90",
     "t120",
     "t180",
+    "t240",
+    "t300",
+    "t360",
+    "t420",
+    "t480",
     "morning",
 ]
 
@@ -530,7 +535,7 @@ def test_real_schedule_config_parses() -> None:
     assert by["morning"].at_et == dtime(10, 0) and by["morning"].grace_min == 60
     assert (by["t180"].lo, by["t180"].hi) == (177.5, 182.5)
     assert c.plan.monthly_credits == 5_000_000 and c.plan.name == "START 5M"
-    assert len(c.active_schedule()) == 12  # the full schedule fits the recorded plan
+    assert len(c.active_schedule()) == 17  # the full schedule fits the recorded plan
     assert [e.kind for e in lc.due_order(c.schedule)][0] == "close"
     assert len(c.markets) == 89 and c.regions == ("us", "eu", "us_ex")
     assert c.dropped_groups() == ()  # every group stays ON: the budget rule is met
@@ -642,17 +647,18 @@ def test_preseason_and_allstar_games_are_not_captured(cfg: lc.LiveConfig) -> Non
 def test_credit_estimator_and_gating(cfg: lc.LiveConfig) -> None:
     c = lc.load_live_config()
     assert c.expected_cost() == 267  # 89 markets x 3 regions (us, eu, us_ex) x 1
-    assert lc.estimate_credits(c, 1) == 12 * 267 == 3_204
-    assert lc.estimate_credits(c, 215) == 688_860
+    assert lc.estimate_credits(c, 1) == 17 * 267 == 4_539
+    assert lc.estimate_credits(c, 215) == 975_885
     assert lc.estimate_credits(c, 215) <= 0.5 * c.plan.monthly_credits
-    assert lc.estimate_credits(c, 1230) == 3_940_920
-    assert lc.estimate_credits(c, 15) == 48_060 <= c.daily_max_credits  # a 15-game night fits
+    assert lc.estimate_credits(c, 1230) == 5_582_970
+    assert lc.estimate_credits(c, 15) == 68_085 <= c.daily_max_credits  # a 15-game night fits
     assert lc.estimate_credits(c, 16) <= c.daily_max_credits  # and so does a 16th game
     assert 2 * lc.estimate_credits(c, 15) > c.daily_max_credits  # but a full retry of it does not
     # a plan too small for the alternates drops them FIRST and keeps every schedule point
-    # (900,000 x 0.5 = 450,000: the full 89-market set costs 688,860, so alternates go first)
-    tight = replace(c, plan=replace(c.plan, name="START 1M", monthly_credits=900_000))
-    assert len(tight.markets) == 7 + 30 + 3 + 11 + 5 and len(tight.active_schedule()) == 12
+    # (1,300,000 x 0.5 = 650,000: the full 89-market set costs 975,885 over 17 points; without the
+    # alternates 56 markets cost 614,040, so alternates go first and every point stays)
+    tight = replace(c, plan=replace(c.plan, name="TIGHT 1.3M", monthly_credits=1_300_000))
+    assert len(tight.markets) == 7 + 30 + 3 + 11 + 5 and len(tight.active_schedule()) == 17
     assert set(tight.dropped_groups()) == {
         "game_additional",
         "periods_alternate",
@@ -665,7 +671,7 @@ def test_credit_estimator_and_gating(cfg: lc.LiveConfig) -> None:
     assert not small.markets or not any("alternate" in m for m in small.markets)
     # ... and 2M at the 0.5 rule keeps everything
     mid = replace(c, plan=replace(c.plan, name="START 2M", monthly_credits=2_000_000))
-    assert len(mid.active_schedule()) == 12 and mid.dropped_groups() == ()
+    assert len(mid.active_schedule()) == 17 and mid.dropped_groups() == ()
 
 
 def test_market_groups_switch_off_and_no_duplicates() -> None:

@@ -69,7 +69,9 @@ cost_per_market_region: 1
 # regions); the 12-point schedule below is 3,204 per game: 15 games = 48,060. 72,000 keeps the same
 # 50% headroom as before for the (max_attempts_per_game) retries of a 15-game night and a 16th game
 # (2026-10-14: 48,000 would have refused the last calls of a 15-game night once us_ex was added).
-daily_max_credits: 72000         # refuse a call that would take today's spend past this
+# 2026-11-08: the 17-point schedule (hourly T-480..T-240 added) is 4,539 per game: 15 games = 68,085;
+# 102,000 keeps the same 50% headroom so the close is never refused on a full night.
+daily_max_credits: 102000        # refuse a call that would take today's spend past this
 min_server_remaining: 100000    # refuse when the server-reported remaining would fall below this
 
 # Capture schedule (Devin, 2026-10-11: "do all captures of prices before the game"). One entry = one
@@ -94,6 +96,14 @@ schedule:
   - {kind: t90, window: [87.5, 92.5], extended: true}
   - {kind: t120, window: [117.5, 122.5], extended: true}
   - {kind: t180, window: [177.5, 182.5], extended: true}
+  # Hourly between the morning pull and T-180 (Devin, 2026-11-08: "do more pulls"). JARVIS sent the
+  # 11-08 slate at 13:59 ET against the 10:00 morning Pinnacle pull (238 min old); these keep the
+  # reference within about an hour for any alert sent before T-180.
+  - {kind: t240, window: [237.5, 242.5], extended: true}
+  - {kind: t300, window: [297.5, 302.5], extended: true}
+  - {kind: t360, window: [357.5, 362.5], extended: true}
+  - {kind: t420, window: [417.5, 422.5], extended: true}
+  - {kind: t480, window: [477.5, 482.5], extended: true}
   - {kind: morning, at_et: "10:00", grace_min: 60, extended: true}
 
 # The vendor plan as recorded in the repo (docs/DECISIONS.md 2026-10-10; the-odds-api.com #get-access:
