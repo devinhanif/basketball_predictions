@@ -185,6 +185,11 @@ export function usd(x: number): string {
 }
 
 /* ------------------------------------------------------------------ plays */
+/** A stored bundle label in words ("live_none" -> "live none"). */
+export function labelText(s: string | null): string {
+  return s === null || s === "" ? "none" : s.replace(/_/g, " ");
+}
+
 export function playLabel(p: DeskPlay): string {
   return p.leg_desc ?? [p.player_name, p.threshold !== null ? `${p.threshold.toString()}+` : null, p.stat].filter(Boolean).join(" ");
 }

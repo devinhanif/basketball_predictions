@@ -391,7 +391,6 @@ main {
     padding: 22px 14px 16px;
     gap: 6px;
   }
-  .topbar,
   .nav-bottom {
     display: none;
   }

@@ -2,7 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { Avatar } from "../Avatar";
 import { DeskGate, SectionNote } from "../DeskUI";
 import {
-  barScale, calibration, cents, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd, winRate,
+  barScale, calibration, cents, labelText, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd, winRate,
   type DayBar, type Desk, type DeskPlay, type LedgerFilter,
 } from "../desk";
 import { longDate, pct } from "../format";
@@ -35,6 +35,10 @@ function Tiles({ desk }: { desk: Desk }) {
           {clv.ci ? `${ciText(clv.ci, "c")}, clustered on ${c?.clustered_on.replace("_", " ") ?? "date"}${c?.n_dates ? ` (${c.n_dates.toString()} dates)` : ""}` : (clv.reason ?? "")}
         </div>
         <div class="tile-n muted">All settled plays with a stored close. JARVIS's kill-switch rule uses a different sample (below).</div>
+        <div class="tile-n muted num">
+          From the 2026-11-08 review (not in the desk file): of the {c?.mean_cents != null ? signedCents(c.mean_cents, 2) : "mean"}, about 0.69c is half the closing spread paid by buying at the ask. The
+          line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero.
+        </div>
       </div>
       <div class="tile big">
         <div class="label">Paper record</div>
@@ -345,7 +349,7 @@ function LedgerCard({ desk }: { desk: Desk }) {
                 <tr key={p.play_id}>
                   <td>
                     <span class="who">
-                      <Avatar name={p.player_name ?? "Unnamed"} playerId={p.player_id} size="sm" />
+                      <Avatar name={p.player_name ?? p.leg_desc ?? "Unnamed"} playerId={p.player_id} size="sm" />
                       <span>
                         <strong>{playLabel(p)}</strong>
                         <span class="muted small"> {p.matchup ?? ""} · {longDate(p.slate_date).replace(/, \d{4}$/, "")}</span>
@@ -354,7 +358,7 @@ function LedgerCard({ desk }: { desk: Desk }) {
                   </td>
                   <td class="r">{cents(p.price_cents)}</td>
                   <td>
-                    {p.edge_label ?? "none"} {p.edge_cents !== null ? signedCents(p.edge_cents, 1) : ""}
+                    {labelText(p.edge_label)} {p.edge_cents !== null ? signedCents(p.edge_cents, 1) : ""}
                   </td>
                   <td class="r">{signedCents(p.result?.clv_cents ?? null)}</td>
                   <td>{resultWord(p)}</td>

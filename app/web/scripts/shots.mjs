@@ -72,15 +72,26 @@ const ev = async (js) => {
 await send("Page.enable");
 if (artifact) await send("Page.addScriptToEvaluateOnNewDocument", { source: fakeClaude });
 
+const KEY = `document.dispatchEvent(new KeyboardEvent('keydown', {key:'k', ctrlKey:true, bubbles:true}))`;
+const FIRSTPICK = `await new Promise(r=>setTimeout(r,300)); document.querySelector('.pick-row')?.click()`;
 const SCREENS = artifact
   ? [
-      ["today", "#today", ""],
-      ["game", "#today", `document.querySelector('a.game').click()`],
-      ["leg", "#today", `document.querySelector('a.game').click(); await new Promise(r=>setTimeout(r,500)); document.querySelector('a.leg-open').click()`],
-      ["parlay", "#today", `const a=[...document.querySelectorAll('a')].find(x=>x.getAttribute('href')?.startsWith('#/parlay')); (a||document.querySelector('a')).click()`],
+      ["today", "#discover", ""],
+      ["game", "#discover", `document.querySelector('a.game').click()`],
+      ["leg", "#discover", `document.querySelector('a.game').click(); await new Promise(r=>setTimeout(r,500)); document.querySelector('a.leg-open').click()`],
+      ["parlay", "#discover", `const a=[...document.querySelectorAll('a')].find(x=>x.getAttribute('href')?.startsWith('#/parlay')); (a||document.querySelector('a')).click()`],
       ["swipe", "#swipe", ""],
       ["picks", "#picks", ""],
       ["settings", "#prefs", ""],
+      ["signals", "#signals", ""],
+      ["hedge", "#hedge", ""],
+      ["hedgelab", "#hedge", FIRSTPICK],
+      ["history", "#history", ""],
+      ["alerts", "#alerts", ""],
+      ["admin", "#admin", ""],
+      ["search", "#discover", KEY],
+      ["about", "#discover", `document.querySelector('.workspace').click()`],
+      ["welcome", "#discover", ""],
     ]
   : [
       ["today", "#/", ""],
@@ -89,7 +100,16 @@ const SCREENS = artifact
       ["parlay", "#/parlay", ""],
       ["swipe", `#/swipe?date=${NIGHT}`, ""],
       ["picks", "#/picks", ""],
-      ["settings", "#/settings", ""],
+      ["settings", "#/prefs", ""],
+      ["signals", "#/signals", ""],
+      ["hedge", "#/hedge", ""],
+      ["hedgelab", "#/hedge", FIRSTPICK],
+      ["history", "#/history", ""],
+      ["alerts", "#/alerts", ""],
+      ["admin", "#/admin", ""],
+      ["search", "#/", KEY],
+      ["about", "#/", `document.querySelector('.workspace').click()`],
+      ["welcome", "#/", ""],
     ];
 
 const sizes = [["m", 390, 844], ["d", 1440, 900]];
@@ -109,7 +129,7 @@ async function shoot(name, w, h, theme, mode, hash, action, full) {
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
   await send("Page.navigate", { url: base });
   await sleep(900);
-  await ev(`localStorage.clear(); localStorage.setItem('ph.theme', '${theme}'); localStorage.setItem('ph.mode', '${mode}'); localStorage.setItem('ph.ledger.v1', ${JSON.stringify(JSON.stringify(ledger))}); 0`);
+  await ev(`localStorage.clear(); localStorage.setItem('ph.theme', '${theme}'); localStorage.setItem('ph.mode', '${mode}'); localStorage.setItem('ph.welcomed', '${name === "welcome" ? "" : "1"}'); localStorage.setItem('ph.name', 'Devin'); localStorage.setItem('ph.ledger.v1', ${JSON.stringify(JSON.stringify(ledger))}); 0`);
   await send("Page.navigate", { url: base + hash });
   await sleep(250);
   await send("Page.reload");
@@ -130,7 +150,7 @@ for (const [, w, h] of sizes) {
       await shoot(name, w, h, theme, "simple", hash, action, true);
     }
     // Analyst on the screens whose depth changes
-    for (const [name, hash, action] of SCREENS.filter((s) => ["today", "game", "leg"].includes(s[0]))) {
+    for (const [name, hash, action] of SCREENS.filter((s) => ["today", "game", "leg", "signals", "history"].includes(s[0]))) {
       await shoot(name, w, h, theme, "analyst", hash, action, true);
     }
   }

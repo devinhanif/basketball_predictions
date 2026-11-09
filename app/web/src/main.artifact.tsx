@@ -11,6 +11,7 @@ import "./theme.css";
 import "./styles.css";
 import "./leg.css";
 import "./ui.css";
+import "./desk.css";
 
 applyTheme(getPrefs().theme);
 void startUserStateSync();

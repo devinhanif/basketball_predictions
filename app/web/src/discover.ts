@@ -33,9 +33,10 @@ export function statusFor(edge: number | null, label: string | null): string {
 }
 
 function fromPlay(p: Desk["plays"][number]): RadarRow {
-  const name = p.player_name ?? `Unnamed player (id ${(p.player_id ?? 0).toString()})`;
+  // A game-result play has no player: its own description is the name.
+  const name = p.player_name ?? p.leg_desc ?? "Unnamed play";
   return {
-    key: `desk:${p.play_id}`, source: "desk", name, team: p.team, playerId: p.player_id, market: playLabel(p).replace(`${p.player_name ?? ""}: `, "").replace(`${p.player_name ?? ""} `, ""),
+    key: `desk:${p.play_id}`, source: "desk", name, team: p.team, playerId: p.player_id, market: p.player_name ? playLabel(p).replace(`${p.player_name}: `, "").replace(`${p.player_name} `, "") : "game result",
     matchup: p.matchup, model: p.model_prob, ask_c: p.price_cents, fee_c: p.fee_cents, edge_c: p.edge_cents, status: statusFor(p.edge_cents, p.edge_label),
     href: p.game_id && p.player_id !== null && p.stat && isLegStat(p.stat) ? legHref(p.game_id, p.player_id, p.stat) : null, gameId: p.game_id, stat: p.stat,
   };
@@ -67,8 +68,10 @@ export function watchKey(r: RadarRow): string {
 
 export function edgeSentence(r: RadarRow): string {
   if (r.model === null || r.ask_c === null || r.edge_c === null) return "No edge arithmetic is stored for this row.";
-  const fee = r.fee_c ?? 0;
   const m = (r.model * 100).toFixed(1).replace(/\.0$/, "");
   const e = r.edge_c;
-  return `Model ${m}% vs ask ${Math.round(r.ask_c * 10) / 10}c + fee ${Math.round(fee * 10) / 10}c = edge ${e < 0 ? "-" : "+"}${Math.abs(e).toFixed(1)}c per $1`;
+  const edge = `${e < 0 ? "-" : "+"}${Math.abs(e).toFixed(1)}c`;
+  // The shared desk cut carries no fee: say so rather than print a fee of zero.
+  if (r.fee_c === null) return `Model ${m}% vs ask ${Math.round(r.ask_c * 10) / 10}c; the desk's stored edge is ${edge} per $1 (its fee is not in the shared cut)`;
+  return `Model ${m}% vs ask ${Math.round(r.ask_c * 10) / 10}c + fee ${Math.round(r.fee_c * 10) / 10}c = edge ${edge} per $1`;
 }

@@ -190,7 +190,7 @@ export function Bell({ unread }: { unread: number }) {
   return (
     <a class="icon-btn bell" href={topHref("alerts")} aria-label={unread > 0 ? `Alerts, ${unread.toString()} unread` : "Alerts, none unread"}>
       <Icon name="alerts" />
-      {unread > 0 ? <span class="bell-n num">{unread}</span> : null}
+      {unread > 0 ? <span class="bell-n num">{unread > 99 ? "99+" : unread}</span> : null}
     </a>
   );
 }
@@ -297,7 +297,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
     <a key={n.name} class={cls} href={topHref(n.name)} aria-current={here === n.name ? "page" : undefined}>
       <Icon name={n.icon} />
       <span>{n.label}</span>
-      {badge(n.name) > 0 ? <span class="nav-badge num">{badge(n.name)}</span> : null}
+      {badge(n.name) > 0 ? <span class="nav-badge num">{badge(n.name) > 99 ? "99+" : badge(n.name)}</span> : null}
     </a>
   );
   const crumb = crumbs(props.route);
@@ -455,7 +455,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
             <a key={t} href={topHref(t)} aria-current={here === t ? "page" : undefined}>
               <Icon name={n.icon} />
               {n.label}
-              {badge(t) > 0 ? <span class="tab-badge num">{badge(t)}</span> : null}
+              {badge(t) > 0 ? <span class="tab-badge num">{badge(t) > 99 ? "99+" : badge(t)}</span> : null}
             </a>
           );
         })}

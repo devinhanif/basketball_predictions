@@ -262,5 +262,25 @@ page holds fetch, a service worker, an http(s) URL, alert/confirm/prompt, print 
 played nights only (replay clock 30 minutes before the first tip) so picks can be graded. Shared paper picks
 (`sharedPicks.ts`): `picks/<user id>` documents through the platform db, ids only, names resolved at render, other
 viewers' data validated; without db it is the same local ledger. Publish with capabilities
-`{db:{rules:[{path:"picks",read:"view",write:"owner"},{path:"picks/{self}",write:"interact"}]},user:{scopes:["profile"]}}`.
+`{"db":{"rules":[{"path":"picks","read":"view","write":"owner"},{"path":"picks/{self}","write":"interact"},{"path":"watch","read":"view","write":"owner"},{"path":"watch/{self}","write":"interact"},{"path":"photos","read":"view","write":"admin"}]},"user":{"scopes":["profile"]},"assets":{},"downloads":true}`.
+(`data/users/<id>/state`, the private read-state document, needs no rule: the default keeps each viewer's own subtree private.)
 The line slider is off in the snapshot (only the posted line is baked).
+
+## Jarvis Desk screens (docs/contracts/desk_export_v1.md)
+
+Discover, Signals, Hedge Finder (the position lab), Model History, Alerts, Admin studio, Preferences, a first-run welcome,
+search (Ctrl/Cmd+K), the bell, the profile menu and the About modal all read the desk export through `/api/desk`
+(`api/src/parlayhitters_api/desk.py`), which answers only when the API runs with `PH_PRIVATE=1` (bind 127.0.0.1 or the LAN):
+
+```
+PH_PRIVATE=1 APP_DESK_FILE=data/export_private/desk.json uv run uvicorn parlayhitters_api.main:app --app-dir src --host 127.0.0.1 --port 8000
+```
+
+Without a desk file every desk screen says so plainly. The artifact bake takes `desk_shared.json` (directory from
+`APP_DESK_DIR`, default `<repo>/data/export_private`), else the synthetic fixture in `fixtures/desk_fixture_shared.json`
+(built by `fixtures/build_desk_fixture.py`, labelled as a fixture on every screen); `--money` bakes the private `desk.json`
+and is not for a shared page. The API refuses a shared cut that carries any money field.
+`/api/contracts/top` (best stored contracts by edge after fees) feeds Discover's closest look and the position lab.
+Identity: the platform user in the shared page, a locally typed name in the regular build; never a password. Admin studio:
+`user.isOwner()` or `canEdit()` in the shared page (photos through the `assets` capability into `photos/<player id>`),
+the private build locally.
