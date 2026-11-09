@@ -252,7 +252,7 @@ def test_schema1_breakdown_has_no_prices_and_no_steals_or_blocks(v1_client: Test
     s = v1_client.get(f"/api/slates/{EXPORT_DAY}").json()
     gid = s["games"][0]["game_id"]
     g = v1_client.get(f"/api/games/{gid}").json()
-    star = next(p for p in g["players"] if p["name"] == "Player 990001")
+    star = next(p for p in g["players"] if p["name"] == "Unnamed player (id 990001)")
     b = v1_client.get(f"/api/breakdown/{gid}/{star['player_id']}/pts").json()
     assert b["line_source"] == "model_middle" and b["line"] % 1 == 0.5
     assert b["last10"]["n"] == 10 and len(b["chips"]) == 10
@@ -262,7 +262,7 @@ def test_schema1_breakdown_has_no_prices_and_no_steals_or_blocks(v1_client: Test
     assert b["role"]["minutes_forecast"] is not None and b["role"]["p_play"] is not None
     assert "do not forecast minutes" not in b["model"]["reason"]
     # the sidekick is out on tonight's report: he is listed with his earlier games without him
-    assert [t["name"] for t in b["teammates"]["items"]] == ["Player 990002"]
+    assert [t["name"] for t in b["teammates"]["items"]] == ["Unnamed player (id 990002)"]
     assert b["teammates"]["items"][0]["without"]["n"] == 3
     # no steals or blocks in the export: those tabs and routes do not exist
     assert [t["stat"] for t in b["tabs"]] == list(es.EXPORT_STATS)
@@ -282,7 +282,7 @@ def test_schema1_alt_lines_use_the_exact_stored_table(v1_client: TestClient) -> 
     gid = s["games"][0]["game_id"]
     star = next(
         p for p in v1_client.get(f"/api/games/{gid}").json()["players"]
-        if p["name"] == "Player 990001"
+        if p["name"] == "Unnamed player (id 990001)"
     )  # fmt: skip
     con = duckdb.connect(str(EXPORT_SMALL / "export.duckdb"), read_only=True)
     try:
@@ -396,3 +396,11 @@ def test_the_committed_export_is_what_the_real_exporter_builds(tmp_path: Path) -
         g: v["win_probability"]["model_home"] for g, v in b.games.items()
     }
     reset_store()
+
+
+def test_placeholder_player_names_are_shown_as_unnamed() -> None:
+    from parlayhitters_api.export_store import _display_name
+
+    assert _display_name(1643411, "Player 1643411") == "Unnamed player (id 1643411)"
+    assert _display_name(5, "") == "Unnamed player (id 5)"
+    assert _display_name(6, "Luka Doncic") == "Luka Doncic"

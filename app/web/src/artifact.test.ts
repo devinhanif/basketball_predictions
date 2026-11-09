@@ -224,7 +224,9 @@ describe("headline and edge line (numbers only from stored fields)", () => {
   });
   const c: EdgeContract = { side: "over", threshold: 6, title: "t", ticker: "k", price: 0.81, fees: 0.02, ev: -0.075, ev_low: -0.075, model_prob: 0.755, prob_lo: 0.755, prob_hi: 0.755, order_type: "taker", price_ts: "" };
   it("prints model [range] vs ask + fee = edge", () => {
-    expect(edgeLine(c)).toBe("Model 75.5% [75.5% to 75.5%] vs ask 81c + fee 2c = edge -7.5c per $1");
+    expect(edgeLine(c)).toBe("Model 75.5% [range not stored] vs ask 81c + fee 2c = edge -7.5c per $1");
+    expect(edgeLine({ ...c, prob_lo: 0.7, prob_hi: 0.8 })).toContain("[70% to 80%]");
+    expect(edgeLine({ ...c, prob_lo: null, prob_hi: null })).toContain("range not stored");
     expect(nearestFirst([{ ...c, threshold: 9 }, c], 5.5)[0]?.threshold).toBe(6);
   });
 });

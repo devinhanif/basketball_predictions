@@ -40,9 +40,14 @@ function pctText(p: number): string {
   return `${(p * 100).toFixed(1).replace(/\.0$/, "")}%`;
 }
 
+export function hasRange(c: EdgeContract): boolean {
+  return c.prob_lo !== null && c.prob_hi !== null && c.prob_lo < c.prob_hi;
+}
+
 /** "Model 75.5% [75.5% to 75.5%] vs ask 81c + fee 2c = edge -7.5c per $1" */
 export function edgeLine(c: EdgeContract): string {
-  const range = c.prob_lo !== null && c.prob_hi !== null ? ` [${pctText(c.prob_lo)} to ${pctText(c.prob_hi)}]` : "";
+  // A range is shown only when a stored interval has width; a zero-width one would claim certainty the model does not have.
+  const range = hasRange(c) ? ` [${pctText(c.prob_lo ?? 0)} to ${pctText(c.prob_hi ?? 0)}]` : " [range not stored]";
   return `Model ${pctText(c.model_prob)}${range} vs ask ${cents(c.price)} + fee ${cents(c.fees)} = edge ${signedCents(c.ev)} per $1`;
 }
 
