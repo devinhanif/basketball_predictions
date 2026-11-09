@@ -11,7 +11,18 @@ export type Route =
   | { name: "swipe"; date: string | null }
   | { name: "picks" }
   | { name: "parlay"; date: string | null }
-  | { name: "settings" };
+  | { name: "settings" }
+  | { name: "signals" }
+  | { name: "hedge"; game: string | null; player: number | null; stat: string | null }
+  | { name: "history" }
+  | { name: "alerts" }
+  | { name: "admin" };
+
+/** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
+export type TopName = "today" | "signals" | "hedge" | "history" | "alerts" | "swipe" | "picks" | "admin" | "settings";
+const ARTIFACT_NAME: Record<TopName, string> = {
+  today: "discover", signals: "signals", hedge: "hedge", history: "history", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs",
+};
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
 export function legHref(gameId: string, playerId: number, stat: LegStat, side: Side = "over"): string {
@@ -24,9 +35,9 @@ export function gameHref(gameId: string): string {
 }
 
 /** Hash for a top-level view. The artifact frame passes only plain `#name` hashes, so there they carry no slash. */
-export function topHref(name: "today" | "swipe" | "picks" | "settings"): string {
-  if (IS_ARTIFACT) return name === "settings" ? "#prefs" : `#${name}`;
-  return name === "today" ? "#/" : `#/${name}`;
+export function topHref(name: TopName): string {
+  if (IS_ARTIFACT) return `#${ARTIFACT_NAME[name]}`;
+  return name === "today" ? "#/" : `#/${name === "settings" ? "prefs" : name}`;
 }
 
 export function parse(hash: string): Route {
@@ -53,6 +64,16 @@ export function parse(hash: string): Route {
     case "settings":
     case "prefs":
       return { name: "settings" };
+    case "signals":
+      return { name: "signals" };
+    case "hedge":
+      return { name: "hedge", game: q.get("game"), player: q.get("player") ? Number(q.get("player")) : null, stat: q.get("stat") };
+    case "history":
+      return { name: "history" };
+    case "alerts":
+      return { name: "alerts" };
+    case "admin":
+      return { name: "admin" };
     default:
       return { name: "today", date: q.get("date") };
   }
@@ -63,7 +84,7 @@ export function nightHref(date: string): string {
   return `#/?date=${encodeURIComponent(date)}`;
 }
 
-const SCREEN_HASH: Record<Screen, string> = { today: "", swipe: "#/swipe", picks: "#/picks" };
+const SCREEN_HASH: Record<Screen, string> = { today: "", signals: "#/signals", swipe: "#/swipe", picks: "#/picks" };
 
 /** The route to open at start: the hash if there is one, else the device's default screen. */
 export function startRoute(hash: string, screen: Screen = getPrefs().screen): Route {
@@ -72,16 +93,21 @@ export function startRoute(hash: string, screen: Screen = getPrefs().screen): Ro
 }
 
 /** Is this the plain hash of a top-level view (what the artifact frame understands)? */
-export function plainName(route: Route): "today" | "swipe" | "picks" | "settings" | null {
+export function plainName(route: Route): TopName | null {
   switch (route.name) {
     case "today":
       return route.date === null ? "today" : null;
     case "swipe":
       return route.date === null ? "swipe" : null;
+    case "hedge":
+      return route.game === null ? "hedge" : null;
     case "picks":
-      return "picks";
     case "settings":
-      return "settings";
+    case "signals":
+    case "history":
+    case "alerts":
+    case "admin":
+      return route.name;
     default:
       return null;
   }

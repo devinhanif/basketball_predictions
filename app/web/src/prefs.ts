@@ -5,7 +5,7 @@ import { useEffect, useState } from "preact/hooks";
 
 export type Theme = "system" | "light" | "dark";
 export type Mode = "simple" | "analyst";
-export type Screen = "today" | "swipe" | "picks";
+export type Screen = "today" | "signals" | "swipe" | "picks";
 
 export interface Prefs {
   theme: Theme;
@@ -42,7 +42,7 @@ export function parseMode(v: string | null): Mode {
   return v === "analyst" ? "analyst" : "simple";
 }
 export function parseScreen(v: string | null): Screen {
-  return v === "swipe" || v === "picks" ? v : "today";
+  return v === "signals" || v === "swipe" || v === "picks" ? v : "today";
 }
 
 let current: Prefs | null = null;

@@ -1,12 +1,18 @@
 import { render } from "preact";
 import { App } from "./App";
 import { applyTheme, getPrefs } from "./prefs";
+import { startUserStateSync } from "./userState";
+import { startWatchSync } from "./watch";
+import { startPhotoSync } from "./photos";
 import "./theme.css";
 import "./styles.css";
 import "./leg.css";
 import "./ui.css";
 
 applyTheme(getPrefs().theme);
+void startUserStateSync();
+void startWatchSync();
+void startPhotoSync();
 const root = document.getElementById("app");
 if (root) render(<App />, root);
 

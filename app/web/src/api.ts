@@ -15,6 +15,7 @@ import type { LegBreakdown, Side } from "./legTypes";
 import type { LegEdges } from "./edges";
 import type { TopParlays, TpResult } from "./topParlays";
 import { getRaw, warmGames } from "./transport";
+import { parseDesk, type Desk } from "./desk";
 
 export { warmGames };
 
@@ -72,3 +73,44 @@ export const api = {
       `/api/props/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}?line=${line.toString()}`,
     ),
 };
+
+export interface TopContract {
+  side: Side;
+  threshold: number;
+  title: string;
+  ticker: string;
+  price: number;
+  fees: number;
+  ev: number;
+  ev_low: number | null;
+  model_prob: number;
+  prob_lo: number | null;
+  prob_hi: number | null;
+  price_ts: string;
+  game_id: string;
+  player_id: number;
+  player: string;
+  team: string | null;
+  stat: string;
+  matchup: string;
+  tip_utc: string | null;
+}
+export interface TopContracts {
+  report_date: string | null;
+  n_priced: number;
+  n_positive: number;
+  contracts: TopContract[];
+}
+export const getTopContracts = (n = 12): Promise<Loaded<TopContracts>> => getJson<TopContracts>(`/api/contracts/top?n=${n.toString()}`);
+
+export type DeskState = { kind: "absent" } | { kind: "refused"; detail: string } | { kind: "ready"; desk: Desk };
+
+/** The Jarvis Desk export. 404 means this API does not serve one (public API, or none written yet): a normal state. */
+export async function getDesk(): Promise<DeskState> {
+  const r = await getRaw("/api/desk");
+  if (r.status === 404) return { kind: "absent" };
+  if (r.status === 422) return { kind: "refused", detail: (r.body as { detail?: string } | null)?.detail ?? "refused" };
+  if (r.status < 200 || r.status >= 300) return { kind: "absent" };
+  const desk = parseDesk(r.body);
+  return desk ? { kind: "ready", desk } : { kind: "refused", detail: "the desk file is not a schema 1 export" };
+}

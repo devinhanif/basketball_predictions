@@ -19,6 +19,7 @@ import argparse
 import base64
 import gzip
 import json
+import os
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -27,6 +28,7 @@ from urllib.parse import quote
 
 from fastapi.testclient import TestClient
 
+from .desk import desk_path
 from .main import STATS, create_app, get_store, reset_store
 
 Json = dict[str, Any]
@@ -101,8 +103,17 @@ def bake(
     meta = dict(meta) | {"slates": sorted(want, reverse=True)}
     b.simple["/api/meta"] = {"s": 200, "b": meta}
     b.simple["/api/slates"] = {"s": 200, "b": [s for s in slates_all if s["date"] in want]}
-    for path in ("/api/parlay-of-the-day", "/api/evidence"):
+    for path in ("/api/parlay-of-the-day", "/api/evidence", "/api/contracts/top", "/api/desk"):
         b.put_simple(path)
+    desk_entry = b.simple["/api/desk"]
+    desk_info: Json = {"present": desk_entry["s"] == 200}
+    if desk_info["present"]:
+        d = desk_entry["b"]
+        desk_info |= {
+            "privacy": d["privacy"],
+            "fixture": "_fixture" in d,
+            "built_at": d["built_at"],
+        }
 
     swipe_nights: list[str] = []
     n_breakdowns = 0
@@ -178,6 +189,7 @@ def bake(
         "data_version": meta.get("data_version"),
         "dates": want,
         "swipe_nights": swipe_nights,
+        "desk": desk_info,
         "counts": {
             "games": sum(1 for g in b.groups if g.startswith("g:")),
             "breakdowns": n_breakdowns,
@@ -188,15 +200,52 @@ def bake(
     }
 
 
+def pick_desk(explicit: Path | None, money: bool) -> Path | None:
+    """The desk file to bake: the shared cut by default (the real one when it exists, else the
+    synthetic fixture); ``--money`` takes the private cut and requires it to exist."""
+    if explicit is not None:
+        return explicit
+    env_dir = os.environ.get("APP_DESK_DIR")
+    real_dir = Path(env_dir) if env_dir else desk_path().parent
+    if money:
+        p = real_dir / "desk.json"
+        if not p.is_file():
+            raise SystemExit(f"--money needs {p}, which does not exist")
+        return p
+    real = real_dir / "desk_shared.json"
+    if real.is_file():
+        return real
+    fixture = Path(__file__).resolve().parents[3] / "fixtures" / "desk_fixture_shared.json"
+    return fixture if fixture.is_file() else None
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--dates", type=int, default=3, help="how many of the newest slate dates")
     ap.add_argument("--players-per-team", type=int, default=4)
+    ap.add_argument(
+        "--desk", type=Path, default=None, help="desk export to bake (default: the shared cut)"
+    )
+    ap.add_argument(
+        "--money",
+        action="store_true",
+        help="bake the PRIVATE desk.json (money fields). Not for a shared page; Devin's decision.",
+    )
     args = ap.parse_args(argv)
+    desk_file = pick_desk(args.desk, args.money)
+    os.environ["PH_PRIVATE"] = "1"  # the desk route answers only then; this process only
+    if desk_file is not None:
+        os.environ["APP_DESK_FILE"] = str(desk_file)
+    else:
+        os.environ["APP_DESK_FILE"] = str(Path("/nonexistent/desk.json"))
     reset_store()
     with TestClient(create_app()) as client:
         baked = bake(client, n_dates=args.dates, players_per_team=args.players_per_team)
+    desk = baked["desk"]
+    if desk["present"] and desk["privacy"] != "shared" and not args.money:
+        raise SystemExit("refusing to bake a private desk cut without --money")
+    desk["source"] = str(desk_file) if desk_file else None
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps(baked, separators=(",", ":"), ensure_ascii=False), encoding="utf-8"

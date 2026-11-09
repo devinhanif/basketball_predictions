@@ -71,3 +71,52 @@ def leg_edges(records: list[Json], game_id: str, player_id: int, stat: str) -> l
                 out.append(row)
     out.sort(key=lambda r: (r["threshold"], r["side"]))
     return out
+
+
+def top_contracts(
+    records: list[Json],
+    names: dict[int, str],
+    game_of: Any,
+    n: int = 12,
+) -> Json:
+    """The engine's best-priced stored contracts (highest edge after fees first), with names.
+
+    ``game_of(game_id)`` returns the export's game dict or None. Contracts of games the export does
+    not hold are skipped: the page could not say who plays whom. Every number is a stored field.
+    """
+    rows: list[Json] = []
+    for rec in records:
+        legs = rec.get("legs")
+        if not isinstance(legs, list) or len(legs) != 1 or not isinstance(legs[0], dict):
+            continue
+        leg = legs[0]
+        row = _row(rec, leg)
+        pid = leg.get("player_id")
+        if row is None or not isinstance(pid, int):
+            continue
+        g = game_of(str(leg.get("game_id")))
+        if g is None:
+            continue
+        pl = next((p for p in g.get("players", []) if p.get("player_id") == pid), None)
+        team = None
+        if pl is not None:
+            side_team = g["home"] if pl.get("side") == "home" else g["away"]
+            team = side_team.get("abbr")
+        rows.append(
+            row
+            | {
+                "game_id": str(leg.get("game_id")),
+                "player_id": pid,
+                "player": names.get(pid, f"Unnamed player (id {pid})"),
+                "team": team,
+                "stat": leg.get("stat"),
+                "matchup": f"{g['away'].get('abbr')} @ {g['home'].get('abbr')}",
+                "tip_utc": g.get("tip_utc"),
+            }
+        )
+    rows.sort(key=lambda r: (-r["ev"], -r["model_prob"], r["ticker"]))
+    return {
+        "n_priced": len(rows),
+        "n_positive": sum(1 for r in rows if r["ev"] > 0),
+        "contracts": rows[:n],
+    }

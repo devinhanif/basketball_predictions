@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import random
 from collections.abc import Awaitable, Callable
 from typing import Annotated, Any
@@ -13,9 +14,10 @@ from fastapi.responses import JSONResponse
 
 from .breakdown import Breakdown, Side
 from .breakdown import build as build_breakdown
+from .desk import DeskMissing, DeskRefused, load_desk
 from .dissect.providers import default_router
 from .dissect.service import dissect_leg
-from .edges import leg_edges
+from .edges import leg_edges, top_contracts
 from .export_store import ExportRefused
 from .forecast import (
     TAUS,
@@ -576,6 +578,27 @@ def register(app: FastAPI) -> None:
                 "engine priced them. Edge is the engine's own number after fees. Paper only."
             ),
         }
+
+    @app.get("/api/contracts/top")
+    def contracts_top(store: StoreDep, n: Annotated[int, Query(ge=1, le=50)] = 12) -> Json:
+        """The best-priced stored contracts by the engine's own edge after fees, with names."""
+        names = getattr(store, "names", {})
+        return {
+            "report_date": store.parlay.get("report_date"),
+            **top_contracts(getattr(store, "parlay_records", []), names, store.game, n),
+        }
+
+    @app.get("/api/desk")
+    def desk() -> Json:
+        """The Jarvis Desk export, only when the API runs private (PH_PRIVATE=1)."""
+        if os.environ.get("PH_PRIVATE") != "1":
+            raise HTTPException(404, "the desk is not served by this API")
+        try:
+            return load_desk()
+        except DeskMissing:
+            raise HTTPException(404, "no desk export has been written yet") from None
+        except DeskRefused as e:
+            raise HTTPException(422, f"desk export refused: {e}") from None
 
     @app.get("/api/top-parlays/{date}")
     def top_parlays(date: str) -> Json:

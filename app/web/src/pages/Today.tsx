@@ -9,6 +9,7 @@ import { useLoad } from "../useLoad";
 import type { GameSummary, ParlayState, Slate } from "../types";
 import { STAT_LABEL, STAT_SHORT } from "../types";
 import { VerdictStrip } from "../VerdictStrip";
+import { Court, DeskTiles, Discipline, Hero, Insight, LeagueTabs, Radar, useRadar } from "./DiscoverParts";
 import { compareLine, doesText, rangeSentence } from "../words";
 import type { TpResult } from "../topParlays";
 
@@ -144,6 +145,10 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const engine: ParlayState | null = eng.status === "ready" ? eng.data : null;
   const tickets: TpResult | null = tp.status === "ready" ? tp.data : null;
   const speaks = engine !== null && engineSpeaksFor(date, engine.report_date);
+  const radar = useRadar(date, engine);
+  const featured =
+    slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === radar.rows[0]?.gameId) ?? slate.data.games[0] ?? null) : null;
+  const played = featured !== null && Date.parse(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const head =
     slate.status === "ready" && eng.status !== "loading" && tp.status !== "loading"
       ? headline({ games: slate.data.counts.games, engine, speaks, tickets })
@@ -163,6 +168,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
         ) : (
           <h1 class="answer pending">Reading the night&hellip;</h1>
         )}
+        <LeagueTabs />
         <div class="head-tools">
           <nav class="tabs" aria-label="Choose a night">
             {props.nights.map((d) => (
@@ -175,6 +181,18 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
         </div>
       </header>
       <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
+      <div class="two-col">
+        <Hero row={radar.rows[0] ?? null} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} />
+        <Court game={featured} final_={played} />
+      </div>
+      {radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}
+      <div class="two-col wide-left">
+        <Radar rows={radar.rows} loading={radar.loading} />
+        <div class="stack side-col">
+          <Insight desk={radar.desk} />
+          <Discipline desk={radar.desk} engine={engine} />
+        </div>
+      </div>
       <View state={slate} reload={reloadSlate} onStale={props.onStale}>
         {(s) => <SlateBody s={s} engine={engine} speaks={speaks} mode={mode} />}
       </View>
