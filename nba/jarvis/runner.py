@@ -52,6 +52,8 @@ from nba.jarvis.slate import (
 from nba.jarvis.sources import describe_store_busy, et_hour
 from nba.jarvis.weights import render_changes, update_weights
 from nba.parlay.assistant.backend import LLMBackend
+from nba.pulls.config import PullsConfig, load_pulls_config
+from nba.pulls.store import request_pull
 
 log = logging.getLogger("nba.jarvis.runner")
 
@@ -80,6 +82,8 @@ class Runtime:
         default_factory=dict
     )  # keys posted this process (dry-runs too)
     report: dict[str, Any] = field(default_factory=dict)
+    pulls_cfg: PullsConfig | None = None  # tests; default configs/pulls.yaml
+    pull_requester: Callable[..., Any] | None = None  # tests; default nba.pulls.store.request_pull
 
     def send(self, text: str) -> SendResult:
         """Deliver one message. With the real sinks each is deduped on its own (a sink that already
@@ -336,6 +340,10 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
                 p.key, slate, p.edge_cents, False, rt.cfg.realert_edge_cents
             ):
                 continue
+        held = _hold_stale_reference(rt, p, slate, now)
+        if held is not None:
+            rep.setdefault("held", []).append(held)
+            continue
         text, _src, _ = explain_one(rt, st, p)
         why = "confirmed arbitrage" if p.label == "arbitrage" else "new strong edge"
         res = _deliver(
@@ -355,6 +363,55 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
     return rep
 
 
+def _hold_stale_reference(
+    rt: Runtime, p: Play, slate: date, now: datetime
+) -> dict[str, Any] | None:
+    """Hold an alert whose Pinnacle reference is older than ``pulls.pinnacle_alert_max_age_min`` and
+    file ONE deduped pull request for that game (docs/DESIGN_PULL_ORCHESTRATOR.md). Returns the log
+    record of the hold, or ``None`` (send as before). Touches no label, edge or stake: it only
+    decides
+    whether a play that already passed ``supports_alert`` is sent on THIS tick; the next tick prices
+    it again with whatever reference exists then. Off unless ``pulls.hold_stale_alerts`` is true."""
+    if not bool(rt.cfg.pulls.get("hold_stale_alerts", False)) or p.ref_age_min is None:
+        return None
+    pc = rt.pulls_cfg or load_pulls_config()
+    if not pc.enabled or p.ref_age_min <= pc.pinnacle_alert_max_age_min:
+        return None
+    rec: dict[str, Any] = {
+        "key": p.key,
+        "game_id": p.game_id,
+        "ref_age_min": round(p.ref_age_min, 1),
+        "max_age_min": pc.pinnacle_alert_max_age_min,
+        "why": (
+            f"Pinnacle reference {p.ref_age_min:.0f} min old "
+            f"(limit {pc.pinnacle_alert_max_age_min:g}); alert held"
+        ),
+    }
+    if rt.dry_run:
+        rec["request"] = "dry run: none filed"
+        return rec
+    try:
+        res = (rt.pull_requester or request_pull)(
+            source="pinnacle",
+            scope_game_id=p.game_id,
+            slate_date=slate,
+            requester="jarvis",
+            reason=(
+                f"alert {p.key} needs a Pinnacle reference "
+                f"<= {pc.pinnacle_alert_max_age_min:g} min old"
+            ),
+            max_age_min=pc.pinnacle_alert_max_age_min,
+            now=now,
+            cfg=pc,
+        )
+        rec["request_id"] = res.request.request_id
+        rec["request"] = "filed" if res.created else f"already {res.request.status}"
+    except Exception as exc:  # noqa: BLE001 - a broken request store still holds the stale alert
+        log.warning("pull request failed (%s); alert held anyway", type(exc).__name__)
+        rec["request"] = f"request failed ({type(exc).__name__})"
+    return rec
+
+
 def tick_line(rep: dict[str, Any]) -> str:
     """The one launchd log line per tick. Anything swallowed on purpose (a failed recap, a refusing
     halftime scorer, a check-in error) is named here so it cannot hide behind ``plays=..``."""
@@ -372,6 +429,8 @@ def tick_line(rep: dict[str, Any]) -> str:
     ig = [r for r in rep.get("ingame", []) if isinstance(r, dict) and r.get("ok") is False]
     if ig:
         flags.append(f"ingame_error={ig[0].get('error')}")
+    if rep.get("held"):
+        flags.append(f"held_stale_ref={len(rep['held'])}")
     hs = rep.get("ht_scorer")
     if hs:
         flags.append(f"ht_scored={hs['stored']}rows/{hs['games']}games")

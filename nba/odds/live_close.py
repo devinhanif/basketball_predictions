@@ -69,11 +69,27 @@ CONFIG_PATH = ROOT / "configs" / "odds_live.yaml"
 FLAG_ENV = "NBA_CLOSE_CAPTURE"
 SOURCE = "the_odds_api_live"
 _KIND_RE = re.compile(r"^(close|morning|t[0-9]{1,4})$")
+_ONDEMAND_RE = re.compile(r"^ondemand[0-9]{1,3}$")
+ONDEMAND_PREFIX = "ondemand"
+
+
+def valid_schedule_kind(kind: str) -> bool:
+    """Kinds a schedule entry may carry: ``close``, ``morning`` or ``t<minutes before tip>``."""
+    return bool(_KIND_RE.match(kind))
+
+
+def is_ondemand_kind(kind: str) -> bool:
+    """``ondemand<N>``: a pull the orchestrator (nba/pulls) made on a consumer's request. N counts
+    the game's on-demand pulls (a (game, kind) is written once, so each pull needs its own
+    kind). Never a schedule entry, never the close and never a t60 benchmark
+    (docs/DESIGN_PULL_ORCHESTRATOR.md)."""
+    return bool(_ONDEMAND_RE.match(kind))
 
 
 def valid_kind(kind: str) -> bool:
-    """Snapshot kinds: ``close``, ``morning`` or ``t<minutes before tip>`` (t60, t180, ...)."""
-    return bool(_KIND_RE.match(kind))
+    """Stored snapshot kinds: the schedule kinds (``close``, ``morning``, ``t60``, ...) and
+    ``ondemand<N>``."""
+    return valid_schedule_kind(kind) or is_ondemand_kind(kind)
 
 
 DDL = """
@@ -81,7 +97,7 @@ CREATE TABLE IF NOT EXISTS live_book_odds (
     source VARCHAR,
     game_id VARCHAR,
     slate_date DATE,              -- ET date of the slate the capture was requested for
-    snapshot_kind VARCHAR,        -- morning | t180 .. t5 | close (configs/odds_live.yaml schedule)
+    snapshot_kind VARCHAR,        -- morning | t480 .. t5 | close (odds_live.yaml) | ondemand<N>
     requested_at TIMESTAMP,       -- our clock before the request (naive UTC)
     received_at TIMESTAMP,        -- our clock after the response (naive UTC); always < tipoff
     tipoff TIMESTAMP,             -- our real scheduled tip (naive UTC)
@@ -149,7 +165,7 @@ class ScheduleEntry:
     extended: bool = False  # gated off when the estimate exceeds the plan budget rule
 
     def __post_init__(self) -> None:
-        if not valid_kind(self.kind):
+        if not valid_schedule_kind(self.kind):
             raise ValueError(f"bad snapshot kind {self.kind!r} (morning|t<min>|close)")
         if self.at_et is None and not (0 <= self.lo <= self.hi):
             raise ValueError(f"{self.kind}: need 0 <= lo <= hi, got [{self.lo}, {self.hi}]")
@@ -582,6 +598,9 @@ class LiveClient(HistoricalClient):
     ) -> None:
         super().__init__(cfg.hist, environ=environ, sleep=sleep, http_get=http_get)
         self.live = cfg
+        self.request_id: str | None = (
+            None  # set by nba.pulls: booked on every ledger line it causes
+        )
         d = day or datetime.now(ET).date()
         self.ledger = CreditLedger(
             cfg.ledger_dir / f"the_odds_api_live_{d.isoformat()}.json",
@@ -605,6 +624,7 @@ class LiveClient(HistoricalClient):
                 "cost": cost,
                 "server_remaining": _int_header(headers, "x-requests-remaining"),
                 "server_used": _int_header(headers, "x-requests-used"),
+                **({"request_id": self.request_id} if self.request_id else {}),
                 **ctx,
             }
         )

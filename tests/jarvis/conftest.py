@@ -248,3 +248,17 @@ def rt(cfg: JarvisConfig, kb: Knowledge, sent: Sent, tmp_path: Path) -> Runtime:
 
 def aware(dt: datetime) -> datetime:
     return dt.replace(tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def _pulls_store_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A test must never file a pull request into the real data/ops/pulls.duckdb: the default pulls config
+    (configs/pulls.yaml) points there. Every runner that loads it gets a tmp request store instead."""
+    from nba.jarvis import runner
+    from nba.pulls.config import PullsConfig
+
+    monkeypatch.setattr(
+        runner,
+        "load_pulls_config",
+        lambda: PullsConfig(requests_db=tmp_path / "pulls" / "pulls.duckdb"),
+    )
