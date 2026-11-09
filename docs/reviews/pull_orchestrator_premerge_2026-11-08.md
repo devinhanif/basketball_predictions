@@ -270,3 +270,52 @@ The replay oracle, real launchd/TCC behaviour, real lock contention with the liv
 
 ### Drafted DECISIONS row (not appended)
 | 2026-11-08 | Adversary re-review of agent/market-pull-orchestrator 539fa84: WOUNDED / BLOCKED on one item (docs/reviews/pull_orchestrator_premerge_2026-11-08.md, "Re-review 539fa84"). Flag-off and dead-job runs are identical to 8936003 over 8 ticks; the lock is released during vendor calls; the close guard and the slate hold behave. Blocking: R1 (a crash-looping orchestrator with a fresh heartbeat holds plays forever; fix = JARVIS treats open past need_by as released, and pulls_alive requires rc 0/4). Major, non-blocking: R2 (paid call invisible to the caps when the store reopen fails). | Follows the adversary review. | R1 fixed with a test; R2 scheduled. |
+
+---
+
+## Re-review 6052274
+
+_2026-11-08. Diff 539fa84..6052274 (10 files, +433/-18). Same constraints: `git archive` copies of 8936003 and
+6052274, CoW clones of the market store, fake vendor, `.venv-1`, targeted paths only._
+
+**Verdict: SURVIVES.** R1-R5 are fixed and each fix is pinned by a test that fails without it. No new crash or
+silence path was found. F2 remains Devin's call, as already logged. Merge still needs the replay oracle and Devin's go
+(DECISIONS 21:06).
+
+Verdict: APPROVED
+
+| # | Check | How | Result | Pass |
+|---|---|---|---|---|
+| R1 | Crash-looping orchestrator, fresh beat `rc: 1`, a 3-h-old open request | `adv_hold3/test_adv_crashloop.py` on 6052274 | alert sent (`alerts=1`), preview holds nothing | PASS |
+| R1b | Beat `rc: 0`, open request 1 min past need_by | same file | released, alert sent | PASS |
+| 1 | Flag off identical to 8936003, now with the Daily Dollar path | `drive2_test.py` (8 ticks 19:58..21:28, slate preview due, a Daily Dollar ticket injected through `dailydollar.build`) in both trees | texts, tick reports, every paper-book table identical; also identical with the flags on and the job dead | PASS |
+| R4 | Daily Dollar on a stale sharp line, job alive | same driver, `ADV_T0=2` (preview at 20:00, ref 30 min, limit 20) | "**Daily Dollar**: skipped (held: sharp price not refreshed (oldest 30 min))" plus the held-plays line; no `daily_dollar` and no held-play rows in `plays` (flag-off control: 2 DD rows) | PASS |
+| R2a | Store held 12 s by another writer after the paid call | `lockhold4.py 12 a 1` | reopen waits; stored: `ondemand1` ok, 237 credits, 12,746 rows, request `done` | PASS |
+| R2b | Store held 40 s (past the 6 x 5 s reopen budget), then 3 more ticks 12 min apart | `lockhold4.py 40 b 4` | tick 0 `failed` "paid call not stored ... not re-pulled", 237 credits; tick 1 (past the 10-min cooldown) re-pulls once and stores it; ticks 2-3 "already fresh", 0 spent. Ledger 474 total | PASS (note) |
+| 4 | Mutants | `mut_rev3.py`: 40 (all 32 from round 2 re-targeted, plus 8 on R1-R4) | 38 killed. Survivors only N6/N6b, equivalent (two fail-open layers each catch the other). All round-2 survivors (M8b, N8, N10) now killed | PASS |
+| - | Targeted suites in the worktree | `pytest tests/jarvis tests/odds tests/ops tests/pulls tests/forward` | 772 passed, exit 0 | PASS |
+| - | ruff / format / mypy | changed packages | 0 / 0 / 0 | PASS |
+
+### Attacks on the two choices
+
+- **R2 "failed, not re-paid."** This holds only within the cooldown, which is the right bound. JARVIS releases a
+  `failed` game immediately, so the alert goes out as before on the old line instead of waiting, which is the
+  promised fail-open. Once the cooldown passes, a new request re-pulls once. That is correct, because the first
+  response was never stored. The per-game cap now counts the lost call from the ledger: R2c is killed, and in my run
+  `led_calls` covered it. *Minor, not blocking:* the paid response's raw file (`odds_ondemand1_<stamp>.json.gz`)
+  is never ingested, so about 237 credits are lost per occurrence. A later pass could ingest the raw file instead of
+  re-pulling. The failed tick holds the pulls shell lock for about 31 s but holds no store lock.
+- **R4 skip.**
+  - *Lost for the night (design note, Devin's call):* the Daily Dollar is built only in the preview, so a skipped
+    ticket is gone for the night even if the game's request is served 2 minutes later. Whether to post a late ticket
+    once the line is fresh is Devin's decision; the skip itself is honest and says so in one line.
+  - *Fails open on a missing quote (info):* `_stale_ticket_reason` treats a leg whose quote is not in `st.quotes` as
+    fresh. My first alive run, at 19:58, before the fixture's Kalshi snapshot existed, posted the ticket that way.
+    Real tickets are built from `st.quotes`, so every leg resolves and this is not live.
+
+### Remaining (not blocking)
+F2 (thin cap on release, Devin's call and 3-night counter), the R2 raw-file ingest, and the R4 late-ticket question.
+Not verified: the replay oracle, launchd/TCC, real contention with the live lineups job, and a real vendor call.
+
+### Drafted DECISIONS row (not appended)
+| 2026-11-08 | Adversary re-review of agent/market-pull-orchestrator 6052274: SURVIVES / APPROVED (docs/reviews/pull_orchestrator_premerge_2026-11-08.md, "Re-review 6052274"). R1 crash-loop now fails open; flag-off and dead-job runs identical to 8936003 over 8 ticks including the Daily Dollar; stale Daily Dollar skipped with one line; a paid call lost to a busy store is failed, counted from the ledger, and re-pulled once after the cooldown; 38/40 mutants killed (2 equivalent). Merge still needs the replay oracle and Devin's go. Open: F2 thin cap on release (3-night counter), R2 raw-file ingest, R4 late-ticket choice. | Follows the adversary review. | The oracle differs, or the 3-night counter shows held plays almost never released as strong. |
