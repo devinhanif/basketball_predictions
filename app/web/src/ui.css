@@ -1,0 +1,488 @@
+/* Surfaces of the super-app look: rounded cards on dark navy (or a clean light theme), one purple accent. This file loads
+   after styles.css and leg.css and restyles them through the shared tokens in theme.css. Text is never under 12px. */
+
+/* ---- sidebar ---- */
+.sidebar .brand {
+  padding: 4px 8px 18px;
+}
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.side-link svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.side-link:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.side-link[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: var(--line);
+}
+.side-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.side-foot .icon-btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+.icon-btn[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+@media (max-width: 359px) {
+  .icon-btn-text {
+    display: none;
+  }
+}
+
+/* ---- segmented control (Simple / Analyst, settings) ---- */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.seg-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.seg.wide {
+  display: flex;
+  flex-wrap: wrap;
+  border-radius: var(--radius-sm);
+}
+.seg.wide .seg-btn {
+  flex: 1 1 auto;
+  border-radius: 7px;
+}
+
+/* ---- page heads: the biggest text is the page's answer, read from stored rows ---- */
+.page-head h1 {
+  font-size: 1.7rem;
+}
+.today-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.today-head > * + * {
+  margin-top: 0;
+}
+.today-head .kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.tonight-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tonight);
+  flex: none;
+}
+h1.answer {
+  font-size: clamp(1.5rem, 1.1rem + 2.1vw, 2.45rem);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  max-width: 26ch;
+  text-wrap: balance;
+}
+h1.answer.pending {
+  color: var(--muted);
+}
+.answer-src {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 62ch;
+}
+.head-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+}
+.head-tools .tabs {
+  max-width: 100%;
+  padding-bottom: 2px;
+}
+.leg-title .head-tools {
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+
+/* ---- tiles ---- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 760px) {
+  .tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  min-width: 0;
+}
+.tile-v {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.tile-l {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.tile-n {
+  font-size: 0.75rem;
+}
+.note-panel {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+/* ---- panels, buttons, tabs, tags ---- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.panel.flat {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 0 0;
+}
+.panel.verdict {
+  border-left: 4px solid var(--accent);
+  border-top: 1px solid var(--line);
+}
+.panel.verdict.keep {
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface) 70%);
+}
+.panel.error {
+  border-left: 4px solid var(--loss);
+  border-top: 1px solid var(--line);
+}
+.btn {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+}
+.btn:hover {
+  border-color: var(--accent);
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.tabs {
+  gap: 6px;
+  scrollbar-width: thin;
+}
+.tab {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-bottom-width: 1px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 6px 14px;
+}
+.tab[aria-current="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.tag {
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+a.back-link {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+/* ---- the night's games ---- */
+.games {
+  gap: 14px;
+}
+.game {
+  border: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+.game:hover,
+.game:focus-visible {
+  border-color: var(--accent);
+  border-top-color: var(--accent);
+}
+.team.big {
+  font-size: 1.4rem;
+  font-family: var(--display);
+  font-weight: 800;
+}
+.swatch {
+  border-radius: 3px;
+}
+.wp-bar {
+  border-radius: 999px;
+  overflow: hidden;
+}
+.wp-bar > i {
+  border-radius: 0;
+}
+.props.one-line {
+  list-style: none;
+  padding: 8px 0 0;
+  margin: 12px 0 0;
+}
+.props.one-line li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 0;
+  min-width: 0;
+}
+.ol-name {
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ol-say {
+  flex: none;
+  text-align: right;
+  font-size: 0.9rem;
+}
+@media (max-width: 420px) {
+  .ol-say {
+    font-size: 0.85rem;
+  }
+}
+
+/* ---- game page ---- */
+.panel.scoreboard {
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface) 62%);
+}
+.score-mid .final {
+  font-family: var(--display);
+  font-weight: 800;
+}
+.player {
+  border-top: 1px solid var(--line);
+}
+.dist .band,
+.dist .iqr {
+  fill: var(--accent);
+}
+.prop-block {
+  border-top: 1px dashed var(--line);
+}
+
+/* ---- leg page ---- */
+.leg-tab[aria-current="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.leg-tab[aria-current="true"] .leg-dot {
+  background: var(--on-accent);
+}
+.leg-line {
+  border-top-color: var(--line);
+}
+.leg-fixed {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+details.more {
+  padding: 0 16px;
+}
+details.more > summary {
+  font-weight: 700;
+  color: var(--accent-ink);
+  min-height: 52px;
+}
+details.more > .stack {
+  padding-bottom: 16px;
+}
+details.more .panel {
+  background: var(--surface-2);
+}
+.edge-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.edge-list li {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--muted);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.edge-list li.pos {
+  border-left-color: var(--win);
+}
+.edge-list li.neg {
+  border-left-color: var(--loss);
+}
+.edge-math {
+  margin-top: 2px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.onit {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.onit-label {
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+/* ---- swipe, picks ---- */
+.swipe-card {
+  border-radius: 18px;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(170deg, var(--accent-soft), var(--surface) 55%);
+}
+.swipe-card .line {
+  font-family: var(--display);
+  font-weight: 800;
+}
+.swipe-card .who {
+  font-family: var(--display);
+  font-weight: 800;
+}
+.btn.big {
+  border-radius: var(--radius);
+}
+.progress {
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress > i {
+  background: var(--accent);
+}
+.board {
+  border-left-color: var(--accent);
+}
+.board .rec {
+  color: var(--accent-ink);
+}
+.badge {
+  border-radius: 6px;
+  min-width: 52px;
+}
+.friend + .friend {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+.friend-name {
+  margin-bottom: 0;
+}
+.share-note {
+  margin: 4px 0 0;
+}
+.setting {
+  border: 0;
+  margin: 0;
+  padding: 0 0 18px;
+}
+.setting legend {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  padding: 0;
+  margin-bottom: 2px;
+}
+.setting:last-child {
+  padding-bottom: 0;
+}
+
+/* ---- keep the page from ever scrolling sideways ---- */
+img,
+svg {
+  max-width: 100%;
+}
+.table-wrap {
+  max-width: 100%;
+}
+.game,
+.panel,
+.tile {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1023px) {
+  main {
+    padding-bottom: 96px;
+  }
+}

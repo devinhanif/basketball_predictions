@@ -1,4 +1,3 @@
-import { api } from "./api";
 import { Explain, Loading, View } from "./components";
 import { longDate } from "./format";
 import { engineSpeaksFor } from "./nights";
@@ -6,20 +5,26 @@ import { Body as EngineBody, gateSentence, verdictText, whatWeChecked } from "./
 import { plainText } from "./plain";
 import { TopParlaysPanel } from "./TopParlaysPanel";
 import { hasTickets, type TpResult } from "./topParlays";
-import { useLoad } from "./useLoad";
+import type { LoadState } from "./useLoad";
 import type { ParlayState } from "./types";
 
 /**
  * One strip for "what should I bet tonight?" (F21). The honest default is a single line, "No parlay tonight. Keep
  * your money.", with the two reasons (the engine's check and the tickets file) one tap away. When there are tickets,
  * the full ticket panel shows instead; when the engine itself has a pick for this very night, its card shows first.
+ * The states are loaded by the page (so its headline can use them) and passed in.
  */
-export function VerdictStrip({ date }: { date: string }) {
-  const [eng, reloadEng] = useLoad(() => api.parlay(), []);
-  const [tp, reloadTp] = useLoad(() => api.topParlays(date), [date]);
+export function VerdictStrip(props: {
+  date: string;
+  eng: LoadState<ParlayState>;
+  tp: LoadState<TpResult>;
+  reloadEng: () => void;
+  reloadTp: () => void;
+}) {
+  const { date, eng, tp } = props;
   if (eng.status === "loading" || tp.status === "loading") return <Loading />;
-  if (eng.status === "error") return <View state={eng} reload={reloadEng}>{() => null}</View>;
-  if (tp.status === "error") return <View state={tp} reload={reloadTp}>{() => null}</View>;
+  if (eng.status === "error") return <View state={eng} reload={props.reloadEng}>{() => null}</View>;
+  if (tp.status === "error") return <View state={tp} reload={props.reloadTp}>{() => null}</View>;
   const p = eng.data;
   const t = tp.data;
   const speaks = engineSpeaksFor(date, p.report_date);
@@ -41,11 +46,13 @@ function ticketsLine(t: TpResult): string {
   if (t.kind === "ok") return `The tickets file for this night holds no tickets. ${plainText(t.data.empty_reason ?? "No reason was given")}.`;
   return "No tickets are stored for this night yet. That is normal before the pre-tip run, not an error.";
 }
+
+/** The honest default is a first-class screen: a verdict card, not an error and not a softened message. */
 function NoParlay(props: { date: string; p: ParlayState; speaks: boolean; tickets: TpResult }) {
   const { p, speaks, date } = props;
   const refused = props.tickets.kind === "refused";
   return (
-    <section class="panel verdict strip" aria-labelledby="strip-h">
+    <section class="panel verdict strip keep" aria-labelledby="strip-h">
       <div class="kicker">Parlays for {longDate(date)}</div>
       <h2 id="strip-h">{refused ? "Tickets failed their checks. Keep your money." : "No parlay tonight. Keep your money."}</h2>
       <Explain label="Why?">

@@ -1,8 +1,12 @@
 import { render } from "preact";
 import { App } from "./App";
+import { applyTheme, getPrefs } from "./prefs";
+import "./theme.css";
 import "./styles.css";
 import "./leg.css";
+import "./ui.css";
 
+applyTheme(getPrefs().theme);
 const root = document.getElementById("app");
 if (root) render(<App />, root);
 

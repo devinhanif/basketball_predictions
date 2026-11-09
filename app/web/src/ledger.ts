@@ -45,6 +45,16 @@ export function loadLedger(): Pick[] {
   }
 }
 
+const watchers = new Set<() => void>();
+
+/** Called after every change to this device's ledger (the shared-picks sync listens). Returns the way to stop. */
+export function onLedgerChange(fn: () => void): () => void {
+  watchers.add(fn);
+  return () => {
+    watchers.delete(fn);
+  };
+}
+
 function save(rows: Pick[]): void {
   memory = rows;
   try {
@@ -52,6 +62,12 @@ function save(rows: Pick[]): void {
   } catch {
     memoryOnly = true;
   }
+  for (const w of watchers) w();
+}
+
+/** Replace the whole ledger (used when picks saved elsewhere are merged in). */
+export function replaceLedger(rows: Pick[]): void {
+  save(rows);
 }
 
 /** A pick is refused at or after the game's tip (ISO-8601 UTC strings compare as instants). */

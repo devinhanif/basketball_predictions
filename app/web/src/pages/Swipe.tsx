@@ -4,6 +4,8 @@ import { CardDetail } from "../CardDetail";
 import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
 import { american, bookName, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
+import { IS_ARTIFACT } from "../env";
+import { ShareNote } from "../SharedUI";
 import { useLoad } from "../useLoad";
 import { chronological, defaultNight } from "../nights";
 import { useSettled } from "../useSettled";
@@ -202,7 +204,7 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
           <h2>That's the deck</h2>
           <p class="muted">
             On {longDate(props.date)} you made {mine.filter((p) => p.side !== "skip").length} picks and skipped{" "}
-            {mine.filter((p) => p.side === "skip").length}. They are pretend picks, saved only on this device.
+            {mine.filter((p) => p.side === "skip").length}. They are pretend picks, {IS_ARTIFACT ? "saved on this device and shared with the people who open this link" : "saved only on this device"}.
           </p>
           <div class="row wrap center">
             <a class="btn primary" href="#/picks">
@@ -245,13 +247,18 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
             These are real player lines. By default you see the number and the price, nothing else: no forecast, no
             stats. If you open "Stats and line slider" you see recent games and our forecast, and that pick is saved
             as not blind. Your answer is locked in before tip-off, then graded against what actually happened. They are
-            pretend picks, so no money is involved, and your record is saved only on this device.
+            pretend picks, so no money is involved, and your record is saved {IS_ARTIFACT ? "on this device and shared with the people who open this link" : "only on this device"}.
           </p>
         </Explain>
       </div>
+      <ShareNote />
       <View state={list} reload={reloadList} onStale={props.onStale}>
         {(list) => {
-          const slates = chronological(list);
+          const all = chronological(list);
+          // A snapshot can hold nights that have not been played: there is nothing to grade a pick against, so only the
+          // nights with a deck are offered (and the newest of them opens first).
+          const playable = all.filter((s) => s.deck !== false);
+          const slates = playable.length > 0 ? playable : all;
           const date = props.date ?? defaultNight(slates);
           return (
             <>

@@ -712,6 +712,8 @@ class ExportStore:
 
     def _parlay(self) -> Json:
         p = json.loads((self.root / PARLAY_NAME).read_text(encoding="utf-8"))
+        recs = p.get("records")
+        self.parlay_records: list[Json] = recs if isinstance(recs, list) else []
         status, verdict = p.get("status"), p.get("verdict")
         n, npos = int(p.get("n_evaluated", 0)), int(p.get("n_positive", 0))
         base: Json = {

@@ -1,0 +1,5 @@
+dist
+dist-artifact
+dist-artifact-tmp
+artifact-data
+node_modules

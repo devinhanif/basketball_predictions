@@ -1,16 +1,19 @@
 import { useEffect } from "preact/hooks";
 import { api, warmGames } from "../api";
-import { ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
-import { chronological, defaultNight } from "../nights";
+import { headline } from "../headline";
+import { chronological, defaultNight, engineSpeaksFor } from "../nights";
+import { useMode, type Mode } from "../prefs";
 import { useLoad } from "../useLoad";
-import type { GameSummary } from "../types";
-import { STAT_LABEL } from "../types";
+import type { GameSummary, ParlayState, Slate } from "../types";
+import { STAT_LABEL, STAT_SHORT } from "../types";
 import { VerdictStrip } from "../VerdictStrip";
 import { compareLine, doesText, rangeSentence } from "../words";
+import type { TpResult } from "../topParlays";
 
-function KeyProps({ game }: { game: GameSummary }) {
-  if (game.key_props.length === 0) return null;
+/** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
+function KeyPropsFull({ game }: { game: GameSummary }) {
   return (
     <div class="props">
       <div class="label">Top scorers, by our forecast</div>
@@ -56,7 +59,38 @@ function KeyProps({ game }: { game: GameSummary }) {
   );
 }
 
-function GameRow({ g }: { g: GameSummary }) {
+/** Simple: one line per player. */
+function KeyPropsOneLine({ game }: { game: GameSummary }) {
+  if (game.key_props.length === 0) return null;
+  return (
+    <ul class="props one-line" aria-label="Top scorers, by our forecast">
+      {game.key_props.map((p) => {
+        const reference = p.line_source === "reference";
+        return (
+          <li key={p.player_id}>
+            <span class="ol-name">
+              {p.name} <span class="muted">{p.team}</span>
+            </span>
+            <span class="ol-say num">
+              {reference ? (
+                <>
+                  typical {num(p.q50)} {STAT_SHORT[p.stat]}
+                </>
+              ) : (
+                <>
+                  over {lineText(p.line)} {STAT_SHORT[p.stat]} <b>{pctBounded(p.model_p_over, p.extrapolated)}</b>
+                  {p.market_p_over !== null ? <span class="muted"> (book {pct(p.market_p_over)})</span> : null}
+                </>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function GameRow({ g, mode }: { g: GameSummary; mode: Mode }) {
   return (
     <a class="game" href={`#/game/${g.game_id}`} aria-label={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}, open game`}>
       <div class="game-top">
@@ -71,8 +105,18 @@ function GameRow({ g }: { g: GameSummary }) {
         {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
       </div>
       <WinBars wp={g.win_probability} home={g.home} away={g.away} />
-      <KeyProps game={g} />
+      {mode === "analyst" ? <KeyPropsFull game={g} /> : <KeyPropsOneLine game={g} />}
     </a>
+  );
+}
+
+function Tile(props: { value: string; label: string; note?: string }) {
+  return (
+    <div class="tile">
+      <div class="tile-v num">{props.value}</div>
+      <div class="tile-l">{props.label}</div>
+      {props.note ? <div class="tile-n muted">{props.note}</div> : null}
+    </div>
   );
 }
 
@@ -84,33 +128,58 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
         {(raw) => {
           const slates = chronological(raw);
           const date = props.date ?? defaultNight(slates);
-          return (
-            <>
-              <div class="page-head">
-                <h1>{date ? longDate(date) : "Slate"}</h1>
-                <nav class="tabs" aria-label="Choose a night">
-                  {slates.map((s) => (
-                    <a key={s.date} class="tab" href={`#/?date=${s.date}`} aria-current={s.date === date ? "true" : undefined}>
-                      {longDate(s.date).replace(/, \d{4}$/, "")}
-                    </a>
-                  ))}
-                </nav>
-              </div>
-              {date ? <VerdictStrip date={date} /> : null}
-              {date ? <SlateBody date={date} onStale={props.onStale} /> : <p>No nights are loaded.</p>}
-            </>
-          );
+          return date ? <Night date={date} nights={slates.map((s) => s.date)} onStale={props.onStale} /> : <p>No nights are loaded.</p>;
         }}
       </View>
     </div>
   );
 }
 
-/** Is the model still without a track record? Null when the engine's state cannot be read. */
-function useGateClosed(): boolean | null {
-  const [eng] = useLoad(() => api.parlay(), []);
-  if (eng.status !== "ready" || eng.data.gate === null) return null;
-  return !eng.data.gate.gate_open;
+function Night(props: { date: string; nights: string[]; onStale: (s: boolean) => void }) {
+  const { date } = props;
+  const mode = useMode();
+  const [slate, reloadSlate] = useLoad(() => api.slate(date), [date]);
+  const [eng, reloadEng] = useLoad(() => api.parlay(), []);
+  const [tp, reloadTp] = useLoad(() => api.topParlays(date), [date]);
+  const engine: ParlayState | null = eng.status === "ready" ? eng.data : null;
+  const tickets: TpResult | null = tp.status === "ready" ? tp.data : null;
+  const speaks = engine !== null && engineSpeaksFor(date, engine.report_date);
+  const head =
+    slate.status === "ready" && eng.status !== "loading" && tp.status !== "loading"
+      ? headline({ games: slate.data.counts.games, engine, speaks, tickets })
+      : null;
+  return (
+    <>
+      <header class="page-head today-head">
+        <div class="kicker">
+          <span class="tonight-dot" aria-hidden="true" />
+          {longDate(date)} · NBA
+        </div>
+        {head ? (
+          <>
+            <h1 class={`answer ${head.verdict}`}>{head.text}</h1>
+            <p class="muted answer-src">{head.source}</p>
+          </>
+        ) : (
+          <h1 class="answer pending">Reading the night&hellip;</h1>
+        )}
+        <div class="head-tools">
+          <nav class="tabs" aria-label="Choose a night">
+            {props.nights.map((d) => (
+              <a key={d} class="tab" href={`#/?date=${d}`} aria-current={d === date ? "true" : undefined}>
+                {longDate(d).replace(/, \d{4}$/, "")}
+              </a>
+            ))}
+          </nav>
+          <ModeToggle />
+        </div>
+      </header>
+      <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
+      <View state={slate} reload={reloadSlate} onStale={props.onStale}>
+        {(s) => <SlateBody s={s} engine={engine} speaks={speaks} mode={mode} />}
+      </View>
+    </>
+  );
 }
 
 function WarmCache({ ids }: { ids: string[] }) {
@@ -121,36 +190,37 @@ function WarmCache({ ids }: { ids: string[] }) {
   return null;
 }
 
-function SlateBody({ date, onStale }: { date: string; onStale: (s: boolean) => void }) {
-  const [slate, reload] = useLoad(() => api.slate(date), [date]);
-  const gateClosed = useGateClosed();
+function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolean; mode: Mode }) {
+  const { s, engine, speaks, mode } = props;
+  const gateClosed = engine?.gate != null ? !engine.gate.gate_open : null;
+  const priced = speaks && engine ? engine.counts["n_contracts"] : undefined;
+  const flagged = speaks && engine ? engine.counts["n_flagged_positive"] : undefined;
   return (
-    <View state={slate} reload={reload} onStale={onStale}>
-      {(s) => (
-        <>
-          <section class="panel flat">
-            <p class="small">
-              <strong>
-                {s.counts.games} games, {s.counts.props} player {s.mode === "fixture_replay" ? "lines" : "forecasts"}.
-              </strong>{" "}
-              {s.mode === "fixture_replay"
-                ? "This is a replay of a real night from the 2024-25 season, not tonight's slate. Every forecast was made before tip, using only what was known then."
-                : "Every forecast is the last one stored before tip. A prop's line is the one most books carried; where none had a usable quote, it shows a reference line at the middle of our own forecast."}
-            </p>
-            {gateClosed ? (
-              <p class="small muted">Our model has no track record yet, so nothing on this page is a pick. Keep your money.</p>
-            ) : null}
-            <ModelNote items={s.games.flatMap((g) => g.key_props.map((p) => ({ source: p.model_source, label: p.model_label })))} />
-          </section>
-          <div class="games">
-            {s.games.map((g) => (
-              <GameRow key={g.game_id} g={g} />
-            ))}
-          </div>
-          <WinLegend />
-          <WarmCache ids={s.games.map((g) => g.game_id)} />
-        </>
-      )}
-    </View>
+    <>
+      <section class="tiles" aria-label="The night in numbers">
+        <Tile value={s.counts.games.toLocaleString("en-US")} label={s.counts.games === 1 ? "game" : "games"} />
+        <Tile value={s.counts.props.toLocaleString("en-US")} label={s.mode === "fixture_replay" ? "player lines" : "player forecasts"} />
+        {priced !== undefined ? <Tile value={priced.toLocaleString("en-US")} label="contracts priced" note="at the ask, with fees" /> : null}
+        {flagged !== undefined ? <Tile value={flagged.toLocaleString("en-US")} label="clear an edge after fees" /> : null}
+      </section>
+      <section class="panel flat note-panel">
+        <p class="small">
+          {s.mode === "fixture_replay"
+            ? "This is a replay of a real night from the 2024-25 season, not tonight's slate. Every forecast was made before tip, using only what was known then."
+            : "Every forecast is the last one stored before tip. A prop's line is the one most books carried; where none had a usable quote, it shows a reference line at the middle of our own forecast."}
+        </p>
+        {gateClosed ? (
+          <p class="small muted">Our model has no track record yet, so nothing on this page is a pick. Keep your money.</p>
+        ) : null}
+        <ModelNote items={s.games.flatMap((g) => g.key_props.map((p) => ({ source: p.model_source, label: p.model_label })))} />
+      </section>
+      <div class="games">
+        {s.games.map((g) => (
+          <GameRow key={g.game_id} g={g} mode={mode} />
+        ))}
+      </div>
+      <WinLegend />
+      <WarmCache ids={s.games.map((g) => g.game_id)} />
+    </>
   );
 }

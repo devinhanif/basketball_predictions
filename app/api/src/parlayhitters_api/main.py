@@ -15,6 +15,7 @@ from .breakdown import Breakdown, Side
 from .breakdown import build as build_breakdown
 from .dissect.providers import default_router
 from .dissect.service import dissect_leg
+from .edges import leg_edges
 from .export_store import ExportRefused
 from .forecast import (
     TAUS,
@@ -559,6 +560,22 @@ def register(app: FastAPI) -> None:
     @app.get("/api/parlay-of-the-day")
     def parlay(store: StoreDep) -> Json:
         return store.parlay
+
+    @app.get("/api/edges/{game_id}/{player_id}/{stat}")
+    def edges(game_id: str, player_id: int, stat: str, store: StoreDep) -> Json:
+        """Stored single-contract rows for one player and stat: model chance with its
+        interval, the ask, the fee and the engine's own edge after fees. Copied, not recomputed."""
+        if stat not in STATS:
+            raise HTTPException(404, "unknown stat")
+        rows = leg_edges(getattr(store, "parlay_records", []), game_id, player_id, stat)
+        return {
+            "report_date": store.parlay.get("report_date"),
+            "contracts": rows,
+            "note": (
+                "Prediction-market (Kalshi) contracts at the ask, with the taker fee, as the "
+                "engine priced them. Edge is the engine's own number after fees. Paper only."
+            ),
+        }
 
     @app.get("/api/top-parlays/{date}")
     def top_parlays(date: str) -> Json:

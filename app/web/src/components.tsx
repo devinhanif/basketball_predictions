@@ -8,7 +8,8 @@ import { teamColor } from "./teams";
 import type { PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
 import { errorCopy } from "./errors";
-import type { Route } from "./router";
+import { topHref, type Route } from "./router";
+import { effectiveDark, setPref, usePrefs } from "./prefs";
 import { FOOTER_DISCLOSURE } from "./config";
 import { lineMarkLabel, winSentence } from "./words";
 import { plainModel, plainModelSentence } from "./plain";
@@ -18,6 +19,9 @@ const I = {
   today: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z",
   swipe: "M4 7h16v10H4zM8 3h8M8 21h8",
   picks: "M5 4h14v16H5zM8.5 9h7M8.5 13h7M8.5 17h4",
+  settings: "M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6",
+  sun: "M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+  moon: "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z",
 };
 
 function Icon({ d }: { d: string }) {
@@ -31,53 +35,65 @@ function Icon({ d }: { d: string }) {
 function Logo() {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="10" fill="#0f1115" />
-      <rect x="14" y="36" width="9" height="14" rx="1" fill="#f3f3f0" />
-      <rect x="27.5" y="20" width="9" height="30" rx="1" fill="#ff7a1a" />
-      <rect x="41" y="29" width="9" height="21" rx="1" fill="#f3f3f0" />
+      <rect width="64" height="64" rx="16" fill="var(--accent)" />
+      <rect x="14" y="36" width="9" height="14" rx="2" fill="var(--on-accent)" />
+      <rect x="27.5" y="18" width="9" height="32" rx="2" fill="var(--on-accent)" />
+      <rect x="41" y="28" width="9" height="22" rx="2" fill="var(--on-accent)" />
     </svg>
   );
 }
 
 /* ------------------------------------------------------------------ shell */
-const NAV: { name: Route["name"]; href: string; label: string; icon: string }[] = [
-  { name: "today", href: "#/", label: "Today", icon: I.today },
-  { name: "swipe", href: "#/swipe", label: "Swipe", icon: I.swipe },
-  { name: "picks", href: "#/picks", label: "My picks", icon: I.picks },
+type TopName = "today" | "swipe" | "picks";
+// Track record and the Desk join this list in later phases; nothing is shown for them until they exist.
+const NAV: { name: TopName; label: string; icon: string }[] = [
+  { name: "today", label: "Today", icon: I.today },
+  { name: "swipe", label: "Swipe", icon: I.swipe },
+  { name: "picks", label: "My picks", icon: I.picks },
 ];
 
-function isCurrent(route: Route, name: Route["name"]): boolean {
+function isCurrent(route: Route, name: TopName | "settings"): boolean {
   if (name === "today") return route.name === "today" || route.name === "game" || route.name === "leg" || route.name === "parlay";
   return route.name === name;
 }
 
-function effectiveDark(): boolean {
-  const t = document.documentElement.dataset["theme"];
-  if (t === "dark") return true;
-  if (t === "light") return false;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function ThemeToggle() {
-  const [dark, setDark] = useState(effectiveDark);
+export function ThemeToggle() {
+  const { theme } = usePrefs();
+  const dark = effectiveDark(theme);
   return (
     <button
       type="button"
       class="icon-btn"
-      aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={dark ? "Switch to the light theme" : "Switch to the dark theme"}
       onClick={() => {
-        const next = dark ? "light" : "dark";
-        document.documentElement.dataset["theme"] = next;
-        try {
-          localStorage.setItem("ph.theme", next);
-        } catch {
-          /* storage blocked: the choice lasts for this visit only */
-        }
-        setDark(!dark);
+        setPref("theme", dark ? "light" : "dark");
       }}
     >
-      {dark ? "Light" : "Dark"}
+      <Icon d={dark ? I.sun : I.moon} />
+      <span class="icon-btn-text">{dark ? "Light" : "Dark"}</span>
     </button>
+  );
+}
+
+/** Simple (plain cards) or Analyst (the Leg-page depth inline). A per-device preference. */
+export function ModeToggle() {
+  const { mode } = usePrefs();
+  return (
+    <div class="seg" role="group" aria-label="Detail level">
+      {(["simple", "analyst"] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          class="seg-btn"
+          aria-pressed={mode === m}
+          onClick={() => {
+            setPref("mode", m);
+          }}
+        >
+          {m === "simple" ? "Simple" : "Analyst"}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -102,6 +118,13 @@ export function Shell(props: {
   offline: boolean;
   children: ComponentChildren;
 }) {
+  const links = (cls: string, withIcons: boolean) =>
+    NAV.map((n) => (
+      <a key={n.name} class={cls} href={topHref(n.name)} aria-current={isCurrent(props.route, n.name) ? "page" : undefined}>
+        <Icon d={n.icon} />
+        {withIcons ? n.label : <span>{n.label}</span>}
+      </a>
+    ));
   return (
     <div class="shell">
       <a
@@ -114,38 +137,47 @@ export function Shell(props: {
       >
         Skip to content
       </a>
-      <header class="topbar">
-        <div class="topbar-in">
-          <a class="brand" href="#/" aria-label="parlayhitters, home">
-            <Logo />
-            parlayhitters
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href={topHref("today")} aria-label="parlayhitters, home">
+          <Logo />
+          parlayhitters
+        </a>
+        <nav class="side-nav" aria-label="Main">
+          {links("side-link", false)}
+        </nav>
+        <div class="side-foot">
+          <a class="side-link" href={topHref("settings")} aria-current={isCurrent(props.route, "settings") ? "page" : undefined}>
+            <Icon d={I.settings} />
+            <span>Settings</span>
           </a>
-          <nav class="nav-desktop" aria-label="Main">
-            {NAV.map((n) => (
-              <a key={n.name} href={n.href} aria-current={isCurrent(props.route, n.name) ? "page" : undefined}>
-                {n.label}
-              </a>
-            ))}
-          </nav>
-          <span class="spacer" />
           <ThemeToggle />
         </div>
-        {props.replayNote ? <div class="banner">{props.replayNote}</div> : null}
+      </aside>
+      <div class="content">
+        <header class="topbar">
+          <div class="topbar-in">
+            <a class="brand" href={topHref("today")} aria-label="parlayhitters, home">
+              <Logo />
+              parlayhitters
+            </a>
+            <span class="spacer" />
+            <ThemeToggle />
+            <a class="icon-btn" href={topHref("settings")} aria-label="Settings" aria-current={isCurrent(props.route, "settings") ? "page" : undefined}>
+              <Icon d={I.settings} />
+            </a>
+          </div>
+        </header>
+        {props.replayNote ? <div class="datanote" role="status">{props.replayNote}</div> : null}
         {props.offline ? (
           <div class="banner" role="status">
             You are offline, or the data server is not answering. Showing the last copy we saved.
           </div>
         ) : null}
-      </header>
-      <main id="main" tabIndex={-1}>{props.children}</main>
-      <Footer />
+        <main id="main" tabIndex={-1}>{props.children}</main>
+        <Footer />
+      </div>
       <nav class="nav-bottom" aria-label="Main">
-        {NAV.map((n) => (
-          <a key={n.name} href={n.href} aria-current={isCurrent(props.route, n.name) ? "page" : undefined}>
-            <Icon d={n.icon} />
-            {n.label}
-          </a>
-        ))}
+        {links("", true)}
       </nav>
     </div>
   );

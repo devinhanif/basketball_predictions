@@ -1,6 +1,12 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
-import { ErrorPanel, Explain, Loading } from "../components";
+import { ErrorPanel, Explain, Loading, ModeToggle } from "../components";
+import { IS_ARTIFACT } from "../env";
+import { edgeLine, nearestFirst, contractSide } from "../edges";
+import { useMode } from "../prefs";
+import { OnItChip } from "../SharedUI";
+import { useLoad } from "../useLoad";
+import { STATS } from "../types";
 import { plainModelSentence } from "../plain";
 import { american, bookName, lineText, longDate, num, pct, stamp, tipTime } from "../format";
 import {
@@ -40,6 +46,36 @@ function LineCard(props: {
   const step = (d: number): void => {
     props.onLine(clampLine(line + d, min, max));
   };
+  if (IS_ARTIFACT) {
+    // The snapshot holds the posted line only: other lines would need the live server, and a number we cannot compute is not shown.
+    return (
+      <section class="panel leg-line" aria-label="The line">
+        <div class="row between wrap">
+          <div class="leg-sides" role="group" aria-label="Over or under">
+            {(["over", "under"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                class="leg-side"
+                aria-pressed={side === s}
+                onClick={() => {
+                  props.onSide(s);
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <span class="small muted">{posted !== null && line === posted ? "Posted line" : data.line_source === "model_middle" ? "Middle of our forecast" : "Line"}</span>
+        </div>
+        <div class="leg-fixed">
+          <span class="label">{data.label} line</span>
+          <span class="line-out leg-line-out num">{lineText(line)}</span>
+        </div>
+        <p class="small muted">This snapshot shows the line as it was posted. The line slider needs the live app.</p>
+      </section>
+    );
+  }
   return (
     <section class="panel leg-line" aria-label="The line">
       <div class="row between wrap">
@@ -368,7 +404,7 @@ function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (
     <section class="panel" aria-label="Other lines side by side">
       <h2>Other lines, side by side</h2>
       <p class="small muted" style={{ marginTop: 0 }}>
-        Tap a line to move to it. Recent form on the left, our forecast on the right.
+        {IS_ARTIFACT ? "Recent form on the left, our forecast on the right." : "Tap a line to move to it. Recent form on the left, our forecast on the right."}
       </p>
       <div class="table-wrap">
         <table class="leg-table num">
@@ -388,15 +424,19 @@ function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (
               return (
                 <tr key={r.line} aria-current={r.line === line ? "true" : undefined}>
                   <th scope="row">
-                    <button
-                      type="button"
-                      class="linklike leg-pick"
-                      onClick={() => {
-                        props.onLine(r.line);
-                      }}
-                    >
-                      {lineText(r.line)}
-                    </button>
+                    {IS_ARTIFACT ? (
+                      <span class="num">{lineText(r.line)}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        class="linklike leg-pick"
+                        onClick={() => {
+                          props.onLine(r.line);
+                        }}
+                      >
+                        {lineText(r.line)}
+                      </button>
+                    )}
                   </th>
                   <td>{ofText(rowHits(r, side, 10), data.ladder_n10)}</td>
                   <td>{ofText(rowHits(r, side, 5), data.ladder_n5)}</td>
@@ -680,6 +720,50 @@ function Opponent({ data }: { data: LegBreakdown }) {
   );
 }
 
+/* ------------------------------------------------------------------ the edge arithmetic (Analyst) */
+function EdgePanel({ data, line }: { data: LegBreakdown; line: number }) {
+  const known = (STATS as readonly string[]).includes(data.stat);
+  const [state] = useLoad(
+    () => (known ? api.edges(data.game_id, data.player_id, data.stat) : Promise.reject(new Error("no contracts for this stat"))),
+    [data.game_id, data.player_id, data.stat],
+  );
+  if (!known) return null;
+  return (
+    <section class="panel" aria-label="Edge after fees">
+      <h2>Edge after fees</h2>
+      {state.status === "loading" ? <p class="muted">Loading...</p> : null}
+      {state.status === "error" ? <p class="muted">No priced contract is stored for this player and stat in this data.</p> : null}
+      {state.status === "ready" && state.data.contracts.length === 0 ? (
+        <p class="muted">No prediction-market contract was priced for this player and stat, so there is no edge to show.</p>
+      ) : null}
+      {state.status === "ready" && state.data.contracts.length > 0 ? (
+        <>
+          <p class="small muted" style={{ marginTop: 0 }}>
+            Each line is one stored contract: our model's chance with its range, against the ask plus the fee. The edge is what is
+            left, per $1. Nearest to the line on screen first.
+          </p>
+          <ul class="edge-list">
+            {nearestFirst(state.data.contracts, line)
+              .slice(0, 6)
+              .map((c) => (
+                <li key={`${c.ticker}-${c.side}`} class={c.ev > 0 ? "pos" : "neg"}>
+                  <div class="edge-what">
+                    <strong>
+                      {c.threshold.toString()}+ {data.label.toLowerCase()}
+                    </strong>{" "}
+                    <span class="muted">{contractSide(c)}</span>
+                  </div>
+                  <div class="edge-math num">{edgeLine(c)}</div>
+                </li>
+              ))}
+          </ul>
+          <p class="small muted">{state.data.note}</p>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------------ the page */
 function Header({ data, line }: { data: LegBreakdown; line: number }) {
   return (
@@ -710,6 +794,10 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
       <p class="small muted" style={{ margin: "4px 0 0" }}>
         A dot means no model forecast yet for that stat.
       </p>
+      <OnItChip propId={`${data.game_id}:${data.player_id.toString()}:${data.stat}`} />
+      <div class="head-tools">
+        <ModeToggle />
+      </div>
     </header>
   );
 }
@@ -722,6 +810,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(true);
   const [tick, setTick] = useState(0);
+  const mode = useMode();
   const { onStale } = props;
 
   useEffect(() => {
@@ -776,6 +865,16 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   const shown = line ?? data.line;
   const row = ladderAt(data.ladder, shown);
   const fresh = !pending && data.line === shown && data.side === side;
+  const depth = (
+    <>
+      <Ladder data={data} line={shown} side={side} onLine={setLine} />
+      <Books data={data} line={shown} />
+      <Splits data={data} side={side} line={shown} />
+      <Teammates data={data} side={side} line={shown} />
+      <RolePanel data={data} />
+      <Opponent data={data} />
+    </>
+  );
   return (
     <div class={`stack leg${fresh ? "" : " stale"}`} aria-busy={pending}>
       <Header data={data} line={shown} />
@@ -796,16 +895,19 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
       ) : (
         <>
           <Headline data={data} row={row} side={side} line={shown} fresh={fresh} />
+          {mode === "analyst" ? <EdgePanel data={data} line={shown} /> : null}
           <InWords data={data} />
           <HeadsUp data={data} />
           <Games data={data} side={side} line={shown} row={row} />
           <ModelPanel data={data} side={side} line={shown} row={row} />
-          <Ladder data={data} line={shown} side={side} onLine={setLine} />
-          <Books data={data} line={shown} />
-          <Splits data={data} side={side} line={shown} />
-          <Teammates data={data} side={side} line={shown} />
-          <RolePanel data={data} />
-          <Opponent data={data} />
+          {mode === "analyst" ? (
+            depth
+          ) : (
+            <details class="panel more">
+              <summary>More depth: other lines, prices by book, splits, teammates, role, opponent</summary>
+              <div class="stack">{depth}</div>
+            </details>
+          )}
         </>
       )}
       {error ? (

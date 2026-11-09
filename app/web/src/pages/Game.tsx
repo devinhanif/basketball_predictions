@@ -3,7 +3,9 @@ import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
-import { DistBar, DistLegend, Explain, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { DistBar, DistLegend, Explain, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { OnItChip } from "../SharedUI";
+import { useMode, type Mode } from "../prefs";
 import { plainPlay } from "../plain";
 import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { legHref, nightHref } from "../router";
@@ -33,6 +35,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           Full breakdown: last 10, splits, teammates out
         </a>
       </p>
+      <OnItChip propId={prop.prop_id} />
       <p class="prop-say">
         {prop.line_source === "reference"
           ? `${rangeSentence(prop.stat, num(q[9] ?? 0), num(q[4] ?? 0), num(q[14] ?? 0))}.`
@@ -80,12 +83,12 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean }) {
+function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean; mode: Mode }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
   return (
-    <details class="player">
+    <details class="player" open={props.mode === "analyst" ? true : undefined}>
       <summary>
         <span class="player-sum">
           <span class="player-name">
@@ -140,17 +143,21 @@ function Body({ g }: { g: GameDetail }) {
   const [result, reloadResult] = useLoad(() => (show ? api.gameResult(g.game_id) : Promise.resolve({ data: null, fromCache: false })), [g.game_id, show]);
   const res: GameResult | null = result.status === "ready" ? result.data : null;
   const [side, setSide] = useState<"away" | "home">("away");
+  const mode = useMode();
   const team = side === "home" ? g.home : g.away;
   const players = g.players.filter((p) => p.side === side);
   const modelHome = g.win_probability.model_home;
   const winner = res ? (res.home_won ? g.home : g.away) : null;
   return (
     <div class="stack">
-      <p class="back-row">
-        <a class="back-link" href={nightHref(g.date)}>
-          Back to the night
-        </a>
-      </p>
+      <div class="row between wrap">
+        <p class="back-row" style={{ margin: 0 }}>
+          <a class="back-link" href={nightHref(g.date)}>
+            Back to the night
+          </a>
+        </p>
+        <ModeToggle />
+      </div>
       <section class="panel scoreboard">
         <h1 class="sr">
           {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
@@ -256,7 +263,7 @@ function Body({ g }: { g: GameDetail }) {
           {players.length === 0 ? (
             <p class="muted">No forecasts are stored for this team.</p>
           ) : (
-            players.map((p) => <PlayerRow key={p.player_id} gameId={g.game_id} p={p} result={res} final={g.final} />)
+            players.map((p) => <PlayerRow key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} mode={mode} />)
           )}
         </div>
         <ul class="plain small muted">
