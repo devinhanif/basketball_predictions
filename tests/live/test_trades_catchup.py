@@ -46,6 +46,8 @@ class Server:
         self.requests: list[httpx.Request] = []
         self.fail: dict[tuple[str, int], int] = {}  # (ticker, call number) -> status
         self.calls: dict[str, int] = {}
+        self.keyset = False  # cursor = 'after:<last _i>' instead of an offset
+        self.expired: set[str] = set()  # cursors answered 200 empty (expired)
 
     def add(self, ticker: str, n: int) -> None:
         have = len(self.trades.setdefault(ticker, []))
@@ -65,7 +67,18 @@ class Server:
             from nba.live.kalshi_pull import trade_ts
 
             allv = [x for x in allv if (trade_ts(x) or 0) >= int(q["min_ts"])]
-        off = int(q["cursor"]) if q.get("cursor") else 0
+        cur = q.get("cursor")
+        if cur in self.expired:
+            self.expired.discard(cur)  # a cursor expires once; a fresh walk issues a valid one
+            return httpx.Response(200, json={"trades": [], "cursor": ""})
+        if self.keyset:
+            if cur:
+                allv = [x for x in allv if x["_i"] < int(cur.split(":")[1])]
+            page = allv[:lim]
+            more = len(allv) > lim
+            nxt = f"after:{page[-1]['_i']}" if more else ""
+            return httpx.Response(200, json={"trades": page, "cursor": nxt})
+        off = int(cur) if cur else 0
         if off > len(allv) + 10**6:
             return httpx.Response(400, json={})
         page = allv[off : off + lim]
@@ -263,3 +276,119 @@ def test_request_budget_never_exceeds_tick_budget(tmp_path: Path) -> None:
     tick(cap, {GAME: 50_000.0}, budget=30)  # 30 - 12 reserve = 18 pages
     assert len(srv.requests) <= 30 - cap.budget.trades_page_reserve
     assert GAME in cap.st.trade_pending
+
+
+def test_expired_cursor_answering_200_empty_restarts_offset(tmp_path: Path) -> None:
+    srv = Server()
+    srv.add(GAME, 3_000)
+    cap = make_cap(tmp_path, srv, trades_page_budget=1)
+    tick(cap, {GAME: 3_000.0})
+    assert cap.st.trade_cursor[GAME] == "1000"
+    srv.expired.add("1000")
+    cap.budget = Budget(trades_page_budget=50)
+    tick(cap, {GAME: 3_000.0})
+    ids = stored(tmp_path, GAME)
+    assert len(ids) == 3_000 == len(set(ids))
+
+
+def test_expired_cursor_and_carry_with_keyset_cursor(tmp_path: Path) -> None:
+    srv = Server()
+    srv.keyset = True
+    srv.add(GAME, 6_500)
+    cap = make_cap(tmp_path, srv, trades_page_budget=2)
+    tick(cap, {GAME: 6_500.0})
+    cursor = cap.st.trade_cursor[GAME]
+    assert cursor == "after:4500"
+    srv.add(GAME, 700)  # newer prints at the head during the carry
+    srv.expired.add(cursor)
+    cap.budget = Budget(trades_page_budget=50)
+    for _ in range(4):
+        tick(cap, {GAME: 7_200.0})
+    ids = stored(tmp_path, GAME)
+    assert len(set(ids)) == 7_200 and not cap.st.trade_pending
+
+
+def test_keyset_cursor_resume_is_complete(tmp_path: Path) -> None:
+    srv = Server()
+    srv.keyset = True
+    srv.add(GAME, 6_500)
+    cap = make_cap(tmp_path, srv, trades_page_budget=2)
+    for _ in range(6):
+        tick(cap, {GAME: 6_500.0})
+    ids = stored(tmp_path, GAME)
+    assert len(ids) == 6_500 == len(set(ids)) and not cap.st.trade_pending
+
+
+def test_raw_write_failure_absorbs_nothing_then_recovers(tmp_path: Path) -> None:
+    srv = Server()
+    srv.add(GAME, 1_500)
+    cap = make_cap(tmp_path, srv)
+    real = cap.store.save
+    calls = [0]
+
+    def flaky(*a: Any, **k: Any) -> Any:
+        calls[0] += 1
+        if calls[0] == 1:
+            raise OSError("disk full")
+        return real(*a, **k)
+
+    cap.store.save = flaky  # type: ignore[method-assign]
+    tick(cap, {GAME: 1_500.0})
+    assert GAME not in cap.st.trade_last_ts and GAME in cap.st.trade_pending
+    assert not stored(tmp_path, GAME)
+    tick(cap, {GAME: 1_500.0})
+    ids = stored(tmp_path, GAME)
+    assert len(ids) == 1_500 == len(set(ids))
+
+
+def test_walk_without_mark_evidence_is_kept_open(tmp_path: Path) -> None:
+    srv = Server()
+    srv.add(GAME, 500)
+    cap = make_cap(tmp_path, srv)
+    tick(cap, {GAME: 500.0})
+    cap.st.trade_ids[GAME] = {"not-a-real-id"}  # the mark's ids never come back
+    cap.st.trade_pending[GAME] = None
+    tick(cap, {GAME: 500.0})
+    assert GAME in cap.st.trade_pending  # first time: kept open, logged
+    assert "without reaching the mark" in (tmp_path / "raw" / "errors.log").read_text()
+
+
+def test_stale_cursor_cleared_after_budget_refused_restart(tmp_path: Path) -> None:
+    srv = Server()
+    srv.add(GAME, 3_000)
+    cap = make_cap(tmp_path, srv, trades_page_budget=1)
+    tick(cap, {GAME: 3_000.0})
+    cap.st.trade_cursor[GAME] = str(10**9)  # server answers 400
+    tick(cap, {GAME: 3_000.0})  # 1 page budget: the 400 uses it, the restart is refused
+    assert GAME not in cap.st.trade_cursor
+
+
+def test_retries_count_against_the_probe_reserve(tmp_path: Path) -> None:
+    srv = Server()
+    srv.add(GAME, 50_000)
+    for k in range(1, 40):
+        srv.fail[(GAME, k)] = 500  # every attempt fails: 3 requests per page
+    cap = make_cap(tmp_path, srv)
+    tick(cap, {GAME: 50_000.0}, budget=30)
+    assert cap.fetcher.tick_requests <= 30 - cap.budget.trades_page_reserve + 3
+
+
+def test_player_double_triple_double_rank_with_props() -> None:
+    assert trade_priority("KXNBA2D-26NOV09NOPGSW-GSWBPODZIEMSKI2") == 1
+    assert trade_priority("KXNBA3D-26NOV09NOPGSW-GSWBPODZIEMSKI3") == 1
+    assert trade_priority("KXNBA2HSPREAD-26NOV09DENHOU-DEN9") == 2
+
+
+def test_drain_after_the_loop_empties_the_queue_and_reports(tmp_path: Path) -> None:
+    srv = Server()
+    for t in (GAME, PROP, SPREAD):
+        srv.add(t, 1_200)
+    cap = make_cap(tmp_path, srv, trades_page_budget=2)
+    tick(cap, {GAME: 1_200.0, PROP: 1_200.0, SPREAD: 1_200.0})
+    assert cap.st.trade_pending  # live ticks left a backlog
+    out = cap.drain_trades()
+    assert out["drain_start"] > 0 and out["drain_remaining"] == 0
+    for t in (GAME, PROP, SPREAD):
+        assert len(set(stored(tmp_path, t))) == 1_200
+    lines = (tmp_path / "raw" / "ticks.jsonl").read_text().splitlines()
+    assert json.loads(lines[-1])["drain_remaining"] == 0

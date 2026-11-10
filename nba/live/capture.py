@@ -54,6 +54,8 @@ class Budget:
     trades_pages_per_ticker: int = 40  # one ticker cannot take the whole tick (fairness)
     trades_page_reserve: int = 12  # requests left for probe_other after the trade pages
     trades_page_limit: int = 1000
+    trades_state_open_cap: int = 20_000  # open ids persisted per ticker (more: cursor only)
+    drain_max_rounds: int = 400
 
 
 @dataclass(frozen=True)
@@ -161,6 +163,8 @@ class State:
     trade_open_max: dict[str, int] = field(default_factory=dict)
     trade_429_streak: int = 0
     trade_skip_ticks: int = 0
+    trade_unproven: dict[str, int] = field(default_factory=dict)  # walks that never saw the mark
+    trade_state_written: str = ""
 
 
 @dataclass
@@ -172,7 +176,17 @@ class TradePull:
     rate_limited: bool = False
 
 
-PROP_PREFIXES = ("KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBAPRA", "KXNBASTL", "KXNBABLK")
+PROP_PREFIXES = (
+    "KXNBAPTS",
+    "KXNBAREB",
+    "KXNBAAST",
+    "KXNBA3PT",
+    "KXNBAPRA",
+    "KXNBASTL",
+    "KXNBABLK",
+    "KXNBA2D",
+    "KXNBA3D",
+)
 
 
 def trade_priority(ticker: str) -> int:
@@ -501,14 +515,21 @@ class Capture:
                 t: {
                     "hwm": st.trade_last_ts.get(t),
                     "hwm_ids": sorted(st.trade_ids.get(t, set())),
-                    "open": st.trade_open.get(t, {}),
+                    "open": (
+                        st.trade_open.get(t, {})
+                        if len(st.trade_open.get(t, {})) <= self.budget.trades_state_open_cap
+                        else {}
+                    ),
                     "open_max": st.trade_open_max.get(t),
                     "cursor": st.trade_cursor.get(t),
                 }
                 for t in sorted(tickers)
             },
         }
-        write_json_atomic(self.trade_state_path, body)
+        text = json.dumps(body, sort_keys=True)
+        if text != st.trade_state_written:  # only when changed
+            write_json_atomic(self.trade_state_path, body)
+            st.trade_state_written = text
 
     def _load_trade_state(self) -> None:
         path = self.trade_state_path
@@ -541,7 +562,11 @@ class Capture:
     # -- one ticker's catch-up --------------------------------------------------------------
     def _take_page(self) -> bool:
         with self._page_lock:
-            if self._trade_stop or self._pages_left <= 0 or self.fetcher.exhausted():
+            f = self.fetcher
+            floor = f.tick_budget - self.budget.trades_page_reserve  # retries count: live check
+            if self._trade_stop or self._pages_left <= 0 or f.tick_requests >= floor:
+                return False
+            if f.exhausted():
                 return False
             self._pages_left -= 1
             return True
@@ -563,6 +588,8 @@ class Capture:
         seen = set(st.trade_ids.get(ticker, set())) | set(st.trade_open.get(ticker, {}))
         cursor = st.trade_cursor.get(ticker)
         resumed = cursor is not None
+        mark_ids = st.trade_ids.get(ticker, set())
+        reached = hwm is None  # evidence the walk got down to the mark
         out: list[dict[str, Any]] = []
         pages = 0
         limit = self.budget.trades_page_limit
@@ -582,8 +609,14 @@ class Capture:
                 if limited:
                     self._trade_stop = True
                 return TradePull(out, False, cursor, pages, limited)
-            resumed = False
+            was_resumed, resumed = resumed, False
             page = [tr for tr in body.get("trades") or [] if isinstance(tr, dict)]
+            if was_resumed and not page and not body.get("cursor"):
+                cursor = None  # an expired cursor can answer 200 empty: restart from the newest
+                self.log_error(f"trades {ticker} resumed cursor returned an empty end; restarting")
+                continue
+            if any(str(tr.get("trade_id", "")) in mark_ids for tr in page):
+                reached = True  # min_ts is inclusive: the mark second's prints come back
             for tr in page:
                 tid = str(tr.get("trade_id", ""))
                 if tid not in seen:
@@ -591,10 +624,16 @@ class Capture:
                     out.append(tr)
             nxt = str(body.get("cursor") or "")
             stamps = [ts for tr in page if (ts := kp.trade_ts(tr)) is not None]
-            if hwm is not None and stamps and max(stamps) < hwm:
-                nxt = ""  # the whole page is older than the mark: caught up
+            if hwm is not None and stamps and min(stamps) < hwm:
+                reached = True
+                nxt = ""  # the page is below the mark: caught up
             if not nxt:
-                return TradePull(out, True, None, pages)
+                if reached or st.trade_unproven.get(ticker, 0) >= 1:
+                    st.trade_unproven.pop(ticker, None)
+                    return TradePull(out, True, None, pages)
+                st.trade_unproven[ticker] = st.trade_unproven.get(ticker, 0) + 1
+                self.log_error(f"trades {ticker} walk ended without reaching the mark; kept open")
+                return TradePull(out, False, None, pages)
             cursor = nxt
 
     def _absorb_trades(self, t: str, pull: TradePull) -> None:
@@ -609,6 +648,8 @@ class Capture:
         if not pull.complete:
             if pull.cursor:
                 st.trade_cursor[t] = pull.cursor
+            else:
+                st.trade_cursor.pop(t, None)  # no valid cursor: the next pull restarts at newest
             return
         top = st.trade_open_max.get(t)
         if top is not None:
@@ -647,34 +688,44 @@ class Capture:
 
             with ThreadPoolExecutor(max_workers=self.budget.orderbook_workers) as pool:
                 results = list(pool.map(self.pull_trades, targets))
+        got = {t: p.trades for t, p in zip(targets, results, strict=True) if p.trades}
+        n = sum(len(v) for v in got.values())
+        saved = True
+        if got:  # raw first: state moves only after the prints are on disk
+            try:
+                self.store.save(
+                    "kalshi_trades",
+                    self.day.isoformat(),
+                    json.dumps(got, sort_keys=True).encode(),
+                    http_status=200,
+                    note={"n_trades": n, "n_tickers": len(got)},
+                )
+            except OSError as exc:
+                saved = False
+                self.log_error(f"trades raw write failed, nothing absorbed: {exc}"[:300])
+        cleared = 0
         for t, pull in zip(targets, results, strict=True):
             pages += pull.pages
             limited = limited or pull.rate_limited
-            carried = t in st.trade_open  # catch-up spanned ticks: prints newer than its first page
-            self._absorb_trades(t, pull)  # may have arrived since, so one verify pass follows
+            if not saved:  # re-read next tick from the old cursor / mark
+                incomplete.append(t)
+                continue
+            carried = t in st.trade_open  # catch-up spanned ticks: newer prints may have arrived
+            self._absorb_trades(t, pull)  # so one verify pass follows
             if pull.complete and not carried:
                 st.trade_pending.pop(t, None)
-            elif pull.complete:
-                pass  # stays queued; the next pass starts at the new mark and clears it
-            else:
+                cleared += 1
+            elif not pull.complete:
                 incomplete.append(t)
-            if pull.trades:
-                got[t] = pull.trades
         if limited:
             st.trade_429_streak += 1
             st.trade_skip_ticks = min(2 ** (st.trade_429_streak - 1) - 1, 3)
         elif pages > 0:
             st.trade_429_streak = 0
-        n = sum(len(v) for v in got.values())
-        if got:
-            self.store.save(
-                "kalshi_trades",
-                self.day.isoformat(),
-                json.dumps(got, sort_keys=True).encode(),
-                http_status=200,
-                note={"n_trades": n, "n_tickers": len(got), "n_incomplete": len(incomplete)},
-            )
-        self._save_trade_state()  # after the raw write: a crash between them only duplicates
+        if not saved:
+            n = 0
+            got = {}
+        self._save_trade_state()
         info["trades"] = {
             "n": n,
             "tickers": len(got),
@@ -683,6 +734,7 @@ class Capture:
         }
         if pages:
             info["trades"]["pages"] = pages
+            info["trades"]["cleared"] = cleared  # tickers fully caught up this tick
         if st.trade_cursor:
             info["trades"]["carried_cursors"] = len(st.trade_cursor)
         if limited:
@@ -695,6 +747,37 @@ class Capture:
         if incomplete:
             info["skipped"]["trades_incomplete"] = incomplete[:50]
             info["skipped"]["trades_incomplete_n"] = len(incomplete)
+
+    def drain_trades(self) -> dict[str, Any]:
+        """After the main loop: pull the queued trade backlog under the sweep budget (books and
+        markets no longer compete), until empty, out of budget, or no progress. One line per round
+        goes to ``ticks.jsonl`` with ``drain: true``; the remainder is reported, never hidden."""
+        b = self.budget
+        st = self.st
+        start = len(st.trade_pending)
+        self.fetcher.begin_tick(b.sweep_budget, b.sweep_deadline_s)
+        rounds = 0
+        while st.trade_pending and rounds < b.drain_max_rounds and not self.fetcher.exhausted():
+            rounds += 1
+            st.trade_skip_ticks = 0  # no tick clock here: a 429 sleeps instead of skipping ticks
+            info: dict[str, Any] = {"at": self.now().isoformat(), "drain": True, "skipped": {}}
+            self.kalshi_trades(info)
+            with (self.out / "ticks.jsonl").open("a") as f:
+                f.write(json.dumps(info, sort_keys=True) + "\n")
+            tr = info["trades"]
+            if tr.get("rate_limited"):
+                self.sleep(15.0 * min(st.trade_429_streak, 4))
+                st.trade_skip_ticks = 0
+            elif not tr.get("pages"):
+                break
+        summary = {
+            "drain_start": start,
+            "drain_rounds": rounds,
+            "drain_remaining": len(st.trade_pending),
+        }
+        with (self.out / "ticks.jsonl").open("a") as f:
+            f.write(json.dumps({"at": self.now().isoformat(), **summary}, sort_keys=True) + "\n")
+        return summary
 
     # ------------------------------------------------------------------ schedule + loop
     def schedule(self) -> list[Game] | None:
@@ -747,6 +830,10 @@ class Capture:
         if self.fresh is not None:
             self.fresh.close()
         if not once:
+            try:
+                self.drain_trades()
+            except Exception:
+                self.log_error("drain trades " + traceback.format_exc().replace("\n", " | ")[:1500])
             try:
                 self.sweep("end")
             except Exception:
