@@ -184,23 +184,58 @@ def test_candidates_exclude_out_players_and_unreported_games(world: dict[str, ob
 
 
 def test_planted_future_does_not_move_the_scenario(world: dict[str, object]) -> None:
-    """The sitter's stats on and after the game date never reach the scenario."""
+    """The sitter's pts, minutes and starter flag on and after the game date, and a report row for another
+    teammate stamped tip - 59 min, never reach either arm (vacancy or feature rows)."""
+    import dataclasses
+
+    from nba.props.context_residual import flagged_from_availability
+
     w = world
-    g, pid, _ = _late_game(w)
+    g, pid, team = _late_game(w)
     gdf, pdf = w["games"], w["pgs"]
+    flagged = w["flagged"]
     assert isinstance(gdf, pl.DataFrame) and isinstance(pdf, pl.DataFrame)
+    assert isinstance(flagged, dict)
     day = gdf.filter(pl.col("game_id") == g)["game_date"].item()
+    # the report: the sitter OUT at noon; a late row (19:00 proxy tip - 59 min) for another teammate
+    cfg = dataclasses.replace(ContextResidualConfig().report, tip_source="proxy19")
+    row = {"game_id": g, "status": "Out", "source": "nba_official_report"}
+    noon = dt.datetime.combine(day, dt.time(12, 0))
+    late = dt.datetime.combine(day, dt.time(18, 1))
+    a0 = pl.DataFrame([{**row, "player_id": pid, "as_of": noon}])
+    a1 = pl.concat([a0, pl.DataFrame([{**row, "player_id": team * 100 + 1, "as_of": late}])])
+    f0, _ = flagged_from_availability(a0, gdf, cfg)
+    f1, _ = flagged_from_availability(a1, gdf, cfg)
+    assert f0[g] == f1[g] == {pid}
+    real = {**flagged, g: set(flagged[g]) | f1[g]}
     later = gdf.filter(pl.col("game_date") >= day)["game_id"].to_list()
+    hit = pl.col("game_id").is_in(later) & (pl.col("player_id") == pid)
     planted = pdf.with_columns(
-        pl.when(pl.col("game_id").is_in(later) & (pl.col("player_id") == pid))
-        .then(pl.lit(99))
-        .otherwise(pl.col("pts"))
-        .alias("pts")
+        pl.when(hit).then(pl.lit(99)).otherwise(pl.col("pts")).alias("pts"),
+        pl.when(hit).then(pl.lit(48.0)).otherwise(pl.col("minutes")).alias("minutes"),
+        pl.when(hit).then(pl.lit(False)).otherwise(pl.col("starter")).alias("starter"),
     )
-    p2 = S.played_frame(gdf, planted)
-    v1 = S.scenario_vacancy(w["played"], w["states"], w["flagged"], w["info"], [(g, pid)])  # type: ignore[arg-type]
-    v2 = S.scenario_vacancy(p2, player_states(p2), w["flagged"], w["info"], [(g, pid)])  # type: ignore[arg-type]
-    assert v1.sort("team_id").equals(v2.sort("team_id"))
+    sitters = pl.DataFrame({"game_id": [g], "sitter_id": [pid], "team_id": [team]})
+    arms = []
+    for p in (pdf, planted):
+        pf = S.played_frame(gdf, p)
+        st = player_states(pf)
+        feats = build_features(gdf, p, w["static"], real, ELO)  # type: ignore[arg-type]
+        base = feats.filter(pl.col("game_id") == g)
+        s_rows = base.filter((pl.col("team_id") == team) & (pl.col("player_id") != pid))
+        vac_u = S.scenario_vacancy(pf, st, real, w["info"], [(g, pid)], remove=True)  # type: ignore[arg-type]
+        u_rows = S.scenario_features(base, vac_u, sitters).drop("sitter_id")
+        vac_s = vacated_features(pf, st, real, w["info"])  # type: ignore[arg-type]
+        arms.append(
+            (
+                s_rows.sort("player_id"),
+                u_rows.sort("player_id"),
+                vac_u.sort("team_id"),
+                vac_s.filter(pl.col("game_id") == g).sort("team_id"),
+            )
+        )
+    for x, y in zip(arms[0], arms[1], strict=True):
+        assert x.equals(y)
 
 
 def test_forecasts_paired_and_equal_to_production_with_sitter_out(world: dict[str, object]) -> None:

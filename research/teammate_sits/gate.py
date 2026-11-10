@@ -35,11 +35,14 @@ SEASONS = (2023, 2024)
 SELECT, REPORT = 2023, 2024
 MAX_K = 3  # absence games 1..3 (T476's window)
 FLOOR = -0.005
-HW_BAR = 0.005
-SIZE_SEED = 20261110  # synthetic-outcome draws for sizing only (the rule's bootstrap seed is 2026)
+SIZE_SEED = (
+    20261110  # synthetic draws for the se estimates only (the rule's bootstrap seed is 2026)
+)
 SLOPE_SE_BAR = 0.25
 ORACLE_BAR = FLOOR
 POWER_BAR = 0.5
+SHARED_TAU = 1.0  # sitter-season-shared sd on the world weight w (BEST_PRACTICES 2026-10-20)
+N_SE_DRAWS = 5  # oracle-world draws averaged (in variance) for the clustered se; means are exact
 
 
 def _num(x: Any) -> float:
@@ -254,7 +257,7 @@ def export_size(w: dict[str, Any], season: int) -> dict[str, Any]:
     }
 
 
-def size(root: Path) -> dict[str, Any]:  # pragma: no cover - maintainer (heavy)
+def size(root: Path, grids_dir: Path | None = None) -> dict[str, Any]:  # pragma: no cover
     import yaml
 
     from nba.props.context_residual import build_features
@@ -267,14 +270,17 @@ def size(root: Path) -> dict[str, Any]:  # pragma: no cover - maintainer (heavy)
     }
     feats = build_features(w["games"], w["pgs"], w["static"], w["flagged"], elo)
     _log(t0, f"features {feats.height}")
-    return size_core(w, feats, SEASONS, t0)
+    return size_core(w, feats, SEASONS, t0, grids_dir)
 
 
 def size_core(
-    w: dict[str, Any], feats: pl.DataFrame, seasons: tuple[int, ...], t0: float
+    w: dict[str, Any],
+    feats: pl.DataFrame,
+    seasons: tuple[int, ...],
+    t0: float,
+    grids_dir: Path | None = None,
 ) -> dict[str, Any]:
     """G2 sizing on a loaded world (tests run it on a synthetic league)."""
-    from nba.eval.context_residual_eval import crps_from_quantiles
     from nba.props.context_residual import (
         CRPS_TAUS,
         PROP_STATS,
@@ -284,7 +290,6 @@ def size_core(
         stat_frame,
         to_integer_support,
     )
-    from research.eval import prereg_gates_common as C
 
     _, primary = events(w)
     sitters = primary.select(
@@ -326,55 +331,103 @@ def size_core(
             )
             assert rs.select(keys).equals(ru.select(keys)), "arms must share rows"
             qs_i, qu_i = to_integer_support(qs), to_integer_support(qu)
-            idx = rng.integers(0, qs_i.shape[1], len(qs_i))
-            y_s = qs_i[np.arange(len(qs_i)), idx]  # oracle world: the scenario's shift is the truth
-            y_u = qu_i[np.arange(len(qu_i)), idx]  # null world: the absence moves nothing
-            d_or = crps_from_quantiles(qs_i, y_s) - crps_from_quantiles(qu_i, y_s)
-            d_nu = crps_from_quantiles(qs_i, y_u) - crps_from_quantiles(qu_i, y_u)
-            gain = C.expected_crps_gain(qu_i, qs_i)
-            gid = rs["game_id"].to_numpy().astype(str)
-            ps = (rs["player_id"].cast(pl.Utf8) + "_" + str(season)).to_numpy()
-            ss = (rs["sitter_id"].cast(pl.Utf8) + "_" + str(season)).to_numpy()
-            cl = {
-                "game": C.cluster_stats(d_or, gid),
-                "player_season": C.cluster_stats(d_or, ps),
-                "sitter_season": C.cluster_stats(d_or, ss),
-            }
-            bind = max(cl.values(), key=lambda c: c["deff"])
-            delta = mean_s - mean_u
-            # slope of (y - mean_U) on delta, sandwich influence function; y from the S grid (oracle world)
-            dc = delta - delta.mean()
-            e = (y_s - mean_s) - float(np.mean(y_s - mean_s))
-            psi = dc * e / max(float((dc**2).mean()), 1e-12)
-            slope_se = max(C.cluster_stats(psi, k)["se"] for k in (gid, ps, ss))
-            sz = C.sizing_row(
-                stat, bind["sd_row"], bind["deff"], bind["n"], FLOOR, float(-gain.mean())
+            if grids_dir is not None:
+                grids_dir.mkdir(parents=True, exist_ok=True)
+                np.savez_compressed(
+                    grids_dir / f"grids_{season}_{stat}.npz",
+                    game_id=rs["game_id"].to_numpy().astype(str),
+                    player_id=rs["player_id"].to_numpy(),
+                    sitter_id=rs["sitter_id"].to_numpy(),
+                    k=rs.join(
+                        sitters.select("game_id", "sitter_id", "k"),
+                        on=["game_id", "sitter_id"],
+                        how="left",
+                    )["k"].to_numpy(),
+                    q_s=qs_i.astype(np.float32),
+                    q_u=qu_i.astype(np.float32),
+                    mean_s=mean_s,
+                    mean_u=mean_u,
+                )
+            res["by_season"].setdefault(str(season), {})[stat] = g2_stat(
+                qs_i, qu_i, mean_s, mean_u, rs, season, rng
             )
-            res["by_season"].setdefault(str(season), {})[stat] = {
-                "n": len(d_or),
-                "delta_mean": {
-                    "mean": float(delta.mean()),
-                    "abs_p50": float(np.median(np.abs(delta))),
-                    "abs_p90": float(np.quantile(np.abs(delta), 0.9)),
-                },
-                "oracle_expected_gain": float(-gain.mean()),
-                "oracle_sim_mean": float(d_or.mean()),
-                "null_sim_mean": float(d_nu.mean()),
-                "clusters": cl,
-                "slope_se": slope_se,
-                "sizing": sz,
-                "g2_pass": bool(
-                    sz["halfwidth95"] <= HW_BAR
-                    and -gain.mean() <= ORACLE_BAR
-                    and sz["power_one_season"] >= POWER_BAR
-                    and slope_se <= SLOPE_SE_BAR
-                ),
-            }
+            r = res["by_season"][str(season)][stat]
             _log(
                 t0,
-                f"{season} {stat}: n {len(d_or)} gain {-gain.mean():+.5f} hw {res['by_season'][str(season)][stat]['sizing']['halfwidth95']:.5f}",
+                f"{season} {stat}: n {r['n']} oracle {r['oracle_expected_gain']:+.5f} null {r['null_expected_gain']:+.5f} power {r['power_shared']:.3f} slope_se {r['slope_se_shared']:.3f} -> {r['crps_g2']} / {r['slope_g2']}",
             )
     return res
+
+
+def g2_stat(
+    qs_i: np.ndarray,
+    qu_i: np.ndarray,
+    mean_s: np.ndarray,
+    mean_u: np.ndarray,
+    rows: pl.DataFrame,
+    season: int,
+    rng: np.random.Generator,
+) -> dict[str, Any]:
+    """Section-9 G2 for one stat-season (label-free). World means are EXACT expectations
+    (``expected_crps_gain`` over each arm's own atoms); only the clustered se uses oracle-world draws
+    (``N_SE_DRAWS``, variances averaged). Shared noise: se^2 = se_bind^2 + (SHARED_TAU * span)^2 / n_sitter_seasons;
+    slope: sqrt(slope_se^2 + SHARED_TAU^2 / n_sitter_seasons)."""
+    from nba.eval.context_residual_eval import crps_from_quantiles
+    from research.eval import prereg_gates_common as C
+
+    oracle = float(-C.expected_crps_gain(qu_i, qs_i).mean())  # E[S - U | S true], <= 0
+    null = float(C.expected_crps_gain(qs_i, qu_i).mean())  # E[S - U | U true], >= 0
+    span = null - oracle
+    gid = rows["game_id"].to_numpy().astype(str)
+    ps = (rows["player_id"].cast(pl.Utf8) + "_" + str(season)).to_numpy()
+    ss = (rows["sitter_id"].cast(pl.Utf8) + "_" + str(season)).to_numpy()
+    n, n_sit = len(gid), len(np.unique(ss))
+    delta = mean_s - mean_u
+    dc = delta - delta.mean()
+    var_cl: dict[str, list[float]] = {"game": [], "player_season": [], "sitter_season": []}
+    var_slope: list[float] = []
+    rix = np.arange(n)
+    for _ in range(N_SE_DRAWS):
+        y = qs_i[rix, rng.integers(0, qs_i.shape[1], n)]
+        d = crps_from_quantiles(qs_i, y) - crps_from_quantiles(qu_i, y)
+        for name, key in (("game", gid), ("player_season", ps), ("sitter_season", ss)):
+            var_cl[name].append(C.cluster_stats(d, key)["se"] ** 2)
+        e = (y - mean_s) - float(np.mean(y - mean_s))
+        psi = dc * e / max(float((dc**2).mean()), 1e-12)
+        var_slope.append(max(C.cluster_stats(psi, k)["se"] ** 2 for k in (gid, ps, ss)))
+    se_cl = {k: float(np.sqrt(np.mean(v))) for k, v in var_cl.items()}
+    se_bind = max(se_cl.values())
+    se = float(np.sqrt(se_bind**2 + (SHARED_TAU * span) ** 2 / n_sit))
+    line = min(FLOOR, -1.96 * se)
+    power = C.pass_power(oracle, line, se)
+    slope_se = float(np.sqrt(np.mean(var_slope)))
+    slope_se_sh = float(np.sqrt(slope_se**2 + SHARED_TAU**2 / n_sit))
+    crps_g2 = (
+        "FLOOR_UNREACHABLE" if oracle > ORACLE_BAR else "POWER" if power < POWER_BAR else "PASS"
+    )
+    return {
+        "n": n,
+        "n_sitter_seasons": n_sit,
+        "delta_mean": {
+            "mean": float(delta.mean()),
+            "abs_p50": float(np.median(np.abs(delta))),
+            "abs_p90": float(np.quantile(np.abs(delta), 0.9)),
+        },
+        "oracle_expected_gain": oracle,
+        "null_expected_gain": null,
+        "span": span,
+        "w_at_floor": float((null - FLOOR) / span) if span > 0 else float("nan"),
+        "se_by_cluster": se_cl,
+        "se_bind": se_bind,
+        "se_shared": se,
+        "pass_line": line,
+        "power_shared": power,
+        "halfwidth95_shared": 1.96 * se,
+        "slope_se": slope_se,
+        "slope_se_shared": slope_se_sh,
+        "crps_g2": crps_g2,
+        "slope_g2": "PASS" if slope_se_sh <= SLOPE_SE_BAR else "SLOPE_UNRESOLVED",
+    }
 
 
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover
@@ -382,8 +435,9 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover
     ap.add_argument("stage", choices=("counts", "size"))
     ap.add_argument("--data-root", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--grids-dir", type=Path, default=None, help="size: save per-row S/U grids")
     a = ap.parse_args(argv)
-    out = counts(a.data_root) if a.stage == "counts" else size(a.data_root)
+    out = counts(a.data_root) if a.stage == "counts" else size(a.data_root, a.grids_dir)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(out, indent=2, sort_keys=True, default=str))
     return 0
