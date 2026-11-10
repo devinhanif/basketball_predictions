@@ -18,6 +18,8 @@ STAT = {"pts": "pts", "reb": "reb", "ast": "ast", "fg3m": "3PM"}
 NO_OVER = "No over has positive EV after fees tonight."
 DISCLAIMER = "Paper only. Not advice."
 
+QUOTE_AGE_NOTE_MIN = 5.0  # a price older than this (the alert cap) says how old it is
+
 ON_PACE, BEHIND, HIT, MISS, NEUTRAL = "🟢", "🟠", "✅", "❌", "⚪"
 
 
@@ -105,7 +107,10 @@ def ev_phrase(row: OverRow) -> str:
 
 def why_line(row: OverRow, style: Style) -> str:
     venue = VENUE.get(row.venue, row.venue)
-    bits = [f"{venue} asks {cents(row.ask)}"]
+    ask = f"{venue} asks {cents(row.ask)}"
+    if row.quote_age_min is not None and row.quote_age_min > QUOTE_AGE_NOTE_MIN and not row.stale:
+        ask += f" (priced {row.quote_age_min:.0f} min ago)"
+    bits = [ask]
     sharp = row.pin if row.pin is not None else row.fair
     if sharp is not None:
         age = "" if row.ref_age_min is None else f", {row.ref_age_min:.0f} min old"

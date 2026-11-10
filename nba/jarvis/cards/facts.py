@@ -38,7 +38,9 @@ def pick_id(slate: date, game_id: str, ticker: str) -> str:
     return sha([str(slate), game_id, ticker])
 
 
-def over_from_play(p: Play, slate: date, shown_at: str, display_name: str) -> OverRow | None:
+def over_from_play(
+    p: Play, slate: date, shown_at: str, display_name: str, now: datetime | None = None
+) -> OverRow | None:
     leg = p.legs[0]
     if leg.kind != "prop" or leg.side != "yes" or leg.stat is None or leg.threshold is None:
         return None
@@ -62,6 +64,11 @@ def over_from_play(p: Play, slate: date, shown_at: str, display_name: str) -> Ov
         player_id=leg.player_id,
         includes_p_plays=any(n.startswith("fair price includes P(plays)") for n in p.notes),
         shown_at=shown_at,
+        quote_age_min=(
+            None
+            if now is None or leg.quote_ts is None
+            else max(0.0, (now - leg.quote_ts).total_seconds() / 60.0)
+        ),
     )
 
 
@@ -100,7 +107,7 @@ def pregame_overs(
         p = single_candidate(cfg, st, q, "yes")
         if p is None or is_capped(p) or (hold is not None and hold(p)):
             continue
-        row = over_from_play(p, st.slate, shown_at, _name(q, kb))
+        row = over_from_play(p, st.slate, shown_at, _name(q, kb), st.now)
         if row is None:
             continue
         priced += 1

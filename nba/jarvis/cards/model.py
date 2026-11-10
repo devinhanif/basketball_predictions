@@ -29,6 +29,7 @@ class OverRow:
     player_id: int | None
     includes_p_plays: bool = False
     shown_at: str = ""
+    quote_age_min: float | None = None  # age of the price when this card priced it (not frozen)
     stale: str = ""  # "" = priced now; else why the shown price is old (the over stays on the card)
 
 
