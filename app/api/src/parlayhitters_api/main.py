@@ -36,6 +36,8 @@ from .forecast import (
     shown_probs,
 )
 from .knows import GameKnows, PlayerKnows, game_knows, player_knows
+from .live import LiveHub
+from .live_routes import register_live
 from .minutes import minutes_info
 from .model_source import model_detail, model_label, p_play_label
 from .models import (
@@ -186,6 +188,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"detail": f"the data export was refused: {exc}"}, status_code=503)
 
     register(app)
+    register_live(app, LiveHub())
     return app
 
 
