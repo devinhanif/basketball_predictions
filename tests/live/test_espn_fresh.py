@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -249,13 +250,14 @@ def test_403_backs_off_stops_and_says_why(tmp_path: Path) -> None:
         p.cycle()
         clock.advance(18)
     game_reqs = [r for r in seen if not r.url.path.endswith("/scoreboard")]
-    assert len(game_reqs) == 5  # armed backoff is not cleared; the 5th 403 trips the latch
+    assert len(game_reqs) <= 10  # armed backoff is not cleared; the latch is per class
     assert p.stop.is_set()
-    assert p.st.backoffs >= 1 and p.st.consecutive_fail >= 1
+    assert p.st.backoffs >= 1 and max(p.st.consecutive_fail.values()) >= 1
     for _ in range(10):  # long idle: backoff expires, 403s accumulate to the latch
         clock.advance(400)
         p.cycle()
     assert p.stop.is_set() and p.heartbeat_fields()["fresh_stopped_reason"].startswith("http 403")
+    assert p.heartbeat_fields()["fresh_last_game_success_ts"] == ""
     n = len(seen)
     p.cycle()
     assert len(seen) == n  # stopped: no more requests
@@ -412,3 +414,92 @@ def test_capture_wiring_and_flag_off_heartbeat_unchanged(tmp_path: Path) -> None
     assert keys_on - keys_off == {"fresh_alive"}
     assert on.run(once=True, start_now=True) in (0, 2)
     assert stub.started == 0 and stub.closed <= 1  # once=True never starts the thread
+
+
+def test_one_live_game_403_not_hidden_by_scoreboard_successes(tmp_path: Path) -> None:
+    clock = Clock()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("/scoreboard"):
+            return httpx.Response(200, json=SCOREBOARD)  # one live game, scoreboard healthy
+        return httpx.Response(403)
+
+    p, _ = make(tmp_path, handler, clock)
+    for _ in range(60):
+        p.scoreboard_every_s = 0.0  # a healthy scoreboard success every cycle
+        p.cycle()
+        clock.advance(400)  # past any backoff
+        if p.stop.is_set():
+            break
+    hb = p.heartbeat_fields()
+    assert p.stop.is_set() and hb["fresh_stopped_reason"].endswith(("summary", "core"))
+    assert hb["fresh_last_success_ts"] != "" and hb["fresh_last_game_success_ts"] == ""
+    assert hb["fresh_auth_fail_game"] >= 5
+
+
+def test_parse_bad_split_by_endpoint(tmp_path: Path) -> None:
+    p, _ = make(tmp_path, lambda r: httpx.Response(200, json={}), Clock())
+    p.bad("x", CORE_PLAYS)
+    p.bad("y", SUMMARY)
+    hb = p.heartbeat_fields()
+    assert (hb["fresh_parse_bad"], hb["fresh_parse_bad_core"], hb["fresh_parse_bad_summary"]) == (
+        2,
+        1,
+        1,
+    )
+
+
+def test_failed_save_is_retried_next_cycle(tmp_path: Path) -> None:
+    clock = Clock()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("/summary"):
+            return httpx.Response(200, json=SUMMARY_BODY)
+        return httpx.Response(404)
+
+    p, _ = make(tmp_path, handler, clock)
+    real = p.store.save
+    calls = {"n": 0}
+
+    def flaky(*a: Any, **k: Any) -> Path:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError("ENOSPC")
+        return real(*a, **k)
+
+    p.store.save = flaky  # type: ignore[method-assign]
+    with contextlib.suppress(OSError):
+        p.poll_summary("1")
+    p.poll_summary("1")
+    assert p.st.saved == 1 and calls["n"] == 2  # the body was not marked as stored
+
+
+def test_capture_calls_start_and_close_once_in_a_real_window(tmp_path: Path) -> None:
+    from nba.live.capture import Capture
+    from nba.live.http import Fetcher
+
+    board = (FIX / "espn_scoreboard.json").read_bytes()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("/scoreboard"):
+            return httpx.Response(200, content=board)
+        return httpx.Response(404)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    stub = StubFresh()
+    tip = datetime(2026, 10, 22, 0, 0, tzinfo=UTC)
+
+    def now() -> datetime:
+        return tip + timedelta(hours=10 if stub.started else 1)  # one loop pass, then past the end
+
+    cap = Capture(
+        date(2026, 10, 21),
+        tmp_path / "raw",
+        tmp_path / "hb.json",
+        fetcher=Fetcher(client=client, rate_per_s=1e6, sleep=lambda s: None),
+        now_fn=now,
+        sleep_fn=lambda s: None,
+        fresh=stub,
+    )
+    assert cap.run(start_now=True) == 0
+    assert (stub.started, stub.closed) == (1, 1)

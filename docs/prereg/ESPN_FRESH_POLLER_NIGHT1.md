@@ -22,14 +22,26 @@ in 46 and boxscore in 46).
    `delta_g = median_capture_g - median_poller_g` (positive = poller fresher). Games with fewer than 20 new-play
    fetches in either source are dropped and counted.
 3. **Claim "the poller shows a gain" iff** the median of `delta_g` over games is >= 15 s AND the one-sided 95% lower bound of
-   a game-clustered percentile bootstrap (2,000 draws, seed 0, `nba/truth/metrics.py` bootstrap, resampling games) is > 0.
-   One test, m = 1. Otherwise: no gain shown; report the point value and interval.
+   `nba/truth/metrics.py::bootstrap_ci` applied to the per-game `delta_g` (game-clustered by construction: one value per game;
+   2,000 draws, seed 0) is > 0. One test, m = 1. Otherwise: no gain shown; report the point value and interval.
+   **What the 15 s floor separates (stated so a pass is not read as a discovery).** If ESPN publishes continuously, the
+   mechanical expectation of `delta` is (60 - 18) / 2 = about 21 s, simply from sampling more often. If ESPN batches
+   server-side at 60 s or more, `delta` is about 0. A pass therefore means "ESPN publishes more often than the 60 s capture
+   samples", the expected result of a shorter interval; it does not mean ESPN is fast. A fail means batching at or above the
+   60 s scale (or too few games). Neither switches any decision.
 4. **Minimum n.** At least 30 game-nights with both sources. Below that: "insufficient sample", no claim.
 5. **Reported with it (descriptive, never a gate):** per-source median and p90 lag with n; unchanged-fetch rate; n 304s (is
    there any validator support); `Age`/`Date` header summary; error, backoff and `fresh_parse_bad` counts; per-night request
    count against the estimate; poller cycle duration (`fresh_cycles.jsonl`), and the observed per-game fetch gap used as `d`.
-6. **Invalid night:** if `fresh_stopped_reason` is set, `fresh_parse_bad` > 0 on the core endpoint, or more than 5% of cycles
-   exceeded `interval_s`, the night is reported and excluded from the test, with the reason.
+6. **Invalid night (summary endpoint only decides):** the night is reported and excluded from the test, with the reason, if
+   `fresh_stopped_reason` is set, OR `fresh_parse_bad_summary` > 0, OR `fresh_auth_fail_game` > 0 (any 401/403 on a summary or
+   core request, stopped or not; this catches a single-game 403 stretch hidden by healthy scoreboard polls), OR
+   `fresh_last_game_success_ts` is empty on a night with live games, OR more than 5% of cycles exceeded `interval_s`.
+   `fresh_parse_bad_core` > 0 does NOT void a night: the core endpoint is descriptive, so a core failure is reported and its
+   rows dropped, and the summary data stays valid.
+   **Poller restart mid-game:** rows after a restart are `first_poll` (the in-memory last-play memory is empty) and are
+   excluded from lag, as for the first fetch of any game; the game-night is kept if it still has at least 20 new-play fetches
+   in both sources after exclusion.
 7. **No variants.** No new window, floor, statistic or endpoint after the first poller night is read; a new question gets a
    new rule. Nothing here is a stake, a promotion or a model change.
 

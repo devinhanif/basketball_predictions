@@ -143,9 +143,13 @@ class Stats:
     last_error: str = ""
     last_success_ts: str = ""
     last_scoreboard_ok_ts: str = ""
-    consecutive_fail: int = 0
-    consecutive_auth: int = 0
+    consecutive_fail: dict[str, int] = field(default_factory=dict)  # per class
+    consecutive_auth: dict[str, int] = field(default_factory=dict)  # per class
+    auth_fail_game: int = 0  # 401/403 on summary or core (never reset; read by the night's rule)
+    last_game_success_ts: str = ""
     parse_bad: int = 0
+    parse_bad_summary: int = 0
+    parse_bad_core: int = 0
     last_cycle_s: float = 0.0
     stopped_reason: str = ""
     by_endpoint: dict[str, int] = field(default_factory=dict)
@@ -190,14 +194,25 @@ class FreshPoller:
         with contextlib.suppress(OSError), (self.out / "fresh_errors.log").open("a") as f:
             f.write(f"{self.now().isoformat()} {what}\n")
 
-    def bad(self, what: str) -> None:
-        """A body that parsed as JSON but lacks the fields we measure with: loud, own counter."""
+    def bad(self, what: str, endpoint: str) -> None:
+        """A body that parsed as JSON but lacks the fields we measure with: loud, own counters."""
         self.st.parse_bad += 1
-        self.log_error(f"parse_bad {what}")
+        if endpoint == CORE_PLAYS:
+            self.st.parse_bad_core += 1
+        else:
+            self.st.parse_bad_summary += 1
+        self.log_error(f"parse_bad {endpoint} {what}")
+
+    @staticmethod
+    def klass(url: str) -> str:
+        if url.endswith("/scoreboard"):
+            return "scoreboard"
+        return "core" if url.startswith(CORE) else "summary"
 
     def get(self, url: str, params: dict[str, Any] | None = None) -> Fetched | None:
         """One GET, no retry. None when backing off or on a failure (counted, backoff armed)."""
         key = url + json.dumps(params or {}, sort_keys=True)
+        klass = self.klass(url)
         ep = self.eps.setdefault(key, Endpoint())
         if self.stop.is_set() or self.clock() < ep.next_ok:
             return None
@@ -210,24 +225,29 @@ class FreshPoller:
         try:
             r = self.client.get(url, params=params, headers=headers)
         except httpx.HTTPError as exc:
-            self._fail(ep, f"{type(exc).__name__}: {str(exc)[:100]} {url}")
+            self._fail(ep, klass, f"{type(exc).__name__}: {str(exc)[:100]} {url}")
             return None
         fetched_at = self.now()
         if r.status_code not in (200, 304):
             if r.status_code in (401, 403):
-                self.st.consecutive_auth += 1
-                if self.st.consecutive_auth >= AUTH_STOP_AFTER:
-                    self.st.stopped_reason = f"http {r.status_code} x{self.st.consecutive_auth}"
+                n = self.st.consecutive_auth.get(klass, 0) + 1
+                self.st.consecutive_auth[klass] = n
+                if klass != "scoreboard":
+                    self.st.auth_fail_game += 1
+                if n >= AUTH_STOP_AFTER:
+                    self.st.stopped_reason = f"http {r.status_code} x{n} {klass}"
                     self.stop.set()
             else:
-                self.st.consecutive_auth = 0
-            self._fail(ep, f"http {r.status_code} {url}")
+                self.st.consecutive_auth[klass] = 0
+            self._fail(ep, klass, f"http {r.status_code} {url}")
             return None
         ep.fails = 0
         ep.next_ok = 0.0
-        self.st.consecutive_fail = 0
-        self.st.consecutive_auth = 0
+        self.st.consecutive_fail[klass] = 0
+        self.st.consecutive_auth[klass] = 0
         self.st.last_success_ts = fetched_at.isoformat()
+        if klass != "scoreboard":
+            self.st.last_game_success_ts = fetched_at.isoformat()
         hdrs = dict(r.headers)
         if r.status_code == 304:
             ep.saw_304 = True
@@ -239,9 +259,9 @@ class FreshPoller:
         self.st.ok += 1
         return Fetched(200, r.content, fetched_at, False, hdrs)
 
-    def _fail(self, ep: Endpoint, what: str) -> None:
+    def _fail(self, ep: Endpoint, klass: str, what: str) -> None:
         ep.fails += 1
-        self.st.consecutive_fail += 1
+        self.st.consecutive_fail[klass] = self.st.consecutive_fail.get(klass, 0) + 1
         ep.next_ok = self.clock() + min(MAX_BACKOFF_S, self.interval_s * 2**ep.fails)
         self.st.backoffs += 1
         self.log_error(what)
@@ -297,8 +317,6 @@ class FreshPoller:
         }
         with (self.out / "fresh.jsonl").open("a") as f:
             f.write(json.dumps(row, sort_keys=True) + "\n")
-        if sha:
-            self.prev[(endpoint, game)] = (sha, lp.play_id if lp else "")
         self.st.by_endpoint[endpoint] = self.st.by_endpoint.get(endpoint, 0) + 1
 
     def poll_summary(self, game: str) -> None:
@@ -314,7 +332,7 @@ class FreshPoller:
             self.log_error(f"summary {game} parse {exc}")
             return
         if lp is not None and (not lp.play_id or lp.wallclock is None):
-            self.bad(f"summary {game}: newest play lacks id or wallclock")
+            self.bad(f"{game}: newest play lacks id or wallclock", SUMMARY)
             return
         sha = hashlib.sha256(r.body).hexdigest()
         prev = self.prev.get((SUMMARY, game))
@@ -335,6 +353,7 @@ class FreshPoller:
                 },
             )
             self.st.saved += 1
+            self.prev[(SUMMARY, game)] = (sha, lp.play_id if lp else "")  # only after the save
 
     def poll_core(self, game: str) -> None:
         """Newest play via the core API: ``plays?limit=1`` for the count, then that page."""
@@ -345,7 +364,7 @@ class FreshPoller:
         try:
             head_body = json.loads(head.body)
             if "count" not in head_body:
-                self.bad(f"core plays {game}: no count in head body")
+                self.bad(f"{game}: no count in head body", CORE_PLAYS)
                 return
             count = int(head_body["count"] or 0)
         except (ValueError, TypeError, AttributeError) as exc:
@@ -362,7 +381,7 @@ class FreshPoller:
             self.log_error(f"core plays {game} parse {exc}")
             return
         if lp is None or not lp.play_id or lp.wallclock is None:
-            self.bad(f"core plays {game}: item missing, or no inline id/wallclock ($ref only?)")
+            self.bad(f"{game}: item missing, or no inline id/wallclock ($ref only?)", CORE_PLAYS)
             return
         sha = hashlib.sha256(r.body).hexdigest()
         prev = self.prev.get((CORE_PLAYS, game))
@@ -382,6 +401,7 @@ class FreshPoller:
                 },
             )
             self.st.saved += 1
+            self.prev[(CORE_PLAYS, game)] = (sha, lp.play_id if lp else "")  # only after the save
 
     def cycle(self) -> None:
         self.refresh_live()
@@ -443,7 +463,12 @@ class FreshPoller:
             "fresh_last_error": s.last_error,
             "fresh_last_success_ts": s.last_success_ts,
             "fresh_last_scoreboard_ok_ts": s.last_scoreboard_ok_ts,
-            "fresh_consecutive_fail": s.consecutive_fail,
+            "fresh_consecutive_fail": max(s.consecutive_fail.values(), default=0),
+            "fresh_consecutive_fail_by_class": dict(s.consecutive_fail),
+            "fresh_last_game_success_ts": s.last_game_success_ts,
+            "fresh_auth_fail_game": s.auth_fail_game,
+            "fresh_parse_bad_summary": s.parse_bad_summary,
+            "fresh_parse_bad_core": s.parse_bad_core,
             "fresh_parse_bad": s.parse_bad,
             "fresh_last_cycle_s": s.last_cycle_s,
             "fresh_stopped_reason": s.stopped_reason,
