@@ -66,6 +66,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     out = a.out or ROOT / "data" / "raw" / f"live_{day.isoformat()}"
     budget = Budget(max_requests_per_tick=a.max_requests_per_tick, interval_s=a.interval_s)
     fresh = None
+    if 0 < a.fresh_interval_s < 15.0:
+        ap.error(
+            "--fresh-interval-s must be 0 (off) or >= 15 (Devin, 2026-11-10: never below 15 s)"
+        )
     if a.fresh_interval_s > 0:
         from nba.live.espn_fresh import FreshPoller
 

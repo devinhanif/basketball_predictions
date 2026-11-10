@@ -1,0 +1,10 @@
+# Nightly live capture knobs read by ops/nba_live_capture.sh (python -m nba.ops.live_capture fresh-interval).
+# espn_fresh_interval_s: 0 = ESPN freshness poller OFF (default). Seconds >= 15 = ON at that cadence, live games only.
+# RECOMMENDED when flipped: 15 (the fastest safe value; never below 15, the launcher refuses anything lower).
+# Expected game->screen delay: ~20 s ESPN source + <=15 s poll + ~1 s app push (about 36 s worst case).
+# Devin's override 2026-11-10 (DECISIONS b1f52d95). The launcher REFUSES a non-zero value (poller stays off, ALERT logged)
+# until the REAL core-API bodies tests/live/fixtures/espn_core_real/{plays_limit1,plays_last}.json are committed and
+# tests/live/test_espn_core_real.py passes on them. Takes effect at the next capture start (a running capture keeps its value).
+# Backoff (2^fails x interval, cap 300 s) and the consecutive 401/403 auth latch stay as in nba/live/espn_fresh.py.
+# Each changed body is written atomically (tmp + rename) the moment it is fetched, no batching (nba/live/store.py).
+espn_fresh_interval_s: 0
