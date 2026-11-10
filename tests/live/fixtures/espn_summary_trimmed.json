@@ -1,0 +1,162 @@
+{
+ "plays": [
+  {
+   "id": "401909093355",
+   "sequenceNumber": "355",
+   "type": {
+    "id": "113",
+    "text": "Running Jump Shot"
+   },
+   "text": "Peyton Watson misses 23-foot running jump shot",
+   "awayScore": 69,
+   "homeScore": 42,
+   "period": {
+    "number": 2,
+    "displayValue": "2nd Quarter"
+   },
+   "clock": {
+    "displayValue": "26.3"
+   },
+   "scoringPlay": false,
+   "scoreValue": 0,
+   "team": {
+    "id": "5"
+   },
+   "participants": [
+    {
+     "athlete": {
+      "id": "4576087"
+     }
+    }
+   ],
+   "wallclock": "2026-10-23T00:16:58Z",
+   "shootingPlay": true,
+   "coordinate": {
+    "x": 2,
+    "y": 0
+   },
+   "pointsAttempted": 3,
+   "shortDescription": "Missed 3PT"
+  },
+  {
+   "id": "401909093356",
+   "sequenceNumber": "356",
+   "type": {
+    "id": "155",
+    "text": "Defensive Rebound"
+   },
+   "text": "VJ Edgecombe defensive rebound",
+   "awayScore": 69,
+   "homeScore": 42,
+   "period": {
+    "number": 2,
+    "displayValue": "2nd Quarter"
+   },
+   "clock": {
+    "displayValue": "26.3"
+   },
+   "scoringPlay": false,
+   "scoreValue": 0,
+   "team": {
+    "id": "20"
+   },
+   "participants": [
+    {
+     "athlete": {
+      "id": "5124612"
+     }
+    }
+   ],
+   "wallclock": "2026-10-23T00:16:58Z",
+   "shootingPlay": false,
+   "coordinate": {
+    "x": 2,
+    "y": 0
+   },
+   "pointsAttempted": 0,
+   "shortDescription": "Rebound"
+  },
+  {
+   "id": "401909093357",
+   "sequenceNumber": "357",
+   "type": {
+    "id": "92",
+    "text": "Jump Shot"
+   },
+   "text": "Joel Embiid makes 24-foot three point jumper (Tyrese Maxey assists)",
+   "awayScore": 69,
+   "homeScore": 45,
+   "period": {
+    "number": 2,
+    "displayValue": "2nd Quarter"
+   },
+   "clock": {
+    "displayValue": "0.7"
+   },
+   "scoringPlay": true,
+   "scoreValue": 3,
+   "team": {
+    "id": "20"
+   },
+   "participants": [
+    {
+     "athlete": {
+      "id": "3059318"
+     }
+    },
+    {
+     "athlete": {
+      "id": "4431678"
+     }
+    }
+   ],
+   "wallclock": "2026-10-23T00:17:24Z",
+   "shootingPlay": true,
+   "coordinate": {
+    "x": 49,
+    "y": -3
+   },
+   "pointsAttempted": 3,
+   "shortDescription": "+3 Points"
+  },
+  {
+   "id": "401909093359",
+   "sequenceNumber": "359",
+   "type": {
+    "id": "412",
+    "text": "End Period"
+   },
+   "text": "End of the 2nd Quarter",
+   "awayScore": 69,
+   "homeScore": 45,
+   "period": {
+    "number": 2,
+    "displayValue": "2nd Quarter"
+   },
+   "clock": {
+    "displayValue": "0.0"
+   },
+   "scoringPlay": false,
+   "scoreValue": 0,
+   "wallclock": "2026-10-23T00:17:30Z",
+   "shootingPlay": false,
+   "coordinate": {
+    "x": -214748340,
+    "y": -214748365
+   },
+   "pointsAttempted": 0,
+   "shortDescription": "Halftime"
+  }
+ ],
+ "header": {
+  "competitions": [
+   {
+    "status": {
+     "type": {
+      "state": "in"
+     }
+    }
+   }
+  ]
+ }
+}

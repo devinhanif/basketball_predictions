@@ -163,7 +163,9 @@ class Capture:
         legs_file: Path | None = None,
         now_fn: Callable[[], datetime] = lambda: datetime.now(UTC),
         sleep_fn: Callable[[float], None] = time.sleep,
+        fresh: Any = None,
     ) -> None:
+        self.fresh = fresh  # optional nba.live.espn_fresh.FreshPoller (own thread, own client)
         self.day = day
         self.store = RawStore(out)
         self.heartbeat = heartbeat
@@ -194,6 +196,7 @@ class Capture:
             "errors": self.st.errors,
             "gz_bytes": self.store.bytes_gz,
             "requests": self.fetcher.requests,
+            **(self.fresh.heartbeat_fields() if self.fresh is not None else {}),
             **extra,
         }
         write_json_atomic(self.heartbeat, payload)
@@ -558,6 +561,8 @@ class Capture:
                 self.sweep("start")
             except Exception:
                 self.log_error("sweep start " + traceback.format_exc().replace("\n", " | ")[:1500])
+        if self.fresh is not None and not once:
+            self.fresh.start()
         while self.now() < end or once:
             t0 = time.monotonic()
             info: dict[str, Any] = {}
@@ -572,6 +577,8 @@ class Capture:
             if once:
                 break
             self.sleep(max(1.0, self.budget.interval_s - (time.monotonic() - t0)))
+        if self.fresh is not None:
+            self.fresh.close()
         if not once:
             try:
                 self.sweep("end")
