@@ -155,3 +155,85 @@ F1, F2, F3 (a)+(b)+(d), F4 before merge. Then F6 (finalize-time compaction) and 
 Attack scripts (not in `nba/`): `/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/3f9498c6-47e0-4634-a07a-43f2643fe309/scratchpad/attack/attack_restore.py`,
 `/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/3f9498c6-47e0-4634-a07a-43f2643fe309/scratchpad/attack/bench_night.py`.
 Both were run from the branch worktree with `PYTHONPATH=. .venv/bin/python <script>` (exit 0).
+
+---
+
+## Re-review: e167610..45e17e2 (2026-11-09, diff only, against F1 to F13)
+
+_Read from the branch worktree at 45e17e2. Same rules: no live Kalshi request, no replay, no season 2025, no running process or launchd job touched._
+
+**Verdict for merge and install: WOUNDED.** All four blockers are fixed, and the plants confirm it. The install is safe: the job is read-only, no longer
+sends trade requests, and nothing consumes its output. One problem is new, and it comes from my own F5 advice. The candles now depend on the live capture, which
+holds 41% of the traded ticker-minutes and 13% of the in-game volume (11-09, measured by the branch agent; I did not re-measure, see "Not verified").
+While live, the export gives the app no way to tell a missing print from a quiet market. The contract still says "no trade, no candle: hold the previous close flat".
+So the candles are honest only after the game, and only for an app that reads `reconciliation`.
+
+Verdict: APPROVED
+
+(Approved for merge and install of the poller. Condition, R1 below: no app reads `markets[].candles` until R1 is done. Reading the quotes is fine.)
+
+### Plants against 45e17e2
+
+Command: `PYTHONPATH=. .venv/bin/python <scratchpad>/attack/rereview.py` from the worktree, exit 0.
+
+| Plant | Before (e167610) | After (45e17e2) | Pass |
+|---|---|---|---|
+| Zero-length `quotes/*.parquet` (F1) | `ComputeError`, crash loop | `run` rc 0, file renamed `.bad`, listed in `quarantined`, logged | PASS |
+| Empty 200s from last tip +5 min (F2) | night ended at +5:45, `done` | 160 polls to +44 min, still `running`, not finished | PASS |
+| Empty 200s from last tip +150 min (F2) | n/a | ends at +2:40:00 (10 min, 40 polls), `done` | PASS |
+| Perpetual HTTP 403 (F4) | `problem()` None | `'30 failed polls in a row (HTTPStatusError http=403 ...)'` | PASS |
+| 200s with zero slate rows (ticker-format change) (F4) | `problem()` None | at +13:45: `'no successful game poll for 14 min (no slate row yet)'` | PASS |
+| 12-game slate export (F3) | 38.0 MB, 6.35 s, 792 markets | `latest.json` 24 markets, **7.3 MB, 0.71 s** (with 150k prints; the contract's 6.4 MB / 1.4 s is the same order). Quotes are held as polars frames, not dicts | PASS |
+| Recycled pid with a different start time (F13) | lock held forever | `test_a_recycled_pid_with_another_start_time_is_a_stale_lock` passes; the launcher clears the lock and starts one poller | PASS |
+| Midnight ET (F7) | crash at 00:30 ET not restarted | `TODAY_ET` = ET date of now - 6 h (`ops/nba_kalshi_candles.sh:28`). No NBA tip is before 06:40 ET, so day boundaries are safe | PASS |
+| Trade requests (F5) | `/markets/trades` pulls | `grep -nE 'fetch_trades_page\|/markets/trades' nba/kalshi/poll15.py nba/kalshi/candles15.py` exit 1 (none) | PASS |
+| Budget (F8) | retries uncounted, wrong comment | `_call` charges `client.requests - before - 1`; budget 30/min against a steady 6/min; comment corrected. Finalize waits for the budget (max 120 s per ticker, with beats) | PASS |
+| Finalize heartbeat (F10) | no beat for up to ~7 min | `beat` before each ticker and on each budget-wait second | PASS |
+| File count (F6) | ~3,900 files a night, manual compaction | quotes compacted with prune at the end of `finalize` after verification; no trades tree. `log_error`/`beat` suppress `OSError` on a full disk | PASS |
+| Live capture store read safety | n/a | the capture writes `*.json.gz.tmp` then renames (`nba/live/store.py:48-51`); `CaptureTrades` globs `*/*.json.gz`, so it never sees a partial file. Unreadable files are listed in `bad` | PASS |
+| Tooling | | ruff 0, format 0, mypy 0 (3 files); `pytest -q -p no:cacheprovider --no-cov tests/kalshi tests/live/test_no_orders.py tests/ops` **371 passed, exit 0** | PASS |
+
+F9 (playoffs) and F12 (two clocks) are documented as designed. F11 is unchanged and benign.
+
+### New findings in the revision
+
+**R1 major (product honesty; caused by the F5 default I recommended): the live candles are sparse and look like quiet markets.**
+The contract (`docs/contracts/kalshi_candles15_v1.md`, Meaning, first bullet) still says "A bucket with no trade has **no candle**: hold the previous close flat".
+A later bullet in the same section says the capture held 41% of traded minutes and tells the app to "show the coverage when it is below 90%". But `reconciliation`
+is `null` while live (plant 4: `live_reconciliation=None`), so the app has no live coverage to show. The live chart would hold the close flat through about 59% of the minutes that traded.
+Where the capture has a minute, it has the whole minute (volume ratio 0.995 on compared minutes), so the OHLC that exists is right. The gaps are whole minutes.
+Fix, in either order:
+(a) Live coverage per ticker from data we already have. In `candles15.build_export` (the per-market dict), add `print_volume` (the sum of capture prints since
+the first poll) and `book_volume_delta` (last minus first cumulative `volume` from the quotes). Their ratio is a live coverage figure. In the contract, replace "no trade, no
+candle: hold the previous close flat" with "no candle = no print **held**; when `print_volume / book_volume_delta < 0.9`, the app shows the gap as unknown, not flat".
+(b) Restore a bounded trade source for KXNBAGAME only. That means 24 tickers and the e167610 `pull_trades` code, which was tested, with the budget raised to cover it (e.g. 60/min). Or have the capture's
+trade queue put KXNBAGAME first (`nba/live/capture.py:429-445`). That is a live-capture change for its owner, not this branch.
+My F5 advice rested on a premise I listed as unverified (that the capture's trades were complete). The measurement says they are not. For candle completeness, (b) with the
+poller's own pull is probably better than the capture. Neither has been measured on a full clean night. Devin's call. Until (a) or (b), the app should draw quotes only.
+
+**R2 minor: a false watchdog alert after a short night.** `problem()` (`poll15.py`, the `first <= now <= last + quiet_after_tip_min` branch) measures from the last poll with a
+slate row. When the last game's market closes before +150 min, every later poll is a successful empty one, and the alert fires. Plant 3c: market closed at
++135, `problem()` fires at +146 ("no successful game poll for 11 min"). Fix: write `last_ok_poll_ts` (any successful game poll, empty or not) in `beat()`. In
+`problem()`, once a slate row has ever been seen (`last_success_ts` not None), measure staleness from `last_ok_poll_ts` instead. A ticker-format change is still caught,
+because it shows from the start of the night as "no slate row yet".
+
+**R3 minor: lock ownership with an empty start file.** `acquire_lock` (`ops/nba_kalshi_candles.sh`) treats a live pid whose `start` file is missing or empty as
+stale. That covers a lock written by the e167610 launcher, and the instant between `echo $$ > pid` and `start_of $$ > start`. launchd never runs two instances,
+so this only matters for a manual run next to a launchd run. Fix: `[ -s "$LOCK/start" ] || return 1` before the start-time comparison (keep the old `kill -0` meaning
+when no start time was recorded).
+
+**R4 minor (scope): `KalshiClient.fetch_trades_page` (`client.py`) has no caller now.** Keep it if (b) is chosen; otherwise delete it.
+
+### Biggest remaining risk
+
+An app reads `latest.json` candles while live and draws flat "quiet" stretches where the market traded heavily (R1). That is a display that misleads, inside a product meant to teach.
+
+### Not verified in the re-review
+
+- The 12.7% volume and 40.7% minute coverage figures: they come from the branch agent's reconciliation against live official candles, which I could not re-pull without live requests. I checked only that the capture's KXNBAGAME store exists and is deduplicated (74,863 unique prints, first review).
+- Whether the poller's own trade pull (option b) would reach full coverage on a clean night (never measured).
+- `date -v-6H` is BSD `date`. It is correct on the Mac that runs launchd; the test checks the string, not the behaviour.
+
+### Drafted DECISIONS row (not appended)
+
+| 2026-11-09 | Re-review of agent/market-kalshi-15s-candles 45e17e2 (docs/reviews/kalshi_candles15_2026-11-09.md, Re-review): F1 to F4 fixed and verified by plant (quarantine rc 0; no early end before last tip +150 min; `problem()` catches 403s and zero-row nights; `latest.json` 7.3 MB / 0.7 s on 12 games). Merge and install approved; WOUNDED because the capture-sourced candles hold 41% of traded minutes and the live export carries no coverage. No app reads `candles` until R1 (live coverage field, plus either an own KXNBAGAME trade pull or capture priority; Devin's call). Would reverse: a full night's reconciliation shows coverage at or above 90%. |
