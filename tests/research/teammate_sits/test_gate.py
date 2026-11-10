@@ -67,9 +67,33 @@ def test_size_core_runs_and_reports_bars() -> None:
     blk = out["by_season"]["2023"]
     assert set(blk) == {"pts", "reb", "ast", "fg3m"}
     for r in blk.values():
-        assert r["n"] > 0
-        assert set(r["clusters"]) == {"game", "player_season", "sitter_season"}
-        assert np.isfinite(r["sizing"]["halfwidth95"]) and isinstance(r["g2_pass"], bool)
-        assert (
-            r["oracle_expected_gain"] <= 1e-12
-        )  # S cannot lose in expectation when S is the truth
+        assert r["n"] > 0 and r["n_sitter_seasons"] > 0
+        assert set(r["se_by_cluster"]) == {"game", "player_season", "sitter_season"}
+        assert r["crps_g2"] in {"PASS", "POWER", "FLOOR_UNREACHABLE"}
+        assert r["slope_g2"] in {"PASS", "SLOPE_UNRESOLVED"}
+        # exact world means: S cannot lose when S is true, cannot win when U is true
+        assert r["oracle_expected_gain"] <= 1e-12 and r["null_expected_gain"] >= -1e-12
+        # shared noise only widens
+        assert r["se_shared"] >= r["se_bind"] and r["slope_se_shared"] >= r["slope_se"]
+        assert r["pass_line"] <= G.FLOOR
+
+
+def test_g2_world_means_are_exact_and_deterministic() -> None:
+    """Same grids -> same exact means whatever the draw seed (only the se uses draws)."""
+    rng = np.random.default_rng(0)
+    n = 400
+    base = np.sort(rng.normal(10, 4, (n, 199)), axis=1).round()
+    qs, qu = base + 1.0, base
+    rows = pl.DataFrame(
+        {
+            "game_id": [str(i // 8) for i in range(n)],
+            "player_id": list(range(n)),
+            "sitter_id": [i // 40 for i in range(n)],
+        }
+    )
+    m_s, m_u = qs.mean(axis=1), qu.mean(axis=1)
+    a = G.g2_stat(qs, qu, m_s, m_u, rows, 2024, np.random.default_rng(1))
+    b = G.g2_stat(qs, qu, m_s, m_u, rows, 2024, np.random.default_rng(2))
+    assert a["oracle_expected_gain"] == b["oracle_expected_gain"] < 0
+    assert a["null_expected_gain"] == b["null_expected_gain"] > 0
+    assert a["n_sitter_seasons"] == 10
