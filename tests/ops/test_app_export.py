@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import plistlib
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -729,3 +730,33 @@ def test_two_failures_for_one_pretip_run_back_off_until_a_newer_run(tmp_path: Pa
     _pretip_at(tmp_path, 14, 50)
     assert A.run(tmp_path, now=NOW.replace(hour=15, minute=5), build=b, tips_fn=tip) == 0
     assert b.calls == 1 and not (tmp_path / "data/ops/heartbeat/app-export.fail.json").exists()
+
+
+def test_persistent_failure_alerts_at_most_once_an_hour_whatever_the_pretip_run(
+    tmp_path: Path,
+) -> None:
+    _export_once(tmp_path)
+    tip = _tips(NOW.replace(hour=23, minute=59))
+    builds = 0
+    for i in range(18):  # :05/:35 slots from 13:05; a new pretip run ends before every slot
+        t = NOW.replace(hour=13, minute=5) + timedelta(minutes=30 * i)
+        _pretip(tmp_path, start=t - timedelta(minutes=15), end=t - timedelta(minutes=10))
+        b = FakeBuild([1])
+        A.run(tmp_path, now=t, build=b, tips_fn=tip)
+        builds += b.calls
+    alerts = (tmp_path / "data/ops/ALERTS.md").read_text().splitlines()
+    assert builds == len(alerts)
+    hours = 9  # 18 half-hour slots
+    assert len(alerts) <= 2 + hours  # two to reach the back-off, then at most one rebuild an hour
+    assert len(alerts) < 18
+
+
+def test_a_lock_older_than_30_minutes_is_cleared_even_with_a_live_pid(tmp_path: Path) -> None:
+    lock = tmp_path / "data/ops/app_export_lock"
+    lock.mkdir(parents=True)
+    (lock / "pid").write_text(str(os.getpid()))
+    assert A.acquire_lock(lock) is False  # fresh and alive
+    old = time.time() - 31 * 60
+    os.utime(lock, (old, old))
+    assert A.acquire_lock(lock) is True
+    assert (lock / "pid").read_text() == str(os.getpid())

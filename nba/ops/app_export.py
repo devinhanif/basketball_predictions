@@ -82,10 +82,14 @@ LOCK_WAIT_S = 60
 BUILD_TIMEOUT_S = 900
 DEADLINE_S = 600  # one run, start to end: the pretip runs (:20, :50) must never wait on this job
 MIN_ATTEMPT_S = 240  # no attempt starts with less than this left (a build takes 190-500 s)
-FAIL_BACKOFF = 2  # failed builds for one pretip run before the next slots stop rebuilding
+FAIL_BACKOFF = 2  # consecutive failed builds before slots rebuild at most once an hour
+BACKOFF_S = 3600
 BACKOFF_PREFIX = "backing off"
 FAIL_FILE = f"{JOB}.fail.json"
 LOCK_DIR = "app_export_lock"
+LOCK_MAX_AGE_S = (
+    1800  # a run lasts at most DEADLINE_S; an older lock is cleared even if its pid looks alive
+)
 
 #: ``build(day, out_dir, timeout_s) -> rc``: injectable for tests
 Builder = Callable[[date, Path, float], int]
@@ -223,7 +227,13 @@ def acquire_lock(lock: Path) -> bool:
                 owner = int((lock / "pid").read_text().strip())
             except (OSError, ValueError):
                 owner = 0
-            if owner and _pid_alive(owner):
+            try:
+                age_s = time.time() - lock.stat().st_mtime
+            except OSError:
+                age_s = 0.0
+            if (
+                owner and _pid_alive(owner) and age_s < LOCK_MAX_AGE_S
+            ):  # a reused pid must not hold it forever
                 return False
             shutil.rmtree(
                 lock, ignore_errors=True
@@ -308,13 +318,16 @@ def rebuild_reason(
         return False, "every game of the slate has tipped; the last export stands"
     try:
         fail = json.loads((hb_dir / FAIL_FILE).read_text())
+        last = _ts(fail.get("last_fail_ts"))
         if (
-            fail.get("pretip_end") == _pretip_end_str(hb_dir)
+            fail.get("export_date") == today.isoformat()
             and int(fail.get("count", 0)) >= FAIL_BACKOFF
+            and last is not None
+            and (now - last).total_seconds() < BACKOFF_S
         ):
             return (
                 False,
-                f"{BACKOFF_PREFIX}: {fail['count']} builds failed for the pretip run that ended {end:%H:%M}",
+                f"{BACKOFF_PREFIX}: {fail['count']} consecutive builds failed, last at {last:%H:%M}; one retry an hour",
             )
     except (OSError, ValueError, AttributeError, TypeError):
         pass
@@ -536,23 +549,27 @@ def _run_locked(
         beat(True, 0, "ok", "")
     else:
         say(f"FAILED rc={rc}; the previous export stays in place")
-        _note_failure(hb_dir, today)
+        _note_failure(hb_dir, today, now)
         _alert(ops, f"build rc={rc}; the previous export stays in place, see {log}")
         beat(True, rc, "failed", f"build rc={rc}")
     return rc
 
 
-def _note_failure(hb_dir: Path, today: date) -> None:
-    """Count failed builds per pretip run: after ``FAIL_BACKOFF`` the next slots record a skip instead of rebuilding."""
-    end = _pretip_end_str(hb_dir)
+def _note_failure(hb_dir: Path, today: date, now: datetime) -> None:
+    """Count consecutive failed builds (any pretip run): from ``FAIL_BACKOFF`` on, a slot rebuilds at most once an hour until a success."""
     n = 1
     with contextlib.suppress(OSError, ValueError, AttributeError, TypeError):
         prev = json.loads((hb_dir / FAIL_FILE).read_text())
-        if prev.get("pretip_end") == end and prev.get("export_date") == today.isoformat():
+        if prev.get("export_date") == today.isoformat():
             n = int(prev.get("count", 0)) + 1
     with contextlib.suppress(OSError):
         _write_json(
-            hb_dir / FAIL_FILE, {"export_date": today.isoformat(), "pretip_end": end, "count": n}
+            hb_dir / FAIL_FILE,
+            {
+                "export_date": today.isoformat(),
+                "count": n,
+                "last_fail_ts": now.astimezone().isoformat(),
+            },
         )
 
 
