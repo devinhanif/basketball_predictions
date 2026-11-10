@@ -33,7 +33,20 @@ after the games, for reconciliation only.
   The launcher's slate date is the ET date of now minus 6 h, so a crash at 00:30 ET is restarted for the day it belongs to (F7).
 - **Per poll** (`configs/kalshi_candles.yaml`): `GET /markets?series_ticker=KXNBAGAME&status=open&limit=1000` every 15 s (one request returns every open
   game winner, filtered to the slate date from the event ticker); `KXNBASPREAD` and `KXNBATOTAL` every 60 s. Player props are **not** polled.
-- **Trades (re-review R1b).** For the game-winner tickers whose cumulative `volume_fp` rose since the previous poll (largest jump first, at most 8 tickers and 2 pages a poll), `GET /markets/trades?ticker=T&min_ts=...`, deduplicated by trade id, one raw file per poll. Trade pulls need 10 free budget slots (`budget_reserve`), so a catch-up burst can never starve a quote poll. The candles use these prints **united with the live capture's** `kalshi_trades` store (read-only, `data/raw/live_<ET date>/...`), one row per trade id. Which source is better is measured, not assumed: the reconciliation reports coverage for each (`sources.own`, `sources.capture`) and for the union.
+- **Trades (re-review R1b, carried-cursor catch-up).** For the game-winner tickers whose cumulative `volume_fp` rose, `GET /markets/trades?ticker=T&min_ts=<mark>`, newest page first. The **mark** (high-water
+  mark per ticker) moves only when a walk reaches the previous mark; a walk cut short by the page budget (12 pages a poll in all, 6 per ticker, 8 tickers) or by the budget reserve (10 slots stay free for the quote polls) or by an
+  error keeps its **cursor** and the next poll resumes there, so no older print of a burst is skipped (the old cap of 2 pages dropped them for good). A catch-up that spanned polls gets one **verify pass** from the new mark. A stale
+  cursor (400/404) restarts the walk, deduplicated on `trade_id`. **A walk is complete only on evidence it reached the mark**: the cursor ended and a stored print of the mark's second
+  was seen again; a resumed cursor that answers an empty last page is treated as expired (restart), and a walk that ends without the mark stays open and is logged. A **second consecutive** such walk is accepted as complete (a busted trade must not hold a ticker open all night) and counted as `unproven_accepted` in the heartbeat, the state file and the reconciliation.
+  A 429 or 5xx on a trade page opens a **trade-only cool-down** (15 s doubling to 240 s); the quote polls and the watchdog's failure counters are not affected.
+  Order of effects per poll: walk (no state changed), raw file, then marks and cursors, then `trade_state.json`; a failed raw write applies nothing and the next poll walks again.
+  **Restart.** Marks, cursors, open maxima and the queue persist in `<store>/<date>/trade_state.json`; with that file a restart resumes mid catch-up. **Without a readable state file**
+  (missing, corrupt, another day) the open catch-up cannot be located and the newest stored print is not a safe mark, so the poller **re-walks every stored ticker from the window start**:
+  the stored ids make that cost pages (about night prints / 1,000 per ticker, spread over polls), not prints, and nothing is skipped. It logs `trade_state missing or unreadable: re-walking N
+  tickers` and says `trade_state_fallback: true` in the heartbeat and the reconciliation, so a coverage drop on such a night has a named cause. Until the re-walk finishes the own source is
+  behind, which the live `print_coverage` shows.
+  The candles use these prints **united with the live capture's** `kalshi_trades` store (read-only), one row per trade id; the reconciliation reports the coverage of each (`sources.own`,
+  `sources.capture`) and of the union.
 - **Live coverage (R1a).** Each game market in the export carries `print_volume` (contracts in the prints held since our first poll), `book_volume_delta` (the book's cumulative volume change over the same span) and `print_coverage`, and the file a slate-level `coverage` with a 0.9 floor. A missing candle means "no print held"; below the floor the app shows it as unknown.
 - **Raw quotes are write-once parquet, one file per poll and series**, written with fsync before the rename (F1). A file that cannot be read back (power cut,
   full disk) is renamed `.bad`, logged to `errors.log` and the heartbeat (`quarantined`), and the night goes on. A restart reloads the night from disk.
@@ -88,7 +101,7 @@ every night** (`minute_coverage`, `volume_coverage`, `official_minutes_missing_o
 |---|---|---|
 | Requests, game poll | 1,560 | 15 s over a 6.5 h window (23,400 s) |
 | Requests, spreads + totals | 780 | 60 s, two series |
-| Requests, trades (estimate) | about 1,500 to 12,500 | 1 to 8 tickers per poll with a volume rise (1 to 2 pages each); a quiet poll costs none; capped by the 60/min budget and its reserve |
+| Requests, trades (estimate) | about 1,500 to 12,500 | 1 to 8 tickers per poll with a volume rise (up to 6 pages each, 12 a poll, carried over); a quiet poll costs none; capped by the 60/min budget and its reserve |
 | Requests, 1-minute reconciliation | about 10 to 30 | one per game ticker |
 | **Total** | **about 4,000 typical, 15,000 ceiling** | 0.2 to 0.6 requests per second; the live capture sent 76,572 on 2026-11-09 as of 02:49Z |
 | Raw quotes during the night | about 20 MB in about 2,300 files | a game poll file is 7 KB (10 rows); a spread or total file 10 to 11 KB |

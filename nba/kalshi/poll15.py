@@ -7,9 +7,10 @@ the first tip until every dated game market has closed (hard stop: last tip +
 * one ``GET /markets?series_ticker=S&status=open`` page per due series (game winners every 15 s,
   spreads/totals every 60 s): yes bid/ask, last, cumulative volume, open interest, slate date;
 * ``GET /markets/trades`` for the few game tickers whose cumulative volume rose (bounded: 8
-  tickers x 2 pages a poll, a budget reserve left for the quote polls). The 15 s candles are
-  built from these prints united with the live capture's (``data/raw/live_<date>/kalshi_trades``,
-  read-only), one row per trade id; the reconciliation reports the coverage of each source.
+  tickers, 12 pages a poll with a carried cursor, a budget reserve left for the quote polls).
+  The 15 s candles are built from these prints united with the live capture's
+  (``data/raw/live_<date>/kalshi_trades``, read-only), one row per trade id; the reconciliation
+  reports the coverage of each source.
 
 Read-only by construction: it uses ``KalshiClient`` (plain unauthenticated GETs; no order,
 portfolio or credential path exists). Raw is write-once parquet, one file per poll and series
@@ -118,7 +119,9 @@ class PollConfig:
     trades_enabled: bool = True
     trades_series: tuple[str, ...] = ("KXNBAGAME",)
     trades_max_tickers: int = 8
-    trades_max_pages: int = 2
+    #: trade pages per poll for all tickers together (carry-over beyond it) and per ticker
+    trades_pages_per_poll: int = 12
+    trades_pages_per_ticker: int = 6
     #: trade pulls leave this many budget slots free for the quote polls of the same minute
     trades_budget_reserve: int = 10
     jitter_s: float = 1.0
@@ -155,7 +158,8 @@ def load_config(path: Path = DEFAULT_CONFIG) -> PollConfig:
         trades_enabled=bool((raw.get("trades") or {}).get("enabled", True)),
         trades_series=tuple((raw.get("trades") or {}).get("series", ["KXNBAGAME"])),
         trades_max_tickers=int((raw.get("trades") or {}).get("max_tickers_per_poll", 8)),
-        trades_max_pages=int((raw.get("trades") or {}).get("max_pages", 2)),
+        trades_pages_per_poll=int((raw.get("trades") or {}).get("pages_per_poll", 12)),
+        trades_pages_per_ticker=int((raw.get("trades") or {}).get("pages_per_ticker", 6)),
         trades_budget_reserve=int((raw.get("trades") or {}).get("budget_reserve", 10)),
         jitter_s=float(raw.get("jitter_s", 1.0)),
         backoff_base_s=float(raw.get("backoff_base_s", 15)),
@@ -405,6 +409,12 @@ class _State:
     n429: int = 0
     consecutive_failures: int = 0
     cooldown_until: datetime | None = None
+    #: trade pulls back off on their own (a 429 on a trade page must not silence the quote polls)
+    trades_cooldown_until: datetime | None = None
+    trade_failures: int = 0
+    #: consecutive walks without evidence of the mark per ticker, and how many were accepted anyway
+    no_evidence: dict[str, int] = field(default_factory=dict)
+    unproven_accepted: int = 0
     quiet: int = 0
     quiet_since: datetime | None = None
     last_success: datetime | None = None
@@ -416,8 +426,27 @@ class _State:
     last_poll: dict[str, datetime] = field(default_factory=dict)
     volumes: dict[str, float] = field(default_factory=dict)
     pending: dict[str, float] = field(default_factory=dict)  # ticker -> volume jump awaiting a pull
+    #: high-water mark per ticker (unix s): moves only when a catch-up reached the previous mark
     last_trade_ts: dict[str, int] = field(default_factory=dict)
-    seen_ids: dict[str, set[str]] = field(default_factory=dict)
+    seen_ids: dict[str, set[str]] = field(default_factory=dict)  # every stored print id
+    #: catch-up in progress per ticker: where to resume, and the newest print seen (next mark)
+    cursor: dict[str, str] = field(default_factory=dict)
+    open_max: dict[str, int] = field(default_factory=dict)
+    #: tickers whose catch-up spanned polls: one more pass from the new mark, in case prints
+    #: arrived after the first page was read
+    verify: set[str] = field(default_factory=set)
+
+
+@dataclass
+class _Walk:
+    """One ticker's pass over the trade pages in one poll (no state changed until applied)."""
+
+    prints: list[dict[str, Any]] = field(default_factory=list)
+    complete: bool = False
+    cursor: str | None = None  # where the next poll resumes; None = start from the newest page
+    pages: int = 0
+    top: int | None = None  # newest print second seen: the next mark if the walk completes
+    unproven: bool = False  # the cursor ended but no stored print of the mark's second came back
 
 
 class Poller:
@@ -447,6 +476,8 @@ class Poller:
         self.start_ts = self.now()
         #: the night's quote rows as polars frames per series (columnar, not dicts)
         self.qframes: dict[str, list[pl.DataFrame]] = {}
+        #: True when the trade state was missing or unreadable (walks restart at the window start)
+        self.trade_state_fallback = False
         #: this job's own prints (``/markets/trades``), columnar
         self.tframes: list[pl.DataFrame] = []
         self.capture_root = capture_root
@@ -479,6 +510,11 @@ class Poller:
             "n429": st.n429,
             "consecutive_failures": st.consecutive_failures,
             "cooldown_until": st.cooldown_until.isoformat() if st.cooldown_until else None,
+            "trades_cooldown_until": (
+                st.trades_cooldown_until.isoformat() if st.trades_cooldown_until else None
+            ),
+            "trade_state_fallback": self.trade_state_fallback,
+            "unproven_accepted": st.unproven_accepted,
             "quote_rows": st.quote_rows,
             "skipped_budget": st.skipped_budget,
             "raw_files": self.store.files,
@@ -510,19 +546,30 @@ class Poller:
         finally:  # the client may have retried: every request it sent counts against the budget
             self.budget.charge(self.client.requests - before - 1)
 
-    def _fail(self, exc: Exception) -> None:
-        """Open a jittered exponential cool-down; no request is sent until it ends."""
+    def _fail(self, exc: Exception, *, trades: bool = False) -> None:
+        """Open a jittered exponential cool-down; no request of that kind is sent until it ends.
+        ``trades=True`` cools only the trade pulls (the quote polls and the watchdog counters
+        are not affected); otherwise every request waits."""
         st = self.st
-        st.consecutive_failures += 1
+        if trades:
+            st.trade_failures += 1
+            streak = st.trade_failures
+        else:
+            st.consecutive_failures += 1
+            streak = st.consecutive_failures
         code = getattr(getattr(exc, "response", None), "status_code", None)
         if code == 429:
             st.n429 += 1
-        self.log_error(f"{type(exc).__name__} http={code}: {str(exc)[:120]}")
-        wait = min(
-            self.cfg.backoff_max_s, self.cfg.backoff_base_s * 2 ** (st.consecutive_failures - 1)
+        self.log_error(
+            f"{'trades ' if trades else ''}{type(exc).__name__} http={code}: {str(exc)[:120]}"
         )
+        wait = min(self.cfg.backoff_max_s, self.cfg.backoff_base_s * 2 ** (streak - 1))
         wait *= 1.0 + self.rng.uniform(0.0, 0.25)
-        st.cooldown_until = self.now() + timedelta(seconds=wait)
+        until = self.now() + timedelta(seconds=wait)
+        if trades:
+            st.trades_cooldown_until = until
+        else:
+            st.cooldown_until = until
 
     def poll_series(self, series: str) -> list[dict[str, Any]] | None:
         """All open markets of the series for the slate date (None on failure)."""
@@ -604,9 +651,65 @@ class Poller:
             self.export()
 
     # -------------------------------------------------------------- own prints
+    @property
+    def trade_state_path(self) -> Path:
+        return self.store.day_dir / "trade_state.json"
+
+    def _save_trade_state(self) -> None:
+        """High-water marks, open cursors and the queue, so a restart resumes mid catch-up.
+        Written after the raw file: a crash between the two only re-reads prints (deduplicated)."""
+        st = self.st
+        tickers = set(st.last_trade_ts) | set(st.cursor) | set(st.open_max)
+        body = {
+            "day": self.day.isoformat(),
+            "pending": list(st.pending),
+            "verify": sorted(st.verify),
+            "no_evidence": dict(st.no_evidence),
+            "unproven_accepted": st.unproven_accepted,
+            "tickers": {
+                t: {
+                    "hwm": st.last_trade_ts.get(t),
+                    "open_max": st.open_max.get(t),
+                    "cursor": st.cursor.get(t),
+                }
+                for t in sorted(tickers)
+            },
+        }
+        with contextlib.suppress(OSError):  # a full disk must not stop the poll
+            write_json_atomic(self.trade_state_path, body)
+
+    def _load_trade_state(self) -> bool:
+        """True when a readable state for this day was loaded."""
+        try:
+            body = json.loads(self.trade_state_path.read_text())
+            if body.get("day") != self.day.isoformat():
+                return False
+            st = self.st
+            for t, d in (body.get("tickers") or {}).items():
+                if d.get("hwm") is not None:
+                    st.last_trade_ts[t] = int(d["hwm"])
+                if d.get("open_max") is not None:
+                    st.open_max[t] = int(d["open_max"])
+                if d.get("cursor"):
+                    st.cursor[t] = str(d["cursor"])
+            st.pending = {str(t): 0.0 for t in body.get("pending") or []}
+            st.verify = {str(t) for t in body.get("verify") or []}
+            st.no_evidence = {str(k): int(v) for k, v in (body.get("no_evidence") or {}).items()}
+            st.unproven_accepted = int(body.get("unproven_accepted") or 0)
+            return True
+        except OSError:
+            return False
+        except (ValueError, AttributeError, TypeError):
+            return False
+
     def pull_trades(self, rows: list[dict[str, Any]]) -> None:
-        """Prints for the game tickers whose cumulative volume rose (largest jump first, at most
-        ``trades_max_tickers`` a poll, two pages each, budget reserve left for the quote polls)."""
+        """Complete catch-up of prints for game tickers, bounded per poll.
+
+        Queue: tickers with a carried cursor first, then verify passes, then the largest volume
+        jump; at most ``trades_max_tickers`` a poll and ``trades_pages_per_poll`` pages in all
+        (each page also needs the budget reserve, so the quote polls are never starved).
+        Order of effects: walk (no state changed), raw file, then the marks and cursors, then the
+        state file; a failed raw write applies nothing and the next poll walks again."""
         st = self.st
         for r in rows:
             vol = r["volume"]
@@ -616,37 +719,93 @@ class Poller:
             if prev is not None and vol > prev:
                 st.pending[r["ticker"]] = st.pending.get(r["ticker"], 0.0) + (vol - prev)
             st.volumes[r["ticker"]] = max(vol, prev or 0.0)
-        order = sorted(st.pending, key=lambda t: (-st.pending[t], t))[: self.cfg.trades_max_tickers]
-        batch: list[dict[str, Any]] = []
-        done: list[str] = []
-        try:
-            for ticker in order:
-                if st.cooldown_until and self.now() < st.cooldown_until:
-                    break
-                got, complete = self._pull_ticker_trades(ticker)
-                batch += got
-                if complete:
-                    done.append(ticker)
-        finally:  # one file per poll; ids are remembered only after the write
-            if batch:
-                fetched_at = self.now()
-                self.store.write("trades", fetched_at, "poll", batch, TRADE_SCHEMA)
-                self.tframes.append(pl.DataFrame(batch, schema=TRADE_SCHEMA))
-                st.trade_rows += len(batch)
-                self._remember_trades(batch)
-            for ticker in done:
-                st.pending.pop(ticker, None)
 
-    def _pull_ticker_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
-        """(new prints, complete). Incomplete = a page cap or a failed/denied request: the prints
-        older than the newest fetched one may be missing, which is logged, never papered over."""
+        def rank(t: str) -> tuple[int, int, float, str]:
+            return (0 if t in st.cursor else 1, 0 if t in st.verify else 1, -st.pending[t], t)
+
+        order = sorted(st.pending, key=rank)[: self.cfg.trades_max_tickers]
+        walks: list[tuple[str, bool, _Walk]] = []
+        batch: list[dict[str, Any]] = []
+        pages_left = self.cfg.trades_pages_per_poll
+        for ticker in order:
+            if pages_left <= 0 or (
+                st.trades_cooldown_until and self.now() < st.trades_cooldown_until
+            ):
+                break
+            carried = ticker in st.cursor
+            walk = self._walk_ticker(ticker, pages_left)
+            pages_left -= walk.pages
+            walks.append((ticker, carried, walk))
+            batch += walk.prints
+        if batch:
+            fetched_at = self.now()
+            try:
+                self.store.write("trades", fetched_at, "poll", batch, TRADE_SCHEMA)
+            except OSError as exc:  # nothing is applied: the next poll walks the same ground again
+                self.log_error(f"trades raw write failed ({exc}); marks and cursors not advanced")
+                return
+            self.tframes.append(pl.DataFrame(batch, schema=TRADE_SCHEMA))
+            st.trade_rows += len(batch)
+            self._remember_trades(batch)
+        for ticker, carried, walk in walks:
+            self._apply_walk(ticker, carried, walk)
+        self._save_trade_state()
+
+    def _apply_walk(self, ticker: str, carried: bool, walk: _Walk) -> None:
+        """Fold a walk into the marks, after its prints are safely stored."""
         st = self.st
-        min_ts = st.last_trade_ts.get(ticker, int(self.window_start.timestamp()))
+        if walk.top is not None:
+            st.open_max[ticker] = max(st.open_max.get(ticker, 0), walk.top)
+        if walk.unproven:
+            n = st.no_evidence.get(ticker, 0) + 1
+            if n < 2:
+                st.no_evidence[ticker] = (
+                    n  # first miss: stay open, try once more from the newest page
+                )
+            else:  # second in a row: accept (a busted trade must not hold a ticker open all night)
+                st.no_evidence.pop(ticker, None)
+                st.unproven_accepted += 1
+                self.log_error(
+                    f"trades {ticker}: second walk without the mark accepted as complete"
+                )
+                walk.complete = True
+        elif walk.complete:
+            st.no_evidence.pop(ticker, None)
+        if not walk.complete:
+            if walk.cursor:
+                st.cursor[ticker] = walk.cursor
+            else:
+                st.cursor.pop(ticker, None)  # restart from the newest page next poll
+            return
+        top = st.open_max.pop(ticker, None)
+        if top is not None:
+            st.last_trade_ts[ticker] = max(top, st.last_trade_ts.get(ticker, 0))
+        st.cursor.pop(ticker, None)
+        if ticker in st.verify:  # this was the verify pass: the queue entry is done
+            st.verify.discard(ticker)
+            st.pending.pop(ticker, None)
+        elif carried:  # spanned polls: stays queued for one more pass from the new mark
+            st.verify.add(ticker)
+        else:
+            st.pending.pop(ticker, None)
+
+    def _walk_ticker(self, ticker: str, page_budget: int) -> _Walk:
+        """Pages newest first from ``min_ts`` = the high-water mark (window start when none).
+        Complete only on evidence that the walk reached the mark: the cursor ended AND (no mark,
+        or a stored print of the mark's second was seen again). An expired cursor that answers
+        200 with nothing, or a walk that ended without the mark, is not completion. Changes no
+        persistent state; ``pull_trades`` applies the result after the raw write."""
+        st = self.st
+        hwm = st.last_trade_ts.get(ticker)
+        min_ts = hwm if hwm is not None else int(self.window_start.timestamp())
         seen = st.seen_ids.get(ticker, set())
+        in_walk: set[str] = set()  # ids appended by this walk (an offset cursor can repeat a print)
+        cursor = st.cursor.get(ticker)
+        resumed = cursor is not None
+        w = _Walk(cursor=cursor)
+        saw_mark = hwm is None
         new: list[Mapping[str, Any]] = []
-        cursor: str | None = None
-        complete = True
-        for page_n in range(self.cfg.trades_max_pages):
+        while w.pages < min(page_budget, self.cfg.trades_pages_per_ticker):
             try:
                 page = self._call(
                     lambda c=cursor: self.client.fetch_trades_page(  # type: ignore[misc]
@@ -655,27 +814,63 @@ class Poller:
                     reserve=self.cfg.trades_budget_reserve,
                 )
             except BudgetExhausted:
-                return [], False
-            except Exception as exc:
-                self._fail(exc)
-                return [], False
-            new += [t for t in page.get("trades", []) if t.get("trade_id") not in seen]
-            cursor = str(page.get("cursor") or "") or None
-            if not cursor:
                 break
-            if page_n == self.cfg.trades_max_pages - 1:
-                complete = False
-                self.log_error(
-                    f"trades {ticker}: page cap hit, older prints than the fetched ones are missing"
-                )
-        return trade_rows(new, self.now()), complete
+            except Exception as exc:
+                code = getattr(getattr(exc, "response", None), "status_code", None)
+                if resumed and code in (400, 404):  # stale cursor: restart from the newest page
+                    cursor, resumed = None, False
+                    w.cursor = None
+                    self.log_error(f"trades {ticker}: stale cursor dropped, restarting the walk")
+                    continue
+                self._fail(exc, trades=True)  # the cursor stays for the next poll
+                break
+            w.pages += 1
+            fresh = [t for t in page.get("trades", []) if isinstance(t, dict) and t.get("trade_id")]
+            nxt = str(page.get("cursor") or "") or None
+            if resumed and not fresh and not nxt:
+                # a resumed cursor answering an empty last page is how an expired cursor can look
+                cursor, resumed = None, False
+                w.cursor = None
+                self.log_error(f"trades {ticker}: empty page after a resume, restarting the walk")
+                continue
+            resumed = False
+            stamps: list[int] = []
+            for t in fresh:
+                c = _ts(t.get("created_time"))
+                if c is not None:
+                    ts = int(c.timestamp())
+                    stamps.append(ts)
+                    if hwm is not None and ts == hwm and str(t["trade_id"]) in seen:
+                        saw_mark = True
+                tid = str(t["trade_id"])
+                if tid not in seen and tid not in in_walk:
+                    in_walk.add(tid)
+                    new.append(t)
+            if stamps:
+                w.top = max(w.top or 0, max(stamps))
+            if hwm is not None and stamps and max(stamps) < hwm:
+                nxt = None  # the whole page is older than the mark: caught up
+                saw_mark = True
+            if not nxt:
+                if saw_mark:
+                    w.complete = True
+                    w.cursor = None
+                else:  # the walk ended without reaching the mark: keep the ticker open
+                    self.log_error(f"trades {ticker}: walk ended without reaching the mark")
+                    w.cursor = None
+                    w.unproven = True
+                break
+            cursor = nxt
+            w.cursor = nxt
+        if not w.complete and w.cursor:
+            self.log_error(f"trades {ticker}: catch-up carried to the next poll ({w.pages} pages)")
+        w.prints = trade_rows(new, self.now())
+        return w
 
     def _remember_trades(self, rows: Sequence[Mapping[str, Any]]) -> None:
+        """Stored ids only: the high-water mark is not moved by a stored print."""
         for r in rows:
-            t = r["ticker"]
-            self.st.seen_ids.setdefault(t, set()).add(r["trade_id"])
-            ts = int(r["created_time"].timestamp())
-            self.st.last_trade_ts[t] = max(self.st.last_trade_ts.get(t, 0), ts)
+            self.st.seen_ids.setdefault(r["ticker"], set()).add(r["trade_id"])
 
     def own_trades(self) -> pl.DataFrame:
         return pl.concat(self.tframes) if self.tframes else pl.DataFrame(schema=TRADE_SCHEMA)
@@ -750,6 +945,24 @@ class Poller:
         self.tframes = [t] if not t.is_empty() else []
         self.st.trade_rows = t.height
         self._remember_trades(t.to_dicts())
+        if not self._load_trade_state():
+            # No usable state. Drop anything half-loaded; with prints already stored an open
+            # catch-up cannot be located, and the newest stored print sits at the TOP of that walk,
+            # so it is not a safe mark. Re-walk every stored ticker from the window start; seen ids
+            # make that cost pages, not prints. The reconciliation names it (trade_state_fallback).
+            self.st.last_trade_ts.clear()
+            self.st.cursor.clear()
+            self.st.open_max.clear()
+            self.st.verify.clear()
+            self.st.pending = {}
+            if not t.is_empty():
+                tickers = sorted({str(x) for x in t["ticker"].unique().to_list()})
+                self.trade_state_fallback = True
+                self.st.pending = {tk: 0.0 for tk in tickers}
+                self.log_error(
+                    f"trade_state missing or unreadable: re-walking {len(tickers)} tickers "
+                    "from the window start"
+                )
         for name in self.store.quarantined:
             self.log_error(f"quarantined unreadable raw file {name} (renamed .bad)")
 
@@ -821,6 +1034,8 @@ class Poller:
                 self.budget,
                 trades=trades,
                 sources={"own": own, "capture": cap},
+                trade_state_fallback=self.trade_state_fallback,
+                unproven_accepted=self.st.unproven_accepted,
                 capture=self.capture,
                 export_dir=None,
                 beat=self.beat,

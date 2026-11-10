@@ -512,6 +512,8 @@ def finalize_day(
     *,
     trades: pl.DataFrame,
     sources: Mapping[str, pl.DataFrame] | None = None,
+    trade_state_fallback: bool = False,
+    unproven_accepted: int = 0,
     capture: CaptureTrades | None = None,
     export_dir: Path | None = None,
     beat: Callable[[], object] | None = None,
@@ -583,6 +585,8 @@ def finalize_day(
     recon.update(
         {
             "tickers": len(tickers),
+            "trade_state_fallback": trade_state_fallback,
+            "unproven_accepted": unproven_accepted,
             "errors": errors,
             "built_at": now.isoformat(),
             "trade_source": "own /markets/trades pulls united with the live capture raw store",
