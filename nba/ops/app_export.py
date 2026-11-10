@@ -63,7 +63,15 @@ def _is_drive_backup(name: str) -> bool:
 
 #: advisory steps (ops/nba_daily.sh ``advisory_step``): they may alert but never hold back the export
 #: coverage_yesterday and data_check_advisory (diff-only flags) were added 2026-10-27; leak/schema flags fail ``data_check`` itself
-ADVISORY_STEPS = ("stints_nightly", "coverage_yesterday", "data_check_advisory")
+#: fetch_tracking / fetch_matchups added 2026-11-10: post-game enrichment that no production model, the daily
+#: pipeline or the export reads; one unpublished game (0022600189) held the export for a whole game day
+ADVISORY_STEPS = (
+    "stints_nightly",
+    "coverage_yesterday",
+    "data_check_advisory",
+    "fetch_tracking",
+    "fetch_matchups",
+)
 
 #: data steps that must appear as ok, else the run was cut short (or an older script wrote no record) and the gate fails closed
 REQUIRED_STEPS = (
