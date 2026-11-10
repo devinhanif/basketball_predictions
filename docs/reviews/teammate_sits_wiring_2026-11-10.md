@@ -10,7 +10,7 @@ server-enforced display rule) and the main honesty claims hold. Four things are 
 the task stated: the import can fail the export, and a player ruled OUT can appear as a teammate who gains. The other two are
 copy the frozen rule asked for and a small code path outside the guard. All the fixes are small.
 
-Verdict: BLOCKED
+First-pass verdict (superseded by the Re-review at the end): BLOCKED
 
 (Merge after B1, M1 and M2. The minors can wait.)
 
@@ -199,3 +199,28 @@ B1, M1, M2 before merge. m1-m7 when convenient. No ledger row is needed (wiring,
 
 Scratch note: running `uv run` in the worktree created an ignored, empty `.venv/` there. git status is clean. Deleting it was
 denied by permissions, so remove it by hand if wanted.
+
+## Re-review (fixes at 6c7d26df), 2026-11-10
+
+A light re-review of the diff only (`git diff 0ed14883..6c7d26df`, 11 files). I re-ran the original probes.
+
+| Finding | Check | Result | Pass |
+|---|---|---|---|
+| B1 import isolation | `PYTHONPATH=<main or branch> python -c "import nba.export.build, sys; print('lightgbm' in sys.modules, 'nba.props.context_residual' in sys.modules)"` | main False False; branch False False (exit 0 both). `build.py` imports only the stdlib `sits_schema`. `teammate_sits` is imported inside `_sits_stage`'s `try`, which also wraps the props comprehension (m1). New tests: `test_a_broken_scenario_import_never_fails_the_export` (forced ImportError, manifest reason `error:ImportError`) and a subprocess no-lightgbm test | PASS |
+| M1 OUT receivers | scratch probe `test_out_teammate_still_listed_as_receiver` (it asserts the bug exists) | 0 receiver rows for the OUT player, so the probe now FAILS as intended. The fix anti-joins `flagged` (the report used) from `long` and from the expected-pairs roster, and counts `null_reasons.receiver_out` | PASS |
+| m1 guard coverage | scratch probe `test_sits_stage_outside_guard_raises` | no longer raises; logged `teammate_sits skipped: KeyError`, step absent | PASS |
+| M2 copy vs frozen rule | `scenarios.py` `NOT_MODELLED` and `EVIDENCE` against TEAMMATE_SITS "Not covered" and T526-a rec. 2/3 | All four "not covered" items are now stated: questionable/doubtful, scratches after T-60, two or more sitters, own P(play). reb: "uncertain and came mostly from a few players" (API and web). pts: no claim about the split | PASS |
+| m4 per_player | `scenarios.py:204` `if len(likely) >= 3 else None`; test `test_per_player_size_needs_three_likely_teammates` | holds | PASS |
+| m2 budget | checks added after vacancy and after forecasts | holds | PASS |
+| m3 fingerprint | `expected_fingerprint` mirrors `_load_or_fit_models`' pops for the default T-60 heads and compares the whole dict. A mismatch can only withhold scenarios. The agent reports it matching on the real 2026-11-09 cache (2,024 rows) | holds; a drift risk if production's pops change (fails safe) | PASS |
+| m5 / m6 / m7 | contract lines 23 and 34; `DEFAULT_MODEL_ROOT` deleted; "2023-24 and 2024-25 seasons" | fixed, apart from one leftover (below) | PASS |
+
+Tests (unpiped): `pytest -q --no-cov tests/export/test_sits_core.py tests/export/test_teammate_sits.py tests/export/test_export.py` gives 48 passed, exit 0. `app/api pytest -q tests/test_scenarios.py` gives 13 passed, exit 0. Not run: web tests, mypy, ruff on the new commit, the replay oracle (main session).
+
+Question 4 is now quantified by the agent (contract status block; not re-measured here because no export builds are allowed): slate 2026-11-09, 8 games, step 2.78 s, 2,024 rows. `base_vs_production` against the paired 12:00 UTC run: 190 compared, max abs diff 0.0049, none over 0.05. Against later runs it differs by up to 3.8 because the reports changed. That is expected, and no baseline number reaches the client.
+
+New contradiction found (minor, does not block): `docs/contracts/teammate_sits_v1.md:30` still says the file is "written by the same run (same `made_at`, same model cache) as the production props rows it pairs with". That disagrees with the corrected line 34 (the export's `made_at`, a same-run recompute). Fix: "written by the export build (its `made_at`), from the morning model cache; it pairs with no stored run".
+
+Still open, not blocking: the latent AVG-primary wording risk (question 4) and the pre-OUT `p_play` fallback for players who are not OUT (`_p_play_map`, the first prop row found).
+
+Verdict: APPROVED

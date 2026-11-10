@@ -26,8 +26,7 @@ move?". The baseline is the SAME recompute with nobody added (cached morning hea
 What moves on T's row: `n_out_rot` (+1), `vac_min` (+P's as-of 10-game minutes), `vac_<stat>` (+P's as-of 10-game mean). Nothing else.
 
 ## File
-`data/export/<date>/teammate_sits.parquet` (or a `teammate_sits` table in the export bundle), one file per slate run, written by the same
-run (same `made_at`, same model cache) as the production props rows it pairs with. A later run replaces it whole.
+`data/export/<date>/teammate_sits.parquet` (or a `teammate_sits` table in the export bundle), one file per slate run, written by the export build (its `made_at`), from the morning model cache; it pairs with no stored run. A later build replaces it whole.
 
 | column | type | meaning |
 |---|---|---|
