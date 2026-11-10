@@ -4,7 +4,7 @@ import { american, bookName, lineText, num, pct } from "./format";
 import { Explain, View } from "./components";
 import { plainModel } from "./plain";
 import { gameHref } from "./router";
-import { calibrationFooter, hideBook, percentAlong, modelLine, pairLines, quantile, read, sliderRange, snapHalf } from "./slider";
+import { calibrationFooter, hideBook, percentAlong, modelLine, calibratedLine, quantile, read, sliderRange, snapHalf } from "./slider";
 import { Chips, DistStrip, ProbBar } from "./Viz";
 import { wilson } from "./stats";
 import { useLoad } from "./useLoad";
@@ -154,7 +154,7 @@ export function LineSlider({ card }: { card: CardView }) {
   const start = snapHalf(posted ?? model);
   const [line, setLine] = useState(Math.min(max, Math.max(min, start)));
   const r = read(input, line);
-  const pair = pairLines(r);
+  const calLine = calibratedLine(r);
   const id = `slider-${card.prop_id}`;
   const stat = card.stat;
   const step = (d: number): void => {
@@ -224,20 +224,27 @@ export function LineSlider({ card }: { card: CardView }) {
         Bars are the model's chance of each count. Shaded: the middle 80% ({quantile(card.dist.p_ge, 0.1)} to {quantile(card.dist.p_ge, 0.9)}).
         Solid line: your line. Dotted: the model's line. Accent bars: over.
       </p>
-      <div class="ls-read" aria-live="polite">
-        <div class="ls-side">
-          <div class="big-num num">{pct(r.p_over)}</div>
-          <div class="alt-tag">over</div>
-        </div>
-        <div class="ls-side">
-          <div class="big-num num">{pct(r.p_under)}</div>
-          <div class="alt-tag">under</div>
-        </div>
-      </div>
-      <ProbBar over={r.p_over} label={`At line ${lineText(line)}`} />
+      {r.p_over !== null && r.p_under !== null ? (
+        <>
+          <div class="ls-read" aria-live="polite">
+            <div class="ls-side">
+              <div class="big-num num">{pct(r.p_over)}</div>
+              <div class="alt-tag">over</div>
+            </div>
+            <div class="ls-side">
+              <div class="big-num num">{pct(r.p_under)}</div>
+              <div class="alt-tag">under</div>
+            </div>
+          </div>
+          <ProbBar over={r.p_over} label={`At line ${lineText(line)}`} />
+        </>
+      ) : (
+        <p class="ls-read ls-nocal" aria-live="polite">
+          <b>No calibrated number at this line.</b> Step back to the calibrated line to read a chance; the bars above are the forecast itself.
+        </p>
+      )}
       <div class="ls-pair small num" aria-live="polite">
-        <div class="ls-raw">{pair.raw}</div>
-        {pair.cal !== null ? <div class="ls-cal">{market ? pair.cal : hideBook(pair.cal)}</div> : <div class="ls-cal none muted">{market ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
+        {calLine !== null ? <div class="ls-cal">{market ? calLine : hideBook(calLine)}</div> : <div class="ls-cal none muted">{market ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
       </div>
       <p class="small ls-say">
         Over {lineText(line)} means {sideText(stat, line, "over")}. Under means {sideText(stat, line, "under")}.

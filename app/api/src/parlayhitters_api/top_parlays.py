@@ -71,7 +71,8 @@ class Leg(_Strict):
     book: str
     price_american: int
     price_at: AwareDatetime
-    p_raw: float = Field(ge=0, le=1)
+    # Validated from the file, never served: the app shows calibrated chances only.
+    p_raw: float = Field(ge=0, le=1, exclude=True)
     p_cal: float = Field(ge=0, le=1)
     model_source: str
     reason: str
@@ -91,7 +92,7 @@ class Ticket(_Strict):
     rank: int
     same_game: bool
     legs: list[Leg] = Field(min_length=2, max_length=3)
-    p_joint_raw: float = Field(ge=0, le=1)
+    p_joint_raw: float = Field(ge=0, le=1, exclude=True)
     p_joint_cal: float = Field(ge=0, le=1)
     p_joint_cal_80: tuple[float, float]
     book_implied: float = Field(ge=0, le=1)

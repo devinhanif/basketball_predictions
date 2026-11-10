@@ -41,6 +41,8 @@ export interface KeyProp {
   q50: number;
   q75: number;
   model_p_over: number;
+  /** Calibrated (line_cal, rung_cal) or the model's own number with no calibrated value (model). */
+  model_p_source: PSource;
   /** Null when the data holds no sportsbook price (the nightly export). */
   market_p_over: number | null;
   line_source: "posted" | "reference";
@@ -98,6 +100,8 @@ export interface PropView {
   model_p_under: number;
   model_p_push: number;
   extrapolated: boolean;
+  /** Where model_p_over came from: the calibrated number, or the model's own with no calibrated value. */
+  model_p_source: PSource;
   market_p_over: number | null;
   forecast_stamp: string;
   /** Which model the forecast came from, in plain words (the API writes the sentence). */
@@ -191,8 +195,6 @@ export interface ResultRow {
   over_price: number;
   under_price: number;
   actual: number;
-  model_p_over: number;
-  model_p_under: number;
   market_p_over: number;
   market_p_under: number;
 }
@@ -252,10 +254,14 @@ export interface ProbAtLine {
   player_id: number;
   stat: Stat;
   line: number;
-  p_over: number;
-  p_under: number;
-  p_push: number;
+  /** null where the prop has a calibrated number elsewhere but none at this line (no_cal_here). */
+  p_over: number | null;
+  p_under: number | null;
+  p_push: number | null;
   extrapolated: boolean;
+  /** The calibrated number (line_cal, rung_cal) or the model's own with no calibrated value (model). */
+  p_source: PSource;
+  no_cal_here: boolean;
   method: string;
   main_line: number;
   is_main_line: boolean;
@@ -277,7 +283,6 @@ export interface LineCal {
   book: string;
   main_line: number;
   price_at: string | null;
-  p_over_raw: number;
   p_over_cal: number;
   map: string;
   map_sha8: string;
@@ -357,6 +362,8 @@ export interface MinutesInfo {
   method: string;
 }
 
+export type PSource = "line_cal" | "rung_cal" | "model";
+
 /* ------------------------------------------------------------------ track record */
 export interface CalBin {
   lo: number;
@@ -368,6 +375,29 @@ export interface CalBin {
   lo95: number | null;
   hi95: number | null;
   enough: boolean;
+}
+export interface PubInterval {
+  mean: number;
+  lo: number;
+  hi: number;
+}
+export interface PubBook {
+  label: string;
+  n: number;
+  games: number;
+  log_loss_cal_minus_raw: PubInterval;
+  mean_cal_minus_realised: PubInterval;
+  bins: { lo: number; n: number; said: number; happened: number }[];
+}
+export interface PropsPublished {
+  ledger_id: string;
+  season_label: string;
+  rule_sha8: string;
+  verdict: string;
+  source: string;
+  books: Record<string, PubBook>;
+  interval: string;
+  this_season: string;
 }
 export interface CalSeries {
   name: string;
@@ -386,7 +416,8 @@ export interface Calibration {
   date_from: string | null;
   date_to: string | null;
   n_games_finished: number;
-  props: CalSeries;
+  /** The calibrated map's published record on a finished season; nothing computed from this season. */
+  props: PropsPublished;
   winners: CalSeries;
   note: string;
 }
@@ -414,11 +445,12 @@ export interface GuessReveal {
   actual: number;
   line: number;
   went_over: boolean;
-  model_p_over: number;
-  model_call: "over" | "under";
-  model_right: boolean;
+  /** True for nights inside the locked test: no model number is served, outcome only. */
+  model_locked: boolean;
+  model_p_over: number | null;
+  model_p_source: PSource | null;
   minutes: number | null;
-  stat_mean: number;
+  stat_mean: number | null;
   forecast_stamp: string;
 }
 
@@ -430,7 +462,8 @@ export interface KnowsSnap {
   p10: number;
   p50: number;
   p90: number;
-  p_over: number;
+  /** Calibrated chance on the shown forecast only; null on earlier snapshots (none exists for them). */
+  p_over: number | null;
   proj_minutes: number | null;
   p_play: number | null;
   shown: boolean;
@@ -459,6 +492,7 @@ export interface PlayerKnows {
   stat: Stat;
   line: number;
   line_source: string;
+  p_over_source: PSource;
   tip_utc: string;
   final: boolean;
   snapshots: KnowsSnap[];

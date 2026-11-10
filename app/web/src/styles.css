@@ -341,6 +341,10 @@ th.r {
   align-items: center;
   gap: 10px;
   width: 100%;
+  min-width: 0;
+}
+.player-sum > * {
+  min-width: 0;
 }
 .player-name {
   font-weight: 600;
@@ -348,8 +352,11 @@ th.r {
 }
 .player-lead {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
   align-items: baseline;
-  gap: 8px;
+  gap: 2px 8px;
   text-align: right;
 }
 .player > summary::after {
@@ -1388,4 +1395,23 @@ main:focus {
 }
 .prop-compare {
   margin-top: 2px;
+}
+
+/* The honesty label beside a prop chance: calibrated, or model only where no calibrated number exists. */
+.cal-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid var(--line, currentColor);
+  color: var(--muted, inherit);
+}
+.cal-tag.cal {
+  color: var(--accent-ink, inherit);
+  border-color: var(--accent, currentColor);
 }

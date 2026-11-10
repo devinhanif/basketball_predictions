@@ -52,7 +52,6 @@ class LineCal(BaseModel):
     book: str
     main_line: float
     price_at: str | None = None
-    p_over_raw: float = Field(ge=0, le=1)
     p_over_cal: float = Field(ge=0, le=1)
     map: str
     map_sha8: str
@@ -78,6 +77,9 @@ class PropView(BaseModel):
     model_p_under: float
     model_p_push: float
     extrapolated: bool
+    # Where model_p_over came from: the calibrated number (line_cal, rung_cal) or the model's own
+    # number with no calibrated value (model). The only chance a screen shows for a prop.
+    model_p_source: Literal["line_cal", "rung_cal", "model"] = "model"
     market_p_over: float | None
     forecast_stamp: str
     # Which model the forecast came from, in plain words, and the chance to play behind it.
@@ -143,10 +145,13 @@ class ProbAtLine(BaseModel):
     player_id: int
     stat: Stat
     line: float
-    p_over: float
-    p_under: float
-    p_push: float
+    # None where the prop has a calibrated number elsewhere but none at this line (no_cal_here).
+    p_over: float | None
+    p_under: float | None
+    p_push: float | None
     extrapolated: bool
+    p_source: Literal["line_cal", "rung_cal", "model"] = "model"
+    no_cal_here: bool = False
     method: str
     taus: list[float]
     q: list[float]

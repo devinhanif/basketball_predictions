@@ -21,6 +21,7 @@ function prop(source: "posted" | "reference"): PropView {
     model_p_under: 0.51,
     model_p_push: 0,
     extrapolated: false,
+    model_p_source: "model",
     market_p_over: null,
     forecast_stamp: "x",
     model_source: "x",

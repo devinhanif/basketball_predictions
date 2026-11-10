@@ -121,8 +121,7 @@ export interface Settled {
   pick: Pick;
   row: ResultRow;
   outcome: Outcome;
-  /** Model P(chosen side) given no push, and the book's de-vigged equivalent. */
-  model_side: number;
+  /** The book's de-vigged chance for the chosen side. No model chance is paired with an outcome here. */
   market_side: number;
 }
 
@@ -138,34 +137,15 @@ export function settle(picks: Pick[], rows: ResultRow[]): { settled: Settled[]; 
       continue;
     }
     const over = p.side === "over";
-    const pm = row.model_p_over + row.model_p_under;
-    const modelOver = pm > 0 ? row.model_p_over / pm : 0.5;
     settled.push({
       pick: p,
       row,
       outcome: settleSide(p.side, row.line, row.actual),
-      model_side: over ? modelOver : 1 - modelOver,
       market_side: over ? row.market_p_over : row.market_p_under,
     });
   }
   return { settled, open };
 }
-
-export interface Bin {
-  label: string;
-  n: number;
-  predicted: number | null;
-  observed: number | null;
-  ci: [number, number] | null;
-  enough: boolean;
-}
-
-const EDGES: [number, number, string][] = [
-  [0, 0.4, "under 40%"],
-  [0.4, 0.5, "40% to 50%"],
-  [0.5, 0.6, "50% to 60%"],
-  [0.6, 1.0001, "60% and over"],
-];
 
 export interface Summary {
   n_picks: number;
@@ -177,9 +157,7 @@ export interface Summary {
   hit_rate: number | null;
   hit_ci: [number, number] | null;
   mean_market: number | null;
-  mean_model: number | null;
   enough: boolean;
-  bins: Bin[];
 }
 
 export function summarize(all: Pick[], settled: Settled[]): Summary {
@@ -188,19 +166,6 @@ export function summarize(all: Pick[], settled: Settled[]): Summary {
   const n = decided.length;
   const mean = (xs: number[]): number | null =>
     xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
-  const bins: Bin[] = EDGES.map(([lo, hi, label]) => {
-    const inBin = decided.filter((s) => s.model_side >= lo && s.model_side < hi);
-    const k = inBin.filter((s) => s.outcome === "win").length;
-    const enough = inBin.length >= MIN_LEGS;
-    return {
-      label,
-      n: inBin.length,
-      predicted: mean(inBin.map((s) => s.model_side)),
-      observed: inBin.length ? k / inBin.length : null,
-      ci: inBin.length ? wilson(k, inBin.length) : null,
-      enough,
-    };
-  });
   return {
     n_picks: all.filter((p) => p.side !== "skip").length,
     n_skips: all.filter((p) => p.side === "skip").length,
@@ -211,9 +176,7 @@ export function summarize(all: Pick[], settled: Settled[]): Summary {
     hit_rate: n ? wins / n : null,
     hit_ci: n ? wilson(wins, n) : null,
     mean_market: mean(decided.map((s) => s.market_side)),
-    mean_model: mean(decided.map((s) => s.model_side)),
     enough: n >= MIN_LEGS,
-    bins,
   };
 }
 

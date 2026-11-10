@@ -22,7 +22,7 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from .dissect.types import Dissection
-from .forecast import devig_over, forecast_probs, reference_line
+from .forecast import devig_over, no_cal_here, reference_line, shown_probs
 from .history import (
     MODEL_STATS,
     POSITION_NOUN,
@@ -137,6 +137,10 @@ class Model(BaseModel):
     mean: float | None
     typical: float | None
     extrapolated: bool
+    # calibrated (line_cal, rung_cal) or the model's own number with no calibrated value (model)
+    p_source: str = "model"
+    # The prop has a calibrated number elsewhere but none at this line: no chance is given here.
+    no_cal_here: bool = False
     stamp: str | None
     # Which model the numbers came from, in plain words (see model_source).
     source: str
@@ -192,6 +196,7 @@ class LadderRow(BaseModel):
     l5_push: int
     model_over: float | None
     model_under: float | None
+    model_source: str = "model"
     over_price: int | None
     under_price: int | None
 
@@ -571,18 +576,21 @@ def _model(ctx: Context, stat: str, line: float, side: Side) -> Model:
             reason="",
         )
     q = [float(v) for v in prop["forecast"]["q"]]
-    lp = forecast_probs(prop["forecast"], line)
+    lp = shown_probs(prop, line)
+    hide = no_cal_here(prop, lp)
     source, source_label = model_label(prop["forecast"].get("model"))
-    p_hit = lp.p_over if side == "over" else lp.p_under
+    p_hit = None if hide else (lp.p_over if side == "over" else lp.p_under)
     return Model(
         available=True,
         p_hit=p_hit,
-        p_over=lp.p_over,
-        p_under=lp.p_under,
-        p_push=lp.p_push,
+        p_over=None if hide else lp.p_over,
+        p_under=None if hide else lp.p_under,
+        p_push=None if hide else lp.p_push,
+        no_cal_here=hide,
         mean=prop["forecast"].get("mean"),
         typical=q[9],
         extrapolated=lp.extrapolated,
+        p_source=lp.source,
         stamp=prop["forecast"]["stamp"],
         source=source,
         source_label=source_label,
@@ -757,7 +765,8 @@ def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderR
     for ln in half_grid(lo, hi):
         t10 = [hit_state(r.value(stat), ln, "over") for r in last10]
         t5 = [hit_state(r.value(stat), ln, "over") for r in last5]
-        lp = forecast_probs(prop["forecast"], ln) if prop else None
+        lp = shown_probs(prop, ln) if prop else None
+        hide = lp is not None and prop is not None and no_cal_here(prop, lp)
         px = by_point.get(ln)
         out.append(
             LadderRow(
@@ -768,8 +777,9 @@ def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderR
                 l5_over=t5.count("hit"),
                 l5_under=t5.count("miss"),
                 l5_push=t5.count("push"),
-                model_over=None if lp is None else lp.p_over,
-                model_under=None if lp is None else lp.p_under,
+                model_over=None if lp is None or hide else lp.p_over,
+                model_under=None if lp is None or hide else lp.p_under,
+                model_source="model" if lp is None else lp.source,
                 over_price=None if px is None else px["over_price"],
                 under_price=None if px is None else px["under_price"],
             )
@@ -882,6 +892,12 @@ def build(
             else ""
         )
         model.reason = f"It expects {typical}{recent}. {role.say}{no_minutes}"
+    elif model.available and model.no_cal_here:
+        model.say = f"There is no calibrated number for {name} at {use:g}."
+        model.reason = (
+            "Chances are given only at lines the calibration covers, so the numbers beside a "
+            "calibrated one are on the same scale."
+        )
     chips = [
         Chip(
             game_id=r.game_id,

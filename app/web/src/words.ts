@@ -1,6 +1,11 @@
 // Plain-language helpers. Every function here turns a stored number into a sentence;
 // none of them invents a number. The exact percentages are always printed next to the words.
-import type { Stat } from "./types";
+import type { PSource, Stat } from "./types";
+
+/** What a shown prop chance is: the calibrated number, or the model's own where none exists. */
+export function sourceWord(s: PSource): string {
+  return s === "model" ? "model only" : "calibrated";
+}
 
 /** "about 6 times in 10" for a probability. */
 export function inTen(p: number, extrapolated = false): string {

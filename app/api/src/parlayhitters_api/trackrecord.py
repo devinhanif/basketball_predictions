@@ -6,10 +6,10 @@ game are not independent: teammates share a pace and an opponent). A bin with fe
 cases or MIN_GAMES games gets no interval and says "not enough to say".
 
 What is counted:
-  * player props: the model's own chance of the over at the posted half-point line (the raw
-    forecast, not the calibrated number), against whether the player went over. A whole-number
-    line can push and a "reference" line is the middle of our own forecast, so neither is used;
-    players who did not play are not scored. Each exclusion is counted and returned.
+  * player props: NOTHING from this season. The calibrated map is under a frozen live test
+    (LINE_CAL_LIVE) that forbids interim looks at its outcomes until its single look, so no 2026
+    prop calibration bin, count or interval is computed or served here. The tab carries the map's
+    published 2024-25 record (T493, a committed file) and a plain note instead.
   * game winners: the favourite's chance (the larger of home and away), against whether the
     favourite won.
 
@@ -20,17 +20,18 @@ the reveal does.
 
 from __future__ import annotations
 
+import json
 import math
 import random
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
 
 from .breakdown import Context
-from .forecast import dist_grid, forecast_probs
+from .forecast import dist_grid, shown_probs
 from .minutes import moments
-from .model_source import model_label
 
 Json = dict[str, Any]
 
@@ -75,12 +76,69 @@ class Series(BaseModel):
     interval: str
 
 
+class PubInterval(BaseModel):
+    mean: float
+    lo: float
+    hi: float
+
+
+class PubBin(BaseModel):
+    lo: float
+    n: int
+    said: float
+    happened: float
+
+
+class PubBook(BaseModel):
+    label: str
+    n: int
+    games: int
+    log_loss_cal_minus_raw: PubInterval
+    mean_cal_minus_realised: PubInterval
+    bins: list[PubBin]
+
+
+class PropsPublished(BaseModel):
+    """The calibrated map's published record on a finished season. Copied from a committed
+    report; nothing here is computed from this season's games."""
+
+    ledger_id: str
+    season_label: str
+    rule_sha8: str
+    verdict: str
+    source: str
+    books: dict[str, PubBook]
+    interval: str
+    this_season: str
+
+
+PROPS_THIS_SEASON = (
+    "This season's check is running as a locked test; results appear after it reads (about Dec 1)."
+)
+
+
+def props_published() -> PropsPublished:
+    raw = json.loads(
+        (Path(__file__).parent / "published" / "line_cal_t493.json").read_text(encoding="utf-8")
+    )
+    return PropsPublished(
+        ledger_id=raw["ledger_id"],
+        season_label=raw["season_label"],
+        rule_sha8=raw["rule_sha8"],
+        verdict=raw["verdict"],
+        source=raw["source"],
+        books={k: PubBook(**v) for k, v in raw["books"].items()},
+        interval="95% interval from resampling whole games (2,000 resamples), as published",
+        this_season=PROPS_THIS_SEASON,
+    )
+
+
 class Calibration(BaseModel):
     mode: str
     date_from: str | None
     date_to: str | None
     n_games_finished: int
-    props: Series
+    props: PropsPublished
     winners: Series
     note: str
 
@@ -101,26 +159,6 @@ def finished_games(store: Any) -> list[Json]:
 
 def _is_half(line: float) -> bool:
     return abs(line - math.floor(line) - 0.5) < 1e-9
-
-
-def prop_cases(games: list[Json]) -> tuple[list[Case], dict[str, int]]:
-    out: list[Case] = []
-    ex = {"no_posted_line": 0, "whole_number_line": 0, "did_not_play": 0}
-    for g in games:
-        for pl in g["players"]:
-            for pr in pl["props"].values():
-                if pr.get("line_source", "posted") != "posted":
-                    ex["no_posted_line"] += 1
-                elif not _is_half(float(pr["line"])):
-                    ex["whole_number_line"] += 1
-                elif pr["actual"] is None:
-                    ex["did_not_play"] += 1
-                else:
-                    p = forecast_probs(pr["forecast"], float(pr["line"])).p_over
-                    src, label = model_label(pr["forecast"].get("model"))
-                    hit = float(pr["actual"]) > float(pr["line"])
-                    out.append(Case(g["game_id"], p, hit, src, label))
-    return out, ex
 
 
 def winner_cases(games: list[Json]) -> tuple[list[Case], dict[str, int]]:
@@ -207,9 +245,7 @@ def by_source(cases: list[Case], edges: list[float], rng: random.Random) -> list
 def calibration(store: Any) -> Calibration:
     games = finished_games(store)
     rng = random.Random(SEED)  # noqa: S311 - a reproducible bootstrap, not security
-    pcases, pex = prop_cases(games)
     wcases, wex = winner_cases(games)
-    tenth = [round(i / 10, 1) for i in range(11)]
     fav = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     interval = "95% interval from resampling whole games (1,000 resamples)"
     return Calibration(
@@ -217,18 +253,7 @@ def calibration(store: Any) -> Calibration:
         date_from=games[0]["date"] if games else None,
         date_to=games[-1]["date"] if games else None,
         n_games_finished=len(games),
-        props=Series(
-            name="Player props",
-            what_said="the model's chance of the over at the posted line",
-            what_happened="the player went over",
-            n=len(pcases),
-            n_games=len({c.game_id for c in pcases}),
-            bins=binned(pcases, tenth, rng),
-            overall=binned(pcases, [0.0, 1.0], rng)[0],
-            sources=by_source(pcases, [0.0, 1.0], rng),
-            excluded=pex,
-            interval=interval,
-        ),
+        props=props_published(),
         winners=Series(
             name="Game winners",
             what_said="the favourite's chance to win",
@@ -241,7 +266,8 @@ def calibration(store: Any) -> Calibration:
             excluded=wex,
             interval=interval,
         ),
-        note="Raw model chances, before any calibration map. Only games in the loaded data.",
+        note="Game winners: the win model's own chance (it has no calibrated variant). "
+        "Only games in the loaded data.",
     )
 
 
@@ -275,16 +301,22 @@ class GuessDeck(BaseModel):
     note: str
 
 
+# Props on slates dated on or after this day sit inside the LINE_CAL_LIVE window: until its single
+# look (about Dec 1) the app shows no model chance, call or typical night beside their outcomes.
+MODEL_LOCK_FROM = "2026-10-30"
+
+
 class GuessReveal(BaseModel):
     prop_id: str
     actual: int
     line: float
     went_over: bool
-    model_p_over: float
-    model_call: str  # "over" | "under"
-    model_right: bool
+    # None while the night is inside the locked test (model_locked): outcome only.
+    model_locked: bool
+    model_p_over: float | None
+    model_p_source: str | None  # line_cal | rung_cal | model
     minutes: float | None
-    stat_mean: float
+    stat_mean: float | None
     forecast_stamp: str
 
 
@@ -371,19 +403,22 @@ def guess_reveal(store: Any, prop_id: str) -> GuessReveal | None:
     ):
         return None
     line = float(pr["line"])
-    p = forecast_probs(pr["forecast"], line).p_over
+    shown = shown_probs(pr, line)  # the calibrated chance where the export has one
+    p = shown.p_over
     actual = int(pr["actual"])
     over = actual > line
-    call = "over" if p >= 0.5 else "under"
+    # No field says whether the model was right, and for nights inside the LINE_CAL_LIVE window
+    # (MODEL_LOCK_FROM on) the reveal carries no model number at all, only the outcome.
+    locked = str(g["date"]) >= MODEL_LOCK_FROM
     return GuessReveal(
         prop_id=prop_id,
         actual=actual,
         line=line,
         went_over=over,
-        model_p_over=p,
-        model_call=call,
-        model_right=(call == "over") == over,
+        model_locked=locked,
+        model_p_over=None if locked else p,
+        model_p_source=None if locked else shown.source,
         minutes=None if pl["result"] is None else float(pl["result"]["minutes"]),
-        stat_mean=moments(dist_grid(pr["forecast"])["p_ge"])[0],
+        stat_mean=None if locked else moments(dist_grid(pr["forecast"])["p_ge"])[0],
         forecast_stamp=str(pr["forecast"]["stamp"]),
     )

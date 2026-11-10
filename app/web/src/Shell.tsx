@@ -181,6 +181,10 @@ function AboutModal(props: { onClose: () => void; private_: boolean; fixture: bo
       <ul class="plain">
         <li>Every number comes from a stored row; where there is none, the screen says so.</li>
         <li>Rates carry how many bets they rest on and an interval, or say "not enough to say".</li>
+        <li>
+          Where a prop has a calibrated chance, only that is shown, at the lines it covers. The forecast distribution (the bars)
+          is always shown, and a chance at any line can be read from it.
+        </li>
         <li>Everything is a paper trade. Nothing here places an order, holds a credential or recommends a stake.</li>
         <li>Until the live log proves skill, the answer to "what should I bet?" is: keep your money.</li>
         {props.fixture ? <li>The desk numbers in this build are a synthetic fixture, not JARVIS data.</li> : null}

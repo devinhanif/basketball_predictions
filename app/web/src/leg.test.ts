@@ -12,6 +12,7 @@ const row = (line: number): LadderRow => ({
   l5_push: 0,
   model_over: 0.45,
   model_under: 0.55,
+  model_source: "model",
   over_price: 105,
   under_price: null,
 });

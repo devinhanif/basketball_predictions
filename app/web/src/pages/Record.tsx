@@ -1,41 +1,49 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
-import { Explain, ModelNote, View } from "../components";
+import { CalTag, Explain, ModelNote, View } from "../components";
 import { plainModel } from "../plain";
 import { longDate, lineText, num, pct, tipTime } from "../format";
 import { TeamTag } from "../components";
 import { legHref, recordHref, type RecordTab } from "../router";
-import { loadRounds, makeRound, newSeed, saveRounds, scoreOf, type Guess, type GuessRound, type Score } from "../record";
-import { STATS, STAT_LABEL, type CalBin, type CalSeries, type GameSummary, type GuessCard, type GuessDeck, type GuessReveal, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
+import { useLens } from "../prefs";
+import { LOCK_NOTE, isLockedNight, loadRounds, makeRound, newSeed, saveRounds, scoreOf, type Guess, type GuessRound, type Score } from "../record";
+import { STATS, STAT_LABEL, type CalBin, type CalSeries, type PropsPublished, type GameSummary, type GuessCard, type GuessDeck, type GuessReveal, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
 import { useLoad } from "../useLoad";
 import { didText, sideText } from "../words";
 
 const S = (n: number): string => n.toString();
 
 /* ------------------------------------------------------------------ replay a night */
-function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null | undefined; open: boolean; onOpen: () => void; ready: boolean; showSource: boolean }) {
+function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null | undefined; open: boolean; onOpen: () => void; ready: boolean; showSource: boolean; locked: boolean }) {
   const prop: PropView | undefined = props.p.props[props.stat];
   if (!prop) return null;
   const q = prop.q;
   const posted = prop.line_source === "posted";
-  const lean: Guess = prop.model_p_over >= 0.5 ? "over" : "under";
   const a = props.actual;
   return (
     <li class="rp-player">
       <div class="rp-line">
         <strong>{props.p.name}</strong>
-        <span class="small muted num">
-          typical {num(q[9] ?? 0)}, middle half {num(q[4] ?? 0)} to {num(q[14] ?? 0)}
-          {props.showSource ? `, from ${plainModel(prop.model_source)}` : ""}
-        </span>
+        {props.locked ? null : (
+          <span class="small muted num">
+            typical {num(q[9] ?? 0)}, middle half {num(q[4] ?? 0)} to {num(q[14] ?? 0)}
+            {props.showSource ? `, from ${plainModel(prop.model_source)}` : ""}
+          </span>
+        )}
       </div>
       <div class="rp-call num">
         {posted ? (
           <>
-            Line {lineText(prop.line)}: we gave the over <b>{pct(prop.model_p_over)}</b>, so we leaned <b>{lean}</b>.
+            {props.locked ? (
+              <>Line {lineText(prop.line)}.</>
+            ) : (
+              <>
+                Line {lineText(prop.line)}: we gave the over <b>{pct(prop.model_p_over)}</b> <CalTag source={prop.model_p_source} />.
+              </>
+            )}
           </>
         ) : (
-          <>No usable sportsbook line; reference line {lineText(prop.line)} (the middle of our forecast).</>
+          <>{props.locked ? "No usable sportsbook line." : `No usable sportsbook line; reference line ${lineText(prop.line)} (the middle of our forecast).`}</>
         )}
       </div>
       {props.open ? (
@@ -46,11 +54,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
         ) : (
           <p class="small rp-result num">
             He {didText(props.stat, a)}.{" "}
-            {posted
-              ? `That is ${a > prop.line ? "over" : "under"} the line, so our lean was ${(a > prop.line) === (lean === "over") ? "right" : "wrong"}.`
-              : a >= (q[4] ?? 0) && a <= (q[14] ?? 0)
-                ? "Inside the middle half of our forecast."
-                : "Outside the middle half of our forecast."}
+            {posted ? `That is ${a > prop.line ? "over" : "under"} the line.` : null}
           </p>
         )
       ) : (
@@ -62,7 +66,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
   );
 }
 
-function ReplayGame({ g }: { g: GameSummary }) {
+function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
   const [want, setWant] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
   const [stat, setStat] = useState<Stat>("pts");
@@ -141,6 +145,7 @@ function ReplayGame({ g }: { g: GameSummary }) {
                     open={open.has(p.player_id)}
                     ready={r !== null}
                     showSource={new Set(players.map((x) => x.props[stat]?.model_source)).size > 1}
+                    locked={locked}
                     onOpen={() => {
                       setWant(true);
                       setOpen((o) => new Set(o).add(p.player_id));
@@ -184,6 +189,7 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
       <section class="panel">
         <h2>Pick a night</h2>
         <p class="small muted">Each forecast below is the last one stored before that game's tip. Results stay hidden until you tap.</p>
+        {isLockedNight(props.date) ? <p class="small muted">{LOCK_NOTE}</p> : null}
         <div class="tabs rp-nights" role="group" aria-label="Night">
           {props.nights.map((n) => (
             <a key={n.date} class="tab" href={recordHref("replay", n.date)} aria-current={n.date === props.date ? "true" : undefined}>
@@ -197,7 +203,7 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
         {(s) => (
           <div class="stack">
             {s.games.map((g) => (
-              <ReplayGame key={g.game_id} g={g} />
+              <ReplayGame key={g.game_id} g={g} locked={isLockedNight(props.date)} />
             ))}
           </div>
         )}
@@ -279,7 +285,7 @@ function SeriesView({ s }: { s: CalSeries }) {
       <section class="panel">
         <h2>{s.name}</h2>
         <p class="small muted">
-          What we said: {s.what_said}. What happened: {s.what_happened}.
+          What we said: {s.what_said}. What happened: {s.what_happened}. This is the win model's own chance; it has no calibrated version.
         </p>
         {o.n === 0 || o.said === null || o.happened === null ? (
           <p class="muted">No settled cases of this kind in the data.</p>
@@ -311,6 +317,74 @@ function SeriesView({ s }: { s: CalSeries }) {
   );
 }
 
+const pp = (x: number): string => {
+  const v = Math.round(x * 1000) / 10;
+  return `${v > 0 ? "+" : v < 0 ? "-" : ""}${Math.abs(v).toFixed(1)} points`;
+};
+const N = (n: number): string => n.toLocaleString("en-US");
+const ll = (x: number): string => Math.abs(x).toFixed(4);
+const BOOK_ORDER = ["pinnacle", "draftkings"];
+
+/** The calibrated map's published record on a finished season. Every number is copied from a committed
+ * report (T493); nothing here is computed from this season's games, which are a locked test until it reads. */
+function PublishedProps({ p }: { p: PropsPublished }) {
+  const lens = useLens();
+  const books = BOOK_ORDER.filter((k) => p.books[k] !== undefined);
+  return (
+    <div class="stack" data-published="props">
+      <section class="panel">
+        <h2>Player props: the calibrated number's record</h2>
+        <p class="lead">
+          {p.season_label}, before this season. This is the record the calibrated chances were chosen on; it is not a result for this season.
+        </p>
+        <p class="small" data-locked-note>
+          {p.this_season}
+        </p>
+        <p class="small muted num">
+          From our test log {p.ledger_id} (rule {p.rule_sha8}, verdict {p.verdict.toLowerCase()}). That season was partly looked at while the map was
+          built, so read it as the map's own record, not a clean test. {p.interval}.
+        </p>
+      </section>
+      {books.map((k) => {
+        const b = p.books[k];
+        if (b === undefined) return null;
+        return (
+          <section class="panel" key={k}>
+            <h2>{lens === "market" ? b.label : k === "pinnacle" ? "Primary line source (pre-registered)" : "Second line source"}</h2>
+            <p class="num lead">
+              n = {N(b.n)} lines in {N(b.games)} games. Calibrated chances ran {pp(b.mean_cal_minus_realised.mean)} from how often the over happened (95% range{" "}
+              {pp(b.mean_cal_minus_realised.lo)} to {pp(b.mean_cal_minus_realised.hi)}).
+            </p>
+            <p class="small num muted">
+              Score (log loss, lower is better): {ll(b.log_loss_cal_minus_raw.mean)} better than the unadjusted model, 95% range {ll(b.log_loss_cal_minus_raw.hi)} to{" "}
+              {ll(b.log_loss_cal_minus_raw.lo)} better.
+            </p>
+            <ul class="plain cal-list">
+              {b.bins.map((x) => (
+                <li class="cal-row" key={x.lo}>
+                  <div class="cal-head">
+                    <strong>When we said {Math.round(x.lo * 100)} to {Math.round(x.lo * 100) + 10}%</strong>
+                    <span class="small muted num">n = {N(x.n)}</span>
+                  </div>
+                  <div class="cal-track" role="img" aria-label={`We said ${pc(x.said)}, it happened ${pc(x.happened)}`}>
+                    <i class="cal-said" style={{ left: `${(x.said * 100).toFixed(1)}%` }} />
+                    <i class="cal-dot" style={{ left: `${(x.happened * 100).toFixed(1)}%` }} />
+                  </div>
+                  <p class={`small num${x.n < 100 ? " muted" : ""}`}>
+                    We said {pc(x.said)} on average; it happened {pc(x.happened)} of the time.
+                    {x.n < 100 ? " Too few cases to read much into." : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <p class="small muted">Ranges for single bins were not published, so none is drawn. The dashed tick is what we said; the dot is what happened.</p>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function Calibration() {
   const [state, reload] = useLoad(() => api.calibration(), []);
   const [which, setWhich] = useState<"props" | "winners">("props");
@@ -334,7 +408,8 @@ function Calibration() {
               ))}
             </div>
           </section>
-          <SeriesView s={c[which]} />
+          {which === "props" ? <PublishedProps p={c.props} /> : <SeriesView s={c.winners} />}
+          {which === "winners" ? (
           <Explain label="How the range is worked out">
             <p class="small">
               Players on the same team share a game, so their results are not independent. The range comes from re-drawing whole games with replacement
@@ -342,6 +417,7 @@ function Calibration() {
               cases and enough games.
             </p>
           </Explain>
+          ) : null}
         </div>
       )}
     </View>
@@ -359,10 +435,6 @@ function ScoreBoard({ score, onReset }: { score: Score; onReset: () => void }) {
           <div class="big-num num">{S(score.you)}</div>
         </div>
         <div>
-          <div class="label">The model</div>
-          <div class="big-num num">{S(score.model)}</div>
-        </div>
-        <div>
           <div class="label">Rounds</div>
           <div class="big-num num">{S(score.n)}</div>
         </div>
@@ -371,9 +443,10 @@ function ScoreBoard({ score, onReset }: { score: Score; onReset: () => void }) {
         <p class="small muted">No rounds yet. The score stays on this device.</p>
       ) : (
         <p class="small num">
-          Right: you {S(score.you)} of {S(score.n)} ({range(score.youRange)}); the model {S(score.model)} of {S(score.n)} ({range(score.modelRange)}). Both right {S(score.both)}, only you {S(score.onlyYou)}, only the model {S(score.onlyModel)}, neither {S(score.neither)}.
+          Right: you {S(score.you)} of {S(score.n)} ({range(score.youRange)}).
         </p>
       )}
+      <p class="small muted">The model's own scorecard for this season is a locked test; it appears after it reads (about Dec 1).</p>
       <button type="button" class="linklike small" onClick={onReset} disabled={score.n === 0}>
         Reset my score
       </button>
@@ -396,7 +469,7 @@ function Round(props: { card: GuessCard; index: number; total: number; onDone: (
       (r) => {
         if (!live) return;
         setRev(r.data);
-        const round = makeRound(card.prop_id, picked, r.data.model_call, r.data.went_over);
+        const round = makeRound(card.prop_id, picked, r.data.went_over);
         setDone(round);
         props.onDone(round);
       },
@@ -453,11 +526,16 @@ function Round(props: { card: GuessCard; index: number; total: number; onDone: (
             {rev.minutes !== null ? ` in ${num(rev.minutes, 0)} minutes` : ""}: <b>{rev.went_over ? "over" : "under"}</b>.{" "}
             <span class={done.you_right ? "gs-right" : "gs-wrong"}>{done.you_right ? "You were right." : "You were wrong."}</span>
           </p>
-          <p class="num">
-            The model gave the over <b>{pct(rev.model_p_over)}</b>, so it said <b>{rev.model_call}</b>.{" "}
-            <span class={done.model_right ? "gs-right" : "gs-wrong"}>{done.model_right ? "It was right." : "It was wrong."}</span>
+          {rev.model_p_over !== null && rev.model_p_source !== null ? (
+            <p class="num">
+              The model gave the over <b>{pct(rev.model_p_over)}</b> <CalTag source={rev.model_p_source} />.
+            </p>
+          ) : (
+            <p class="small muted">{LOCK_NOTE}</p>
+          )}
+          <p class="small muted num">
+            {rev.stat_mean !== null ? `Its typical night was ${num(rev.stat_mean)}. ` : ""}One round says very little about either of you.
           </p>
-          <p class="small muted num">Its typical night was {num(rev.stat_mean)}. One round says very little about either of you.</p>
         </div>
       )}
     </section>
@@ -528,9 +606,9 @@ function Guess() {
   return (
     <div class="stack">
       <section class="panel">
-        <h2>Guess against the model</h2>
+        <h2>Guess the line</h2>
         <p class="small muted">
-          Real player lines from games already played. You see the line and his recent games; the result and the model's call stay hidden until you
+          Real player lines from games already played. You see the line and his recent games; the result and the model's chance stay hidden until you
           choose. The score stays on this device.
         </p>
       </section>
@@ -565,7 +643,7 @@ function Guess() {
 }
 
 /* ------------------------------------------------------------------ the page */
-const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay a night", calibration: "Calibration", guess: "Guess vs the model" };
+const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay a night", calibration: "Calibration", guess: "Guess the line" };
 
 export function Record(props: { tab: RecordTab; date: string | null }) {
   return (

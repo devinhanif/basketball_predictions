@@ -140,7 +140,7 @@ export function Tour() {
               <b>Calibration.</b> When we said a chance, how often it happened, with how many cases and a range.
             </li>
             <li>
-              <b>Guess against the model.</b> You call over or under on a played prop, then see what it did and what the model said.
+              <b>Guess the line.</b> You call over or under on a played prop, then see what it did and the chance the model gave.
             </li>
           </ul>
         </>

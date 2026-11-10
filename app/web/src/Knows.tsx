@@ -1,9 +1,9 @@
 import { api } from "./api";
-import { Explain, View } from "./components";
+import { CalTag, Explain, View } from "./components";
 import { lineText, pct, stamp } from "./format";
 import { legHref } from "./router";
 import { percentAlong } from "./slider";
-import { STAT_LABEL, type GameKnows, type KnowsNews, type KnowsSnap, type PlayerKnows } from "./types";
+import { STAT_LABEL, type GameKnows, type KnowsNews, type KnowsSnap, type PlayerKnows, type PSource } from "./types";
 import { useLoad } from "./useLoad";
 
 /** "5 h 30 min before tip", "42 min before tip". */
@@ -77,11 +77,11 @@ function NewsBlock({ g }: { g: ReturnType<typeof groupNews>[number] }) {
   );
 }
 
-function ForecastRow(props: { s: KnowsSnap; prev: KnowsSnap | null; scale: { lo: number; hi: number }; line: number | null; stat: string }) {
+function ForecastRow(props: { s: KnowsSnap; prev: KnowsSnap | null; scale: { lo: number; hi: number }; line: number | null; stat: string; source: PSource }) {
   const { s, prev, scale } = props;
   const at = (v: number): string => `${percentAlong(v, scale.lo, scale.hi).toFixed(1)}%`;
   const moved = prev ? s.p50 - prev.p50 : null;
-  const dOver = prev ? s.p_over - prev.p_over : null;
+  const dOver = prev && s.p_over !== null && prev.p_over !== null ? s.p_over - prev.p_over : null;
   return (
     <li class={`kn-item forecast${s.shown ? " shown" : ""}`}>
       <div class="kn-when num">
@@ -99,16 +99,20 @@ function ForecastRow(props: { s: KnowsSnap; prev: KnowsSnap | null; scale: { lo:
           Typical night <b>{s.p50.toFixed(1)}</b>; middle 80% {s.p10.toFixed(1)} to {s.p90.toFixed(1)}
           {props.line !== null ? (
             <>
-              ; over {lineText(props.line)}: <b>{pct(s.p_over)}</b>
+              {s.p_over !== null ? (
+                <>
+                  ; over {lineText(props.line)}: <b>{pct(s.p_over)}</b> <CalTag source={props.source} />
+                </>
+              ) : null}
             </>
           ) : null}
           .
         </p>
-        {moved !== null && dOver !== null ? (
+        {moved !== null ? (
           <p class="small muted num">
             Since the last forecast: typical {moved >= 0 ? "+" : "-"}
             {Math.abs(moved).toFixed(1)}
-            {props.line !== null ? `, over chance ${dOver >= 0 ? "+" : "-"}${Math.abs(dOver * 100).toFixed(0)} points` : ""}.
+            {props.line !== null && dOver !== null ? `, over chance ${dOver >= 0 ? "+" : "-"}${Math.abs(dOver * 100).toFixed(0)} points` : ""}.
           </p>
         ) : null}
         {s.proj_minutes !== null ? (
@@ -134,7 +138,7 @@ function Timeline({ d }: { d: PlayerKnows }) {
   snaps.forEach((s, i) => {
     events.push({
       t: Date.parse(s.made_at),
-      node: <ForecastRow key={`f-${s.made_at}`} s={s} prev={i > 0 ? (snaps[i - 1] ?? null) : null} scale={scale} line={d.line_source === "posted" ? d.line : null} stat={d.stat} />,
+      node: <ForecastRow key={`f-${s.made_at}`} s={s} prev={i > 0 ? (snaps[i - 1] ?? null) : null} scale={scale} line={d.line_source === "posted" ? d.line : null} stat={d.stat} source={d.p_over_source} />,
     });
   });
   for (const g of groupNews(d.news)) events.push({ t: Date.parse(g.at), node: <NewsBlock key={`n-${g.at}`} g={g} /> });

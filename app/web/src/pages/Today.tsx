@@ -1,6 +1,6 @@
 import { useEffect } from "preact/hooks";
 import { api, warmGames } from "../api";
-import { ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { CalTag, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
 import { headline, learnHeadline } from "../headline";
 import { LensSwitch } from "../Lens";
@@ -50,7 +50,7 @@ function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) 
               ) : (
                 <>
                   <span class="big-num">{pctBounded(p.model_p_over, p.extrapolated)}</span>
-                  <span class="muted small">model</span>
+                  <CalTag source={p.model_p_source} />
                   {p.market_p_over !== null ? <span class="muted small">book {pct(p.market_p_over)}</span> : null}
                 </>
               )}
@@ -81,7 +81,7 @@ function KeyPropsOneLine({ game, market }: { game: GameSummary; market: boolean 
                 </>
               ) : (
                 <>
-                  over {lineText(p.line)} {STAT_SHORT[p.stat]} <b>{pctBounded(p.model_p_over, p.extrapolated)}</b>
+                  over {lineText(p.line)} {STAT_SHORT[p.stat]} <b>{pctBounded(p.model_p_over, p.extrapolated)}</b> <CalTag source={p.model_p_source} />
                   {market && p.market_p_over !== null ? <span class="muted"> (book {pct(p.market_p_over)})</span> : null}
                 </>
               )}

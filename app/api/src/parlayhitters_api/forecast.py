@@ -101,6 +101,60 @@ def forecast_probs(forecast: dict[str, Any], line: float) -> LineProbs:
     return line_probs([float(v) for v in forecast["q"]], line)
 
 
+@dataclass(frozen=True)
+class ShownProbs:
+    """The chance a screen shows for a prop line: the calibrated number where the export has one."""
+
+    p_over: float
+    p_under: float
+    p_push: float
+    extrapolated: bool
+    source: str  # "line_cal" | "rung_cal" | "model" (model = no calibrated number exists)
+
+
+def shown_probs(prop: dict[str, Any], line: float) -> ShownProbs:
+    """P(over) to display at a line for a stored prop. Same rules as the web slider (slider.ts):
+    line_cal at its own main line; else a rung_cal entry only where that exact line is listed;
+    where the export gives a known reason for no line_cal (at the main line, or when there is no
+    rung map) the model's own number; otherwise the model's own number, labelled model only.
+    Calibrated lines are half-points, so there is no push; the under side is 1 - over."""
+    fc = prop["forecast"]
+    raw = forecast_probs(fc, line)
+    lc = clean_line_cal(prop.get("line_cal"))
+    rc = clean_rung_cal(prop.get("rung_cal"))
+    reason = clean_null_reason(prop.get("line_cal_null_reason"))
+    bm = prop.get("book_main_line")
+    main = lc["main_line"] if lc is not None else (None if bm is None else float(bm))
+    at_main = main is not None and abs(line - main) < 1e-9
+    if lc is not None and at_main:
+        p = float(lc["p_over_cal"])
+        return ShownProbs(p, 1.0 - p, 0.0, False, "line_cal")
+    if reason is not None and (at_main or rc is None):
+        return ShownProbs(raw.p_over, raw.p_under, raw.p_push, raw.extrapolated, "model")
+    if rc is not None:
+        for r in rc["lines"]:
+            if abs(r["line"] - line) < 1e-9:
+                p = float(r["p_over"])
+                return ShownProbs(p, 1.0 - p, 0.0, False, "rung_cal")
+    return ShownProbs(raw.p_over, raw.p_under, raw.p_push, raw.extrapolated, "model")
+
+
+def has_calibrated(prop: dict[str, Any]) -> bool:
+    """Whether the export gives this prop a calibrated number anywhere (line_cal or rung_cal)."""
+    if clean_line_cal(prop.get("line_cal")) is not None:
+        return True
+    rc = clean_rung_cal(prop.get("rung_cal"))
+    return rc is not None and len(rc["lines"]) > 0
+
+
+def no_cal_here(prop: dict[str, Any], shown: ShownProbs) -> bool:
+    """True where a screen says "no calibrated number at this line" instead of printing a chance:
+    the prop has a calibrated number somewhere, but not at this line. A model-only percentage beside
+    a calibrated one is on a different scale (the two cannot be ordered against each other), so it
+    is not shown. Props with no calibrated number anywhere keep their model-only chances."""
+    return shown.source == "model" and has_calibrated(prop)
+
+
 def forecast_method(forecast: dict[str, Any]) -> str:
     surv = forecast.get("surv")
     if surv and surv_complete(surv["c"], int(surv["n"])):

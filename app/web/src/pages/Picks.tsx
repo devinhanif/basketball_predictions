@@ -98,19 +98,13 @@ export function Picks() {
 
       {sum.decided > 0 ? (
         <section class="panel" aria-labelledby="sum-h">
-          <h2 id="sum-h">{market ? "You vs the odds" : "You vs the model"}</h2>
+          <h2 id="sum-h">{market ? "You vs the odds" : "Your picks"}</h2>
           <p>
             Your picks won <b class="num">{pct(sum.wins / sum.decided)}</b> ({sum.wins} of {sum.decided}).{" "}
             {market && sum.mean_market !== null ? (
               <>
                 The sportsbook's prices said the sides you took would win about <b class="num">{pct(sum.mean_market)}</b> of the
                 time
-              </>
-            ) : null}
-            {sum.mean_model !== null ? (
-              <>
-                {market && sum.mean_market !== null ? ", and our model said " : "Our model said "}
-                <b class="num">{pct(sum.mean_model)}</b>
               </>
             ) : null}
             .
@@ -131,8 +125,8 @@ export function Picks() {
               </p>
             ) : (
               <p>
-                "Won" means you picked the right side of the line. A side our model gave 52% should win about 52 times in 100. If your
-                win rate sits near the model's numbers, you did about as well as the model expected.
+                "Won" means you picked the right side of the line. We do not set our model's chances against these results: the
+                calibrated model is under a locked test this season, and its results appear after it reads (about Dec 1).
               </p>
             )}
             <p>With a small number of picks, a hot or cold streak says very little. Differences here are mostly luck.</p>

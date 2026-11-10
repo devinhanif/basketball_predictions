@@ -48,11 +48,17 @@ def test_rung_lines_only_where_raw_over_is_at_least_half(client: TestClient) -> 
 
 
 def test_grid_matches_the_alt_line_endpoint(client: TestClient) -> None:
-    c = _card(client, *PLANTED)
     gid, pid, stat = PLANTED
     for k in (10, 20, 23, 30):  # P(over k.5) = P(Y >= k+1)
         r = client.get(f"/api/props/{gid}/{pid}/{stat}", params={"line": k + 0.5}).json()
-        assert r["p_over"] == pytest.approx(c["dist"]["p_ge"][k + 1])
+        if (
+            r["p_source"] == "model"
+        ):  # no calibrated number here: no chance is given (the prop has one elsewhere)
+            assert r["no_cal_here"] is True and r["p_over"] is None
+        else:  # the calibrated number is what is served, never the raw grid
+            assert r["p_source"] in ("line_cal", "rung_cal") and r["p_under"] == pytest.approx(
+                1 - r["p_over"]
+            )
 
 
 def test_prop_without_fields_has_none_and_a_quantile_grid(client: TestClient) -> None:
@@ -153,7 +159,7 @@ def test_line_cal_fixture_rows_surface_on_the_card(client: TestClient) -> None:
     lc = pts["line_cal"]
     assert lc["map"] == "LINE_CALIBRATION" and lc["map_sha8"] == "443743a1"
     assert lc["main_line"] == pts["book_main_line"] == pts["line"]
-    assert lc["p_over_raw"] == pytest.approx(pts["dist"]["p_ge"][int(pts["line"]) + 1])
+    assert "p_over_raw" not in lc
     assert pts["line_cal_null_reason"] is None
     assert "synthetic" not in lc
     ast = _card(client, gid, pid, "ast")

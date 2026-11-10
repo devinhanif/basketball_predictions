@@ -15,7 +15,6 @@ export interface TpLeg {
   book: string;
   price_american: number;
   price_at: string;
-  p_raw: number;
   p_cal: number;
   model_source: string;
   reason: string;
@@ -27,7 +26,6 @@ export interface TpTicket {
   rank: number;
   same_game: boolean;
   legs: TpLeg[];
-  p_joint_raw: number;
   p_joint_cal: number;
   p_joint_cal_80: [number, number];
   book_implied: number;

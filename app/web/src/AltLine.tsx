@@ -4,6 +4,7 @@ import { american, lineText, pctBounded } from "./format";
 import type { ProbAtLine, PropView, Stat } from "./types";
 import { STAT_LABEL } from "./types";
 import { doesText, inTen } from "./words";
+import { CalTag } from "./components";
 
 /** How far either side of the posted line the stepper goes. */
 const REACH: Record<Stat, number> = { pts: 8, reb: 5, ast: 5, fg3m: 3 };
@@ -60,10 +61,11 @@ export function AltLine(props: { gameId: string; playerId: number; player: strin
   const onMain = line === main;
   const ready = onMain || (res !== null && res.line === line);
   const p = onMain
-    ? { over: prop.model_p_over, under: prop.model_p_under, push: prop.model_p_push, extra: prop.extrapolated }
+    ? { over: prop.model_p_over, under: prop.model_p_under, push: prop.model_p_push, extra: prop.extrapolated, src: prop.model_p_source }
     : res !== null && res.line === line
-      ? { over: res.p_over, under: res.p_under, push: res.p_push, extra: res.extrapolated }
+      ? { over: res.p_over, under: res.p_under, push: res.p_push, extra: res.extrapolated, src: res.p_source }
       : null;
+  const pn = p !== null && p.over !== null && p.under !== null ? { over: p.over, under: p.under, push: p.push ?? 0, extra: p.extra, src: p.src } : null;
   const step = (d: number): void => {
     setLine((l) => Math.min(max, Math.max(min, l + d)));
   };
@@ -108,12 +110,25 @@ export function AltLine(props: { gameId: string; playerId: number; player: strin
           <span>{lineText(max)}</span>
         </div>
         {failed ? <p role="alert">Could not work that line out. Try again.</p> : null}
-        {p ? (
+        {p !== null && pn === null ? (
           <div class="alt-result" aria-live="polite">
-            <Side player={player} stat={prop.stat} line={line} side="over" p={p.over} extra={p.extra} />
-            <Side player={player} stat={prop.stat} line={line} side="under" p={p.under} extra={p.extra} />
-            {Number.isInteger(line) && p.push > 0.005 ? (
-              <p class="small muted num">Exactly {lineText(line)} is a push: {Math.round(p.push * 100)}%.</p>
+            <p class="lead">
+              <b>No calibrated number at this line.</b>
+            </p>
+            <p class="small muted">
+              This prop has a calibrated chance at its listed lines. A model-only chance at another line is on a different
+              scale, so none is shown here.
+            </p>
+          </div>
+        ) : pn ? (
+          <div class="alt-result" aria-live="polite">
+            <Side player={player} stat={prop.stat} line={line} side="over" p={pn.over} extra={pn.extra} />
+            <Side player={player} stat={prop.stat} line={line} side="under" p={pn.under} extra={pn.extra} />
+            <p class="small">
+              <CalTag source={pn.src} />
+            </p>
+            {Number.isInteger(line) && pn.push > 0.005 ? (
+              <p class="small muted num">Exactly {lineText(line)} is a push: {Math.round(pn.push * 100)}%.</p>
             ) : null}
             {props.showPrices === false ? null : (
               <p class="small num">
