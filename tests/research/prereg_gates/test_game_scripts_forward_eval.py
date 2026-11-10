@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """GAME_SCRIPTS_FORWARD harness: guards (holdout, clock, one look, frozen rule), the served-number
 equivalences, and the words on synthetic data. No real database is opened."""
 
@@ -115,19 +116,52 @@ def test_look_state_counts_only_after_freeze_and_needs_settled(tmp_path: Path) -
         .otherwise(pl.col("final"))
         .alias("final")
     )
-    tip = rows2.filter(pl.col("game_id") == rows["game_id"][100])["tipoff"][0]
+    # one game less moves D to 12-11; give the unsettled game a tip that late so the 36 h rule binds
+    tip = datetime(2026, 12, 11, 0, 0)
+    rows2 = rows2.with_columns(
+        pl.when(pl.col("game_id") == rows["game_id"][100])
+        .then(pl.lit(tip))
+        .otherwise(pl.col("tip_sched"))
+        .alias("tip_sched")
+    )
     early = (tip + timedelta(hours=35)).replace(tzinfo=UTC)
     late = (tip + timedelta(hours=37)).replace(tzinfo=UTC)
     assert not h.look_state(rows2, freeze, date(2026, 12, 15), early).open
     assert h.look_state(rows2, freeze, date(2026, 12, 15), late).open
 
 
+def _with_later_listing(rows: pl.DataFrame, d: date) -> pl.DataFrame:
+    """A scheduled, unplayed game dated ``d`` (the database lists games up to D)."""
+    extra = rows.head(1).with_columns(
+        pl.lit("0022999999").alias("game_id"),
+        pl.lit(d).alias("et_date"),
+        pl.lit(False).alias("final"),
+        pl.lit(datetime(d.year, d.month, d.day, 23)).alias("tip_sched"),
+    )
+    return pl.concat([rows, extra])
+
+
 def test_backstop_opens_the_look_with_fewer_games(tmp_path: Path) -> None:
     rows = _rows(_db(tmp_path, n_days=10, per_day=10))
+    after = h.BACKSTOP + timedelta(days=1)
+    now = datetime(2027, 4, 1, tzinfo=UTC)
+    # a clock moved past the backstop cannot open a look on the games that exist today
+    st = h.look_state(rows, date(2026, 10, 30), after, now)
+    assert st.look_date == h.BACKSTOP and not st.open and "lists games only" in st.reason
+    soon = datetime(2027, 3, 29, 20, tzinfo=UTC)  # the listed backstop game is not settled yet
+    st = h.look_state(_with_later_listing(rows, h.BACKSTOP), date(2026, 10, 30), after, soon)
+    assert st.n_at_look == 100 and not st.open
+    late = datetime(2027, 4, 10, tzinfo=UTC)
+    st = h.look_state(_with_later_listing(rows, h.BACKSTOP), date(2026, 10, 30), after, late)
+    assert st.open
+
+
+def test_look_needs_the_real_utc_date_past_d(tmp_path: Path) -> None:
+    rows = _rows(_db(tmp_path, n_days=40, per_day=20))
     st = h.look_state(
-        rows, date(2026, 10, 30), h.BACKSTOP + timedelta(days=1), datetime(2027, 4, 1, tzinfo=UTC)
+        rows, date(2026, 11, 2), date(2026, 12, 15), datetime(2026, 12, 10, tzinfo=UTC)
     )
-    assert st.look_date == h.BACKSTOP and st.n_at_look == 100 and st.open
+    assert not st.open
 
 
 def test_scores_and_features_refuse_a_closed_look(tmp_path: Path) -> None:
@@ -150,29 +184,269 @@ def test_scores_and_features_refuse_a_closed_look(tmp_path: Path) -> None:
 
 
 def test_run_refuses_until_the_rule_is_frozen(tmp_path: Path) -> None:
-    assert h.RULE_SHA256 is None and h.FREEZE_COMMIT is None
+    assert h.RULE_SHA256 is None
+    assert not hasattr(h, "FREEZE_COMMIT")
     assert h.main(["run", "--data-root", str(tmp_path)]) == 2
     assert h.main(["run-s", "--data-root", str(tmp_path)]) == 2
 
 
-def test_cli_has_no_date_override() -> None:
+def test_cli_and_commands_take_no_date_or_clock() -> None:
+    import inspect
+
     with pytest.raises(SystemExit):
         h.main(["run", "--data-root", "x", "--today", "2027-03-30"])
+    assert list(inspect.signature(h.cmd_run).parameters) == ["root", "repo"]
+    assert list(inspect.signature(h.cmd_run_s).parameters) == ["root", "repo"]
 
 
-def test_verify_rule_accepts_only_the_frozen_text(
+# ---------------------------------------------------------------- a frozen rule in a temporary repo
+
+REAL_REPO = Path(__file__).resolve().parents[3]
+RULE_TEXT = "# x\n\nStatus: **FROZEN** (test)\nrule body\n"
+
+
+def _git(repo: Path, *args: str, date_iso: str | None = None) -> str:
+    import os
+    import subprocess
+
+    env = dict(os.environ)
+    if date_iso:
+        env.update(GIT_COMMITTER_DATE=date_iso, GIT_AUTHOR_DATE=date_iso)
+    return subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", *args],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    ).stdout
+
+
+def _frozen_repo(tmp_path: Path) -> tuple[Path, str]:
+    import shutil
+
+    repo = tmp_path / "repo"
+    (repo / "docs/prereg").mkdir(parents=True)
+    (repo / "nba/parlay").mkdir(parents=True)
+    (repo / h.RULE_DOC).write_text(RULE_TEXT + h.MARKER + "\n\n(empty)\n")
+    for rel in (h.COMBO_PARAMS_REL, h.LINE_CAL_MAP_REL):
+        shutil.copy(REAL_REPO / rel, repo / rel)
+    sha = h.rule_text_sha(repo / h.RULE_DOC)
+    _git(repo, "init", "-q")
+    _git(repo, "add", ".")
+    _git(
+        repo,
+        "commit",
+        "-q",
+        "-m",
+        f"prereg(GAME_SCRIPTS_FORWARD): {sha}",
+        date_iso="2026-11-02T12:00:00-05:00",
+    )
+    return repo, sha
+
+
+def _data_root(tmp_path: Path) -> Path:
+    root = tmp_path / "data_root"
+    root.mkdir()
+    db = _db(root, n_days=45, per_day=20)
+    assert db == root / "nba.duckdb"
+    (root / "data/facts").mkdir(parents=True)
+    (root / "data/parlay").mkdir(parents=True)
+    con = duckdb.connect(str(db), read_only=True)
+    tips = con.execute("SELECT DISTINCT game_id, tipoff FROM forward_predictions").fetchall()
+    con.close()
+    f = duckdb.connect(str(root / "data/facts/facts.duckdb"))
+    f.execute(
+        "CREATE TABLE facts (subject VARCHAR, predicate VARCHAR, value_text VARCHAR, known_at TIMESTAMP)"
+    )
+    for gid, tip in tips:
+        f.execute(
+            "INSERT INTO facts VALUES (?, 'tips_at', ?, ?)",
+            [f"game:{gid}", tip.isoformat(), tip - timedelta(days=2)],
+        )
+    f.close()
+    params = {
+        "fit_seasons": [2022, 2023, 2024], "halflife": 20.0, "league_total": 227.6, "margin_b": 0.58,
+        "margin_s": 6.97, "margin_sd": 13.63, "n_margin": 1, "n_total": 1, "prior_k": 8.0,
+        "total_a": -176.4, "total_c": 1.774, "total_sd": 18.82,
+    }  # fmt: skip
+    (root / h.JOINT_MODEL_REL).write_text(json.dumps({"params": params}))
+    return root
+
+
+def _freeze(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> tuple[Path, Path]:
+    repo, sha = _frozen_repo(tmp_path)
+    root = _data_root(tmp_path)
+    monkeypatch.setattr(h, "RULE_SHA256", sha)
+    monkeypatch.setattr(h, "JOINT_MODEL_SHA8", h.sha8(root / h.JOINT_MODEL_REL))
+    monkeypatch.setattr(
+        h, "_today_et", lambda: (date(2026, 12, 20), datetime(2026, 12, 20, 15, tzinfo=UTC))
+    )
+    return repo, root
+
+
+def test_verify_frozen_finds_the_commit_and_checks_text(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    doc = tmp_path / h.RULE_DOC
-    doc.parent.mkdir(parents=True)
-    doc.write_text("# x\n\nStatus: **FROZEN**\nrule\n=== RESULTS BELOW ===\n\nlater\n")
-    sha = h.rule_text_sha(doc)
+    repo, sha = _frozen_repo(tmp_path)
     monkeypatch.setattr(h, "RULE_SHA256", sha)
-    monkeypatch.setattr(h, "FREEZE_COMMIT", "abc")
-    h.verify_rule(tmp_path)
-    doc.write_text("# x\n\nStatus: **FROZEN**\nrule changed\n=== RESULTS BELOW ===\n")
+    c = h.verify_frozen(repo)
+    assert h.freeze_et_date(repo, c) == date(2026, 11, 2)
+    (repo / h.RULE_DOC).write_text(RULE_TEXT + "changed\n" + h.MARKER + "\n")
     with pytest.raises(h.Refused):
-        h.verify_rule(tmp_path)
+        h.verify_frozen(repo)
+    monkeypatch.setattr(h, "RULE_SHA256", "0" * 64)
+    with pytest.raises(h.Refused):
+        h.verify_frozen(repo)
+
+
+def test_code_change_after_the_freeze_refuses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, sha = _frozen_repo(tmp_path)
+    monkeypatch.setattr(h, "RULE_SHA256", sha)
+    c = h.verify_frozen(repo)
+    h.verify_code_unchanged(repo, c)
+    (repo / "nba/parlay/new.py").write_text("x = 1\n")
+    _git(repo, "add", ".")
+    with pytest.raises(h.Refused):
+        h.verify_code_unchanged(repo, c)
+
+
+def test_cmd_run_end_to_end_then_refuses_a_second_look(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, root = _freeze(monkeypatch, tmp_path)
+    res = h.cmd_run(root, repo)
+    assert res["look_date"] == "2026-12-10" and res["integrity"]["fail"] is False
+    assert set(res["P"]) == set(h.SCRIPTS) and res["S"] == "DEFERRED_LINE_CAL_LIVE"
+    assert all("word" not in v for v in res["PRE_FREEZE"].get("P", {}).values())
+    assert (repo / h.OUT_REL).exists()
+    with pytest.raises(h.Refused):
+        h.cmd_run(root, repo)
+
+
+def test_a_committed_results_file_blocks_the_look_elsewhere(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, root = _freeze(monkeypatch, tmp_path)
+    out = repo / h.OUT_REL
+    out.parent.mkdir(parents=True)
+    out.write_text("{}\n")
+    _git(repo, "add", h.OUT_REL)
+    _git(repo, "commit", "-q", "-m", "results")
+    _git(repo, "rm", "-q", h.OUT_REL)
+    _git(repo, "commit", "-q", "-m", "removed")
+    with pytest.raises(h.Refused):
+        h.cmd_run(root, repo)
+
+
+def test_run_s_builds_legs_before_reading_any_outcome(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, root = _freeze(monkeypatch, tmp_path)
+    h.cmd_run(root, repo)
+    lcl = repo / h.LINE_CAL_LIVE_RESULTS
+    lcl.parent.mkdir(parents=True)
+    lcl.write_text("{}\n")
+    called: list[str] = []
+
+    def legs_crash(*_a: Any, **_k: Any) -> None:
+        raise RuntimeError("export path crashed")
+
+    def spy(*_a: Any, **_k: Any) -> None:
+        called.append("load_scores")
+        raise AssertionError("outcome read before the legs")
+
+    monkeypatch.setattr(h, "s_legs", legs_crash)
+    monkeypatch.setattr(h, "load_scores", spy)
+    with pytest.raises(RuntimeError):
+        h.cmd_run_s(root, repo)
+    assert called == []
+
+
+def test_planted_future_and_other_seasons_leave_mu_t_unchanged(tmp_path: Path) -> None:
+    path = _db(tmp_path, n_days=20, per_day=10)
+    rows = _rows(path)
+    open_state = h.LookState(
+        date(2027, 1, 1), date(2026, 10, 30), date(2026, 11, 20), 200, True, "test"
+    )
+    params = SimpleParams()
+    con = duckdb.connect(str(path), read_only=True)
+    before = h.as_of_mu_t(con, rows, params, open_state)
+    con.close()
+    w = duckdb.connect(str(path))
+    w.execute("INSERT INTO games VALUES ('0022999990', DATE '2027-06-01', 2026, 1, 2, 400, 400)")
+    w.execute("INSERT INTO games VALUES ('0022599990', DATE '2026-04-01', 2025, 1, 2, 400, 400)")
+    w.execute("INSERT INTO games VALUES ('0012699990', DATE '2026-10-25', 2026, 1, 2, 400, 400)")
+    w.close()
+    con = duckdb.connect(str(path), read_only=True)
+    after = h.as_of_mu_t(con, rows, params, open_state)
+    con.close()
+    assert before == after
+
+
+class SimpleParams:
+    """The game model's surface the harness uses (frozen numbers of joint_model.json)."""
+
+    halflife, prior_k, league_total = 20.0, 8.0, 227.6
+    margin_sd, total_sd = 13.63, 18.82
+
+    def total_mu(self, feat: float | None) -> float:
+        return -176.4 + 1.774 * (self.league_total if feat is None else feat)
+
+    def margin_mu(self, p_home: float) -> float:
+        return 0.58 + 6.97 * h.logit(p_home)
+
+
+def test_integrity_fail_on_a_stamp_at_tip(tmp_path: Path) -> None:
+    rows = _rows(_db(tmp_path, n_days=3, per_day=4))
+    gid = rows["game_id"][0]
+    rows = rows.with_columns(
+        pl.when(pl.col("game_id") == gid)
+        .then(pl.col("tipoff"))
+        .otherwise(pl.col("made_at"))
+        .alias("made_at")
+    )
+    scores = pl.DataFrame(
+        {"game_id": rows["game_id"], "margin": [3] * rows.height, "total": [220] * rows.height}
+    )
+    mu_t = dict.fromkeys(rows["game_id"].to_list(), 225.0)
+    _, integ = h.scored_frame(rows, scores, mu_t, SimpleParams())
+    assert integ["fail"] and integ["bad_tip_or_stamp_ids"] == [gid]
+
+
+def test_game_parameters_are_rounded_as_the_app_payload() -> None:
+    from nba.parlay import combo_build as cb
+
+    shared = {
+        "scripts": {
+            "definitions": {"blowout_abs_margin": 15, "close_abs_margin": 5, "total_delta": 12.0}
+        }
+    }
+    params = SimpleParams()
+    for p_home, mu_t in ((0.731, 227.4449), (0.3, 219.995), (0.5, 231.12501)):
+        payload = cb.build_game_payload(
+            game_id="g", date="2026-12-01", home_team=1, away_team=2, tip_utc="t", made_at="m",
+            mu_m=params.margin_mu(p_home), sd_m=params.margin_sd, mu_t=mu_t, sd_t=params.total_sd, players=[],
+        )  # fmt: skip
+        mm, mt, sdm, sdt = h.game_params(p_home, mu_t, params)
+        assert (mm, mt, sdm, sdt) == tuple(
+            payload["game"][k] for k in ("mu_m", "mu_t", "sd_m", "sd_t")
+        )
+        ours = h.priors(mm, mt, sdm, sdt)
+        for s in h.SCRIPTS:
+            assert ours[s] == combo.script_prior(s, payload, shared)
+
+
+def test_shown_mask_matches_the_app_drop_rule() -> None:
+    legs = pl.DataFrame(
+        {
+            "u": [0.5, 0.8, 0.5, 0.7],
+            "raw": [0.5, 0.5, 0.85, 0.6],
+            **{f"c_{s}": [0.5, 0.5, 0.5, 0.76] for s in h.SCRIPTS},
+        }
+    )
+    assert h.shown_mask(legs, "grind").to_list() == [True, False, False, False]
 
 
 def test_rule_sha_matches_the_awk_recipe() -> None:

@@ -5,20 +5,24 @@ Commands
   status  label-free: window counts, stamp coverage, the projected look date, optionally the family-S
           leg count (``--s-legs``). Reads no score value: finals are a boolean computed in SQL.
   dryrun  the whole scoring pipeline on SYNTHETIC games and legs only (no database is opened).
-  run     the one look. Real ET clock only (no date argument exists). Refuses unless the rule text
-          is frozen and matches ``RULE_SHA256``, the freeze commit is set, the look date D has passed
-          and every game through D is settled, and no results file exists yet. Family S is computed
-          only when LINE_CAL_LIVE's results file exists; otherwise it is written as DEFERRED and
-          ``run-s`` computes it later at the same D.
-  run-s   family S at the recorded D, once LINE_CAL_LIVE's results exist. Refuses a second time.
+  run     the one look. Real clock only: no command takes a date and no function takes a clock.
+          Refuses unless the rule is frozen (``verify_frozen``: the freeze commit is found by its
+          message, is an ancestor of HEAD, and its rule text hashes to ``RULE_SHA256``), the scored
+          code and pinned inputs are unchanged since the freeze commit, the look is open, and no
+          results file exists here or anywhere in git history. Family S is computed only when
+          LINE_CAL_LIVE's results file exists; otherwise it is written as DEFERRED and ``run-s``
+          computes it later at the same D.
+  run-s   family S at the recorded D, once LINE_CAL_LIVE's results exist. Builds the legs (label-free)
+          before it reads any outcome. Refuses a second time.
 
 Guards
-  * Only ``season = 2026``, game id prefix ``002``, is ever scored; any other season in a scored frame
-    raises (``refuse_seasons``). Season 2025 rows enter only as the as-of total-feature input, as the
-    live engine builds it (rule 4.4, Devin's O3a).
+  * Only ``season = 2026``, game id prefix ``002``, is ever scored or read as an input to the scored
+    number; any other season in a scored frame raises (``refuse_seasons``). The as-of total feature
+    reads season-2026 games only, as the app's game-scripts export does (rule 4.4, Devin's O3a as
+    re-picked after the adversary's B1). Season 2025 is never read.
   * Every function that reads a score of a window game (outcomes, the as-of total feature, player stats)
     takes a ``LookState`` and raises unless it is open. A ``LookState`` comes only from ``look_state``;
-    the CLI feeds it the real clock.
+    the commands feed it the real clock (``_today_et``).
 """
 
 from __future__ import annotations
@@ -29,7 +33,7 @@ import json
 import math
 import subprocess
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -47,8 +51,11 @@ F64 = NDArray[np.float64]
 RULE_ID = "GAME_SCRIPTS_FORWARD"
 RULE_DOC = "docs/prereg/GAME_SCRIPTS_FORWARD.md"
 MARKER = "=== RESULTS BELOW ==="
-RULE_SHA256: str | None = None  # set in the freeze commit
-FREEZE_COMMIT: str | None = None  # set right after the freeze commit (its sha)
+RULE_SHA256: str | None = None  # set in the freeze commit itself (rule text sha256)
+FREEZE_MSG = (
+    "prereg(GAME_SCRIPTS_FORWARD): "  # the freeze commit's subject starts with this + RULE_SHA256
+)
+CODE_PATHS = ("nba/parlay", "nba/export", "research/eval/game_scripts_forward_eval.py")
 OUT_REL = "reports/prereg_game_scripts_forward/results.json"
 OUT_S_REL = "reports/prereg_game_scripts_forward/results_s.json"
 LINE_CAL_LIVE_RESULTS = "reports/prereg_line_cal_live/results.json"
@@ -56,6 +63,8 @@ JOINT_MODEL_REL = "data/parlay/joint_model.json"
 COMBO_PARAMS_REL = "nba/parlay/combo_params_v1.json"
 JOINT_MODEL_SHA8 = "a2b4c4a9"
 COMBO_PARAMS_SHA8 = "1a85bb31"
+LINE_CAL_MAP_REL = "nba/parlay/line_cal_map_v1.json"
+LINE_CAL_MAP_SHA8 = "c46aef41"
 
 SEASON = 2026
 PREFIX = "002"
@@ -76,7 +85,9 @@ S_MIN_GAMES = 150
 S_MIN_LEGS = 2000
 UNFORECAST_MAX = 0.05
 WIN_MODEL = "rung0_injury_elo"
-WIN_VERSION = "v2"  # production version in force at the draft; words use this segment only
+WIN_VERSION = (
+    "v2"  # production version in force at the freeze (asserted then); words use this segment only
+)
 REL_BINS = {"blowout": (0.0, 0.30, 0.35, 0.40, 0.50, 1.0), "close": (0.0, 0.20, 0.25, 0.30, 1.0)}
 MU_M_BINS = (0.0, 5.0, 10.0, math.inf)
 BLOWOUT_ABS, CLOSE_ABS, TOTAL_DELTA = 15, 5, 12.0
@@ -101,16 +112,56 @@ def rule_text_sha(path: Path) -> str:
     return hashlib.sha256(head.encode()).hexdigest()
 
 
-def verify_rule(root: Path) -> None:
-    if RULE_SHA256 is None or FREEZE_COMMIT is None:
-        raise Refused("rule not frozen: RULE_SHA256 / FREEZE_COMMIT unset")
-    doc = root / RULE_DOC
+def _git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args], check=check, capture_output=True, text=True
+    )
+
+
+def verify_frozen(repo: Path) -> str:
+    """The freeze commit's sha, or Refused. The commit is found by its message (never a constant set
+    after the fact), must be unique and an ancestor of HEAD, and its rule text must hash to
+    ``RULE_SHA256``; the working rule text must too, with a FROZEN status line."""
+    if RULE_SHA256 is None:
+        raise Refused("rule not frozen: RULE_SHA256 unset")
+    msg = FREEZE_MSG + RULE_SHA256
+    found = _git(
+        repo, "log", "--all", "-F", f"--grep={msg}", "--format=%H%x09%s"
+    ).stdout.splitlines()
+    hits = [ln.split("\t", 1)[0] for ln in found if ln.split("\t", 1)[-1].startswith(msg)]
+    if len(hits) != 1:
+        raise Refused(f"expected exactly one freeze commit '{msg[:40]}...', found {len(hits)}")
+    c = hits[0]
+    if _git(repo, "merge-base", "--is-ancestor", c, "HEAD", check=False).returncode != 0:
+        raise Refused(f"freeze commit {c[:8]} is not an ancestor of HEAD")
+    at = _git(repo, "show", f"{c}:{RULE_DOC}").stdout
+    head = at.split("\n" + MARKER + "\n", 1)[0] + "\n"
+    if hashlib.sha256(head.encode()).hexdigest() != RULE_SHA256:
+        raise Refused(f"rule text at {c[:8]} does not hash to RULE_SHA256")
+    doc = repo / RULE_DOC
     got = rule_text_sha(doc)
     if got != RULE_SHA256:
         raise Refused(f"rule text sha {got[:8]} != frozen {RULE_SHA256[:8]}")
     status = next((ln for ln in doc.read_text().splitlines() if ln.startswith("Status:")), "")
     if "FROZEN" not in status:
         raise Refused("status line does not say FROZEN")
+    return c
+
+
+def verify_code_unchanged(repo: Path, commit: str) -> None:
+    """The look executes the frozen code: no difference between the freeze commit and the working tree
+    on the scored code paths (committed or not)."""
+    if _git(repo, "diff", "--quiet", commit, "--", *CODE_PATHS, check=False).returncode != 0:
+        raise Refused(
+            f"scored code changed since the freeze commit {commit[:8]}: {', '.join(CODE_PATHS)}"
+        )
+
+
+def verify_no_earlier_look(repo: Path, rel: str) -> None:
+    if (repo / rel).exists():
+        raise Refused(f"{rel} exists: one look only")
+    if _git(repo, "log", "--all", "--format=%H", "--", rel).stdout.strip():
+        raise Refused(f"{rel} exists in git history: one look only")
 
 
 def sha8(path: Path) -> str:
@@ -317,14 +368,35 @@ def cond_p(u: float, mu: float, sigma: float) -> float:
     return 1.0 - _phi((a - mu) / sigma)
 
 
-def family_s(legs: pl.DataFrame, realised_by_game: dict[str, dict[str, bool]]) -> dict[str, Any]:
-    """legs: game_id, player_id, stat, y (0/1), u, c_<script>, a_<script> (shifted latent bound).
-    Words per script on the legs of games that realised it."""
+def shown_mask(legs: pl.DataFrame, script: str) -> pl.Series:
+    """Legs the app shows conditionally under ``script`` (``game_scripts.best_picks``): not above the
+    tested range (calibrated P > 0.75, or raw P at the main line >= 0.80) and P(leg | script) <= 0.75."""
+    from nba.parlay.combo import TESTED_P_MAX, TESTED_RAW_MAX
+
+    return (
+        (legs["u"] <= TESTED_P_MAX)
+        & (legs["raw"] < TESTED_RAW_MAX)
+        & (legs[f"c_{script}"] <= TESTED_P_MAX)
+    )
+
+
+def family_s(
+    legs: pl.DataFrame, realised_by_game: dict[str, dict[str, bool]], mode: str = "shown"
+) -> dict[str, Any]:
+    """legs: game_id, player_id, stat, y (0/1), u, raw, c_<script>, a_<script>. Per script, on the legs
+    of games that realised it. ``mode``: "shown" (the words: legs the app shows, ``shown_mask``),
+    "dropped" (the legs the app drops; descriptive, words stripped) or "all" (descriptive)."""
     out: dict[str, Any] = {}
     pv: list[float] = []
     for i, s in enumerate(SCRIPTS):
-        keep = [realised_by_game.get(g, {}).get(s, False) for g in legs["game_id"].to_list()]
-        d = legs.filter(pl.Series(keep, dtype=pl.Boolean))
+        keep = pl.Series(
+            [realised_by_game.get(g, {}).get(s, False) for g in legs["game_id"].to_list()],
+            dtype=pl.Boolean,
+        )
+        if mode != "all" and legs.height:
+            m = shown_mask(legs, s)
+            keep = keep & (m if mode == "shown" else ~m)
+        d = legs.filter(keep)
         n_games = d["game_id"].n_unique() if d.height else 0
         r: dict[str, Any] = {"legs": d.height, "games": n_games}
         if d.height == 0:
@@ -367,7 +439,21 @@ def family_s(legs: pl.DataFrame, realised_by_game: dict[str, dict[str, bool]]) -
             if (s_i and s_ii)
             else ("IMPROVES_BUT_OFF" if s_i else "NOT_SHOWN")
         )
+    if mode != "shown":
+        return strip_words(out)
     return out
+
+
+def strip_words(block: dict[str, Any]) -> dict[str, Any]:
+    """Descriptive copies carry no word (rule 4.1 and 4.3)."""
+    return {
+        k: (
+            {kk: vv for kk, vv in v.items() if kk not in ("word", "s_i", "s_ii")}
+            if isinstance(v, dict)
+            else v
+        )
+        for k, v in block.items()
+    }
 
 
 # ---------------------------------------------------------------- descriptives (pure)
@@ -505,7 +591,9 @@ def window_rows(
 
 
 def look_state(rows: pl.DataFrame, freeze: date, today: date, now_utc: datetime) -> LookState:
-    """Pure, label-free. ``rows`` from ``window_rows`` (window dates only)."""
+    """Pure, label-free. ``rows`` from ``window_rows``. Opens only when the real date is past D, the
+    database itself lists games dated D or later (so a clock moved forward cannot open a look on the
+    games that exist today), and every game through D is settled."""
     w = rows.filter(pl.col("et_date") > freeze)
     elig = w.filter(pl.col("final") & pl.col("stamped") & (pl.col("et_date") < today))
     per = elig.group_by("et_date").agg(pl.len().alias("n")).sort("et_date")
@@ -528,8 +616,14 @@ def look_state(rows: pl.DataFrame, freeze: date, today: date, now_utc: datetime)
                 False,
                 f"{cum} scored games, need {N_LOOK} (backstop {BACKSTOP})",
             )
-    if not today > d_look:
+    if not (today > d_look and now_utc.astimezone(UTC).date() > d_look):
         return LookState(today, freeze, d_look, n_look, False, "look date not passed")
+    listed = [d for d in rows["et_date"].to_list() if d is not None]
+    last_listed: date | None = max(listed) if listed else None
+    if last_listed is None or last_listed < d_look:
+        return LookState(
+            today, freeze, d_look, n_look, False, f"database lists games only to {last_listed!s}"
+        )
     naive_now = now_utc.astimezone(UTC).replace(tzinfo=None)
     pend = []
     for gid, fin, tip in (
@@ -575,14 +669,18 @@ def load_scores(
 def as_of_mu_t(
     con: duckdb.DuckDBPyConnection, rows: pl.DataFrame, params: Any, state: LookState
 ) -> dict[str, float]:
-    """The live engine's feature (``nba/parlay/slate.py``): every final game dated before the slate."""
+    """The app's feature (game-scripts export, ``combo_stage.history_rows(src, day, LIVE_SEASON)`` on
+    agent/market-game-scripts 529a39ef): completed games of season 2026 dated before the slate. No other
+    season is read. With no history the game model's league fallback applies, as in the export."""
     _need_open(state)
     from nba.parlay.game_model import slate_total_feature
 
     last = max(rows["et_date"].to_list())
     hist = con.execute(
-        "SELECT game_id, game_date, home_team, away_team, home_pts, away_pts FROM games WHERE game_date < ? AND home_pts IS NOT NULL",
-        [last],
+        "SELECT game_id, game_date, home_team, away_team, home_pts, away_pts FROM games "
+        "WHERE season = ? AND game_date < ? AND home_pts IS NOT NULL AND home_pts > 0 "
+        "AND game_id NOT LIKE '001%' AND game_id NOT LIKE '003%' ORDER BY game_date, game_id",
+        [SEASON, last],
     ).pl()
     out: dict[str, float] = {}
     for gid, d, h, a in rows.select("game_id", "et_date", "home_team", "away_team").iter_rows():
@@ -715,10 +813,39 @@ def same_player_ratio(
 # ---------------------------------------------------------------- the scored frame
 
 
+def game_params(p_home: float, mu_t: float, params: Any) -> tuple[float, float, float, float]:
+    """(mu_m, mu_t, sd_m, sd_t) exactly as the app's payload carries them: ``combo_build.build_game_payload``
+    rounds every game parameter to 2 decimals, and the app's P(script) and script thresholds read those."""
+    return (
+        round(params.margin_mu(float(p_home)), 2),
+        round(float(mu_t), 2),
+        round(float(params.margin_sd), 2),
+        round(float(params.total_sd), 2),
+    )
+
+
+def _game_records(
+    sc: pl.DataFrame, mu_t: dict[str, float], params: Any
+) -> tuple[list[dict[str, Any]], float]:
+    recs, max_dev = [], 0.0
+    for r in sc.iter_rows(named=True):
+        mm, mt, sdm, sdt = game_params(r["p_home"], mu_t[str(r["game_id"])], params)
+        pr = priors(mm, mt, sdm, sdt)
+        cf = closed_form(mm, mt, sdm, sdt)
+        max_dev = max(max_dev, max(abs(pr[s] - cf[s]) for s in SCRIPTS))
+        yy = realised(int(r["margin"]), int(r["total"]), mt)
+        recs.append(
+            {"game_id": str(r["game_id"]), "et_date": r["et_date"], "mu_m": mm, "mu_t": mt, "total": int(r["total"]),
+             **{f"p_{s}": pr[s] for s in SCRIPTS}, **{f"y_{s}": int(yy[s]) for s in SCRIPTS}}
+        )  # fmt: skip
+    return recs, max_dev
+
+
 def scored_frame(
     rows: pl.DataFrame, scores: pl.DataFrame, mu_t: dict[str, float], params: Any
 ) -> tuple[pl.DataFrame, dict[str, Any]]:
-    """Join, integrity checks, P(script) and outcomes. Returns (frame, integrity)."""
+    """Join, integrity checks, P(script) and outcomes on the ``WIN_VERSION`` segment. Returns
+    (frame, integrity); the other-version segment rides in ``integrity["other_version_frame"]``."""
     fin = rows.filter(pl.col("final"))
     unforecast = fin.filter(~pl.col("stamped"))
     sc = fin.filter(pl.col("stamped"))
@@ -728,30 +855,24 @@ def scored_frame(
         | (pl.col("made_at") >= pl.col("tipoff"))
     )
     versions = {str(k): int(v) for k, v in sc.group_by("version").agg(pl.len()).iter_rows()}
-    sc = sc.filter(pl.col("version") == WIN_VERSION).join(scores, on="game_id", how="inner")
-    recs = []
-    max_dev = 0.0
-    for r in sc.iter_rows(named=True):
-        mm = params.margin_mu(float(r["p_home"]))
-        mt = mu_t[str(r["game_id"])]
-        pr = priors(mm, mt, params.margin_sd, params.total_sd)
-        cf = closed_form(mm, mt, params.margin_sd, params.total_sd)
-        max_dev = max(max_dev, max(abs(pr[s] - cf[s]) for s in SCRIPTS))
-        yy = realised(int(r["margin"]), int(r["total"]), mt)
-        recs.append(
-            {"game_id": str(r["game_id"]), "et_date": r["et_date"], "mu_m": mm, "mu_t": mt, "total": int(r["total"]),
-             **{f"p_{s}": pr[s] for s in SCRIPTS}, **{f"y_{s}": int(yy[s]) for s in SCRIPTS}}
-        )  # fmt: skip
+    sc = sc.join(scores, on="game_id", how="inner")
+    recs, dev1 = _game_records(sc.filter(pl.col("version") == WIN_VERSION), mu_t, params)
+    other, dev2 = _game_records(sc.filter(pl.col("version") != WIN_VERSION), mu_t, params)
+    max_dev = max(dev1, dev2)
     frame = pl.DataFrame(recs) if recs else pl.DataFrame()
     n_fin = fin.height
     share = (unforecast.height / n_fin) if n_fin else 0.0
     integ: dict[str, Any] = {
         "final_games": n_fin,
         "unforecast": unforecast.height,
+        "unforecast_ids": sorted(unforecast["game_id"].to_list()),
         "unforecast_share": share,
         "bad_tip_or_stamp": bad_tip.height,
+        "bad_tip_or_stamp_ids": sorted(bad_tip["game_id"].to_list()),
+        "unplayed_or_postponed_ids": sorted(rows.filter(~pl.col("final"))["game_id"].to_list()),
         "win_model_versions": versions,
         "closed_form_max_dev": max_dev,
+        "other_version_frame": pl.DataFrame(other) if other else None,
     }
     integ["fail"] = bool(share > UNFORECAST_MAX or bad_tip.height > 0 or max_dev > 1e-9)
     return frame, integ
@@ -771,6 +892,14 @@ def score_games(frame: pl.DataFrame, sd_t: float | None = None) -> dict[str, Any
     return {"P": fp, "D": fd, "descriptive": descriptives(frame, sd_t)}
 
 
+def printed_only(res: dict[str, Any]) -> dict[str, Any]:
+    """A scored block with every word removed (INTEGRITY_FAIL, PRE_FREEZE, other-version segment)."""
+    return {
+        k: (strip_words(v) if k in ("P", "D") and isinstance(v, dict) else v)
+        for k, v in res.items()
+    }
+
+
 # ---------------------------------------------------------------- commands
 
 
@@ -782,13 +911,15 @@ def _params(root: Path) -> Any:
     )
 
 
-def _check_pins(root: Path) -> None:
+def _check_pins(root: Path, repo: Path) -> None:
     got = (
         sha8(root / JOINT_MODEL_REL),
-        sha8(Path(__file__).resolve().parents[2] / COMBO_PARAMS_REL),
+        sha8(repo / COMBO_PARAMS_REL),
+        sha8(repo / LINE_CAL_MAP_REL),
     )
-    if got != (JOINT_MODEL_SHA8, COMBO_PARAMS_SHA8):
-        raise Refused(f"pinned inputs changed: {got} != {(JOINT_MODEL_SHA8, COMBO_PARAMS_SHA8)}")
+    want = (JOINT_MODEL_SHA8, COMBO_PARAMS_SHA8, LINE_CAL_MAP_SHA8)
+    if got != want:
+        raise Refused(f"pinned inputs changed: {got} != {want}")
 
 
 def _open(root: Path) -> tuple[duckdb.DuckDBPyConnection, duckdb.DuckDBPyConnection]:
@@ -803,10 +934,12 @@ def _today_et() -> tuple[date, datetime]:
     return now.astimezone(ET).date(), now
 
 
-def cmd_status(root: Path, assume_freeze: date | None, with_s: bool) -> dict[str, Any]:
-    freeze = assume_freeze or (freeze_et_date(root, FREEZE_COMMIT) if FREEZE_COMMIT else None)
+def cmd_status(root: Path, repo: Path, assume_freeze: date | None, with_s: bool) -> dict[str, Any]:
+    freeze = assume_freeze
     if freeze is None:
-        raise Refused("no freeze commit yet: pass --assume-freeze for a projection")
+        if RULE_SHA256 is None:
+            raise Refused("no freeze commit yet: pass --assume-freeze for a projection")
+        freeze = freeze_et_date(repo, verify_frozen(repo))
     today, now = _today_et()
     con, facts = _open(root)
     try:
@@ -833,34 +966,32 @@ def cmd_status(root: Path, assume_freeze: date | None, with_s: bool) -> dict[str
     return out
 
 
-def _results_path(root: Path, rel: str) -> Path:
-    return root / rel
+def _preflight(root: Path, repo: Path) -> tuple[str, date]:
+    """Every refusal that needs no database: frozen rule, unchanged code, pinned inputs."""
+    commit = verify_frozen(repo)
+    verify_code_unchanged(repo, commit)
+    _check_pins(root, repo)
+    return commit, freeze_et_date(repo, commit)
 
 
-def cmd_run(
-    root: Path, repo: Path, clock: Callable[[], tuple[date, datetime]] = _today_et
-) -> dict[str, Any]:
-    verify_rule(repo)
-    _check_pins(root)
-    out_p = _results_path(repo, OUT_REL)
-    if out_p.exists():
-        raise Refused(f"{OUT_REL} exists: one look only")
-    assert FREEZE_COMMIT is not None
-    freeze = freeze_et_date(repo, FREEZE_COMMIT)
-    today, now = clock()
+def cmd_run(root: Path, repo: Path) -> dict[str, Any]:
+    commit, freeze = _preflight(root, repo)
+    verify_no_earlier_look(repo, OUT_REL)
+    today, now = _today_et()
     con, facts = _open(root)
     try:
         rows = window_rows(con, facts, date(2026, 10, 20))
         st = look_state(rows, freeze, today, now)
         _need_open(st)
-        assert st.look_date is not None
         params = _params(root)
         res = _score_window(con, rows, freeze, st, params)
     finally:
         con.close()
         facts.close()
+    res.update({"freeze_commit": commit, "run_at_utc": now.isoformat(timespec="seconds")})
     s_ready = (repo / LINE_CAL_LIVE_RESULTS).exists()
     res["S"] = "COMPUTE_WITH_run-s" if s_ready else "DEFERRED_LINE_CAL_LIVE"
+    out_p = repo / OUT_REL
     out_p.parent.mkdir(parents=True, exist_ok=True)
     out_p.write_text(json.dumps(res, indent=1, sort_keys=True, default=str) + "\n")
     return res
@@ -876,40 +1007,41 @@ def _score_window(
     scores = load_scores(con, both.filter(pl.col("final"))["game_id"].to_list(), st)
     mu_t = as_of_mu_t(con, both.filter(pl.col("final") & pl.col("stamped")), params, st)
     frame, integ = scored_frame(win, scores, mu_t, params)
+    other = integ.pop("other_version_frame")
     res: dict[str, Any] = {
-        "rule": RULE_ID, "rule_sha256": RULE_SHA256, "freeze_commit": FREEZE_COMMIT,
+        "rule": RULE_ID, "rule_sha256": RULE_SHA256,
         "freeze_et_date": freeze.isoformat(), "look_date": st.look_date.isoformat(), "run_et_date": st.today.isoformat(),
         "integrity": integ,
     }  # fmt: skip
     if integ["fail"]:
         res["verdict"] = "INTEGRITY_FAIL"
-        res["printed"] = score_games(frame, params.total_sd) if frame.height else None
+        res["printed"] = printed_only(score_games(frame, params.total_sd)) if frame.height else None
     else:
         res.update(score_games(frame, params.total_sd))
-    pf, _ = scored_frame(pre, scores, mu_t, params)
+    if other is not None:
+        res["OTHER_WIN_VERSION"] = {
+            "label": "printed, no word",
+            **printed_only(score_games(other, params.total_sd)),
+        }
+    pf, pinteg = scored_frame(pre, scores, mu_t, params)
+    pinteg.pop("other_version_frame")
     res["PRE_FREEZE"] = {
         "label": "PRE_FREEZE, no word",
-        **(score_games(pf, params.total_sd) if pf.height else {}),
+        **(printed_only(score_games(pf, params.total_sd)) if pf.height else {}),
     }
     return res
 
 
-def cmd_run_s(
-    root: Path, repo: Path, clock: Callable[[], tuple[date, datetime]] = _today_et
-) -> dict[str, Any]:
-    verify_rule(repo)
-    _check_pins(root)
-    p_path, s_path = _results_path(repo, OUT_REL), _results_path(repo, OUT_S_REL)
+def cmd_run_s(root: Path, repo: Path) -> dict[str, Any]:
+    _commit, freeze = _preflight(root, repo)
+    p_path = repo / OUT_REL
     if not p_path.exists():
         raise Refused("run the primary look first")
-    if s_path.exists():
-        raise Refused(f"{OUT_S_REL} exists: one look only")
+    verify_no_earlier_look(repo, OUT_S_REL)
     if not (repo / LINE_CAL_LIVE_RESULTS).exists():
         raise Refused("LINE_CAL_LIVE's look is not recorded: family S stays deferred")
     prim = json.loads(p_path.read_text())
-    assert FREEZE_COMMIT is not None
-    freeze = freeze_et_date(repo, FREEZE_COMMIT)
-    today, now = clock()
+    today, now = _today_et()
     con, facts = _open(root)
     try:
         rows = window_rows(con, facts, date(2026, 10, 20))
@@ -923,23 +1055,33 @@ def cmd_run_s(
             & (pl.col("et_date") <= st.look_date)
             & pl.col("final")
             & pl.col("stamped")
+            & (pl.col("version") == WIN_VERSION)
         )
-        scores = load_scores(con, win["game_id"].to_list(), st)
-        mu_t = as_of_mu_t(con, win, params, st)
-        realised_by_game = {
-            str(g): realised(int(m), int(t), mu_t[str(g)])
-            for g, m, t in scores.select("game_id", "margin", "total").iter_rows()
-        }
+        # label-free first: a crash here leaves no outcome read
         legs = s_legs(
             con, root / "data/markets/market_asof.duckdb", sorted(set(win["et_date"].to_list()))
         )
+        scores = load_scores(con, win["game_id"].to_list(), st)
+        mu_t = as_of_mu_t(con, win, params, st)
+        p_home = dict(zip(win["game_id"].to_list(), win["p_home"].to_list(), strict=True))
+        realised_by_game = {
+            str(g): realised(int(m), int(t), game_params(p_home[g], mu_t[str(g)], params)[1])
+            for g, m, t in scores.select("game_id", "margin", "total").iter_rows()
+        }
         legs = leg_outcomes(con, legs, st)
     finally:
         con.close()
         facts.close()
     res = score_legs(legs, realised_by_game)
-    res.update({"rule": RULE_ID, "look_date": prim["look_date"], "run_et_date": today.isoformat()})
-    s_path.write_text(json.dumps(res, indent=1, sort_keys=True, default=str) + "\n")
+    res.update(
+        {
+            "rule": RULE_ID,
+            "look_date": prim["look_date"],
+            "run_et_date": today.isoformat(),
+            "run_at_utc": now.isoformat(timespec="seconds"),
+        }
+    )
+    (repo / OUT_S_REL).write_text(json.dumps(res, indent=1, sort_keys=True, default=str) + "\n")
     return res
 
 
@@ -948,17 +1090,13 @@ def score_legs(legs: pl.DataFrame, realised_by_game: dict[str, dict[str, bool]])
     legs = add_conditionals(legs, cp["script_params"])
     out: dict[str, Any] = {"S": family_s(legs, realised_by_game)}
     out["same_player_ratio"] = same_player_ratio(legs, realised_by_game, cp["corr"])
-    from nba.parlay.combo import TESTED_P_MAX, TESTED_RAW_MAX
-
-    above = legs.filter((pl.col("u") > TESTED_P_MAX) | (pl.col("raw") >= TESTED_RAW_MAX))
-    out["above_tested_range_slice"] = family_s(above, realised_by_game) if above.height else {}
+    # legs the app drops (above the tested range, or P(leg | s) > 0.75): out of the words, printed here
+    out["dropped_by_app_slice"] = family_s(legs, realised_by_game, mode="dropped")
     cells: dict[str, Any] = {}
     for stat in STATS:
         for role in ("starter", "bench"):
             d = legs.filter((pl.col("stat") == stat) & (pl.col("role") == role))
-            cells[f"{stat}_{role}"] = (
-                {s: v for s, v in family_s(d, realised_by_game).items()} if d.height else {}
-            )
+            cells[f"{stat}_{role}"] = strip_words(family_s(d, realised_by_game)) if d.height else {}
     out["by_stat_role"] = cells
     yv, u = legs["y"].to_numpy().astype(float), legs["u"].to_numpy().astype(float)
     out["all_window_legs_gap_u"] = float((yv - u).mean()) if legs.height else None
@@ -1029,6 +1167,7 @@ def main(argv: list[str] | None = None) -> int:
         if a.cmd == "status":
             res = cmd_status(
                 Path(a.data_root),
+                repo,
                 date.fromisoformat(a.assume_freeze) if a.assume_freeze else None,
                 a.s_legs,
             )

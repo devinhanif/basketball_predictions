@@ -1,17 +1,18 @@
 # GAME_SCRIPTS_FORWARD: do the four game scripts happen as often as the model says, and do script-conditional legs hold, on the 2026-27 live log? (pre-registration)
 
-Status: **DRAFT, revision 1 (revision 0 13:05 CST; revision 1 Tue 2026-11-10 afternoon CST: Devin's five choices written in, harness
-written, text aligned with what the harness computes; section 13). Not frozen. Nothing in this file has
+Status: **DRAFT, revision 2 (revision 0 13:05 CST; revision 1 Devin's five choices and the harness; revision 2 Tue 2026-11-10 evening
+CST: the adversary pre-freeze review B1, M2-M5 and minors applied, O3 re-picked to the app's number; section 13). Not frozen. Nothing in this file has
 been scored on any game after the freeze, and no 2026 script outcome has been computed by anyone for this draft (section 8).**
 - **How it becomes the rule:** the main session commits `prereg(GAME_SCRIPTS_FORWARD): <sha256>` of everything above the line
   `=== RESULTS BELOW ===` (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/GAME_SCRIPTS_FORWARD.md | shasum -a 256`), with the
-  status line changed to FROZEN in the same commit. Devin's choices are settled (section 11) and the harness is written (section 10);
-  what remains before the freeze is an adversary pre-freeze review returning READY_TO_FREEZE.
+  status line changed to FROZEN in the same commit, and the harness's `RULE_SHA256` set in that same commit. Devin's choices are
+  settled (section 11) and the harness is written (section 10). Remaining before the freeze: `agent/market-game-scripts` merged (the
+  app's number must exist on `main`), then an adversary re-review returning READY_TO_FREEZE.
 - **Origin:** Devin, 2026-11-10 12:52 (DECISIONS 56adf8f7), piece 4 of "how a game can play out". **Follows advice** (Claude recommended
   a forward test before any script number loses its `exploratory` label). Supersedes the draft `docs/contracts/combo_script_forward_rule_DRAFT.md`
   (adversary B1 of `docs/reviews/combo_math_2026-11-10.md`); its parts are kept, changed or dropped as listed in section 9.
 - **Season labels** are `games.season`. Scored: season 2026 regular-season games (game id prefix `002`) dated after the freeze. Season 2025
-  is never scored, selected on or compared with any forecast (section 4.4 on the one way its scores enter as an as-of input).
+  is never read (section 4.4).
 
 ## 1. Hypotheses
 - **H-P (primary, calibration of P(script)).** For each script s in {blowout, close, shootout, grind}, the pre-tip probability the combo
@@ -27,11 +28,15 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
    (read from git; the main session merges with `--no-ff`). Scored iff final (`home_pts > 0 AND away_pts > 0`) and a production
    `rung0_injury_elo` `win_prob_home` row exists with `made_at < tipoff` where `tipoff` equals the schedule's real tip (facts `tips_at`).
    The latest such row is used. A final game without one is listed `unforecast`.
-2. **Forecast (all frozen, recomputed by code pinned at the freeze commit).** `mu_m = margin_b + margin_s * logit(p_home)`, `mu_t = total_a + total_c * f`, `f` the
-   as-of total feature from every game dated before the slate date (`nba/parlay/slate.py` path: `game_model.slate_total_feature`),
-   `sd_m`, `sd_t` and the five numbers from `data/parlay/joint_model.json` sha256 `a2b4c4a9` (fit 2022-24, no refit ever inside this rule).
-   P(s) = `combo.script_prior(s, game, shared)` with definitions `{15, 5, 12.0}` (`combo_params_v1.json` sha256 `1a85bb31`).
-3. **Outcomes.** From the final score and the same `mu_t`: blowout `|margin| >= 15`; close `|margin| <= 5`; shootout
+2. **Forecast: the app's number (all frozen; the run executes the code of the freeze commit and refuses on any difference since then in
+   `nba/parlay`, `nba/export` or the harness).** `mu_m = margin_b + margin_s * logit(p_home)`, `mu_t = total_a + total_c * f`, `f` the as-of
+   total feature (`game_model.slate_total_feature`) from completed games of SEASON 2026 ONLY dated before the slate (`home_pts > 0`, game
+   ids not `001`/`003`), exactly as the app's game-scripts export builds it (`combo_stage.history_rows(src, day, LIVE_SEASON)`, branch
+   `agent/market-game-scripts` 529a39ef; no history means the league fallback, as there); `sd_m`, `sd_t` and the five numbers from
+   `data/parlay/joint_model.json` sha256 `a2b4c4a9` (fit 2022-24, no refit ever inside this rule). Then `mu_m`, `mu_t`, `sd_m`, `sd_t` are
+   rounded to 2 decimals, as `combo_build.build_game_payload` does, and P(s) = `combo.script_prior(s, game, shared)` on the rounded block
+   with definitions `{15, 5, 12.0}` (`combo_params_v1.json` sha256 `1a85bb31`; `line_cal_map_v1.json` sha256 `c46aef41`).
+3. **Outcomes.** From the final score and the same rounded `mu_t`: blowout `|margin| >= 15`; close `|margin| <= 5`; shootout
    `total >= ceil(mu_t + 12)`; grind `total <= floor(mu_t - 12)`. Overtime counts (final score).
 4. **Primary metric (family P, m = 4).** Per script, `gap_s = realised share - mean P(s)` over scored games. 95% CI: percentile bootstrap
    over slate DATES (B = 2,000, seed 20261110); the game-level CI is printed beside it (each game is one row, so it is the iid CI).
@@ -41,7 +46,8 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
 6. **One look.** At the first slate date D on which the window holds >= 750 scored games (projected 2027-03-07, section 5), counting only
    dates before the run date; run after every game through D is settled (final, or listed `unplayed_or_postponed` 36 h after its tip).
    Backstop: if 750 is not reached by 2027-03-28, D = 2027-03-28. Below 600 scored games at D: every word is INSUFFICIENT_DATA.
-   `run` reads the real ET clock only and refuses before D. No interim look at any outcome number of this rule.
+   `run` reads the real clock only (no command takes a date, no function takes a clock) and opens only when the real ET and UTC dates are
+   past D and the database itself lists games dated D or later. No interim look at any outcome number of this rule.
 7. **Family D (m = 2: blowout, close).** dBrier = Brier(P(s)) - Brier(c_s), c_s = the window mean of P(s) over scored games (label-free).
    INFORMATIVE: dBrier <= -0.002 and the date CI upper < 0, with the one-sided p BH-adjusted over the two; else NOT_SHOWN (underpowered,
    section 5; NOT_SHOWN is not "no information").
@@ -49,7 +55,10 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
    the newest two-sided non-alternate DraftKings pair at or before the production row's own `made_at` and before tip), stats pts, reb,
    ast, fg3m, played only (DNP voided), on games that realised s. Unconditional U = `p_over_cal`. Conditional C_s = `1 - Phi((a - mu) / sigma)`,
    `a = Phi^-1(1 - U)`, `(mu, sigma)` from `combo_params_v1.json` `script_params[(s, stat, role)]`, role `starter` iff the served
-   `starter_rate >= 0.5` (as `combo.evaluate(..., script=s)` computes a one-leg combo).
+   `starter_rate >= 0.5` (as `combo.evaluate(..., script=s)` computes a one-leg combo). **Only legs the app shows conditionally enter the
+   words** (the drop rule of `game_scripts.best_picks`): legs with U > 0.75, raw P at the main line >= 0.80, or C_s > 0.75 are excluded
+   from S and printed as a slice. S tests this `line_cal`-based conditional; the app's `p_leg` at the main line is the same number by the
+   combo contract (section 3 of `combo_export_v1.md`, up to its 4-decimal rounding), which this rule does not verify separately.
 9. **Family S checks, per script.** (S-i) paired Brier C_s - U, 95% GAME-clustered CI (B 2,000, seed 20261110) upper < 0, one-sided p
    BH-adjusted over the four scripts < 0.05. (S-ii) realised over rate - mean C_s, game-clustered CI inside [-0.03, +0.03]. Words:
    CONDITIONAL_CALIBRATED (S-i and S-ii), IMPROVES_BUT_OFF (S-i only), NOT_SHOWN (else), INSUFFICIENT_DATA (< 150 realised games of s or
@@ -86,11 +95,13 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
 ### 4.1 Integrity (any one voids every word: INTEGRITY_FAIL, results printed, no word)
 - more than 5% of final window games `unforecast`;
 - any scored game whose stamp `tipoff` differs from the schedule tip, or whose stamp is at or after the tip;
-- `joint_model.json` or `combo_params_v1.json` at run time not matching the sha256 prefixes in rule line 2 (the run refuses);
+- refusals before any read (no result is produced): `joint_model.json`, `combo_params_v1.json` or `line_cal_map_v1.json` not matching the
+  sha256 prefixes in rule line 2; any difference in `nba/parlay`, `nba/export` or the harness between the freeze commit and the tree that
+  runs; a results file present, or ever committed anywhere in git history;
 - the pinned `script_prior` disagreeing with a closed-form recomputation (the gate's `p_blowout`/`p_close`/`p_shootout`/`p_grind`) by more
   than 1e-9 on any game.
 - Not a void: the production win model changing version inside the window. The words are then computed on the games of the version in
-  force at the freeze only (>= 600 needed), and the other segment is printed.
+  force at the freeze only (`v2`, asserted at the freeze; >= 600 needed), and the other segment is printed without words.
 ### 4.2 Reported with every word (descriptive, no word)
 - n games, n dates, realised count and share, mean P, gap with date and game CIs, Brier, per script.
 - Reliability, fixed bins: blowout P [0, .30, .35, .40, .50, 1], close P [0, .20, .25, .30, 1]: n, mean P, realised share, game CI.
@@ -99,10 +110,11 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
   against the frozen `sd_t` 18.82. These two numbers decide both scripts; a miss is read through them.
 - Slices: calendar month; the first and second half of the window (drift); |mu_m| < 5, 5-10, >= 10 for blowout and close (gap per
   cell, no CI). The Cup slice of revision 0 is dropped: no Cup flag exists in the data.
-- Integrity counts: final games, `unforecast` and its share, stamps with a bad tip or at/after tip, win-model versions, the largest
-  closed-form deviation.
-- Dropped in revision 1: the comparison with a nightly stamped combo block (no such stamp exists yet; under O3a the scored number is the
-  recomputed one).
+- Integrity counts and ids: final games, `unforecast` (ids) and its share, stamps with a bad tip or at/after tip (ids),
+  `unplayed_or_postponed` (ids), win-model versions, the largest closed-form deviation. Under INTEGRITY_FAIL the blocks are printed with
+  every word removed.
+- Dropped in revision 1: the comparison with a nightly stamped combo block (the scored number is recomputed with the export's own
+  definition and rounding, rule line 2).
 - PRE_FREEZE: the same table on 2026-10-20 through the freeze date, once, labelled, no word.
 ### 4.3 Family S, descriptive
 - Per script: legs, games, realised over rate, mean U, mean C_s, Brier of each; the same table by stat and starter/bench (eight
@@ -110,12 +122,12 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
 - The unconditional gap (realised - mean U) on ALL window legs is printed beside S-ii, so a map that does not transport in 2026 is not
   read as a script failure.
 - Same-player pairs (different stats, both legs main-line overs): realised joint / copula joint under s, game-clustered CI, n pairs.
-- Legs the app labels "above the tested range" (calibrated P > 0.75 or raw >= 0.80): counted inside S, also printed as a slice.
+- Legs the app drops (rule line 8): excluded from the words, printed as the `dropped_by_app` slice (no word).
 - Combos of three or more legs: not scored (the app labels them "model estimate, not checked against results").
 ### 4.4 Season 2025
-No 2025 game is scored, selected, or compared with a forecast. The one way 2025 data enters is the as-of total feature `f`: the live
-engine (`nba/parlay/slate.py`) builds it from every final game dated before the slate, so early-window `mu_t` carries a decaying weight on
-2025-26 totals, exactly as the number the app shows does. This is an input to a 2026 forecast, not a holdout evaluation; Devin's call (O3).
+Season 2025 is never read. The as-of total feature reads season-2026 games only (rule line 2), as the app's export does; every scored
+frame is checked to hold season 2026 only. (Revision 1 used the parlay engine's all-history feature, which reads 2025-26 scores as
+inputs; the adversary's B1 showed it is not the app's number, and Devin re-picked O3.)
 
 ## 5. Minimum-data gate (non-negotiable 8), measured Tue 2026-11-10 13:00 CST on the data the rule will run on
 - **Command:** `.venv-1/bin/python -W ignore -m research.eval.game_scripts_forward_gate --data-root /Users/devin/Downloads/nba-prediction --until 2026-11-09 --freeze 2026-11-12 --out reports/prereg_game_scripts_forward/gate_draft.json`
@@ -129,7 +141,7 @@ engine (`nba/parlay/slate.py`) builds it from every final game dated before the 
 |---|---|---|---|
 | finals through 2026-11-09, by ET week | 154: 43 (10-19 week, 6 dates), 49, 54, 8 (partial) | >= 40 per full week | yes |
 | scheduled regular season (facts, latest `tips_at`) | 1,200; 51-55 a week Dec-Apr, except 29 (11-30), 14 (12-07, Cup knockout not yet listed), 30 (02-15, All-Star), 32 (02-22) | n/a | n/a |
-| production win-prob stamp before the real tip | 154 of 154 final games (100%); stamp tip equals the schedule tip on 154 of 154; lead 55.0 to 115.0 min, median 69.9 | >= 95% | yes |
+| production win-prob stamp before the real tip | 154 of 154 final games (100%); stamp tip equals the schedule tip on 154 of 154; lead 54 to 115 min (54-114 in whole minutes through the harness rows), median 69.9 | >= 95% | yes |
 | P(blowout) from the stamps | 0.288 to 0.613; p10 0.290, p50 0.321, p90 0.431; mean 0.340 | varies by game | yes |
 | P(close) from the stamps | 0.136 to 0.313; p10 0.229, p50 0.293, p90 0.312; mean 0.282 | varies by game | yes |
 | P(shootout), P(grind) | constant band 0.253 to 0.271 (mean 0.262) by construction (the threshold moves with `mu_t`, `sd_t` is fixed) | n/a | n/a; D excludes them |
@@ -235,20 +247,26 @@ model of combo mode (Gaussian copula plus a per-script latent shift).
 - **Harness** `research/eval/game_scripts_forward_eval.py` (pin in section 13; tests `tests/research/prereg_gates/test_game_scripts_forward_eval.py`):
   `status` (label-free counts and the projected look; finals are a SQL boolean, no score value is read; `--s-legs` counts S legs through
   the export's own `line_cal` code), `dryrun` (synthetic games and legs only, no database), `run` (the one look), `run-s` (family S at the
-  same D after LINE_CAL_LIVE's results exist). No command takes a date: the look reads the real ET clock. `run` refuses unless
-  `RULE_SHA256` and `FREEZE_COMMIT` are set and match this text, the look is open, the pinned inputs match, and no results file exists.
+  same D after LINE_CAL_LIVE's results exist; it builds the legs, label-free, before it reads any outcome). No command takes a date and
+  no function takes a clock. `run` refuses unless `RULE_SHA256` is set, the freeze commit (found by its message, below) is an ancestor of
+  HEAD and its rule text hashes to `RULE_SHA256`, the scored code is unchanged since it, the pinned inputs match, the look is open, and
+  no results file exists or was ever committed.
   Every function that reads a score or a player stat of a window game requires an open look state; only season 2026 (prefix `002`) is
   ever scored and any other season in a scored frame raises.
-- **At the freeze:** set `RULE_SHA256` (this text) in the freeze commit and `FREEZE_COMMIT` right after it (a harness change only, no
-  rule text change), and re-run `status --assume-freeze <date> --s-legs` (label-free) to record the exact S leg rate.
+- **At the freeze:** one commit whose subject starts `prereg(GAME_SCRIPTS_FORWARD): <RULE_SHA256>`, carrying this text with the status
+  FROZEN and the harness with `RULE_SHA256` set; the harness finds that commit by its message (no constant is set afterwards). Before it:
+  `agent/market-game-scripts` merged to `main` and this branch rebuilt on it (so `nba/export/combo_stage.py` is in the frozen tree; its
+  sha256 is written in the freeze commit message), `WIN_VERSION` checked against production (`v2`), and `status --assume-freeze <date>
+  --s-legs` re-run (label-free) to record the exact S leg rate.
 - **Exposure answer (main session, 2026-11-10):** no session computed 2026 script shares; the 11-10 team recap computed per-team
   game-winner records only, and the market agent building pieces 1-3 is told not to aggregate realised scripts.
 
-## 11. Devin's choices (settled 2026-11-10, all five defaults)
+## 11. Devin's choices (settled 2026-11-10; O3 re-picked after the adversary pre-freeze review)
 - **O1 look size:** 750 scored games, backstop 2027-03-28 (rule line 6).
 - **O2 tolerance for P:** 0.05 (rule line 5).
-- **O3 the as-of total feature:** as the live engine builds it, from every final game before the slate, including 2025-26 scores as a
-  decaying input to 2026 forecasts only; no 2025 game is evaluated (section 4.4).
+- **O3 the as-of total feature:** (a) score the APP's number: season-2026 games only, rounded as the payload (rule line 2). Revision 1
+  had the parlay engine's all-history feature; on the 2024 analogue of the window the two differ by mean -1.04 points of `mu_t`, change
+  the shootout or grind label on 49 of 776 games and move the realised shootout share by 0.018 (adversary B1).
 - **O4 family S:** included, computed only after LINE_CAL_LIVE's look, tolerance 0.03 (rule lines 8-10).
 - **O5 window:** after the freeze only (rule line 1).
 Alternatives that were offered and not taken: 600 games / 02-28 or the full season; 0.06 or 0.04; a 2026-only feature or the export
@@ -264,6 +282,11 @@ stamp; S dropped or descriptive; the pre-freeze games scored.
 - S: P(CONDITIONAL_CALIBRATED) blowout 0.25, close 0.03, shootout 0.08, grind 0.35; P(S-i passes) blowout 0.45, close 0.10, shootout 0.65,
   grind 0.85. Expected S-i dBrier: blowout -0.0018, close -0.0006, shootout -0.0024, grind -0.0040 (each 80% +-0.002).
 - Logistics: P(750 scored games reached by the backstop) 0.90; P(INTEGRITY_FAIL) 0.05; P(LINE_CAL_LIVE's look recorded before this look) 0.95.
+- **Revision 2 restatement (before any result; the shootout and grind lines above are replaced, the rest stand):** with the app's
+  season-only feature, which follows this season's scoring level instead of carrying 2025-26 totals, P(shootout CALIBRATED) 0.30,
+  P(grind CALIBRATED) 0.30, P(both) 0.15, P(all four CALIBRATED) 0.04, P(at least one MISCALIBRATED) 0.50; expected gaps shootout 0.000
+  (80% -0.040 to +0.040), grind 0.000 (80% -0.045 to +0.045); opposite signs 0.80. Note: section 5's 2023-24 history used the all-history
+  feature; the per-game sd that sets power is unchanged by the definition.
 
 ## 13. Revision log and harness pin
 - Revision 0 (13:05 CST, text e9779757): the draft with open choices.
@@ -273,6 +296,13 @@ stamp; S dropped or descriptive; the pre-freeze games scored.
   --assume-freeze 2026-10-19 --s-legs`, label-free, 85 s, 2026-11-10): 1,543 legs on 69 of 154 final games through 11-09, against the
   gate's approximation of 1,547 on 70; section 5's S numbers stand. No 2026 outcome was read for this revision; the harness's only runs were on
   synthetic data and a temporary test database.
+- Revision 2 (adversary pre-freeze review `docs/reviews/GAME_SCRIPTS_FORWARD_prefreeze_2026-11-10.md`, NOT_READY): B1 the app's
+  `mu_t` (season 2026 only) and the payload's 2-decimal rounding, freeze waits for `agent/market-game-scripts`; M2 the run executes the
+  frozen code (diff refusal) and pins `line_cal_map_v1.json`; M3 the freeze commit is found by its message and verified, no clock
+  parameter, the look needs the real date past D and games listed through D; M4 `run-s` builds legs before any outcome, and tests for
+  the run path, planted future, INTEGRITY_FAIL and the run-s order; M5 the app's dropped legs leave the S words; m1 no word in printed
+  blocks; m2 the other win-model segment printed; m4 results in git history refuse; m5 ids written; m6 the lead text. Priors restated
+  (section 12). No 2026 outcome was read.
 - Harness pin: see the commit that carries this revision (`git log -1 -- research/eval/game_scripts_forward_eval.py`); the file's sha256
   is recorded in the hand-back and in the freeze commit message.
 
