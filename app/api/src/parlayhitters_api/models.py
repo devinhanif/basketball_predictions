@@ -78,6 +78,9 @@ class PropView(BaseModel):
     model_p_under: float
     model_p_push: float
     extrapolated: bool
+    # Where model_p_over came from: the calibrated number (line_cal, rung_cal) or the model's own
+    # number with no calibrated value (model). The only chance a screen shows for a prop.
+    model_p_source: Literal["line_cal", "rung_cal", "model"] = "model"
     market_p_over: float | None
     forecast_stamp: str
     # Which model the forecast came from, in plain words, and the chance to play behind it.
@@ -147,6 +150,7 @@ class ProbAtLine(BaseModel):
     p_under: float
     p_push: float
     extrapolated: bool
+    p_source: Literal["line_cal", "rung_cal", "model"] = "model"
     method: str
     taus: list[float]
     q: list[float]

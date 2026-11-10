@@ -103,6 +103,8 @@ export interface LegModel {
   mean: number | null;
   typical: number | null;
   extrapolated: boolean;
+  /** The calibrated number, or the model's own with no calibrated value (model). */
+  p_source: "line_cal" | "rung_cal" | "model";
   stamp: string | null;
   source: string;
   source_label: string;
@@ -154,6 +156,7 @@ export interface LadderRow {
   l5_push: number;
   model_over: number | null;
   model_under: number | null;
+  model_source: "line_cal" | "rung_cal" | "model";
   over_price: number | null;
   under_price: number | null;
 }

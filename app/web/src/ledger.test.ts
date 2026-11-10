@@ -119,8 +119,6 @@ function row(over: Partial<ResultRow>): ResultRow {
     over_price: -110,
     under_price: -110,
     actual: 30,
-    model_p_over: 0.6,
-    model_p_under: 0.4,
     market_p_over: 0.5,
     market_p_under: 0.5,
     ...over,
@@ -142,11 +140,13 @@ function pick(over: Partial<Pick>): Pick {
 }
 
 describe("settle and summarize", () => {
-  it("uses the model probability of the side taken, conditional on no push", () => {
-    const { settled } = settle([pick({ side: "under" })], [row({ model_p_over: 0.5, model_p_under: 0.4 })]);
+  it("settles the side taken and pairs no model chance with the outcome (LINE_CAL_LIVE)", () => {
+    const { settled } = settle([pick({ side: "under" })], [row({})]);
     expect(settled).toHaveLength(1);
-    expect(settled[0]?.model_side).toBeCloseTo(0.4 / 0.9);
     expect(settled[0]?.outcome).toBe("loss");
+    expect(Object.keys(settled[0] ?? {}).some((k) => k.startsWith("model"))).toBe(false);
+    const s = summarize([pick({ side: "under" })], settled);
+    expect(Object.keys(s).some((k) => k.includes("model") || k === "bins")).toBe(false);
   });
 
   it("leaves skips out and reports unmatched picks as open", () => {
@@ -163,10 +163,9 @@ describe("settle and summarize", () => {
     const s = summarize([pick({})], settled);
     expect(s.decided).toBe(1);
     expect(s.enough).toBe(false);
-    expect(s.bins.every((b) => !b.enough)).toBe(true);
   });
 
-  it("gives an interval and bins once n reaches 20", () => {
+  it("gives an interval once n reaches 20", () => {
     const picks: Pick[] = [];
     const rows: ResultRow[] = [];
     for (let i = 0; i < 20; i++) {
@@ -178,10 +177,6 @@ describe("settle and summarize", () => {
     expect(s.wins).toBe(12);
     expect(s.hit_rate).toBeCloseTo(0.6);
     expect(s.enough).toBe(true);
-    const bin = s.bins.find((b) => b.label === "60% and over");
-    expect(bin?.n).toBe(20);
-    expect(bin?.enough).toBe(true);
-    expect(bin?.observed).toBeCloseTo(0.6);
   });
 
   it("excludes pushes from rates", () => {
@@ -210,7 +205,6 @@ describe("record and streak", () => {
     pick: { ...card, id, prop_id: id, side: "over", made_at: madeAt } as Pick,
     row: {} as ResultRow,
     outcome,
-    model_side: 0.5,
     market_side: 0.5,
   });
 

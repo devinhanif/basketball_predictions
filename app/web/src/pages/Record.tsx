@@ -1,12 +1,13 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
-import { Explain, ModelNote, View } from "../components";
+import { CalTag, Explain, ModelNote, View } from "../components";
 import { plainModel } from "../plain";
 import { longDate, lineText, num, pct, tipTime } from "../format";
 import { TeamTag } from "../components";
 import { legHref, recordHref, type RecordTab } from "../router";
+import { useLens } from "../prefs";
 import { loadRounds, makeRound, newSeed, saveRounds, scoreOf, type Guess, type GuessRound, type Score } from "../record";
-import { STATS, STAT_LABEL, type CalBin, type CalSeries, type GameSummary, type GuessCard, type GuessDeck, type GuessReveal, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
+import { STATS, STAT_LABEL, type CalBin, type CalSeries, type PropsPublished, type GameSummary, type GuessCard, type GuessDeck, type GuessReveal, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
 import { useLoad } from "../useLoad";
 import { didText, sideText } from "../words";
 
@@ -32,7 +33,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
       <div class="rp-call num">
         {posted ? (
           <>
-            Line {lineText(prop.line)}: we gave the over <b>{pct(prop.model_p_over)}</b>, so we leaned <b>{lean}</b>.
+            Line {lineText(prop.line)}: we gave the over <b>{pct(prop.model_p_over)}</b> <CalTag source={prop.model_p_source} />, so we leaned <b>{lean}</b>.
           </>
         ) : (
           <>No usable sportsbook line; reference line {lineText(prop.line)} (the middle of our forecast).</>
@@ -279,7 +280,7 @@ function SeriesView({ s }: { s: CalSeries }) {
       <section class="panel">
         <h2>{s.name}</h2>
         <p class="small muted">
-          What we said: {s.what_said}. What happened: {s.what_happened}.
+          What we said: {s.what_said}. What happened: {s.what_happened}. This is the win model's own chance; it has no calibrated version.
         </p>
         {o.n === 0 || o.said === null || o.happened === null ? (
           <p class="muted">No settled cases of this kind in the data.</p>
@@ -311,6 +312,74 @@ function SeriesView({ s }: { s: CalSeries }) {
   );
 }
 
+const pp = (x: number): string => {
+  const v = Math.round(x * 1000) / 10;
+  return `${v > 0 ? "+" : v < 0 ? "-" : ""}${Math.abs(v).toFixed(1)} points`;
+};
+const N = (n: number): string => n.toLocaleString("en-US");
+const ll = (x: number): string => Math.abs(x).toFixed(4);
+const BOOK_ORDER = ["pinnacle", "draftkings"];
+
+/** The calibrated map's published record on a finished season. Every number is copied from a committed
+ * report (T493); nothing here is computed from this season's games, which are a locked test until it reads. */
+function PublishedProps({ p }: { p: PropsPublished }) {
+  const lens = useLens();
+  const books = BOOK_ORDER.filter((k) => p.books[k] !== undefined);
+  return (
+    <div class="stack" data-published="props">
+      <section class="panel">
+        <h2>Player props: the calibrated number's record</h2>
+        <p class="lead">
+          {p.season_label}, before this season. This is the record the calibrated chances were chosen on; it is not a result for this season.
+        </p>
+        <p class="small" data-locked-note>
+          {p.this_season}
+        </p>
+        <p class="small muted num">
+          From our test log {p.ledger_id} (rule {p.rule_sha8}, verdict {p.verdict.toLowerCase()}). That season was partly looked at while the map was
+          built, so read it as the map's own record, not a clean test. {p.interval}.
+        </p>
+      </section>
+      {books.map((k) => {
+        const b = p.books[k];
+        if (b === undefined) return null;
+        return (
+          <section class="panel" key={k}>
+            <h2>{lens === "market" ? b.label : k === "pinnacle" ? "Primary line source (pre-registered)" : "Second line source"}</h2>
+            <p class="num lead">
+              n = {N(b.n)} lines in {N(b.games)} games. Calibrated chances ran {pp(b.mean_cal_minus_realised.mean)} from how often the over happened (95% range{" "}
+              {pp(b.mean_cal_minus_realised.lo)} to {pp(b.mean_cal_minus_realised.hi)}).
+            </p>
+            <p class="small num muted">
+              Score (log loss, lower is better): {ll(b.log_loss_cal_minus_raw.mean)} better than the unadjusted model, 95% range {ll(b.log_loss_cal_minus_raw.hi)} to{" "}
+              {ll(b.log_loss_cal_minus_raw.lo)} better.
+            </p>
+            <ul class="plain cal-list">
+              {b.bins.map((x) => (
+                <li class="cal-row" key={x.lo}>
+                  <div class="cal-head">
+                    <strong>When we said {Math.round(x.lo * 100)} to {Math.round(x.lo * 100) + 10}%</strong>
+                    <span class="small muted num">n = {N(x.n)}</span>
+                  </div>
+                  <div class="cal-track" role="img" aria-label={`We said ${pc(x.said)}, it happened ${pc(x.happened)}`}>
+                    <i class="cal-said" style={{ left: `${(x.said * 100).toFixed(1)}%` }} />
+                    <i class="cal-dot" style={{ left: `${(x.happened * 100).toFixed(1)}%` }} />
+                  </div>
+                  <p class={`small num${x.n < 100 ? " muted" : ""}`}>
+                    We said {pc(x.said)} on average; it happened {pc(x.happened)} of the time.
+                    {x.n < 100 ? " Too few cases to read much into." : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <p class="small muted">Ranges for single bins were not published, so none is drawn. The dashed tick is what we said; the dot is what happened.</p>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function Calibration() {
   const [state, reload] = useLoad(() => api.calibration(), []);
   const [which, setWhich] = useState<"props" | "winners">("props");
@@ -334,7 +403,8 @@ function Calibration() {
               ))}
             </div>
           </section>
-          <SeriesView s={c[which]} />
+          {which === "props" ? <PublishedProps p={c.props} /> : <SeriesView s={c.winners} />}
+          {which === "winners" ? (
           <Explain label="How the range is worked out">
             <p class="small">
               Players on the same team share a game, so their results are not independent. The range comes from re-drawing whole games with replacement
@@ -342,6 +412,7 @@ function Calibration() {
               cases and enough games.
             </p>
           </Explain>
+          ) : null}
         </div>
       )}
     </View>
@@ -454,7 +525,7 @@ function Round(props: { card: GuessCard; index: number; total: number; onDone: (
             <span class={done.you_right ? "gs-right" : "gs-wrong"}>{done.you_right ? "You were right." : "You were wrong."}</span>
           </p>
           <p class="num">
-            The model gave the over <b>{pct(rev.model_p_over)}</b>, so it said <b>{rev.model_call}</b>.{" "}
+            The model gave the over <b>{pct(rev.model_p_over)}</b> <CalTag source={rev.model_p_source} />, so it said <b>{rev.model_call}</b>.{" "}
             <span class={done.model_right ? "gs-right" : "gs-wrong"}>{done.model_right ? "It was right." : "It was wrong."}</span>
           </p>
           <p class="small muted num">Its typical night was {num(rev.stat_mean)}. One round says very little about either of you.</p>

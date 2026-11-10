@@ -1389,3 +1389,22 @@ main:focus {
 .prop-compare {
   margin-top: 2px;
 }
+
+/* The honesty label beside a prop chance: calibrated, or model only where no calibrated number exists. */
+.cal-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid var(--line, currentColor);
+  color: var(--muted, inherit);
+}
+.cal-tag.cal {
+  color: var(--accent-ink, inherit);
+  border-color: var(--accent, currentColor);
+}

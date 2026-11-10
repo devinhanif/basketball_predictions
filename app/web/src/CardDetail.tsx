@@ -4,7 +4,7 @@ import { american, bookName, lineText, num, pct } from "./format";
 import { Explain, View } from "./components";
 import { plainModel } from "./plain";
 import { gameHref } from "./router";
-import { calibrationFooter, hideBook, percentAlong, modelLine, pairLines, quantile, read, sliderRange, snapHalf } from "./slider";
+import { calibrationFooter, hideBook, percentAlong, modelLine, calibratedLine, quantile, read, sliderRange, snapHalf } from "./slider";
 import { Chips, DistStrip, ProbBar } from "./Viz";
 import { wilson } from "./stats";
 import { useLoad } from "./useLoad";
@@ -154,7 +154,7 @@ export function LineSlider({ card }: { card: CardView }) {
   const start = snapHalf(posted ?? model);
   const [line, setLine] = useState(Math.min(max, Math.max(min, start)));
   const r = read(input, line);
-  const pair = pairLines(r);
+  const calLine = calibratedLine(r);
   const id = `slider-${card.prop_id}`;
   const stat = card.stat;
   const step = (d: number): void => {
@@ -236,8 +236,7 @@ export function LineSlider({ card }: { card: CardView }) {
       </div>
       <ProbBar over={r.p_over} label={`At line ${lineText(line)}`} />
       <div class="ls-pair small num" aria-live="polite">
-        <div class="ls-raw">{pair.raw}</div>
-        {pair.cal !== null ? <div class="ls-cal">{market ? pair.cal : hideBook(pair.cal)}</div> : <div class="ls-cal none muted">{market ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
+        {calLine !== null ? <div class="ls-cal">{market ? calLine : hideBook(calLine)}</div> : <div class="ls-cal none muted">{market ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
       </div>
       <p class="small ls-say">
         Over {lineText(line)} means {sideText(stat, line, "over")}. Under means {sideText(stat, line, "under")}.

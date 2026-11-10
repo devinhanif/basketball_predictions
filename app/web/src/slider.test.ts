@@ -7,8 +7,7 @@ import {
   CAL_OUT_OF_RANGE,
   CAL_LABEL,
   CAL_WHY,
-  RAW_LABEL,
-  pairLines,
+  calibratedLine,
   MODEL_ONLY,
   TAIL_NOTE,
   calibratedLabel,
@@ -160,20 +159,21 @@ describe("the honesty labels", () => {
   });
 });
 
-describe("raw and calibrated side by side", () => {
-  it("shows both, labelled, when the line is listed", () => {
+describe("the calibrated number alone", () => {
+  it("shows the calibrated number, labelled, and never the raw one beside it", () => {
     const r = read(base, 2.5);
     expect(r.p_raw).toBeCloseTo(pOver(PGE, 2.5), 12);
     expect(r.p_cal).toBe(0.6);
     expect(r.cal_note).toBeNull();
-    const p = pairLines(r);
-    expect(p.raw).toBe(`Model, raw: ${pct(pOver(PGE, 2.5))}`);
-    expect(p.cal).toBe("Model, calibrated: 60% (adjusted for how past chances like this turned out; DraftKings line)");
+    const cal = calibratedLine(r);
+    expect(cal).toBe("Model, calibrated: 60% (adjusted for how past chances like this turned out; DraftKings line)");
+    expect(r.p_over).toBe(0.6);
+    expect(cal).not.toContain(pct(pOver(PGE, 2.5)));
   });
-  it("shows raw alone with a reason when the line is not listed, never an approximation", () => {
+  it("shows the model-only number alone with a reason when the line is not listed, never an approximation", () => {
     const r = read(base, 3.5);
     expect(r.p_cal).toBeNull();
-    expect(pairLines(r).cal).toBeNull();
+    expect(calibratedLine(r)).toBeNull();
     expect(r.cal_note).toBe(r.p_raw < 0.5 ? CAL_OUT_OF_FIT : CAL_OUT_OF_RANGE);
     expect(r.p_raw).toBeCloseTo(pOver(PGE, 3.5), 12);
   });
@@ -193,13 +193,13 @@ describe("raw and calibrated side by side", () => {
   it("keeps a calibrated 0 and 1 and a raw edge value exactly", () => {
     const r = read({ ...base, rung_cal: { ...RUNG, lines: [{ line: 0.5, p_over: 1 }, { line: 9.5, p_over: 0 }] } }, 9.5);
     expect(r.p_cal).toBe(0);
-    expect(pairLines(r).cal).toContain("0%");
+    expect(calibratedLine(r)).toContain("0%");
     expect(read({ ...base, rung_cal: { ...RUNG, lines: [{ line: 0.5, p_over: 1 }] } }, 0.5).p_cal).toBe(1);
     expect(r.p_raw).toBe(0);
   });
   it("uses plain words with no advice terms", () => {
     const words = /\b(ev|expected value|take it|lock|guaranteed|bet this|best bet)\b/i;
-    for (const t of [CAL_NO_LINE, CAL_OUT_OF_FIT, CAL_OUT_OF_RANGE, CAL_NOT_EXPORTED, RAW_LABEL, CAL_LABEL, CAL_WHY]) {
+    for (const t of [CAL_NO_LINE, CAL_OUT_OF_FIT, CAL_OUT_OF_RANGE, CAL_NOT_EXPORTED, CAL_LABEL, CAL_WHY]) {
       expect(t).not.toMatch(words);
     }
   });

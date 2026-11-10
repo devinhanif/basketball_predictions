@@ -45,13 +45,13 @@ function LegRow({ leg, illustration }: { leg: TpLeg; illustration: boolean }) {
         <div class="tp-leg-why">
           <p class="small">{plainText(leg.reason)}</p>
           <p class="small muted num">
-            Our model says {pct(leg.p_cal)} after adjusting for how past chances like this turned out ({pct(leg.p_raw)} before). Price
+            Our model says {pct(leg.p_cal)}, adjusted for how past chances like this turned out. Price
             stamped {stamp(leg.price_at)}, before tip.
           </p>
           <Explain label="Show the exact details">
             <ul class="plain small">
               <li>{capBooks(leg.reason)}</li>
-              <li>Model source: {leg.model_source}. Raw chance {pct(leg.p_raw)}; calibrated chance {pct(leg.p_cal)}.</li>
+              <li>Model source: {leg.model_source}. Calibrated chance {pct(leg.p_cal)}.</li>
             </ul>
           </Explain>
           {!illustration && isLegStat(leg.stat) ? (
@@ -91,7 +91,7 @@ function Ticket({ t, size, illustration }: { t: TpTicket; size: string; illustra
             <span class="big-num">{pct(t.p_joint_cal)}</span>
             <span class="small muted"> 80% range {pct(lo)} to {pct(hi)}</span>
           </dd>
-          <dd class="small muted">Each leg is adjusted using past results; the combined number is not tested yet. Before adjusting: {pct(t.p_joint_raw)}.</dd>
+          <dd class="small muted">Each leg is adjusted using past results; the combined number is not tested yet.</dd>
         </div>
         <div>
           <dt>Book's implied chance (not a tradable price)</dt>

@@ -3,7 +3,7 @@ import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
-import { DistBar, DistLegend, Explain, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { CalTag, DistBar, DistLegend, Explain, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { OnItChip } from "../SharedUI";
 import { useLens, useMode, type Lens, type Mode } from "../prefs";
 import { LensSwitch } from "../Lens";
@@ -56,7 +56,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
       {prop.line_source === "posted" ? (
         <div class="kv num">
           <span>
-            Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
+            Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over <CalTag source={prop.model_p_source} />
           </span>
           {market && prop.market_p_over !== null ? (
             <span>
@@ -124,6 +124,7 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
                     Over {lineText(lead.line)} {STAT_SHORT[lead.stat]}
                   </span>
                   <span class="big-num">{pctBounded(lead.model_p_over, lead.extrapolated)}</span>
+                  <CalTag source={lead.model_p_source} />
                 </>
               )}
             </span>

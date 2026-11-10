@@ -20,7 +20,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from .breakdown import Context
-from .forecast import forecast_probs
+from .forecast import forecast_probs, shown_probs
 from .minutes import MinutesInfo, minutes_info
 from .role_stats import STEADY_WINDOW, steadiness
 
@@ -36,8 +36,10 @@ class Snap(BaseModel):
     p10: float
     p50: float
     p90: float
-    #: The model's raw chance of the over at the line on screen, read from this snapshot.
-    p_over: float
+    #: The chance of the over at the line on screen. Only the forecast the app shows carries the
+    #: calibrated number; an earlier snapshot has none, so it is null unless the prop has no
+    #: calibrated number at all (then every snapshot is the model's own number).
+    p_over: float | None
     proj_minutes: float | None
     p_play: float | None
     shown: bool  # the forecast the rest of the app shows
@@ -81,6 +83,8 @@ class PlayerKnows(BaseModel):
     stat: str
     line: float
     line_source: str
+    #: line_cal, rung_cal or model: what the over chance on the shown forecast is.
+    p_over_source: str = "model"
     tip_utc: str
     final: bool
     snapshots: list[Snap]
@@ -205,7 +209,14 @@ def news_items(store: Any, g: Json, team_id: int | None, pid: int | None) -> lis
     return out
 
 
-def _snap(raw: Json, line: float) -> Snap:
+def _snap_over(raw: Json, fc: Json, line: float, pr: Json) -> float | None:
+    shown = shown_probs(pr, line)
+    if shown.source == "model":
+        return forecast_probs(fc, line).p_over
+    return shown.p_over if bool(raw["shown"]) else None
+
+
+def _snap(raw: Json, line: float, pr: Json) -> Snap:
     fc = {"q": raw["q"], "surv": raw["surv"]}
     q = raw["q"]
     return Snap(
@@ -215,7 +226,7 @@ def _snap(raw: Json, line: float) -> Snap:
         p10=q[1],
         p50=q[9],
         p90=q[17],
-        p_over=forecast_probs(fc, line).p_over,
+        p_over=_snap_over(raw, fc, line, pr),
         proj_minutes=raw["proj_minutes"],
         p_play=raw["p_play"],
         shown=bool(raw["shown"]),
@@ -339,7 +350,7 @@ def player_knows(store: Any, g: Json, pl: Json, stat: str) -> PlayerKnows:
     line = float(pr["line"])
     key = (g["game_id"], int(pl["player_id"]), stat)
     raw_snaps, dropped_snaps = pre_tip_snapshots(store, key)
-    snaps = [_snap(s, line) for s in raw_snaps]
+    snaps = [_snap(s, line, pr) for s in raw_snaps]
     reports, dropped_rows = pre_tip_reports(store, g)
     n_reports = len({r["at_utc"] for r in reports})
     me, _ = (g["home"], g["away"]) if pl["side"] == "home" else (g["away"], g["home"])
@@ -376,6 +387,7 @@ def player_knows(store: Any, g: Json, pl: Json, stat: str) -> PlayerKnows:
         stat=stat,
         line=line,
         line_source=str(pr.get("line_source", "posted")),
+        p_over_source=shown_probs(pr, line).source,
         tip_utc=g["tip_utc"],
         final=g.get("result") is not None,
         snapshots=snaps,

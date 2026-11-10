@@ -4,7 +4,7 @@ import { Explain, View } from "./components";
 import { american, lineText, pct } from "./format";
 import type { Lens } from "./prefs";
 import { evVerdict } from "./plain";
-import { hideBook, modelLine, pairLines, percentAlong, quantile, read, sliderRange, snapHalf } from "./slider";
+import { hideBook, modelLine, calibratedLine, percentAlong, quantile, read, sliderRange, snapHalf } from "./slider";
 import { STAT_LABEL, type CardView, type MinutesInfo } from "./types";
 import { useLoad } from "./useLoad";
 import { DistStrip, ProbBar } from "./Viz";
@@ -287,7 +287,7 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   if (posted !== null) marks.push({ at: posted, name: "posted line" });
   marks.push({ at: model, name: "model's line" });
   const showPrice = lens === "market" || priceOn;
-  const pair = unchanged ? pairLines(r) : null;
+  const calLine = unchanged ? calibratedLine(r) : null;
   const qSide = side === "over" ? pOver : pUnder;
   return (
     <div class="stack tight">
@@ -338,11 +338,10 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
         <p class="small ls-say">
           Over {lineText(line)} means {sideText(stat, line, "over")}. Under means {sideText(stat, line, "under")}.
         </p>
-        {pair !== null ? (
+        {unchanged ? (
           <>
             <div class="ls-pair small num">
-              <div class="ls-raw">{pair.raw}</div>
-              {pair.cal !== null ? <div class="ls-cal">{lens === "market" ? pair.cal : hideBook(pair.cal)}</div> : <div class="ls-cal none muted">{lens === "market" ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
+              {calLine !== null ? <div class="ls-cal">{lens === "market" ? calLine : hideBook(calLine)}</div> : <div class="ls-cal none muted">{lens === "market" ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
             </div>
             <p class={`small ls-label ${r.source}`}>{r.plain}</p>
             {r.tail_note ? <p class="small ls-tail">{r.tail_note}</p> : null}

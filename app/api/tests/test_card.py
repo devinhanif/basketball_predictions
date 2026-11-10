@@ -52,7 +52,12 @@ def test_grid_matches_the_alt_line_endpoint(client: TestClient) -> None:
     gid, pid, stat = PLANTED
     for k in (10, 20, 23, 30):  # P(over k.5) = P(Y >= k+1)
         r = client.get(f"/api/props/{gid}/{pid}/{stat}", params={"line": k + 0.5}).json()
-        assert r["p_over"] == pytest.approx(c["dist"]["p_ge"][k + 1])
+        if r["p_source"] == "model":  # no calibrated number here: the model's own grid
+            assert r["p_over"] == pytest.approx(c["dist"]["p_ge"][k + 1])
+        else:  # the calibrated number is what is served, never the raw grid
+            assert r["p_source"] in ("line_cal", "rung_cal") and r["p_under"] == pytest.approx(
+                1 - r["p_over"]
+            )
 
 
 def test_prop_without_fields_has_none_and_a_quantile_grid(client: TestClient) -> None:

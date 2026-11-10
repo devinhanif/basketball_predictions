@@ -1,6 +1,7 @@
 // Small pure helpers for the leg breakdown screen. They read numbers the API already computed;
 // none of them invents one. (The hit/miss rule itself lives in the API, once.)
-import type { LadderRow, LegPrices, Side, Tally } from "./legTypes";
+import type { LadderRow, LegModel, LegPrices, Side, Tally } from "./legTypes";
+import type { PSource } from "./types";
 import { devigOver } from "./stats";
 
 /** The ladder row for a line, if the API computed one at exactly that line. */
@@ -15,6 +16,11 @@ export function rowHits(row: LadderRow, side: Side, window: 10 | 5): number {
 
 export function rowModel(row: LadderRow, side: Side): number | null {
   return side === "over" ? row.model_over : row.model_under;
+}
+
+/** Where the chance on screen came from: the ladder row's own source, else the model block's. */
+export function chanceSource(row: LadderRow | null, m: LegModel): PSource {
+  return row ? row.model_source : m.p_source;
 }
 
 export function rowPrice(row: LadderRow, side: Side): number | null {

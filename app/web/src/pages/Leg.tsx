@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
-import { ErrorPanel, Explain, Loading, ModeToggle } from "../components";
+import { CalTag, ErrorPanel, Explain, Loading, ModeToggle } from "../components";
 import { IS_ARTIFACT } from "../env";
 import { edgeLine, nearestFirst, contractSide } from "../edges";
 import { useLens, useMode, type Lens } from "../prefs";
@@ -20,6 +20,7 @@ import {
   nText,
   ofText,
   rangeText,
+  chanceSource,
   rankPhrase,
   ratio,
   rowHits,
@@ -185,7 +186,9 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
           {data.model.available && p !== null ? (
             <>
               <div class="leg-big num">{modelPct(p)}</div>
-              <div class="leg-sub">to go {side}</div>
+              <div class="leg-sub">
+                to go {side} <CalTag source={chanceSource(row, data.model)} />
+              </div>
             </>
           ) : (
             <div class="leg-sub strong">No model forecast for this stat yet</div>
@@ -245,7 +248,7 @@ function NoHistory({ data, side, line, row, market }: { data: LegBreakdown; side
             <>
               <div class="leg-big num">{modelPct(p)}</div>
               <div class="leg-sub">
-                to go {side} {lineText(line)}
+                to go {side} {lineText(line)} <CalTag source={chanceSource(row, data.model)} />
               </div>
             </>
           ) : (
@@ -377,7 +380,8 @@ function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side;
       <p class="lead">
         {p !== null ? (
           <>
-            {data.player} {side === "over" ? "goes over" : "stays under"} {lineText(line)}: <b>{modelPct(p)}</b>
+            {data.player} {side === "over" ? "goes over" : "stays under"} {lineText(line)}: <b>{modelPct(p)}</b>{" "}
+            <CalTag source={chanceSource(row, m)} />
           </>
         ) : (
           "No chance computed at this line."
@@ -447,7 +451,15 @@ function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (
                   </th>
                   <td>{ofText(rowHits(r, side, 10), data.ladder_n10)}</td>
                   <td>{ofText(rowHits(r, side, 5), data.ladder_n5)}</td>
-                  <td>{model && p !== null ? modelPct(p) : <span class="muted">none yet</span>}</td>
+                  <td>
+                    {model && p !== null ? (
+                      <>
+                        {modelPct(p)} <CalTag source={r.model_source} />
+                      </>
+                    ) : (
+                      <span class="muted">none yet</span>
+                    )}
+                  </td>
                   {props.market ? <td>{px !== null ? american(px) : <span class="muted">none</span>}</td> : null}
                 </tr>
               );

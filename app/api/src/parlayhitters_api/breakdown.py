@@ -22,7 +22,7 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from .dissect.types import Dissection
-from .forecast import devig_over, forecast_probs, reference_line
+from .forecast import devig_over, reference_line, shown_probs
 from .history import (
     MODEL_STATS,
     POSITION_NOUN,
@@ -137,6 +137,8 @@ class Model(BaseModel):
     mean: float | None
     typical: float | None
     extrapolated: bool
+    # calibrated (line_cal, rung_cal) or the model's own number with no calibrated value (model)
+    p_source: str = "model"
     stamp: str | None
     # Which model the numbers came from, in plain words (see model_source).
     source: str
@@ -192,6 +194,7 @@ class LadderRow(BaseModel):
     l5_push: int
     model_over: float | None
     model_under: float | None
+    model_source: str = "model"
     over_price: int | None
     under_price: int | None
 
@@ -571,7 +574,7 @@ def _model(ctx: Context, stat: str, line: float, side: Side) -> Model:
             reason="",
         )
     q = [float(v) for v in prop["forecast"]["q"]]
-    lp = forecast_probs(prop["forecast"], line)
+    lp = shown_probs(prop, line)
     source, source_label = model_label(prop["forecast"].get("model"))
     p_hit = lp.p_over if side == "over" else lp.p_under
     return Model(
@@ -583,6 +586,7 @@ def _model(ctx: Context, stat: str, line: float, side: Side) -> Model:
         mean=prop["forecast"].get("mean"),
         typical=q[9],
         extrapolated=lp.extrapolated,
+        p_source=lp.source,
         stamp=prop["forecast"]["stamp"],
         source=source,
         source_label=source_label,
@@ -757,7 +761,7 @@ def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderR
     for ln in half_grid(lo, hi):
         t10 = [hit_state(r.value(stat), ln, "over") for r in last10]
         t5 = [hit_state(r.value(stat), ln, "over") for r in last5]
-        lp = forecast_probs(prop["forecast"], ln) if prop else None
+        lp = shown_probs(prop, ln) if prop else None
         px = by_point.get(ln)
         out.append(
             LadderRow(
@@ -770,6 +774,7 @@ def _ladder(ctx: Context, stat: str, line: float, center: float) -> list[LadderR
                 l5_push=t5.count("push"),
                 model_over=None if lp is None else lp.p_over,
                 model_under=None if lp is None else lp.p_under,
+                model_source="model" if lp is None else lp.source,
                 over_price=None if px is None else px["over_price"],
                 under_price=None if px is None else px["under_price"],
             )

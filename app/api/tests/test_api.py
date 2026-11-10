@@ -160,7 +160,8 @@ def test_results_cover_every_prop_with_forecast_at_the_time(client: TestClient) 
     assert len(rows) == n
     for r in rows:
         assert isinstance(r["actual"], int)
-        assert 0 <= r["model_p_over"] <= 1 and 0 < r["market_p_over"] < 1
+        assert 0 < r["market_p_over"] < 1
+        assert not any(k.startswith("model") for k in r)  # no model chance beside an outcome
 
 
 def test_parlay_state_is_the_honest_no_parlay_state(client: TestClient) -> None:

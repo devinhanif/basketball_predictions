@@ -5,14 +5,23 @@ import { num, pct } from "./format";
 import { clearLedger, lastWeek, recordOf, streak, type Settled } from "./ledger";
 import { MIN_LEGS } from "./stats";
 import { teamColor } from "./teams";
-import type { PropView, Team, WinProbability } from "./types";
+import type { PSource, PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
 import { errorCopy } from "./errors";
 import { Icon } from "./icons";
 import { effectiveDark, setPref, usePrefs } from "./prefs";
 import { FOOTER_DISCLOSURE } from "./config";
-import { lineMarkLabel, winSentence } from "./words";
+import { lineMarkLabel, sourceWord, winSentence } from "./words";
 import { plainModel, plainModelSentence } from "./plain";
+
+/** The honesty label beside a prop chance: calibrated, or model only where no calibrated number exists. */
+export function CalTag({ source }: { source: PSource }) {
+  return (
+    <span class={`cal-tag ${source === "model" ? "model" : "cal"}`} data-p-source={source}>
+      {sourceWord(source)}
+    </span>
+  );
+}
 
 /* ------------------------------------------------------------------ shell pieces shared by pages */
 export function ThemeToggle() {

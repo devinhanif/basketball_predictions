@@ -4,7 +4,7 @@ import {
   LINE_CAL_REASONS,
   calibrationFooter,
   lineCalReason,
-  pairLines,
+  calibratedLine,
   read,
   type SliderInput,
 } from "./slider";
@@ -56,15 +56,16 @@ describe("line_cal at the book's main line", () => {
     expect(r.is_book_main).toBe(true);
   });
 
-  it("is distinguishable from the rung map in the pair wording", () => {
-    const pair = pairLines(read(input, 2.5));
-    expect(pair.raw).toBe("Model, raw: 65%");
-    expect(pair.cal).toBe(
+  it("is distinguishable from the rung map in the wording, and never prints the raw number", () => {
+    const cal = calibratedLine(read(input, 2.5));
+    expect(cal).toBe(
       "Model, calibrated at the book's line: 58% (how often chances like this came in, DraftKings line, T493)",
     );
-    const rung = pairLines(read({ ...input, line_cal: null }, 2.5));
-    expect(rung.cal).toContain("Model, calibrated: 60%");
-    expect(rung.cal).not.toContain("T493");
+    expect(cal).not.toContain("65%");
+    const rung = calibratedLine(read({ ...input, line_cal: null }, 2.5));
+    expect(rung).toContain("Model, calibrated: 60%");
+    expect(rung).not.toContain("T493");
+    expect(rung).not.toContain("65%");
   });
 
   it("the under side is 1 - p_over_cal", () => {
@@ -104,7 +105,7 @@ describe("line_cal absent or null", () => {
     expect(r.source).toBe("model");
     expect(r.p_over).toBeCloseTo(0.65);
     expect(r.cal_note).toBe(LINE_CAL_REASONS[code]);
-    expect(pairLines(r).cal).toBeNull();
+    expect(calibratedLine(r)).toBeNull();
   });
 
   it("no_book_line is the plain sentence", () => {

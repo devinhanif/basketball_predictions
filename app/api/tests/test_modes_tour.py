@@ -71,16 +71,15 @@ def test_calibration_bins_add_up_and_carry_n(export_client: TestClient) -> None:
     d = export_client.get("/api/track-record/calibration").json()
     assert d["mode"] == "export"
     assert d["date_to"] <= "2024-11-11"  # tonight's unplayed games are not settled data
-    for name in ("props", "winners"):
-        s = d[name]
-        assert sum(b["n"] for b in s["bins"]) == s["n"] == s["overall"]["n"]
-        assert s["interval"].startswith("95%")
-        for b in s["bins"]:
-            assert b["enough"] == (b["n"] >= MIN_N and b["n_games"] >= MIN_GAMES)
-            if b["enough"]:
-                assert 0 <= b["lo95"] <= b["hi95"] <= 1
-            else:
-                assert b["lo95"] is None and b["hi95"] is None
+    s = d["winners"]
+    assert sum(b["n"] for b in s["bins"]) == s["n"] == s["overall"]["n"]
+    assert s["interval"].startswith("95%")
+    for b in s["bins"]:
+        assert b["enough"] == (b["n"] >= MIN_N and b["n_games"] >= MIN_GAMES)
+        if b["enough"]:
+            assert 0 <= b["lo95"] <= b["hi95"] <= 1
+        else:
+            assert b["lo95"] is None and b["hi95"] is None
     assert d["winners"]["n_games"] == d["winners"]["n"]  # one case per game
 
 
@@ -91,26 +90,35 @@ def test_calibration_is_deterministic_and_has_no_prices(export_client: TestClien
     _no_prices(a)
 
 
-def test_calibration_counts_what_it_leaves_out(export_client: TestClient) -> None:
-    d = export_client.get("/api/track-record/calibration").json()
-    ex = d["props"]["excluded"]
-    assert set(ex) == {"no_posted_line", "whole_number_line", "did_not_play"}
-    store = get_store()
-    scored = sum(
-        1
-        for s in store.slates.values()
-        for g in s["games"]
-        if g.get("result") is not None
-        for pl in g["players"]
-        for pr in pl["props"].values()
-    )
-    assert d["props"]["n"] + sum(ex.values()) == scored
+def test_no_season_prop_calibration_is_served(
+    client: TestClient, export_client: TestClient
+) -> None:
+    """LINE_CAL_LIVE forbids interim looks at calibrated outcomes: the prop block is the published
+    2024-25 record (T493) and a note, identical whatever games the store holds, with no bin,
+    count or interval computed from this season's props."""
+    a = client.get("/api/track-record/calibration").json()["props"]
+    b = export_client.get("/api/track-record/calibration").json()["props"]
+    assert a == b  # nothing in it depends on the loaded games
+    assert set(a) == {
+        "ledger_id", "season_label", "rule_sha8", "verdict", "source", "books", "interval",
+        "this_season",
+    }  # fmt: skip
+    assert a["ledger_id"] == "T493" and a["season_label"] == "2024-25"
+    assert "locked test" in a["this_season"] and "Dec 1" in a["this_season"]
+    for book in a["books"].values():
+        assert book["n"] > 1000 and book["games"] > 100
+        assert book["log_loss_cal_minus_raw"]["hi"] < 0
+        assert sum(x["n"] for x in book["bins"]) == book["n"]
+        assert all(set(x) == {"lo", "n", "said", "happened"} for x in book["bins"])
+    # and the settling endpoint pairs no model chance with an outcome
+    res = export_client.get("/api/slates/2024-11-11/results").json()
+    assert res["rows"] and not any(k.startswith("model") for r in res["rows"] for k in r)
 
 
 def test_calibration_works_on_the_fixtures(client: TestClient) -> None:
     d = client.get("/api/track-record/calibration").json()
     assert d["mode"] == "fixture_replay"
-    assert d["props"]["n"] > 0
+    assert d["winners"]["n"] > 0
     assert d["n_games_finished"] > 0
 
 
@@ -513,25 +521,20 @@ def test_a_zero_minutes_projection_is_no_projection() -> None:
 
 
 def _check_sources(d: dict[str, Any]) -> None:
-    for name in ("props", "winners"):
-        s = d[name]
-        assert s["sources"], name
-        assert sum(r["n"] for r in s["sources"]) == s["n"]
-        assert all(r["label"] and r["overall"]["n"] == r["n"] for r in s["sources"])
+    s = d["winners"]
+    assert s["sources"]
+    assert sum(r["n"] for r in s["sources"]) == s["n"]
+    assert all(r["label"] and r["overall"]["n"] == r["n"] for r in s["sources"])
 
 
 def test_calibration_says_the_model_source_on_the_fixtures(client: TestClient) -> None:
     d = client.get("/api/track-record/calibration").json()
     _check_sources(d)
-    assert [r["source"] for r in d["props"]["sources"]] == ["fixture"]
 
 
 def test_calibration_says_the_model_source_on_an_export(export_client: TestClient) -> None:
     d = export_client.get("/api/track-record/calibration").json()
     _check_sources(d)
-    assert {r["source"] for r in d["props"]["sources"]} <= {
-        "avg", "fallback_missing", "fallback_stale", "postseason", "legacy",
-    }  # fmt: skip
 
 
 # ------------------------------------------------------------------- a cold start

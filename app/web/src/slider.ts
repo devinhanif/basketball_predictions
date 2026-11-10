@@ -15,7 +15,6 @@ export const TAIL_NOTE = "tail: low confidence";
 export const PLAIN_MODEL_ONLY = "Model only: straight from the model, not adjusted.";
 export const PLAIN_CALIBRATED = "Calibrated: adjusted using how past lines like this one actually finished.";
 
-export const RAW_LABEL = "Model, raw";
 export const CAL_LABEL = "Model, calibrated";
 export const CAL_WHY = "adjusted for how past chances like this turned out";
 export const CAL_NO_LINE =
@@ -57,18 +56,15 @@ export function calibrationFooter(lineCal: LineCal | null | undefined, rungCal: 
   return parts.length === 0 ? null : `Calibration: ${parts.join("; ")}`;
 }
 
-/** The two plain-word lines that sit side by side: raw always, calibrated only when it exists. */
-export function pairLines(r: Pick<Reading, "p_raw" | "p_cal" | "cal_book" | "source">): { raw: string; cal: string | null } {
+/** The plain-word line for a calibrated number, or null when none exists. The model's own
+ * (uncalibrated) number is never printed beside it: where there is no calibrated number the screen
+ * shows the one number, labelled model only (PLAIN_MODEL_ONLY), and says why (cal_note). */
+export function calibratedLine(r: Pick<Reading, "p_cal" | "cal_book" | "source">): string | null {
+  if (r.p_cal === null) return null;
   const book = r.cal_book !== null ? bookName(r.cal_book) : "book";
-  return {
-    raw: `${RAW_LABEL}: ${pct(r.p_raw)}`,
-    cal:
-      r.p_cal === null
-        ? null
-        : r.source === "line_cal"
-          ? `${LINE_CAL_LABEL}: ${pct(r.p_cal)} (${LINE_CAL_WHY}, ${book} line, T493)`
-          : `${CAL_LABEL}: ${pct(r.p_cal)} (${CAL_WHY}; ${book} line)`,
-  };
+  return r.source === "line_cal"
+    ? `${LINE_CAL_LABEL}: ${pct(r.p_cal)} (${LINE_CAL_WHY}, ${book} line, T493)`
+    : `${CAL_LABEL}: ${pct(r.p_cal)} (${CAL_WHY}; ${book} line)`;
 }
 
 export function calibratedLabel(version: string): string {
