@@ -130,3 +130,59 @@ DECISIONS (draft):
 `| 2026-11-10 <time> | TEAMMATE_SITS pre-freeze adversary: NOT_READY (7 MUST, 7 SHOULD). G2 revised before freeze on label-free numbers. The hw bar leaves G2 (redundant with pass-line power) and becomes a CLOSED_TIE requirement (CI lower > floor), with sitter-shared noise tau = 1 added per BEST_PRACTICES 2026-10-20; disclosed as motivated by pts failing hw. O1's n is defined (FLOOR_UNREACHABLE: no live CRPS decision; POWER: n at power 0.8, closed if > 13,000 rows). Display condition on the k = 1 slice. | docs/reviews/teammate_sits_prefreeze_2026-11-10.md | The exact G2 rerun disagrees with the approximation for a stat (the rerun's answer under the revised text governs). |`
 
 Ledger: none (no result).
+
+---
+
+## Re-review (diff edc9662a..5179d07c, branch agent/modeler-teammate-sits-2), 2026-11-10
+
+**NOT_READY**: four small text edits, no rerun. After these edits the rule is ready to freeze without another review round, provided the diff touches only the four lines below.
+
+Verdict: BLOCKED
+
+Top finding: the revision copied my text faithfully, including the sentence I wrote for a state that no longer holds. Section 9 still says "exact rerun required before freeze" and still carries my approximate values, among them "fg3m 0.240" under "all pass". The exact rerun gives fg3m a shared slope se of **0.282, SLOPE_UNRESOLVED**. Frozen as is, the rule would state a fg3m slope pass that its own governing numbers contradict. O1 also tells fg3m that "the stat's slope word is its verdict", which is now empty. Separately, the G-DELTA guard (line 76) still forces "CLOSED_TIE by construction", which contradicts the new first-match words.
+
+### Checks
+
+| check | command | result | pass |
+|---|---|---|---|
+| body hash | `git show 4022228f:docs/prereg/TEAMMATE_SITS.md \| awk '/^=== RESULTS BELOW ===$/{exit} {print}' \| shasum -a 256`, same at 5179d07c | a007d9fe34a9e2cd... at both commits | PASS |
+| text before rerun | `git log -1 --format=%ci` 4022228f = 03:19:30; worktree `size.json` mtime 03:20:13; 5179d07c = 03:20:23 | revised rule committed before the rerun's output | PASS |
+| size.json identity | `shasum -a 256` of `git show 5179d07c:reports/prereg_teammate_sits/size.json` | 5a9a74d0630d4563... | PASS |
+| verbatim M1-M7, S1, S3 | scratch script: each `> ` block of this review searched as a substring of the revised file | all 8 quoted blocks found verbatim; constants block updated (HW_BAR gone, POWER_BAR, SHARED_TAU added); G-TIP and G-REGATE present | PASS |
+| S2 test | `tests/research/teammate_sits/test_scenario.py` planted test | now plants pts, minutes and starter on and after the date, plus a teammate's report row at tip - 59 (proxy19 in the synthetic league; the real-tip path is covered by G-TIP); asserts S rows, U rows and both vacancies unchanged | PASS |
+| gate code = text | read `gate.py::g2_stat` | oracle = -mean(ecg(U,S)); null = mean(ecg(S,U)); span = null - oracle; se_bind = max cluster se (5 draws, variance-averaged); se² = se_bind² + (τ·span)²/n_sit; line = min(FLOOR, -1.96 se); power = pass_power(oracle, line, se); slope se_sh = sqrt(se² + τ²/n_sit); FLOOR_UNREACHABLE checked before POWER. Matches section 9 and the added implementation sentence | PASS |
+| null = -oracle identity | derivation below; size.json: oracle + null for all 8 stat-seasons ∈ [-1.4e-17, +4.3e-18]; `CRPS_TAUS` = 199 midpoints (i-½)/N, symmetric (checked) | exact for this estimator | PASS |
+| tests / lint / types | worktree 5179d07c, `.venv-1`: `pytest -q tests/research/teammate_sits --no-cov -W ignore` → 11 passed, exit 0 (unpiped); `ruff check` exit 0; `ruff format --check` exit 0; `mypy research/teammate_sits` exit 0 | clean | PASS |
+
+**The identity.** With pinball CRPS on midpoint taus and Y drawn from G's own atoms, write ρ_τ(x) = ½|x| + (τ-½)x. Then A(F,G) := E_{Y~G} CRPS(F,Y) = M(F,G) - c(F), where M(F,G) is the mean over all atom pairs of |g - f| and c(F) = (2/N)Σ(τ_i - ½)f_i (the G term vanishes because Σ(τ_i - ½) = 0). For sorted atoms with τ_i = (i-½)/N, M(F,F) = (2/N²)Σ(2i-N-1)f_i = 2c(F). So oracle + null = [M(S,S) - 2c(S)] - [M(U,U) - 2c(U)] = 0 exactly. It is the energy-distance symmetry; with i/(N+1) taus it would be only approximate. Consequences: span = 2·|oracle|, the zero point is at w = 0.5, and my earlier single-draw null (+0.0356 for 2024 pts) was noise around +0.0329.
+
+**Exact G2, 2024 (gates):** pts PASS (oracle -0.03286, power 0.988, hw 0.0152, shared slope se 0.182); reb PASS (-0.00915, 0.951, 0.0049, 0.210); ast PASS (-0.00871, 0.937, 0.0048, 0.191); fg3m FLOOR_UNREACHABLE (-0.00270, power 0.005) and SLOPE_UNRESOLVED (0.282). n = 6,544 rows and 168 sitter-seasons per stat. Label-free sizing, no CIs. 2023 (not gating): all three PASS; fg3m FLOOR_UNREACHABLE with slope 0.238 (it would pass, but 2024 gates). The 5-draw slope se for fg3m (0.271 before shared noise) is higher than my single-draw 0.227. I accept the exact numbers; this is what the rule says governs.
+
+**The added implementation sentence:** accepted. It describes exactly what `g2_stat` does, it was committed before the rerun, and it is the right design: means exact, only the se uses draws. **Section 10 header** ("Choices (O1 decided by delegation; O2 open for Devin)"): accepted. It is accurate, and O2 is a display choice that does not block a freeze. **S4-S7 not applied:** S4/S5/S6 stay SHOULD. S7 matters only through the G-DELTA contradiction, handled as R2.
+
+### MUST edits (exact replacement text)
+
+**R1. Section 9, in the G2 paragraph:** replace `REVISED before freeze, see the disclosure below; exact rerun required before freeze).` with `REVISED before freeze, see the disclosure below; re-measured exactly at 03:20 under the revised text, which was committed first at 4022228f).` Then replace everything from `Approximate values (adversary, from size.json, single-draw null):` through `whatever they say under this text is the gate.` with:
+
+> Exact values (rerun 2026-11-10 03:20, commit 5179d07c, `size.json` sha256 5a9a74d0630d4563f4cb04017f559a3ef1073c2c3fb75da16ff99815932e3b10), 2024, n = 6,544 rows and 168 sitter-seasons per stat: CRPS G2 pts PASS (oracle -0.03286, power 0.988), reb PASS (-0.00915, 0.951), ast PASS (-0.00871, 0.937), fg3m FLOOR_UNREACHABLE (-0.00270); slope G2 (shared se) pts 0.182, reb 0.210, ast 0.191 PASS, fg3m 0.282 SLOPE_UNRESOLVED. These are the gate. The exact null expected gain equals minus the oracle gain (an identity of this CRPS estimator on midpoint taus), so span = 2·|oracle|.
+
+**R2. Section 7, replace the G-DELTA bullet (line 76) with:**
+
+> - G-DELTA: on 2024, the share of rows with |delta_mean| > 0 is reported per stat, for information. It assigns no word: rule line 5 decides. A stat whose heads ignore vacancy has S = U on every row, so its CI is [0, 0] and line 5 already gives CLOSED_TIE.
+
+**R3. Section 10, O1 bullet:** replace `so no live CRPS decision is made, and the stat's slope word is its verdict.` with:
+
+> so no live CRPS decision is made, and the stat's slope word, if its slope G2 passes, is its verdict. fg3m's slope G2 does not pass (2024 shared slope se 0.282 > 0.25), so this rule gives fg3m no word; its lines are descriptive.
+
+**R4. Section 8:** replace `A CLOSED_TIE on all four stats closes` with `A CLOSED_TIE on every stat that is not UNRESOLVED closes` (otherwise the kill criterion can never fire while fg3m is UNRESOLVED).
+
+### SHOULD
+- `size.json` has no provenance block (only `by_season`). Add `made_at`, the git sha, the rule body hash and `data_version` in the next harness touch; until then the freeze commit cites sha 5a9a74d0.
+- The section 9 runtime note ("8 LightGBM fits ... 5-15 minutes") is stale (the run took about 35 s); cosmetic.
+- S4 (shuffle guard), S5 (playoff slice), S6 (live confirmation n) stand as advised.
+
+### Playbook check (delta)
+Unchanged from the first review. The new identity strengthens test validity: the null world is now exact, not one draw. For fg3m, a FLOOR_UNREACHABLE plus SLOPE_UNRESOLVED result is "this rule cannot answer for fg3m", which is not a null about fg3m.
+
+### Drafted DECISIONS row (not appended)
+`| 2026-11-10 <time> | TEAMMATE_SITS re-review (diff edc9662a..5179d07c): M1-M7 and S1-S3 verbatim; null = -oracle identity confirmed (exact on midpoint taus); gate code matches text; exact 2024 G2: pts/reb/ast PASS, fg3m FLOOR_UNREACHABLE + SLOPE_UNRESOLVED. NOT_READY on four stale-text edits (R1-R4: section 9 exact values, G-DELTA word, O1 fg3m, kill criterion); freeze after those without another round. | docs/reviews/teammate_sits_prefreeze_2026-11-10.md | A diff beyond R1-R4 before freeze. |`
