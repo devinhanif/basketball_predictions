@@ -719,6 +719,15 @@ def tick_line(rep: dict[str, Any]) -> str:
             flags.append(f"cards_state_skipped={cd['state_skipped']}")
         if cd.get("no_webhook_teams"):
             flags.append(f"cards_no_webhook={len(cd['no_webhook_teams'])}")
+        pc = cd.get("player_checkpoints")
+        if isinstance(pc, dict):
+            if pc.get("posted"):
+                flags.append(f"pcp={pc['posted']}posted")
+            for k in ("skipped_late", "deferred", "failed", "lost_id"):
+                if pc.get(k):
+                    flags.append(f"pcp_{k}={pc[k]}")
+            if pc.get("errors"):
+                flags.append(f"pcp_error={pc['errors'][0]}")
     hs = rep.get("ht_scorer")
     if hs:
         flags.append(f"ht_scored={hs['stored']}rows/{hs['games']}games")

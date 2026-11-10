@@ -231,6 +231,19 @@ team_cards:                     # per-team Discord live cards (nba/jarvis/cards;
   bar_width: 10                 # characters in the progress bar
   rate_budget_s: 20             # most seconds one tick may wait on Discord rate limits; past it the edit is deferred to the next tick
   tick_budget_s: 25             # ONE wall-clock budget for the whole card pass, network time included; after it (or the first network error or 5xx) the rest wait for the next tick
+  player_checkpoints:           # one silent message per team per checkpoint, one line per likely player (Devin, 2026-11-10); delivery and formatting ONLY
+    # Posted at T-180, T-30 and T-5 minutes before the REAL tip; never at or after tip; never edited. Prices, edges and fees come
+    # from the same code path as the cards (facts.priced_lines -> single_candidate). With no team webhooks the pass is a no-op.
+    enabled: true
+    minutes: [180, 30, 5]
+    min_p_play: 0.5             # list a player whose model P(plays) is at least this; anyone whose status changed is always listed
+    lateness_tolerance_min: {180: 10, 30: 6, 5: 3}   # a tick inside [T-k, T-k + tolerance] posts; later than that the checkpoint is skipped and logged, never posted late
+    after_tip_guard_min: 1      # the window also closes this many minutes before tip
+    state: data/jarvis/player_checkpoints_state.jsonl   # append-only: one record per (game, team, checkpoint), with the snapshot the next one diffs against
+    proj_move: {pts: 0.5, reb: 0.3, ast: 0.3, fg3m: 0.2, minutes: 1.0}   # "projection up/down" shows at or above these moves
+    p_play_move: 0.05           # chance-to-play move worth a mention
+    price_move_c: 2             # ask move (cents) worth a mention
+    starters_from_min: 30       # confirmed starter / bench flags from this checkpoint on (lineups are not out earlier)
   overview_post: true           # one short overview in the main channel the first time cards go up for the date
   state: data/jarvis/cards_state.jsonl     # append-only: message ids per game and team
   picks: data/jarvis/card_picks.jsonl      # append-only: every over a card showed, at the price shown first, and its settlement

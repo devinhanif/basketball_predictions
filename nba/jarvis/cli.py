@@ -161,8 +161,12 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--dry-run", action="store_true", help="accepted for symmetry; this never sends")
     c.add_argument("--preview", action="store_true", help="also write cards.json + cards.html")
     c.add_argument("--out", help="preview directory (default data/jarvis/card_preview/<date>)")
-    c.add_argument("--phase", choices=["pretip", "live", "halftime", "final"],
-                   help="render every game in this phase (a demo of the later cards)")  # fmt: skip
+    c.add_argument("--phase", choices=["pretip", "live", "halftime", "final", "players"],
+                   help="render every game in this phase (a demo of the later cards); 'players' is "
+                   "the per-player checkpoint message (--checkpoint), never sent")  # fmt: skip
+    c.add_argument("--checkpoint", type=int, default=30,
+                   help="with --phase players: the checkpoint to render, minutes before tip "
+                   "(180, 30 or 5)")  # fmt: skip
     c.add_argument("--game", help='only this matchup, e.g. "LAL@LAC"')
     c.add_argument(
         "--at", help="render as of this UTC moment (naive ISO), e.g. 2026-11-10T01:30:00"
@@ -330,9 +334,14 @@ def cmd_cards(a: argparse.Namespace) -> int:
         rt.clock = lambda: moment
     st = build_state(rt, slate)
     pretip_at = datetime.fromisoformat(a.pretip_at).replace(tzinfo=None) if a.pretip_at else None
-    cards = PV.render_all(
-        rt, st, slate, rt.clock(), phase=a.phase, game=a.game, pretip_at=pretip_at
-    )
+    if a.phase == "players":
+        from nba.jarvis.cards.players import render_players
+
+        cards = render_players(rt, st, slate, rt.clock(), a.checkpoint, a.game)
+    else:
+        cards = PV.render_all(
+            rt, st, slate, rt.clock(), phase=a.phase, game=a.game, pretip_at=pretip_at
+        )
     secrets = list(wh.urls.values())
     print(PV.dumps(cards, secrets))
     slots = [t for c in cards for t in c["channels"]]
