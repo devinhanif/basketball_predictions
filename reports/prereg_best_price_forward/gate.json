@@ -1,0 +1,586 @@
+{
+  "rule": "BEST_PRICE_FORWARD",
+  "status": "DRAFT gate; counts and label-free expectations only; no outcome read",
+  "generated_utc": "2026-11-10T03:17:41",
+  "data_version": "ec40abfa83e5",
+  "capture_versions": {
+    "live_book_odds_max_received_at": "2026-11-09 01:59:51.080458",
+    "kalshi_prices_max_ts": "2026-11-10 03:04:00"
+  },
+  "window_counted": {
+    "since": "2026-10-20",
+    "until": "2026-11-08"
+  },
+  "params": {
+    "delta": 0.03,
+    "stale_dev": 0.07,
+    "book_max_last_update_min": 60.0,
+    "kalshi_max_age_min": 20.0,
+    "min_p_play": 0.9,
+    "min_venues": 2,
+    "u1": [
+      "betmgm",
+      "betrivers",
+      "draftkings",
+      "fanatics",
+      "fanduel",
+      "williamhill_us",
+      "kalshi"
+    ],
+    "other_venues_counted_only": [
+      "pinnacle",
+      "bovada",
+      "betonlineag",
+      "polymarket",
+      "novig",
+      "prophetx",
+      "betopenly"
+    ],
+    "cal_book": "pinnacle",
+    "map_sha256": "443743a1543fe5fbaaf97bd072bf6fba56e172edbca5839cd1eb85d711349b25",
+    "snapshot": "t60",
+    "fee_coef": 0.07
+  },
+  "games": {
+    "scheduled_season_2026_in_window": 146,
+    "with_t60_stamp": 135,
+    "with_production_rows_at_or_before_E": 135
+  },
+  "rows": {
+    "pred_rows": 18508,
+    "rows_ge2_venues": 4389,
+    "p_play_below_0.90_or_missing": 11524,
+    "no_us_book_two_sided_x5": 2480,
+    "fewer_than_2_u1_venues_after_stale": 115
+  },
+  "venue_rows_with_any_two_sided_quote": {
+    "fanduel": 4019,
+    "betrivers": 4324,
+    "betmgm": 3668,
+    "draftkings": 4356,
+    "williamhill_us": 3689,
+    "betonlineag": 4501,
+    "bovada": 4176,
+    "pinnacle": 3405,
+    "novig": 4607,
+    "prophetx": 4488,
+    "polymarket": 3175,
+    "kalshi": 4027,
+    "fanatics": 417,
+    "betopenly": 22
+  },
+  "venue_rows_quoting_reference_point": {
+    "fanduel": 3667,
+    "betrivers": 3753,
+    "betmgm": 3164,
+    "draftkings": 4006,
+    "williamhill_us": 3536,
+    "betonlineag": 4060,
+    "bovada": 4171,
+    "pinnacle": 2797,
+    "novig": 4429,
+    "prophetx": 4313,
+    "polymarket": 2141,
+    "kalshi": 2068,
+    "fanatics": 385,
+    "betopenly": 22
+  },
+  "u1_venues_after_stale_filter_hist": {
+    "0": 11,
+    "1": 104,
+    "2": 206,
+    "3": 603,
+    "4": 1072,
+    "5": 1255,
+    "6": 1108,
+    "7": 145
+  },
+  "stale_dropped": {
+    "draftkings_consensus_dev": 8,
+    "kalshi_consensus_dev": 15,
+    "betrivers_consensus_dev": 4,
+    "betmgm_consensus_dev": 1
+  },
+  "book_last_update_age_min_at_E": {
+    "p5": 0.1,
+    "p25": 0.3,
+    "p50": 0.5,
+    "p75": 0.9,
+    "p95": 1.6,
+    "n": 41133.0
+  },
+  "kalshi_snapshot_age_min_at_E": {
+    "p5": 0.2,
+    "p25": 3.9,
+    "p50": 9.4,
+    "p75": 12.9,
+    "p95": 15.0,
+    "n": 2068.0
+  },
+  "cal_arm": {
+    "arm": "cal",
+    "n_picks": 2129,
+    "n_games": 135,
+    "n_dates": 19,
+    "first_date": "2026-10-20",
+    "last_date": "2026-11-08",
+    "picks_per_game": 15.77,
+    "by_stat": {
+      "fg3m": 570,
+      "reb": 636,
+      "pts": 349,
+      "ast": 574
+    },
+    "by_side": {
+      "under": 1527,
+      "over": 602
+    },
+    "venues_per_pick": {
+      "2": 119,
+      "3": 305,
+      "4": 495,
+      "5": 591,
+      "6": 542,
+      "7": 77
+    },
+    "venue_coverage_of_picks": {
+      "betmgm": {
+        "n": 1566,
+        "share": 0.7356
+      },
+      "betrivers": {
+        "n": 1768,
+        "share": 0.8304
+      },
+      "draftkings": {
+        "n": 1919,
+        "share": 0.9014
+      },
+      "fanatics": {
+        "n": 196,
+        "share": 0.0921
+      },
+      "fanduel": {
+        "n": 1728,
+        "share": 0.8116
+      },
+      "williamhill_us": {
+        "n": 1630,
+        "share": 0.7656
+      },
+      "kalshi": {
+        "n": 1072,
+        "share": 0.5035
+      }
+    },
+    "best_venue_counts": {
+      "betrivers": 327,
+      "draftkings": 492,
+      "betmgm": 423,
+      "fanduel": 467,
+      "kalshi": 272,
+      "williamhill_us": 128,
+      "fanatics": 20
+    },
+    "draftkings_comparator": {
+      "n": 1919,
+      "share": 0.9014,
+      "mean_price_gain_best_over_dk": 0.0332,
+      "share_best_strictly_better_than_dk": 0.7249
+    },
+    "kalshi": {
+      "n_picks_kalshi_quoted": 1072,
+      "n_maker_possible": 415
+    },
+    "label_free_expectations": {
+      "roi_if_consensus_true": -0.0325,
+      "roi_if_cal_true": 0.0955,
+      "note": "expectations over declared truths, not outcomes"
+    },
+    "per_date": {
+      "2026-10-20": {
+        "picks": 59,
+        "games": 2
+      },
+      "2026-10-21": {
+        "picks": 180,
+        "games": 9
+      },
+      "2026-10-22": {
+        "picks": 22,
+        "games": 1
+      },
+      "2026-10-23": {
+        "picks": 79,
+        "games": 5
+      },
+      "2026-10-24": {
+        "picks": 118,
+        "games": 8
+      },
+      "2026-10-25": {
+        "picks": 112,
+        "games": 7
+      },
+      "2026-10-26": {
+        "picks": 121,
+        "games": 9
+      },
+      "2026-10-27": {
+        "picks": 64,
+        "games": 4
+      },
+      "2026-10-28": {
+        "picks": 196,
+        "games": 12
+      },
+      "2026-10-29": {
+        "picks": 46,
+        "games": 3
+      },
+      "2026-10-30": {
+        "picks": 158,
+        "games": 10
+      },
+      "2026-10-31": {
+        "picks": 95,
+        "games": 7
+      },
+      "2026-11-01": {
+        "picks": 68,
+        "games": 4
+      },
+      "2026-11-02": {
+        "picks": 202,
+        "games": 15
+      },
+      "2026-11-04": {
+        "picks": 201,
+        "games": 14
+      },
+      "2026-11-05": {
+        "picks": 36,
+        "games": 2
+      },
+      "2026-11-06": {
+        "picks": 157,
+        "games": 9
+      },
+      "2026-11-07": {
+        "picks": 114,
+        "games": 7
+      },
+      "2026-11-08": {
+        "picks": 101,
+        "games": 7
+      }
+    },
+    "pick_side_agrees_raw_vs_cal": 0.8008
+  },
+  "raw_arm": {
+    "arm": "raw",
+    "n_picks": 3407,
+    "n_games": 135,
+    "n_dates": 19,
+    "first_date": "2026-10-20",
+    "last_date": "2026-11-08",
+    "picks_per_game": 25.237,
+    "by_stat": {
+      "fg3m": 772,
+      "reb": 877,
+      "pts": 1015,
+      "ast": 743
+    },
+    "by_side": {
+      "under": 2719,
+      "over": 688
+    },
+    "venues_per_pick": {
+      "2": 166,
+      "3": 472,
+      "4": 825,
+      "5": 1003,
+      "6": 829,
+      "7": 112
+    },
+    "venue_coverage_of_picks": {
+      "betmgm": {
+        "n": 2421,
+        "share": 0.7106
+      },
+      "betrivers": {
+        "n": 2865,
+        "share": 0.8409
+      },
+      "draftkings": {
+        "n": 3074,
+        "share": 0.9023
+      },
+      "fanatics": {
+        "n": 304,
+        "share": 0.0892
+      },
+      "fanduel": {
+        "n": 2831,
+        "share": 0.8309
+      },
+      "williamhill_us": {
+        "n": 2789,
+        "share": 0.8186
+      },
+      "kalshi": {
+        "n": 1537,
+        "share": 0.4511
+      }
+    },
+    "best_venue_counts": {
+      "betrivers": 541,
+      "draftkings": 883,
+      "betmgm": 754,
+      "fanduel": 682,
+      "kalshi": 291,
+      "williamhill_us": 227,
+      "fanatics": 29
+    },
+    "draftkings_comparator": {
+      "n": 3074,
+      "share": 0.9023,
+      "mean_price_gain_best_over_dk": 0.0276,
+      "share_best_strictly_better_than_dk": 0.6942
+    },
+    "kalshi": {
+      "n_picks_kalshi_quoted": 1537,
+      "n_maker_possible": 587
+    },
+    "label_free_expectations": {
+      "roi_if_consensus_true": -0.0349,
+      "roi_if_cal_true": 0.0355,
+      "note": "expectations over declared truths, not outcomes"
+    },
+    "per_date": {
+      "2026-10-20": {
+        "picks": 77,
+        "games": 2
+      },
+      "2026-10-21": {
+        "picks": 246,
+        "games": 9
+      },
+      "2026-10-22": {
+        "picks": 32,
+        "games": 1
+      },
+      "2026-10-23": {
+        "picks": 122,
+        "games": 5
+      },
+      "2026-10-24": {
+        "picks": 184,
+        "games": 8
+      },
+      "2026-10-25": {
+        "picks": 191,
+        "games": 7
+      },
+      "2026-10-26": {
+        "picks": 201,
+        "games": 9
+      },
+      "2026-10-27": {
+        "picks": 114,
+        "games": 4
+      },
+      "2026-10-28": {
+        "picks": 298,
+        "games": 12
+      },
+      "2026-10-29": {
+        "picks": 61,
+        "games": 3
+      },
+      "2026-10-30": {
+        "picks": 262,
+        "games": 10
+      },
+      "2026-10-31": {
+        "picks": 170,
+        "games": 7
+      },
+      "2026-11-01": {
+        "picks": 115,
+        "games": 4
+      },
+      "2026-11-02": {
+        "picks": 365,
+        "games": 15
+      },
+      "2026-11-04": {
+        "picks": 338,
+        "games": 14
+      },
+      "2026-11-05": {
+        "picks": 56,
+        "games": 2
+      },
+      "2026-11-06": {
+        "picks": 234,
+        "games": 9
+      },
+      "2026-11-07": {
+        "picks": 163,
+        "games": 7
+      },
+      "2026-11-08": {
+        "picks": 178,
+        "games": 7
+      }
+    },
+    "pick_side_agrees_raw_vs_cal": null
+  },
+  "power_cal_arm": {
+    "consensus": {
+      "expected_roi": -0.0324,
+      "per_game_sd": 0.2647,
+      "per_date_sd": 0.0938,
+      "by_games": {
+        "150": {
+          "picks": 2366,
+          "se_game": 0.0216,
+          "se_date": 0.0204,
+          "half_width_96": 0.0444,
+          "half_width_99": 0.0557,
+          "p_lower96_gt_0": 0.0,
+          "p_upper96_lt_floor": 0.464
+        },
+        "300": {
+          "picks": 4731,
+          "se_game": 0.0153,
+          "se_date": 0.0144,
+          "half_width_96": 0.0314,
+          "half_width_99": 0.0394,
+          "p_lower96_gt_0": 0.0,
+          "p_upper96_lt_floor": 0.765
+        },
+        "500": {
+          "picks": 7885,
+          "se_game": 0.0118,
+          "se_date": 0.0112,
+          "half_width_96": 0.0243,
+          "half_width_99": 0.0305,
+          "p_lower96_gt_0": 0.0,
+          "p_upper96_lt_floor": 0.937
+        },
+        "700": {
+          "picks": 11039,
+          "se_game": 0.01,
+          "se_date": 0.0094,
+          "half_width_96": 0.0205,
+          "half_width_99": 0.0258,
+          "p_lower96_gt_0": 0.0,
+          "p_upper96_lt_floor": 0.986
+        }
+      }
+    },
+    "cal": {
+      "expected_roi": 0.0951,
+      "per_game_sd": 0.2642,
+      "per_date_sd": 0.0949,
+      "by_games": {
+        "150": {
+          "picks": 2366,
+          "se_game": 0.0216,
+          "se_date": 0.0207,
+          "half_width_96": 0.0443,
+          "half_width_99": 0.0556,
+          "p_lower96_gt_0": 0.991,
+          "p_upper96_lt_floor": 0.0
+        },
+        "300": {
+          "picks": 4731,
+          "se_game": 0.0153,
+          "se_date": 0.0146,
+          "half_width_96": 0.0313,
+          "half_width_99": 0.0393,
+          "p_lower96_gt_0": 1.0,
+          "p_upper96_lt_floor": 0.0
+        },
+        "500": {
+          "picks": 7885,
+          "se_game": 0.0118,
+          "se_date": 0.0113,
+          "half_width_96": 0.0243,
+          "half_width_99": 0.0304,
+          "p_lower96_gt_0": 1.0,
+          "p_upper96_lt_floor": 0.0
+        },
+        "700": {
+          "picks": 11039,
+          "se_game": 0.01,
+          "se_date": 0.0096,
+          "half_width_96": 0.0205,
+          "half_width_99": 0.0257,
+          "p_lower96_gt_0": 1.0,
+          "p_upper96_lt_floor": 0.0
+        }
+      }
+    }
+  },
+  "projection": {
+    "window_start": "2026-11-11",
+    "read1": {
+      "last_tip_date": "2027-01-13",
+      "scheduled_games": 414,
+      "scheduled_dates": 54,
+      "by_capture_fraction": {
+        "1.0": {
+          "games": 414,
+          "dates": 54,
+          "picks": 6529
+        },
+        "0.8": {
+          "games": 331,
+          "dates": 43,
+          "picks": 5223
+        },
+        "0.72": {
+          "games": 298,
+          "dates": 39,
+          "picks": 4701
+        },
+        "0.6": {
+          "games": 248,
+          "dates": 32,
+          "picks": 3917
+        }
+      }
+    },
+    "read2": {
+      "last_tip_date": "2027-04-12",
+      "scheduled_games": 1040,
+      "scheduled_dates": 135,
+      "by_capture_fraction": {
+        "1.0": {
+          "games": 1040,
+          "dates": 135,
+          "picks": 16401
+        },
+        "0.8": {
+          "games": 832,
+          "dates": 108,
+          "picks": 13121
+        },
+        "0.72": {
+          "games": 749,
+          "dates": 97,
+          "picks": 11809
+        },
+        "0.6": {
+          "games": 624,
+          "dates": 81,
+          "picks": 9840
+        }
+      }
+    }
+  },
+  "wall_s": 6.5
+}
