@@ -93,6 +93,16 @@ def test_a_recycled_pid_with_another_start_time_is_a_stale_lock(tmp_path: Path) 
     assert not lock.exists()
 
 
+def test_a_live_pid_with_no_recorded_start_time_keeps_the_lock(tmp_path: Path) -> None:
+    """Re-review R3: a lock from an older launcher (pid only), or caught between the two writes."""
+    lock = tmp_path / "root/data/ops/kalshi_candles_lock"
+    lock.mkdir(parents=True)
+    (lock / "pid").write_text(str(os.getpid()))
+    assert _run(tmp_path, "start first tip").returncode == 0
+    assert _launched(tmp_path) == []
+    assert lock.exists()
+
+
 def test_slate_date_is_the_et_date_of_now_minus_six_hours() -> None:
     """Review F7: a poller that crashed at 00:30 ET must be restarted for the day it belongs to."""
     code = "\n".join(

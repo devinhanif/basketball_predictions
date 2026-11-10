@@ -6,9 +6,10 @@ the first tip until every dated game market has closed (hard stop: last tip +
 
 * one ``GET /markets?series_ticker=S&status=open`` page per due series (game winners every 15 s,
   spreads/totals every 60 s): yes bid/ask, last, cumulative volume, open interest, slate date;
-* no trade requests: the 15 s candles are built from the prints the live capture already stores
-  (``data/raw/live_<date>/kalshi_trades``, read-only, deduplicated on trade id), so this job
-  only adds the 15 s book.
+* ``GET /markets/trades`` for the few game tickers whose cumulative volume rose (bounded: 8
+  tickers x 2 pages a poll, a budget reserve left for the quote polls). The 15 s candles are
+  built from these prints united with the live capture's (``data/raw/live_<date>/kalshi_trades``,
+  read-only), one row per trade id; the reconciliation reports the coverage of each source.
 
 Read-only by construction: it uses ``KalshiClient`` (plain unauthenticated GETs; no order,
 portfolio or credential path exists). Raw is write-once parquet, one file per poll and series
@@ -112,7 +113,14 @@ class PollConfig:
     quiet_min: float = 10.0
     quiet_polls_to_finish: int = 3
     min_interval_s: float = 0.5
-    max_requests_per_minute: int = 30
+    max_requests_per_minute: int = 60
+    #: own bounded /markets/trades pulls for the game series (the prints behind the candles)
+    trades_enabled: bool = True
+    trades_series: tuple[str, ...] = ("KXNBAGAME",)
+    trades_max_tickers: int = 8
+    trades_max_pages: int = 2
+    #: trade pulls leave this many budget slots free for the quote polls of the same minute
+    trades_budget_reserve: int = 10
     jitter_s: float = 1.0
     backoff_base_s: float = 15.0
     backoff_max_s: float = 240.0
@@ -143,7 +151,12 @@ def load_config(path: Path = DEFAULT_CONFIG) -> PollConfig:
         quiet_min=float(raw.get("quiet_min", 10)),
         quiet_polls_to_finish=int(raw.get("quiet_polls_to_finish", 3)),
         min_interval_s=float(raw.get("min_interval_s", 0.5)),
-        max_requests_per_minute=int(raw.get("max_requests_per_minute", 30)),
+        max_requests_per_minute=int(raw.get("max_requests_per_minute", 60)),
+        trades_enabled=bool((raw.get("trades") or {}).get("enabled", True)),
+        trades_series=tuple((raw.get("trades") or {}).get("series", ["KXNBAGAME"])),
+        trades_max_tickers=int((raw.get("trades") or {}).get("max_tickers_per_poll", 8)),
+        trades_max_pages=int((raw.get("trades") or {}).get("max_pages", 2)),
+        trades_budget_reserve=int((raw.get("trades") or {}).get("budget_reserve", 10)),
         jitter_s=float(raw.get("jitter_s", 1.0)),
         backoff_base_s=float(raw.get("backoff_base_s", 15)),
         backoff_max_s=float(raw.get("backoff_max_s", 240)),
@@ -363,11 +376,12 @@ class RequestBudget:
         while self._stamps and now - self._stamps[0] >= 60.0:
             self._stamps.popleft()
 
-    def take(self) -> bool:
-        """Reserve one request; False when it would exceed the budget."""
+    def take(self, reserve: int = 0) -> bool:
+        """Reserve one request; False when it would exceed the budget, or when fewer than
+        ``reserve`` slots would stay free (low priority: room is left for quote polls)."""
         now = self.clock()
         self._trim(now)
-        if len(self._stamps) >= self.per_minute:
+        if len(self._stamps) + reserve >= self.per_minute:
             return False
         self._stamps.append(now)
         return True
@@ -394,10 +408,16 @@ class _State:
     quiet: int = 0
     quiet_since: datetime | None = None
     last_success: datetime | None = None
+    last_ok_poll: datetime | None = None
+    trade_rows: int = 0
     last_error: str = ""
     quote_rows: int = 0
     skipped_budget: int = 0
     last_poll: dict[str, datetime] = field(default_factory=dict)
+    volumes: dict[str, float] = field(default_factory=dict)
+    pending: dict[str, float] = field(default_factory=dict)  # ticker -> volume jump awaiting a pull
+    last_trade_ts: dict[str, int] = field(default_factory=dict)
+    seen_ids: dict[str, set[str]] = field(default_factory=dict)
 
 
 class Poller:
@@ -427,6 +447,8 @@ class Poller:
         self.start_ts = self.now()
         #: the night's quote rows as polars frames per series (columnar, not dicts)
         self.qframes: dict[str, list[pl.DataFrame]] = {}
+        #: this job's own prints (``/markets/trades``), columnar
+        self.tframes: list[pl.DataFrame] = []
         self.capture_root = capture_root
         self.capture: Any = None  # candles15.CaptureTrades, created on first use
         self.status = "waiting"
@@ -449,6 +471,8 @@ class Poller:
             "start_ts": self.start_ts.isoformat(),
             "last_tick_ts": self.now().isoformat(),
             "last_success_ts": st.last_success.isoformat() if st.last_success else None,
+            "last_ok_poll_ts": st.last_ok_poll.isoformat() if st.last_ok_poll else None,
+            "trade_rows": st.trade_rows,
             "polls": st.polls,
             "requests": self.client.requests,
             "errors": st.errors,
@@ -476,8 +500,8 @@ class Poller:
                 fh.write(f"{self.now().isoformat()} {what}\n")
 
     # -------------------------------------------------------------- requests
-    def _call(self, fn: Callable[[], dict[str, Any]]) -> dict[str, Any]:
-        if not self.budget.take():
+    def _call(self, fn: Callable[[], dict[str, Any]], reserve: int = 0) -> dict[str, Any]:
+        if not self.budget.take(reserve):
             self.st.skipped_budget += 1
             raise BudgetExhausted
         before = self.client.requests
@@ -567,14 +591,101 @@ class Poller:
             if rows is None:
                 continue
             if series == game_series:
+                st.last_ok_poll = now  # any successful game poll, empty or not (watchdog)
                 self._note_quiet(now, rows)
             if rows:
                 self.store.write("quotes", self.now(), series, rows, QUOTE_SCHEMA)
                 self.qframes.setdefault(series, []).append(pl.DataFrame(rows, schema=QUOTE_SCHEMA))
                 st.quote_rows += len(rows)
+            if self.cfg.trades_enabled and series in self.cfg.trades_series and rows:
+                self.pull_trades(rows)
         st.polls += 1
         if self.cfg.export_every_polls and st.polls % self.cfg.export_every_polls == 0:
             self.export()
+
+    # -------------------------------------------------------------- own prints
+    def pull_trades(self, rows: list[dict[str, Any]]) -> None:
+        """Prints for the game tickers whose cumulative volume rose (largest jump first, at most
+        ``trades_max_tickers`` a poll, two pages each, budget reserve left for the quote polls)."""
+        st = self.st
+        for r in rows:
+            vol = r["volume"]
+            if vol is None:
+                continue
+            prev = st.volumes.get(r["ticker"])
+            if prev is not None and vol > prev:
+                st.pending[r["ticker"]] = st.pending.get(r["ticker"], 0.0) + (vol - prev)
+            st.volumes[r["ticker"]] = max(vol, prev or 0.0)
+        order = sorted(st.pending, key=lambda t: (-st.pending[t], t))[: self.cfg.trades_max_tickers]
+        batch: list[dict[str, Any]] = []
+        done: list[str] = []
+        try:
+            for ticker in order:
+                if st.cooldown_until and self.now() < st.cooldown_until:
+                    break
+                got, complete = self._pull_ticker_trades(ticker)
+                batch += got
+                if complete:
+                    done.append(ticker)
+        finally:  # one file per poll; ids are remembered only after the write
+            if batch:
+                fetched_at = self.now()
+                self.store.write("trades", fetched_at, "poll", batch, TRADE_SCHEMA)
+                self.tframes.append(pl.DataFrame(batch, schema=TRADE_SCHEMA))
+                st.trade_rows += len(batch)
+                self._remember_trades(batch)
+            for ticker in done:
+                st.pending.pop(ticker, None)
+
+    def _pull_ticker_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
+        """(new prints, complete). Incomplete = a page cap or a failed/denied request: the prints
+        older than the newest fetched one may be missing, which is logged, never papered over."""
+        st = self.st
+        min_ts = st.last_trade_ts.get(ticker, int(self.window_start.timestamp()))
+        seen = st.seen_ids.get(ticker, set())
+        new: list[Mapping[str, Any]] = []
+        cursor: str | None = None
+        complete = True
+        for page_n in range(self.cfg.trades_max_pages):
+            try:
+                page = self._call(
+                    lambda c=cursor: self.client.fetch_trades_page(  # type: ignore[misc]
+                        ticker, min_ts=min_ts, cursor=c
+                    ),
+                    reserve=self.cfg.trades_budget_reserve,
+                )
+            except BudgetExhausted:
+                return [], False
+            except Exception as exc:
+                self._fail(exc)
+                return [], False
+            new += [t for t in page.get("trades", []) if t.get("trade_id") not in seen]
+            cursor = str(page.get("cursor") or "") or None
+            if not cursor:
+                break
+            if page_n == self.cfg.trades_max_pages - 1:
+                complete = False
+                self.log_error(
+                    f"trades {ticker}: page cap hit, older prints than the fetched ones are missing"
+                )
+        return trade_rows(new, self.now()), complete
+
+    def _remember_trades(self, rows: Sequence[Mapping[str, Any]]) -> None:
+        for r in rows:
+            t = r["ticker"]
+            self.st.seen_ids.setdefault(t, set()).add(r["trade_id"])
+            ts = int(r["created_time"].timestamp())
+            self.st.last_trade_ts[t] = max(self.st.last_trade_ts.get(t, 0), ts)
+
+    def own_trades(self) -> pl.DataFrame:
+        return pl.concat(self.tframes) if self.tframes else pl.DataFrame(schema=TRADE_SCHEMA)
+
+    def all_trades(self) -> pl.DataFrame:
+        """Own prints united with the live capture's, one row per trade id (own first)."""
+        frames = [self.own_trades(), self.capture_trades()]
+        return pl.concat(
+            [f for f in frames if not f.is_empty()] or [pl.DataFrame(schema=TRADE_SCHEMA)]
+        ).unique(subset=["trade_id"], keep="first", maintain_order=True)
 
     def _quotes(self, series: Sequence[str]) -> pl.DataFrame:
         frames = [f for s in series for f in self.qframes.get(s, [])]
@@ -603,7 +714,7 @@ class Poller:
                 self.export_dir,
                 self.day,
                 self._quotes(self.cfg.export_series),
-                self.capture_trades(),
+                self.all_trades(),
                 bucket_s=self.cfg.bucket_s,
                 built_at=self.now(),
                 status="final" if final else "live",
@@ -632,6 +743,13 @@ class Poller:
         for (series,), part in q.partition_by("series", as_dict=True).items():
             self.qframes[str(series)] = [part]
         self.st.quote_rows = q.height
+        for tk, vol in q.group_by("ticker").agg(pl.col("volume").max()).iter_rows():
+            if vol is not None:
+                self.st.volumes[str(tk)] = float(vol)
+        t = self.store.load("trades", TRADE_SCHEMA)
+        self.tframes = [t] if not t.is_empty() else []
+        self.st.trade_rows = t.height
+        self._remember_trades(t.to_dicts())
         for name in self.store.quarantined:
             self.log_error(f"quarantined unreadable raw file {name} (renamed .bad)")
 
@@ -691,7 +809,8 @@ class Poller:
         try:
             from nba.kalshi import candles15
 
-            trades = self.capture_trades()
+            own, cap = self.own_trades(), self.capture_trades()
+            trades = self.all_trades()
             candles15.finalize_day(
                 self.client,
                 self.store,
@@ -701,6 +820,7 @@ class Poller:
                 self.now(),
                 self.budget,
                 trades=trades,
+                sources={"own": own, "capture": cap},
                 capture=self.capture,
                 export_dir=None,
                 beat=self.beat,
@@ -710,6 +830,7 @@ class Poller:
         self.export(final=True)  # after the reconciliation so the file carries it
         try:
             self.store.compact("quotes", QUOTE_SCHEMA, prune=True)
+            self.store.compact("trades", TRADE_SCHEMA, prune=True)
         except Exception as exc:
             self.log_error(f"compaction failed: {type(exc).__name__}: {str(exc)[:160]}")
         self.finalize_note = why
@@ -771,7 +892,10 @@ def problem(
     # while a game can still be on, the game series must keep returning slate rows
     if first <= now <= last + timedelta(minutes=cfg.quiet_after_tip_min):
         ok = _ts(hb.get("last_success_ts"))
-        since = ok or _ts(hb.get("start_ts")) or now
+        # once a slate row has been seen, a successful empty poll (a short night: the last market
+        # closed early) is a poller that is fine; before that, the night's start is the reference
+        since = (_ts(hb.get("last_ok_poll_ts")) or ok) if ok else _ts(hb.get("start_ts"))
+        since = since or now
         if (now - since).total_seconds() > cfg.last_success_max_s:
             what = "no slate row yet" if ok is None else f"last slate row {since:%H:%MZ}"
             mins = int((now - since).total_seconds() // 60)
@@ -849,7 +973,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     client = KalshiClient(rate_limiter=limiter, max_attempts=2, timeout_s=10.0)
     store = RawStore(a.store, day)
     if a.cmd == "compact":
-        print(json.dumps(store.compact("quotes", QUOTE_SCHEMA, prune=a.prune), sort_keys=True))
+        for kind, schema in (("quotes", QUOTE_SCHEMA), ("trades", TRADE_SCHEMA)):
+            print(json.dumps(store.compact(kind, schema, prune=a.prune), sort_keys=True))
         return 0
     poller = Poller(
         cfg,

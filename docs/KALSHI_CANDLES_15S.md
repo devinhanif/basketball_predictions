@@ -19,8 +19,8 @@ websocket code (non-negotiable 5).
 | Websockets | The connection itself requires API-key headers, **even for public channels** such as `ticker`. **Not used**: it would need a credential, which is forbidden | https://docs.kalshi.com/websockets/websocket-connection |
 
 Consequences. (1) 15 s candles are **derived by us**. (2) Unauthenticated limits are unknown, so the poller holds its own limits far below the
-authenticated Basic tier: at least 0.5 s between requests, a sliding budget of **30 HTTP requests per minute** (client retries count; steady load is
-6 a minute), jittered exponential cool-down on 429/5xx/transport errors (15 s doubling to 240 s). (3) The official 1-minute candles are pulled once
+authenticated Basic tier: at least 0.5 s between requests, a sliding budget of **60 HTTP requests per minute** (client retries count; steady load is
+6 a minute plus the trade pulls, which leave 10 slots free), jittered exponential cool-down on 429/5xx/transport errors (15 s doubling to 240 s). (3) The official 1-minute candles are pulled once
 after the games, for reconciliation only.
 
 ## 2. What runs
@@ -33,10 +33,8 @@ after the games, for reconciliation only.
   The launcher's slate date is the ET date of now minus 6 h, so a crash at 00:30 ET is restarted for the day it belongs to (F7).
 - **Per poll** (`configs/kalshi_candles.yaml`): `GET /markets?series_ticker=KXNBAGAME&status=open&limit=1000` every 15 s (one request returns every open
   game winner, filtered to the slate date from the event ticker); `KXNBASPREAD` and `KXNBATOTAL` every 60 s. Player props are **not** polled.
-- **No trade requests (F5).** The 15 s candles are built from the KXNBAGAME prints the **live capture** already stores
-  (`data/raw/live_<ET date>/kalshi_trades/*/*.json.gz`), read-only, incrementally, deduplicated on `trade_id`. One copy of the prints, one source of truth,
-  zero extra requests. **Caveat, measured below: tonight that store held about 13% of the official in-game volume.** The candles are only as complete as
-  the capture's trade pull.
+- **Trades (re-review R1b).** For the game-winner tickers whose cumulative `volume_fp` rose since the previous poll (largest jump first, at most 8 tickers and 2 pages a poll), `GET /markets/trades?ticker=T&min_ts=...`, deduplicated by trade id, one raw file per poll. Trade pulls need 10 free budget slots (`budget_reserve`), so a catch-up burst can never starve a quote poll. The candles use these prints **united with the live capture's** `kalshi_trades` store (read-only, `data/raw/live_<ET date>/...`), one row per trade id. Which source is better is measured, not assumed: the reconciliation reports coverage for each (`sources.own`, `sources.capture`) and for the union.
+- **Live coverage (R1a).** Each game market in the export carries `print_volume` (contracts in the prints held since our first poll), `book_volume_delta` (the book's cumulative volume change over the same span) and `print_coverage`, and the file a slate-level `coverage` with a 0.9 floor. A missing candle means "no print held"; below the floor the app shows it as unknown.
 - **Raw quotes are write-once parquet, one file per poll and series**, written with fsync before the rename (F1). A file that cannot be read back (power cut,
   full disk) is renamed `.bad`, logged to `errors.log` and the heartbeat (`quarantined`), and the night goes on. A restart reloads the night from disk.
 - **Every row carries** `fetched_at` (our clock, UTC, when the response arrived), `request_at`, `server_date` (Kalshi's HTTP `Date` header, whole seconds),
@@ -90,22 +88,23 @@ every night** (`minute_coverage`, `volume_coverage`, `official_minutes_missing_o
 |---|---|---|
 | Requests, game poll | 1,560 | 15 s over a 6.5 h window (23,400 s) |
 | Requests, spreads + totals | 780 | 60 s, two series |
+| Requests, trades (estimate) | about 1,500 to 12,500 | 1 to 8 tickers per poll with a volume rise (1 to 2 pages each); a quiet poll costs none; capped by the 60/min budget and its reserve |
 | Requests, 1-minute reconciliation | about 10 to 30 | one per game ticker |
-| **Total** | **about 2,400 to 2,500** | 0.1 requests per second; 30 per minute cap; the live capture sent 76,572 on 2026-11-09 as of 02:49Z |
+| **Total** | **about 4,000 typical, 15,000 ceiling** | 0.2 to 0.6 requests per second; the live capture sent 76,572 on 2026-11-09 as of 02:49Z |
 | Raw quotes during the night | about 20 MB in about 2,300 files | a game poll file is 7 KB (10 rows); a spread or total file 10 to 11 KB |
 | Raw quotes after finalize | about 1 to 4 MB in 1 file | measured 5x compaction: 565 rows, 98.6 KB as 12 files, 19.6 KB compacted |
-| Season | about 0.2 to 0.6 GB (about 165 nights) | no trade copy any more |
-| Live export `latest.json` (game winners only) | **6.4 MB, built in 1.4 s (1.2 s build + 0.2 s JSON) once a minute** | synthetic 12-game slate: 24 game tickers x 1,560 polls + 150,000 prints |
+| Season | about 0.4 to 1 GB after finalize (about 165 nights) | own prints about 24 bytes each, compacted with the quotes |
+| Live export `latest.json` (game winners only, with coverage) | **6.4 MB, built in about 0.5 s (0.24 s build + 0.24 s JSON) once a minute** | synthetic 12-game slate: 24 game tickers x 1,560 polls + 150,000 prints |
 | `<day>_lines.json`, once at the end | 3.4 MB, 0.6 s | 128 spread and total tickers x 390 polls |
 | Review's measurement before the fixes | 38.0 MB and 6.35 s every minute, 295 MB of Python dicts | all series in one file, per-ticker filters, dict rows |
-| CPU | about 2% of one core (1.4 s per 60 s) | frames are built by a concat of per-poll frames; no tracemalloc in the timing |
+| CPU | about 1% of one core (0.5 s per 60 s for the export) | frames are built by a concat of per-poll frames; no tracemalloc in the timing |
 
 ## 5. Dry-runs (read-only, scratch store; 2026-11-09 02:54Z to 03:05Z, before the review)
-Three runs (1, 5 and 8 polls) sent 3, 32 and 52 requests with no 429 and no HTTP or network error. Those runs also pulled trades (the old design); the trade code is gone.
+Three runs (1, 5 and 8 polls) sent 3, 32 and 52 requests with no 429 and no HTTP or network error. Those runs also pulled trades (the same code path as now, bounded).
 
 ## 6. Open items
 
-- **Capture completeness (above).** The decision: fix the capture's trade pull, or restore this job's own pulls (cost about 1.5k to 12.5k requests a night and a second copy of the prints).
+- **Which print source is better** is decided by the first clean night's `reconciliation.sources`. Own pulls cost about 1.5k to 12.5k requests a night; the capture's store is free but held 41% / 13% on 2026-11-09.
 - **Watchdog wiring** (ops owner, `nba/ops/watchdog.py`): call `nba.kalshi.poll15.problem(now, tips, hb, hb_time, day, cfg)` next to `live_capture_problem`, heartbeat
   `data/ops/heartbeat/kalshi_candles15.json`, with a never-installed guard like the live capture's.
 - **F9, due before April: playoffs and play-in are not polled.** `todays_tips` keeps regular-season game ids only, so `plan` returns `no_games` on those nights, which are the nights the chart
@@ -124,5 +123,5 @@ rm ~/Library/LaunchAgents/local.nba.kalshi-candles.plist
 rmdir data/ops/kalshi_candles_lock 2>/dev/null     # only if a poller was killed hard (the lock also holds pid + start time)
 ```
 The data stays (`data/kalshi/candles15/`, `data/export/kalshi_candles15/`, the heartbeat files); delete them at will, nothing else reads them. To revert the code: `git revert` the merge.
-`KalshiClient` changed backward-compatibly (new `max_attempts` argument defaulting to 4, a request counter, the last `Date` header, `fetch_trades_page` (now unused here); the retry loop no
+`KalshiClient` changed backward-compatibly (new `max_attempts` argument defaulting to 4, a request counter, the last `Date` header, `fetch_trades_page` (used by the bounded trade pull); the retry loop no
 longer sleeps after its final failed attempt, so `snapshot` gives up a failing series 8 s sooner; review F11, benign).

@@ -47,6 +47,7 @@ acquire_lock() {
   if mkdir "$LOCK" 2>/dev/null; then write_owner; return 0; fi
   owner=$(cat "$LOCK/pid" 2>/dev/null || true)
   if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then
+    [ -s "$LOCK/start" ] || return 1   # no start time recorded (older launcher, or mid-write): a live pid keeps the lock
     [ "$(start_of "$owner")" = "$(cat "$LOCK/start" 2>/dev/null || true)" ] && return 1
   fi
   rm -f "$LOCK/pid" "$LOCK/start"

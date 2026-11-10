@@ -7,8 +7,8 @@ calls: no swing-chasing).
 Two candle kinds, never blended:
 
 * ``candles`` -- TRUE candles from executed trades (Kalshi's own ``created_time``): yes-price
-  open/high/low/close and contracts per 15 s bucket; a bucket with no trade has no candle (the chart
-  holds the previous close flat; nothing is invented).
+  open/high/low/close and contracts per 15 s bucket; a bucket with no candle means no print is
+  held (unknown below the coverage floor; never held flat, nothing is invented).
 * ``quotes`` -- the polled book, one point per bucket (the last poll in the bucket): yes
   bid/ask/mid/last, cumulative volume, open interest. With a 15 s poll that is about one
   sample per bucket, so a quote "candle" would be degenerate; the quote series is exported as
@@ -164,6 +164,25 @@ def _by_ticker(df: pl.DataFrame) -> dict[str, pl.DataFrame]:
     return {str(k[0] if isinstance(k, tuple) else k): v for k, v in parts.items()}
 
 
+COVERAGE_FLOOR = 0.9
+
+
+def _coverage(markets: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Live coverage of the candles: the prints we hold against the contracts the book says traded
+    (cumulative volume change since our first poll). Below the floor the app shows a missing
+    candle as unknown, not as a quiet market."""
+    pv = sum(m["print_volume"] or 0.0 for m in markets)
+    bd = sum(m["book_volume_delta"] or 0.0 for m in markets if (m["book_volume_delta"] or 0) > 0)
+    ratio = (pv / bd) if bd > 0 else None
+    return {
+        "print_volume": pv,
+        "book_volume_delta": bd,
+        "ratio": ratio,
+        "floor": COVERAGE_FLOOR,
+        "complete_enough": (ratio is not None and ratio >= COVERAGE_FLOOR),
+    }
+
+
 def build_export(
     q: pl.DataFrame,
     t: pl.DataFrame,
@@ -174,6 +193,7 @@ def build_export(
     status: str,
     recon: Mapping[str, Any] | None = None,
     part: str = "game",
+    trade_source: str = "own pulls + live capture",
 ) -> dict[str, Any]:
     """The ``kalshi_candles15`` v1 payload (docs/contracts/kalshi_candles15_v1.md). ``part`` is
     ``game`` (game winners: quotes and trade candles) or ``lines`` (spreads and totals: quotes)."""
@@ -194,6 +214,22 @@ def build_export(
         if not q.is_empty()
         else pl.DataFrame()
     )
+    prints_by = _by_ticker(t.unique(subset=["trade_id"], keep="first")) if part == "game" else {}
+    book_by: dict[str, tuple[float | None, float | None]] = {}
+    if part == "game" and not q.is_empty():
+        qs = (
+            q.sort("fetched_at")
+            .group_by("ticker")
+            .agg(
+                pl.col("volume").drop_nulls().first().alias("v0"),
+                pl.col("volume").drop_nulls().last().alias("v1"),
+                pl.col("fetched_at").min().alias("t0"),
+            )
+        )
+        book_by = {r["ticker"]: (r["v0"], r["v1"]) for r in qs.iter_rows(named=True)}
+        first_poll = {r["ticker"]: r["t0"] for r in qs.iter_rows(named=True)}
+    else:
+        first_poll = {}
     empty_p = quote_points(q.clear(), bucket_s)
     empty_c = trade_candles(t.clear(), bucket_s)
     markets: list[dict[str, Any]] = []
@@ -203,6 +239,19 @@ def build_export(
         c = cds_by.get(tk, empty_c)
         gaps = p["t"].diff().drop_nulls()
         max_gap = gaps.max() if len(gaps) else None
+        print_vol: float | None = None
+        book_delta: float | None = None
+        cover: float | None = None
+        if part == "game":
+            v0, v1 = book_by.get(tk, (None, None))
+            pr = prints_by.get(tk)
+            t0 = first_poll.get(tk)
+            if pr is not None and t0 is not None:
+                pr = pr.filter(pl.col("created_time") >= t0)
+            print_vol = float(pr["count"].sum() or 0.0) if pr is not None else 0.0
+            if v0 is not None and v1 is not None:
+                book_delta = float(v1) - float(v0)
+                cover = (print_vol / book_delta) if book_delta > 0 else None
         markets.append(
             {
                 "ticker": tk,
@@ -216,6 +265,9 @@ def build_export(
                 "n_candles": c.height,
                 "n_trades": int(c["n_trades"].sum() or 0),
                 "max_gap_s": max_gap if isinstance(max_gap, int) else None,  # missing polls show
+                "print_volume": print_vol,
+                "book_volume_delta": book_delta,
+                "print_coverage": cover,
                 "quotes": _rows(p, QUOTE_FIELDS),
                 "candles": _rows(c, CANDLE_FIELDS),
             }
@@ -234,11 +286,13 @@ def build_export(
         "quote_fields": QUOTE_FIELDS,
         "candle_fields": CANDLE_FIELDS,
         "notes": [
-            "Candles are executed trades only; no trade in a bucket, no candle (hold last close).",
+            "Candles are executed trades; no candle = no print held (unknown if coverage < 0.9)",
             "Candles bucket on Kalshi's trade time, quotes on our receive time: two clocks.",
             "Quotes are the polled book (last poll in a bucket); mid is null on a one-sided book.",
             "Display data. Not an alert, EV or signal input, and not a forecast.",
         ],
+        "trade_source": trade_source,
+        "coverage": _coverage(markets) if part == "game" else None,
         "reconciliation": dict(recon) if recon else None,
         "markets": markets,
     }
@@ -431,6 +485,22 @@ def reconcile(official: pl.DataFrame, ours: pl.DataFrame, since_ts: int) -> dict
     }
 
 
+def _source_summary(official: pl.DataFrame, trades: pl.DataFrame, since_ts: int) -> dict[str, Any]:
+    """Coverage and agreement of one print source against the official 1-minute candles."""
+    r = reconcile(official, minute_rollup(trades), since_ts)
+    keys = (
+        "official_traded_minutes",
+        "compared_minutes",
+        "minute_coverage",
+        "volume_coverage",
+        "agree_open",
+        "agree_high",
+        "agree_low",
+        "agree_close",
+    )
+    return {"prints": trades.unique(subset=["trade_id"]).height, **{k: r[k] for k in keys}}
+
+
 def finalize_day(
     client: KalshiClient,
     store: RawStore,
@@ -441,6 +511,7 @@ def finalize_day(
     budget: RequestBudget,
     *,
     trades: pl.DataFrame,
+    sources: Mapping[str, pl.DataFrame] | None = None,
     capture: CaptureTrades | None = None,
     export_dir: Path | None = None,
     beat: Callable[[], object] | None = None,
@@ -514,7 +585,11 @@ def finalize_day(
             "tickers": len(tickers),
             "errors": errors,
             "built_at": now.isoformat(),
-            "trade_source": "live capture raw store (data/raw/live_<date>/kalshi_trades)",
+            "trade_source": "own /markets/trades pulls united with the live capture raw store",
+            "sources": {
+                name: _source_summary(official, frame, int(window_start.timestamp()))
+                for name, frame in (sources or {}).items()
+            },
             "capture_files": capture.files if capture else None,
             "capture_files_unreadable": list(capture.bad) if capture else [],
             "capture_prints": trades.height,
