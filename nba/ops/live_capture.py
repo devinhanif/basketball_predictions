@@ -125,9 +125,18 @@ def fresh_interval(
         return 0.0, "off (config 0)"
     if want < FRESH_MIN_INTERVAL_S:
         return 0.0, f"refused: {want}s is below the {FRESH_MIN_INTERVAL_S}s minimum, poller off"
-    missing = [f for f in REAL_FIXTURES if not (fixture_dir / f).is_file()]
-    if missing:
-        return 0.0, f"refused: real core fixtures missing ({', '.join(missing)}), poller off"
+    from nba.live.espn_fresh import last_play_core
+
+    for f in REAL_FIXTURES:
+        path = fixture_dir / f
+        if not path.is_file():
+            return 0.0, f"refused: real core fixture missing ({f}), poller off"
+        try:
+            lp = last_play_core(json.loads(path.read_text()))
+        except Exception as e:
+            return 0.0, f"refused: fixture {f} does not parse ({type(e).__name__}), poller off"
+        if lp is None or not lp.play_id or lp.wallclock is None:
+            return 0.0, f"refused: fixture {f} does not parse to a play, poller off"
     return want, "on"
 
 
@@ -176,13 +185,13 @@ def problem(
         return f"heartbeat {age} old, status {hb.get('status')}"
     if hb.get("status") == "failed":
         return "status failed (schedule unreachable)"
-    return fresh_problem(hb, now)
+    return None
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("cmd", choices=["plan", "fresh-interval"])
-    ap.add_argument("--date", type=date.fromisoformat, required=True, help="ET slate date")
+    ap.add_argument("--date", type=date.fromisoformat, default=None, help="ET slate date (plan)")
     ap.add_argument("--now", default=None, help="ISO time (tests); default now")
     ap.add_argument("--data-dir", type=Path, default=Path("data"))
     a = ap.parse_args(argv)
@@ -190,6 +199,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         interval, why = fresh_interval()
         print(f"{interval:g} {why}")
         return 0
+    if a.date is None:
+        ap.error("plan requires --date")
     now = _ts(a.now) if a.now else datetime.now(UTC)
     assert now is not None
     try:

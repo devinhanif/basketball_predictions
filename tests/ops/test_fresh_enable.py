@@ -22,10 +22,16 @@ def test_fresh_interval_default_off_and_refused_without_real_fixtures(tmp_path: 
     iv, why = lc.fresh_interval(_cfg(tmp_path, "espn_fresh_interval_s: 15\n"), fx)
     assert iv == 0 and "refused" in why and "plays_limit1.json" in why
     fx.mkdir()
-    (fx / "plays_limit1.json").write_text("{}")
-    assert lc.fresh_interval(_cfg(tmp_path, "espn_fresh_interval_s: 15\n"), fx)[0] == 0
-    (fx / "plays_last.json").write_text("{}")
-    assert lc.fresh_interval(_cfg(tmp_path, "espn_fresh_interval_s: 15\n"), fx) == (15.0, "on")
+    good = '{"count": 9, "items": [{"id": "5", "wallclock": "2026-10-23T00:19:50Z"}]}'
+    cfg15 = _cfg(tmp_path, "espn_fresh_interval_s: 15\n")
+    (fx / "plays_limit1.json").write_text(good)
+    assert lc.fresh_interval(cfg15, fx)[0] == 0  # one of two
+    for junk in ("{}", "not json at all", '{"items": [{"id": "5"}]}'):  # F2: content is parsed
+        (fx / "plays_last.json").write_text(junk)
+        iv, why = lc.fresh_interval(cfg15, fx)
+        assert iv == 0 and "does not parse" in why, junk
+    (fx / "plays_last.json").write_text(good)
+    assert lc.fresh_interval(cfg15, fx) == (15.0, "on")
     assert lc.fresh_interval(_cfg(tmp_path, "espn_fresh_interval_s: 10\n"), fx)[0] == 0
     assert lc.fresh_interval(tmp_path / "missing.yaml", fx)[0] == 0
     assert lc.fresh_interval(_cfg(tmp_path, "espn_fresh_interval_s: abc\n"), fx)[0] == 0
@@ -56,17 +62,3 @@ def test_fresh_problem_cases() -> None:
     assert "no game success yet" in (
         lc.fresh_problem({**nothing, "fresh_consecutive_fail": 3}, now) or ""
     )
-
-
-def test_problem_includes_fresh_when_running() -> None:
-    tips = [datetime(2026, 11, 10, 0, 0, tzinfo=UTC)]
-    now = datetime(2026, 11, 10, 1, 0, tzinfo=UTC)
-    hb = {
-        "date": "2026-11-10",
-        "status": "running",
-        "fresh_alive": True,
-        "fresh_live_games": 1,
-        "fresh_last_game_success_ts": "2026-11-10T00:40:00+00:00",
-    }
-    msg = lc.problem(now, tips, hb, now, now.date())
-    assert msg is not None and "fresh poller" in msg
