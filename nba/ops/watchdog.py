@@ -117,7 +117,7 @@ JOBS: tuple[JobSpec, ...] = (
     ),
     JobSpec(
         # the app export (nba.ops.app_export, ops/launchd/local.nba.app-export.plist): two slots
-        # an hour (:05 and :35) from 12 to 22 on the schedule clock, between the pretip runs (:20
+        # an hour (:05 and :35) from 12 to 23 on the schedule clock, between the pretip runs (:20
         # + a few minutes, :50); most slots are a one-second no-op (nothing newer). Keep in step
         # with the plist.
         "app-export",
@@ -125,7 +125,7 @@ JOBS: tuple[JobSpec, ...] = (
         "slots",
         timedelta(minutes=25),
         minutes=(5, 35),
-        hours=tuple(range(12, 23)),
+        hours=tuple(range(12, 24)),
         max_skips=2,
         optional=True,
     ),

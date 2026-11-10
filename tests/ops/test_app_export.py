@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import plistlib
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -51,12 +52,17 @@ def _good_morning(root: Path) -> None:
 
 
 class FakeBuild:
-    def __init__(self, rcs: list[int]) -> None:
-        self.rcs, self.calls, self.outs = list(rcs), 0, []
+    def __init__(self, rcs: list[int], lines: list[str] | None = None) -> None:
+        self.rcs, self.calls = list(rcs), 0
+        self.outs: list[Path] = []
+        self.timeouts: list[float] = []
+        self.lines = list(lines or [])
 
-    def __call__(self, day: date, out: Path) -> int:
+    def __call__(self, day: date, out: Path, timeout_s: float = 900) -> int:
         self.calls += 1
         self.outs.append(out)
+        self.timeouts.append(timeout_s)
+        status = self.lines.pop(0) if self.lines else "ok"
         rc = self.rcs.pop(0)
         if rc == 0:
             out.mkdir(parents=True)
@@ -64,6 +70,7 @@ class FakeBuild:
                 json.dumps(
                     {
                         "export_date": day.isoformat(),
+                        "lines": {"status": status},
                         "made_at": (NOW.astimezone(A.UTC) + timedelta(minutes=1))
                         .replace(tzinfo=None)
                         .isoformat(),
@@ -109,7 +116,7 @@ def test_start_heartbeat_is_written_before_the_build_runs(tmp_path: Path) -> Non
     _good_morning(tmp_path)
     seen: dict[str, object] = {}
 
-    def build(day: date, out: Path) -> int:
+    def build(day: date, out: Path, timeout_s: float = 900) -> int:
         seen.update(_hb(tmp_path))
         return 1
 
@@ -264,7 +271,7 @@ def test_a_locked_database_is_retried_then_fails_with_rc_2(tmp_path: Path) -> No
 def test_a_build_that_raises_is_a_failed_run_with_a_heartbeat(tmp_path: Path) -> None:
     _good_morning(tmp_path)
 
-    def boom(day: date, out: Path) -> int:
+    def boom(day: date, out: Path, timeout_s: float = 900) -> int:
         raise RuntimeError("no python")
 
     assert A.run(tmp_path, now=NOW, build=boom, retries=1) == 1
@@ -514,3 +521,211 @@ def test_install_note_has_the_kickstart() -> None:
         "launchctl kickstart -k gui/$(id -u)/local.nba.app-export"
         in (root / "docs/DAILY_PIPELINE.md").read_text()
     )
+
+
+# --------------------------------------------------------------------------- review 2026-11-09 (F1, F4-F8, F10)
+def _export_once(root: Path) -> Path:
+    _good_morning(root)
+    assert A.run(root, now=NOW, build=FakeBuild([0])) == 0
+    return root / "data/export/latest"
+
+
+def _pretip_at(root: Path, hour: int, minute: int) -> None:
+    _pretip(
+        root,
+        start=NOW.replace(hour=hour, minute=minute),
+        end=NOW.replace(hour=hour, minute=minute + 5),
+    )
+
+
+def test_a_locked_lines_build_is_not_swapped_over_an_ok_export(tmp_path: Path) -> None:
+    latest = _export_once(tmp_path)
+    before = {p.name: p.read_bytes() for p in latest.iterdir()}
+    state_before = (tmp_path / "data/ops/heartbeat/app-export.state.json").read_bytes()
+    _pretip_at(tmp_path, 13, 20)
+    waits: list[float] = []
+    b = FakeBuild([0, 0], lines=["locked", "locked"])
+    rc = A.run(
+        tmp_path, now=NOW.replace(hour=13, minute=35), build=b, sleep=waits.append, retries=2
+    )
+    assert rc == 2 and b.calls == 2 and waits == [A.LOCK_WAIT_S]  # retried like a locked nba.duckdb
+    assert {p.name: p.read_bytes() for p in latest.iterdir()} == before
+    assert sorted(p.name for p in latest.parent.iterdir()) == ["latest"]
+    assert "[app-export] build rc=2" in (tmp_path / "data/ops/ALERTS.md").read_text()
+    assert (tmp_path / "data/ops/heartbeat/app-export.state.json").read_bytes() == state_before
+
+
+def test_a_locked_lines_build_that_recovers_on_retry_is_swapped(tmp_path: Path) -> None:
+    latest = _export_once(tmp_path)
+    _pretip_at(tmp_path, 13, 20)
+    b = FakeBuild([0, 0], lines=["locked", "ok"])
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=b, sleep=lambda s: None) == 0
+    assert (
+        b.calls == 2
+        and json.loads((latest / "manifest.json").read_text())["lines"]["status"] == "ok"
+    )
+
+
+def test_a_locked_lines_build_is_fine_when_there_was_no_ok_export(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+    assert (
+        A.run(tmp_path, now=NOW, build=FakeBuild([0], lines=["locked"])) == 0
+    )  # nothing to protect
+
+
+def test_a_staged_manifest_that_cannot_be_read_is_refused(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+
+    def build(day: date, out: Path, timeout_s: float = 900) -> int:
+        out.mkdir(parents=True)  # exit 0 but no manifest
+        return 0
+
+    assert A.run(tmp_path, now=NOW, build=build) == 1
+    assert not (tmp_path / "data/export/latest").exists()
+
+
+def test_deadline_gives_up_with_rc_2_and_caps_each_attempt(tmp_path: Path) -> None:
+    latest = _export_once(tmp_path)
+    before = (latest / "manifest.json").read_bytes()
+    _pretip_at(tmp_path, 13, 20)
+    t = [0.0]
+
+    def sleeper(s: float) -> None:
+        t[0] += 300  # each wait plus the (fake) build eats 300 s
+
+    b = FakeBuild([2, 2, 2, 2])
+    now = NOW.replace(hour=13, minute=35)
+    rc = A.run(tmp_path, now=now, build=b, sleep=sleeper, clock=lambda: t[0], retries=4)
+    assert rc == 2
+    assert b.calls == 2  # at 0 s 600 left, at 300 s 300 left, at 600 s none: gives up
+    assert b.timeouts == [600, 300]  # min(900, remaining)
+    assert (latest / "manifest.json").read_bytes() == before
+    assert "deadline" in next((tmp_path / "data/ops").glob("app_export_*.log")).read_text()
+
+
+def test_deadline_gives_up_without_a_build_when_under_the_floor(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+    ticks = iter([0.0, 400.0, 400.0, 400.0])
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=NOW, build=b, clock=lambda: next(ticks)) == 2  # 200 s left < 240
+    assert b.calls == 0
+
+
+def test_second_instance_does_nothing_and_leaves_the_heartbeat(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+    lock = tmp_path / "data/ops/app_export_lock"
+    lock.mkdir(parents=True)
+    (lock / "pid").write_text(str(os.getpid()))  # alive owner: this process
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=NOW, build=b) == 0
+    assert b.calls == 0 and not (tmp_path / "data/ops/heartbeat/app-export.json").exists()
+    assert lock.exists()  # not ours to release
+
+
+def test_a_dead_owners_lock_is_cleared_and_the_lock_is_released(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+    lock = tmp_path / "data/ops/app_export_lock"
+    lock.mkdir(parents=True)
+    (lock / "pid").write_text("999999")
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    assert not lock.exists()
+
+
+def test_orphan_staging_dirs_of_dead_pids_are_removed_live_ones_kept(tmp_path: Path) -> None:
+    d = tmp_path / "export"
+    live = f".latest.stage.{os.getpid()}"
+    for n in (".latest.stage.999999", ".latest.old.999999", live, "latest", ".other.stage.999999"):
+        (d / n).mkdir(parents=True)
+    gone = A.remove_orphan_stages(d)
+    assert sorted(gone) == [".latest.old.999999", ".latest.stage.999999"]
+    assert sorted(p.name for p in d.iterdir()) == sorted([live, ".other.stage.999999", "latest"])
+
+
+def test_state_file_failure_does_not_fail_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _good_morning(tmp_path)
+    real = A._write_json
+
+    def flaky(path: Path, rec: dict[str, object]) -> None:
+        if path.name == A.STATE_FILE:
+            raise OSError("disk full")
+        real(path, rec)
+
+    monkeypatch.setattr(A, "_write_json", flaky)
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    assert _hb(tmp_path)["status"] == "ok" and _hb(tmp_path)["end_ts"]
+
+
+def test_an_unexpected_exception_still_ends_the_heartbeat_and_alerts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _good_morning(tmp_path)
+
+    def boom(*a: object, **k: object) -> object:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(A, "rebuild_reason", boom)
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 1
+    hb = _hb(tmp_path)
+    assert hb["status"] == "failed" and hb["end_ts"] and hb["rc"] == 1
+    assert "kaboom" in (tmp_path / "data/ops/ALERTS.md").read_text()
+    assert not (tmp_path / "data/ops/app_export_lock").exists()
+
+
+def test_swap_failure_inside_run_keeps_the_export_alerts_and_writes_no_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    latest = _export_once(tmp_path)
+    before = (latest / "manifest.json").read_bytes()
+    state_before = (tmp_path / "data/ops/heartbeat/app-export.state.json").read_bytes()
+    _pretip_at(tmp_path, 13, 20)
+
+    def bad_swap(stage: Path, final: Path) -> None:
+        raise OSError("rename failed")
+
+    monkeypatch.setattr(A, "swap_dir", bad_swap)
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=FakeBuild([0])) == 1
+    assert (latest / "manifest.json").read_bytes() == before
+    assert (tmp_path / "data/ops/heartbeat/app-export.state.json").read_bytes() == state_before
+    assert _hb(tmp_path)["status"] == "failed"
+    assert "swap failed" in next((tmp_path / "data/ops").glob("app_export_*.log")).read_text()
+    assert sorted(p.name for p in latest.parent.iterdir()) == ["latest"]
+
+
+def test_tips_lookup_raising_falls_back_to_the_pretip_trigger(tmp_path: Path) -> None:
+    _export_once(tmp_path)
+    _pretip_at(tmp_path, 13, 20)
+
+    def raising(data_dir: Path, day: date) -> dict[str, datetime]:
+        raise FileNotFoundError("no schedule")
+
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=b, tips_fn=raising) == 0
+    assert b.calls == 1
+
+
+def test_an_empty_slate_builds_nothing_after_the_first_export(tmp_path: Path) -> None:
+    _export_once(tmp_path)
+    _pretip_at(tmp_path, 13, 20)
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=b, tips_fn=_tips()) == 0
+    assert b.calls == 0 and "no games" in str(_hb(tmp_path)["reason"])
+
+
+def test_two_failures_for_one_pretip_run_back_off_until_a_newer_run(tmp_path: Path) -> None:
+    _export_once(tmp_path)
+    _pretip_at(tmp_path, 13, 20)
+    tip = _tips(NOW.replace(hour=19))
+    for hour, minute in ((13, 35), (14, 5)):
+        now = NOW.replace(hour=hour, minute=minute)
+        assert A.run(tmp_path, now=now, build=FakeBuild([1]), tips_fn=tip) == 1
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=NOW.replace(hour=14, minute=35), build=b, tips_fn=tip) == 0
+    assert b.calls == 0 and _hb(tmp_path)["status"] == "skipped"
+    assert "backing off" in str(_hb(tmp_path)["reason"])
+    skip = json.loads((tmp_path / "data/ops/heartbeat/app-export.skip.json").read_text())
+    assert skip["consecutive_skips"] == 1
+    _pretip_at(tmp_path, 14, 50)
+    assert A.run(tmp_path, now=NOW.replace(hour=15, minute=5), build=b, tips_fn=tip) == 0
+    assert b.calls == 1 and not (tmp_path / "data/ops/heartbeat/app-export.fail.json").exists()
