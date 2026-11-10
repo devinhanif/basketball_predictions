@@ -29,6 +29,16 @@ test season's main-line over legs in games that realised the script: (i) paired 
 (script-conditional minus unconditional) has CI upper bound < 0, (ii) the 95% CI of (observed rate
 minus mean conditional prediction) lies inside +-0.02, and (iii) for same-player pairs the 95% CI of
 observed / predicted conditional joint contains 1. Otherwise ``exploratory``.
+
+AMENDMENT (same day, after the first run, before the second; thresholds above unchanged). The first
+run built the calibrated grid by applying the map at EVERY rung. A PIT diagnostic on 2024 showed the
+normal score of those grids had sd 0.63-0.90 (raw grids 1.07-1.13): the map's logit slope below 1
+fattens both tails away from the posted lines, so the script parameters (estimated from that PIT)
+were estimated on an invalid latent. ``combo_build.calibrate_surv_banded`` applies the map only for
+|z| <= 1 and holds the logit offset beyond. Main-line legs (z in about [-0.5, 1.0]) are untouched,
+so the first run's pair and band numbers carry over; the script block is re-run. Added, descriptive
+only: the standardised residual cross-product ``resid_r`` per pair class (a calibration-free
+dependence measure) and the PIT sd per stat.
 """
 
 from __future__ import annotations
@@ -185,7 +195,9 @@ def fit_fold_map(
 def calibrated_season(data: dict[str, Any], cal: lc.CalMap) -> None:
     for stat in STATS:
         a = data[stat]
-        a["cal"] = cb.calibrate_surv(cal, stat, a["raw"], a["med"], a["spr"], a["st10"])
+        a["cal"], a["k_lo"], a["k_hi"] = cb.calibrate_surv_banded(
+            cal, stat, a["raw"], a["med"], a["spr"], a["st10"]
+        )
 
 
 def add_z(data: dict[str, Any], seed: int) -> None:
@@ -460,6 +472,8 @@ def eval_pairs(
         pr1, pr2 = legs["raw"][x], legs["raw"][y]
         hit = legs["hit"][x] * legs["hit"][y]
         prod_cal, prod_raw = pc1 * pc2, pr1 * pr2
+        resid = (legs["hit"][x] - pc1) * (legs["hit"][y] - pc2)
+        resid_den = np.sqrt(pc1 * (1 - pc1) * pc2 * (1 - pc2))
         joint = biv_over(latent_a(pc1), latent_a(pc2), rho) if cls not in ("XG", "XG70") else prod_cal
         cl = legs["date"][x] if cls in ("XG", "XG70") else legs["game_id"][x]
         res: dict[str, Any] = {
@@ -469,6 +483,7 @@ def eval_pairs(
             "realised_vs_cal_product": boot_ratio(cl, hit, prod_cal, rng),
             "realised_vs_raw_product": boot_ratio(cl, hit, prod_raw, rng),
             "realised_vs_copula": boot_ratio(cl, hit, joint, rng),
+            "resid_r": boot_ratio(cl, resid, resid_den, rng),
             "mean_hit": float(hit.mean()),
             "mean_cal_product": float(prod_cal.mean()),
             "mean_raw_product": float(prod_raw.mean()),
@@ -612,6 +627,12 @@ def run(
                 "script_params": sparams,
                 "corr": corr_rows,
                 "map_n_fit": {k[1]: v.n_fit for k, v in cal.cells.items()},
+                "pit_sd_test_season": {
+                    stat: float(seasons_data[test][stat]["z"].std()) for stat in STATS
+                },
+                "pit_mean_test_season": {
+                    stat: float(seasons_data[test][stat]["z"].mean()) for stat in STATS
+                },
             }
         )
     labels = {}

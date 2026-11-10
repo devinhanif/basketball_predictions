@@ -5,12 +5,11 @@ CALIBRATED integer survival grids and packs them. Nothing here reads a price or 
 model is refit: the calibration map is the frozen LINE_CALIBRATION map (``line_cal.py``), applied
 at every rung of the grid.
 
-Calibration at every rung. For a player-stat with raw survival ``S(k) = P(Y >= k)`` (k = 1..K, the
-production integer grid) the map is applied at line ``k - 0.5`` with the row's own median / spread
-(from the 19-point q_grid) and starter flag. The map was fitted at posted main lines; elsewhere it
-is an extrapolation, and the eval reports calibration by raw-probability band so the user can see
-where it holds. Values at or beyond the 199-sample grid resolution (``S <= 1/199`` or ``S >=
-1 - 1/199``) pass through uncalibrated, then the grid is made monotone (cumulative minimum).
+Calibration across the grid. For a player-stat with raw survival ``S(k) = P(Y >= k)`` (k = 1..K,
+the production integer grid) the map is applied at line ``k - 0.5`` with the row's own median /
+spread (from the q_grid) and starter flag, but only inside ``|z| <= Z_BAND`` (where the map was
+fitted); outside, the logit offset is held at the band edge (see ``calibrate_surv_banded``). Values
+at or beyond the 199-sample resolution pass through, then the grid is made monotone.
 """
 
 from __future__ import annotations
@@ -23,15 +22,16 @@ import numpy as np
 from numpy.typing import NDArray
 
 from nba.parlay.combo import SCHEMA
-from nba.parlay.line_cal import EPS, CalMap
+from nba.parlay.line_cal import EPS, SPREAD_MIN, CalMap, logit, sigmoid
 
 F64 = NDArray[np.float64]
 RES = 1.0 / 199.0
 BOOK = "draftkings"
 SURV_DIGITS = 4
+Z_BAND = 1.0  # |z| of a rung against the median where the map is applied directly
 
 
-def calibrate_surv(
+def calibrate_surv_banded(
     cal: CalMap,
     stat: str,
     raw: F64,
@@ -39,22 +39,50 @@ def calibrate_surv(
     spr: F64,
     st10: F64,
     book: str = BOOK,
-) -> F64:
-    """Calibrated, monotone survival grid. ``raw`` is (N, K), column j = P(Y >= j + 1)."""
+) -> tuple[F64, NDArray[np.int64], NDArray[np.int64]]:
+    """Calibrated, monotone survival grid and the 1-based rung range ``[k_lo, k_hi]`` where the map
+    was applied directly. ``raw`` is (N, K), column j = P(Y >= j + 1).
+
+    The map is applied at every rung, but its logit slope is below 1 (it shrinks overconfident
+    probabilities toward 0.5), so applied far from the lines it was fitted on it fattens both tails:
+    on 2024 the PIT normal score of the fully mapped grids had sd 0.63-0.90 against 1.07-1.13 for the
+    raw grids. Posted main lines sit at ``|z| <= 1`` (99th percentile 0.84-0.99), z = (line - median) /
+    spread. So the map is applied only for ``|z| <= Z_BAND``; beyond the band the logit offset
+    (calibrated minus raw) is HELD at its value at the band edge, which keeps the grid monotone and
+    the tails tails. Beyond the 199-sample resolution (``S <= 1/199`` or ``S >= 1 - 1/199``) raw
+    passes through.
+    """
     n, k_max = raw.shape
-    lines = np.broadcast_to(np.arange(1, k_max + 1, dtype=float) - 0.5, (n, k_max))
+    ks = np.arange(1, k_max + 1, dtype=float)
+    lines = ks[None, :] - 0.5
+    z = (lines - med[:, None]) / np.maximum(spr[:, None], SPREAD_MIN)
+    inband = np.abs(z) <= Z_BAND
+    has = inband.any(axis=1)
+    near = np.argmin(np.abs(z), axis=1)
+    k_lo = np.where(has, np.argmax(inband, axis=1), near)
+    k_hi = np.where(has, k_max - 1 - np.argmax(inband[:, ::-1], axis=1), near)
     pm = np.clip(raw, EPS, 1 - EPS)
     cal_p = cal.apply_many(
         book,
         stat,
         pm.ravel(),
-        lines.ravel(),
+        np.broadcast_to(lines, (n, k_max)).ravel(),
         np.repeat(med, k_max),
         np.repeat(spr, k_max),
         np.repeat(st10, k_max),
     ).reshape(n, k_max)
-    out = np.where((raw <= RES) | (raw >= 1.0 - RES), raw, cal_p)
-    return np.asarray(np.minimum.accumulate(np.clip(out, 0.0, 1.0), axis=1))
+    delta = logit(cal_p) - logit(pm)
+    idx = np.clip(np.arange(k_max)[None, :], k_lo[:, None], k_hi[:, None])
+    held = np.take_along_axis(delta, idx, axis=1)
+    out = np.where((raw <= RES) | (raw >= 1.0 - RES), raw, sigmoid(logit(pm) + held))
+    surv = np.asarray(np.minimum.accumulate(np.clip(out, 0.0, 1.0), axis=1))
+    return surv, (k_lo + 1).astype(np.int64), (k_hi + 1).astype(np.int64)
+
+
+def calibrate_surv(
+    cal: CalMap, stat: str, raw: F64, med: F64, spr: F64, st10: F64, book: str = BOOK
+) -> F64:
+    return calibrate_surv_banded(cal, stat, raw, med, spr, st10, book)[0]
 
 
 def pit_z(surv: F64, y: F64, u: F64) -> F64:
