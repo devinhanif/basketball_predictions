@@ -42,7 +42,7 @@ Vite checks are static.
 | A2 | Point the shared env var at desk.json | `APP_DESK_SHARED_FILE=.../desk.json` | 422 "the public desk file must be the shared cut" (no values echoed) | pass |
 | A3 | Producer bug: desk.json relabelled `privacy: shared` | planted file | 422, lists field names only (balance, daily.pnl_usd, plays.contracts, plays.fee_cents, plays.result.pnl_usd, plays.stake_usd) | pass |
 | A4 | Money under keys the denylist does not know | 8 plants: `status.bankroll_usd`, `status.balance{current_usd,floor_usd}`, `plays.stake_units`, `plays.kelly_fraction`, `plays.result.pnl_cents`, `plays.contracts_filled`, `daily.pnl_cents`, `record.net_usd` | **8/8 served 200** | **FAIL (M1)** |
-| A5 | Money in free text without `$<digit>` | "12.34 USD", "58 contracts", "USD 2.75", "$.57" | **4/4 served 200**. Caught: "$ 2.75" and "per $1 ... $2"; control "$0.57" also caught | **FAIL (M1)** |
+| A5 | Money in free text without `$<digit>` | "12.34 USD", "58 contracts", "USD 2.75", "$.12" | **4/4 served 200**. Caught: "$ 2.75" and "per $1 ... $2"; control "$0.12" also caught | **FAIL (M1)** |
 | A6 | Identity and paths in text | email, `~/Downloads/...`, `data/export_private/desk.json`, `file:///Users/...` | **4/4 served 200** (the `_PATH` regex needs `/Users/` after whitespace, `(`, a quote or `=`) | FAIL (m5) |
 | A7 | Error body echo | file chmod 000 | 422 `unreadable: [Errno 13] Permission denied: '<absolute path>'`, so the absolute path is in a public body and the web DeskGate prints `h.detail` | FAIL (m1) |
 | A8 | Error body echo, bad JSON | truncated JSON holding a token-like string | 422 `Expecting ',' delimiter: line 1 column 38`, no content echoed | pass |
