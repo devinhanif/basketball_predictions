@@ -22,6 +22,7 @@ import type { TopParlays, TpResult } from "./topParlays";
 import { getRaw, warmGames } from "./transport";
 import { parseDesk, type Desk } from "./desk";
 import type { LiveList, Play } from "./live";
+import type { ScenariosView } from "./sits";
 
 export { warmGames };
 
@@ -53,12 +54,33 @@ export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
   return { data: { kind: "ok", data: r.body as TopParlays }, fromCache: r.fromCache };
 }
 
+/** 'If a teammate sits' for a game. A 404 (an old server, or a saved snapshot that does not carry it) is a plain
+ * "no scenarios here", not an error screen. */
+export async function getScenarios(id: string): Promise<Loaded<ScenariosView>> {
+  const path = `/api/games/${encodeURIComponent(id)}/scenarios`;
+  const r = await getRaw(path);
+  if (r.status === 404) {
+    const none: ScenariosView = {
+      game_id: id,
+      available: false,
+      reason: "This copy of the data does not carry 'if a teammate sits' scenarios.",
+      made_at: null,
+      evidence: [],
+      not_modelled: [],
+      sitters: [],
+    };
+    return { data: none, fromCache: r.fromCache };
+  }
+  return getJson<ScenariosView>(path);
+}
+
 export const api = {
   topParlays: getTopParlays,
   meta: () => getJson<Meta>("/api/meta"),
   slates: () => getJson<SlateListItem[]>("/api/slates"),
   slate: (date: string) => getJson<Slate>(`/api/slates/${encodeURIComponent(date)}`),
   game: (id: string) => getJson<GameDetail>(`/api/games/${encodeURIComponent(id)}`),
+  scenarios: getScenarios,
   gameResult: (id: string) => getJson<GameResult>(`/api/games/${encodeURIComponent(id)}/result`),
   results: (date: string) => getJson<SlateResults>(`/api/slates/${encodeURIComponent(date)}/results`),
   swipe: (date: string, seed: number, n = 24) =>

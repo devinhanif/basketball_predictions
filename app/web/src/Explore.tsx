@@ -6,6 +6,7 @@ import type { Lens } from "./prefs";
 import { evVerdict } from "./plain";
 import { hideBook, modelLine, calibratedLine, percentAlong, quantile, read, sliderRange, snapHalf } from "./slider";
 import { STAT_LABEL, type CardView, type MinutesInfo } from "./types";
+import { SitsPicker } from "./TeammateSits";
 import { useLoad } from "./useLoad";
 import { DistStrip, ProbBar } from "./Viz";
 import { sideText } from "./words";
@@ -377,10 +378,12 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
       )}
 
       {lens === "explore" ? (
-        <div class="xp-soon-row">
-          <Soon title="If a teammate sits" body="Pick a teammate who might be out and see how this player's minutes and numbers shift, from how teams have played without him. The data for this arrives later." />
-          <Soon title="Combos" body="Points plus assists, and other sums, with the two stats moving together instead of being added as if independent. The math for this arrives later." />
-        </div>
+        <>
+          <SitsPicker gameId={card.game_id} playerId={card.player_id} playerName={card.player} />
+          <div class="xp-soon-row">
+            <Soon title="Combos" body="Points plus assists, and other sums, with the two stats moving together instead of being added as if independent. The math for this arrives later." />
+          </div>
+        </>
       ) : null}
     </div>
   );
