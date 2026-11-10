@@ -298,6 +298,10 @@ class ExportStore:
                 for r in con.execute("SELECT table_name FROM information_schema.tables").fetchall()
             }
             tables["p_play"] = _table(con, "p_play") if "p_play" in have else []
+            # optional: an export built before the 'if a teammate sits' step has no such table
+            tables["teammate_sits"] = (
+                _table(con, "teammate_sits") if "teammate_sits" in have else []
+            )
             if "prop_lines" in have:
                 tables["prop_lines"] = _table(con, "prop_lines")
             elif self.manifest["schema_version"] >= 2:
@@ -327,6 +331,14 @@ class ExportStore:
         self.best_model: bool = _schema_at_least_1(meta.get("best_model_schema")) and (
             not grids or "is_primary" in grids[0]
         )
+        self.sits_info: Json | None = (
+            self.manifest["teammate_sits"]
+            if isinstance(self.manifest.get("teammate_sits"), dict)
+            else None
+        )
+        self.sits_rows: dict[str, list[Json]] = defaultdict(list)
+        for r in tables["teammate_sits"]:
+            self.sits_rows[str(r["game_id"])].append(r)
         self.made_at: str = self.manifest["made_at"]
         self.data_version: str = self.manifest["data_version"]
         self._build(tables)
