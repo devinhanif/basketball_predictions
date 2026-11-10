@@ -1,8 +1,20 @@
-# teammate_sits export v1 (DRAFT; research/teammate_sits -> nba/export -> app Explore lens)
+# teammate_sits export v1 (WIRED on branch agent/market-teammate-sits-wiring; not merged, no launchd change)
 
-Status: **DRAFT, not wired.** Nothing reads or writes this until (1) TEAMMATE_SITS is frozen and run, (2) a separate branch wires it into
-the nightly path with the replay oracle unchanged, and (3) Devin says go. Which stats may carry numbers is decided by the rule's words
-(docs/prereg/TEAMMATE_SITS.md section 2); until then the app shows nothing from this file.
+Status 2026-11-10: TEAMMATE_SITS is frozen and run (T526) and attacked (T526-a: pts SURVIVES, reb WOUNDED, ast INCONCLUSIVE, fg3m
+UNRESOLVED). Implemented in `nba/export/teammate_sits.py` (+ `sits_core.py`, the pure functions of `research/teammate_sits/scenario.py`
+moved because `nba/` may not import `research`; `tests/export/test_sits_core.py` proves equality with the reference). Differences from
+the draft below, all chosen from the attack:
+- Only **pts and reb** rows are exported (ast and fg3m have no word to display, so they are not computed or stored). `rule_word` carries
+  the frozen word (HELPS for both).
+- The **baseline and the scenario come from the same recompute** (the morning model cache `data/models/context_residual/<date>`, the report
+  usable at export time, production's roster), never from a mix of runs. The manifest's `teammate_sits.base_vs_production` counts how many
+  rows differ from the newest stored `props_context_residual` row (a newer report between runs explains a difference).
+- The table is `teammate_sits` in `export.duckdb` (always present, empty when absent); `manifest.teammate_sits` = `{status: ok|absent, reason,
+  n_rows, n_scenarios, n_games, null_reasons, rule_sha8, stats, rule_words, base_vs_production, seconds}`. Reasons: disabled, no_unfinished_games,
+  no_model_cache, model_cache_stale (never refits), no_roster_rows, no_candidate_sitters, no_forecast_rows, over_row_budget (12,000 rows),
+  over_time_budget (150 s, checked between stages), error:<ExceptionType>. The export never fails because of this step.
+- App: `/api/games/{id}/scenarios` sends only what the display rule allows (pts direction per teammate + one team-level number; reb direction
+  only, "uncertain size"; nothing else) and sends nothing for a finished game on a LINE_CAL_LIVE-locked night.
 
 ## What it is
 For each regular starter P on tonight's slate who is not OUT on the latest official report, and each teammate T with a production props
