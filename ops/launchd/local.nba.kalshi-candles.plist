@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Nightly 15-second Kalshi candle poller launcher (docs/KALSHI_CANDLES_15S.md). NOT loaded by anything in the repo: the maintainer installs it by hand, after agent/market-kalshi-15s-candles is merged to main.
+    install:    cp ops/launchd/local.nba.kalshi-candles.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.kalshi-candles.plist && launchctl kickstart -k gui/$(id -u)/local.nba.kalshi-candles
+    uninstall:  launchctl bootout gui/$(id -u)/local.nba.kalshi-candles && rm ~/Library/LaunchAgents/local.nba.kalshi-candles.plist
+  Every 10 minutes (and at load). Each tick asks `python -m nba.kalshi.poll15 plan` (schedule cache + live tips) and does nothing until first tip - 40 min; then it runs the poller in the foreground (caffeinate -i) unless one is already running.
+  Public GETs only; no nba.duckdb; own lock data/ops/kalshi_candles_lock. Display data: no alert or EV path reads it.
+  The wrapper is a shell script, so it is launched through uv, never /bin/sh directly: TCC blocks sh from reading ~/Downloads.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.kalshi-candles</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string>
+    <string>sh</string><string>/Users/devin/Downloads/nba-prediction/ops/nba_kalshi_candles.sh</string>
+  </array>
+  <key>StartInterval</key><integer>600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_kalshi-candles.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_kalshi-candles.err</string>
+</dict>
+</plist>

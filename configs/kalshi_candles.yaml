@@ -1,0 +1,32 @@
+# 15-second Kalshi price history for the app's candle chart (nba/kalshi/poll15.py).
+# Public, unauthenticated GETs only. Display data: no alert, EV or signal path reads it.
+# Docs (checked 2026-11-09): https://docs.kalshi.com/getting_started/rate_limits
+#   Kalshi publishes limits for authenticated tiers only (Basic 200 reads/s budget = 20 reads/s
+#   sustained); unauthenticated reads have NO documented limit, so we self-limit far below it.
+base_url: https://api.elections.kalshi.com/trade-api/v2
+bucket_s: 15                  # candle width; also the poll cadence of the fast series
+# Series polled with GET /markets?series_ticker=S&status=open (one page = every open market of the series).
+series:
+  KXNBAGAME: 15               # game winners: every 15 s
+  KXNBASPREAD: 60             # spreads and totals: every 60 s (three requests a minute in all)
+  KXNBATOTAL: 60
+# Player props are NOT polled: ten series, thousands of markets, several pages each. Enable by adding
+# the series here (e.g. KXNBAPTS: 120) only after reading the request estimate in docs/KALSHI_CANDLES_15S.md.
+trades:
+  enabled: true               # GET /markets/trades per ticker whose cumulative volume rose: true OHLC prints
+  series: [KXNBAGAME]
+  max_tickers_per_poll: 8     # largest volume jump first; the rest queue for the next poll
+  max_pages: 2
+lead_min: 30                  # start polling this long before the first tip
+tail_cap_h: 4                 # hard stop after the last tip; earlier when every dated game market has closed
+quiet_polls_to_finish: 3      # consecutive successful polls with no open market of the slate date
+min_interval_s: 0.5           # never two requests closer than this
+max_requests_per_minute: 60   # hard budget (sliding 60 s); a poll that would exceed it is skipped, not queued
+                              # worst steady minute: 4 game polls + 4 x 8 trade pulls + 2 = 38; 60 = 1 req/s
+jitter_s: 1.0                 # uniform start jitter on every cadence slot
+backoff_base_s: 15            # first cool-down after a 429 / 5xx / transport error; doubles to the max
+backoff_max_s: 240
+export_every_polls: 4         # rebuild data/export/kalshi_candles15/latest.json every N fast polls (60 s)
+reconcile:
+  series: [KXNBAGAME]         # official 1-minute candles pulled once after the games, for reconciliation
+heartbeat_stale_s: 180        # watchdog: a beat is written every poll (15 s); 3 min without one is a problem

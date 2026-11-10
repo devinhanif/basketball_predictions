@@ -7,7 +7,7 @@ overrides everything else in this repo):
     constructs a request to any trading/order/portfolio path.
   - ``_LIVE_PATHS`` / ``_HISTORICAL_PATHS`` below are the only paths this
     client knows how to call, and all of them are public market-data reads
-    (markets, candlesticks, series, the cutoff endpoint itself). There is
+    (markets, trades, candlesticks, series, the cutoff endpoint itself). There is
     no ``place_order``/``cancel_order``/``portfolio`` method and there
     never will be in this module.
   - ``httpx`` is imported lazily inside functions (not at module import
@@ -80,12 +80,18 @@ class KalshiClient:
         rate_limiter: RateLimiter | None = None,
         timeout_s: float = 10.0,
         retry_backoff_s: float = 1.0,
+        max_attempts: int = _MAX_ATTEMPTS,
     ) -> None:
         self.live_base_url = live_base_url
         self.historical_base_url = historical_base_url
         self.rate_limiter = rate_limiter or RateLimiter(min_interval_s=0.2)
         self.timeout_s = timeout_s
         self.retry_backoff_s = retry_backoff_s
+        self.max_attempts = max_attempts
+        #: GETs actually sent (retries included) and the newest ``Date`` response header: the
+        #: server's own clock, kept so a poller can stamp rows with Kalshi's time as well as ours.
+        self.requests = 0
+        self.last_server_date: str | None = None
 
     @staticmethod
     def _sleep(seconds: float) -> None:
@@ -98,21 +104,24 @@ class KalshiClient:
         import httpx  # lazy: keep this module network-import-free otherwise
 
         response = None
-        for attempt in range(_MAX_ATTEMPTS):  # retry 429/5xx and transient transport errors
+        for attempt in range(self.max_attempts):  # retry 429/5xx and transient transport errors
             self.rate_limiter.wait()
+            self.requests += 1
             try:
                 response = httpx.get(url, params=params, timeout=self.timeout_s)
             except httpx.TransportError:
                 # ConnectError / RemoteProtocolError / timeouts: a dropped connection is not a
                 # reason to lose a series for 15 minutes. Re-raise after the last attempt.
-                if attempt == _MAX_ATTEMPTS - 1:
+                if attempt == self.max_attempts - 1:
                     raise
                 self._sleep(self.retry_backoff_s * (attempt + 1))
                 continue
             if response.status_code != 429 and response.status_code < 500:
                 break
-            self._sleep(2.0 * (attempt + 1))
+            if attempt < self.max_attempts - 1:
+                self._sleep(2.0 * (attempt + 1))
         assert response is not None
+        self.last_server_date = (getattr(response, "headers", None) or {}).get("date")
         response.raise_for_status()
         result = response.json()
         assert isinstance(result, dict)
@@ -154,6 +163,24 @@ class KalshiClient:
             params["min_settled_ts"] = min_settled_ts
         return self._get(f"{base}/markets", params=params)
 
+    def fetch_trades_page(
+        self,
+        ticker: str,
+        *,
+        min_ts: int | None = None,
+        limit: int = 1000,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """``GET /markets/trades`` for one ticker (public, no auth): executed trades with their
+        own ``created_time`` (order not specified by the docs; observed newest first).
+        ``min_ts`` is unix seconds."""
+        params: dict[str, Any] = {"ticker": ticker, "limit": limit}
+        if min_ts is not None:
+            params["min_ts"] = int(min_ts)
+        if cursor:
+            params["cursor"] = cursor
+        return self._get(f"{self.live_base_url}/markets/trades", params=params)
+
     def fetch_series_list(self, category: str = "Sports") -> dict[str, Any]:
         """``GET /series?category=...`` (public) -- used for ticker discovery."""
         return self._get(f"{self.live_base_url}/series", params={"category": category})
@@ -170,7 +197,7 @@ class KalshiClient:
     ) -> dict[str, Any]:
         """``GET /markets/{ticker}/candlesticks`` (live) or the historical
         equivalent. ``period_interval`` is minutes per candle (1, 60, or
-        1440 per Kalshi's documented valid values)."""
+        1440 per Kalshi's documented valid values; 1 minute is the finest official period)."""
         # Verified live 2026-10-08: the live tier nests under /series/{s}/markets/{t};
         # the historical tier is /historical/markets/{t}/candlesticks (no series).
         if tier == "live":
