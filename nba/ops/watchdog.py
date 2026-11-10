@@ -705,6 +705,21 @@ def evaluate_game_day(
             )
     except Exception as e:
         fail("livecap", e)
+    try:
+        fresh_why = live_fresh_problem(ops_dir, now, all_tips, local.date())
+        if fresh_why:
+            half = "00" if local.minute < 30 else "30"
+            alerts.append(
+                Alert(
+                    f"{prefix}:livefresh@{local:%H}{half}",
+                    f"ESPN fresh poller degraded ({fresh_why}); the capture itself is running and "
+                    "unaffected (do not kickstart it). See data/raw/live_<date>/fresh_errors.log "
+                    "and fresh_stopped_reason in data/ops/heartbeat/live_capture.json. To stop "
+                    "the poller set espn_fresh_interval_s: 0 in configs/live_capture.yaml.",
+                )
+            )
+    except Exception as e:
+        fail("livefresh", e)
     # pull orchestrator (docs/DESIGN_PULL_ORCHESTRATOR.md): Pinnacle freshness for games near
     # tip, and the pulls job heartbeat. Unknown (store held by a writer, nothing captured yet)
     # never alerts.
@@ -741,6 +756,23 @@ def live_capture_problem(
     if hb is None and not (hb_dir / lc.LAUNCH_HEARTBEAT).exists():
         return None  # never installed, never run by hand
     return lc.problem(now, tips, hb, lc.beat_time(path, hb), day)
+
+
+def live_fresh_problem(
+    ops_dir: Path, now: datetime, tips: Sequence[datetime], day: date
+) -> str | None:
+    """ESPN fresh poller trouble (own alert; the capture itself is running). None when off/idle."""
+    if not tips:
+        return None
+    first, last = min(tips), max(tips)
+    if not (first - lc.WINDOW_LEAD + lc.OPEN_GRACE <= now <= last + lc.WINDOW_TAIL):
+        return None
+    hb = lc.read_json(ops_dir / "heartbeat" / lc.HEARTBEAT)
+    if hb is None or hb.get("date") != day.isoformat() or hb.get("status") in lc.FINISHED:
+        return None
+    if lc.problem(now, tips, hb, lc.beat_time(ops_dir / "heartbeat" / lc.HEARTBEAT, hb), day):
+        return None  # the capture itself is down: the livecap alert owns that, no contradiction
+    return lc.fresh_problem(hb, now)
 
 
 def dedupe(

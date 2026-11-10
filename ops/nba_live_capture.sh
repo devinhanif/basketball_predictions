@@ -69,9 +69,36 @@ case "$DECISION" in
     exit 0 ;;
 esac
 
-log "start capture for $TODAY_ET ($PLAN)"
+# ESPN freshness poller: interval from configs/live_capture.yaml (espn_fresh_interval_s, 0 = off). The
+# python side refuses a non-zero value until the real core-API fixtures are committed; any failure -> 0.
+FRESH_TMP="$OPS/.fresh_interval.$$"
+"$UV" run --no-sync python -m nba.ops.live_capture fresh-interval > "$FRESH_TMP" 2>>"$LOG" &
+FRESH_PID=$!
+i=0
+while kill -0 "$FRESH_PID" 2>/dev/null && [ "$i" -lt 100 ]; do sleep 0.2; i=$((i + 1)); done  # ~20 s ceiling
+if kill -0 "$FRESH_PID" 2>/dev/null; then
+  kill "$FRESH_PID" 2>/dev/null
+  FRESH_OUT="0 fresh-interval check timed out"
+elif wait "$FRESH_PID"; then
+  FRESH_OUT=$(cat "$FRESH_TMP" 2>/dev/null)
+else
+  FRESH_OUT="0 fresh-interval check failed"
+fi
+rm -f "$FRESH_TMP"
+FRESH_S=${FRESH_OUT%% *}
+case "$FRESH_S" in
+  ''|*[!0-9]*) FRESH_S=0 ;;                      # integers only
+esac
+case "$FRESH_OUT" in  # a non-zero value only when python said it is on, and it is >= 15
+  *" on") [ "$FRESH_S" -ge 15 ] || FRESH_S=0 ;;
+  *) FRESH_S=0 ;;
+esac
+case "$FRESH_OUT" in
+  *refused*|*failed*|*unreadable*|*timed\ out*) alert "fresh poller not started: $FRESH_OUT" ;;
+esac
+log "start capture for $TODAY_ET ($PLAN) fresh_interval_s=$FRESH_S"
 hb_write null null "capturing $TODAY_ET"
-"$CAFFEINATE" -i "$UV" run --no-sync python -m nba.live capture --date "$TODAY_ET" >> "$LOG" 2>&1
+"$CAFFEINATE" -i "$UV" run --no-sync python -m nba.live capture --date "$TODAY_ET" --fresh-interval-s "$FRESH_S" >> "$LOG" 2>&1
 rc=$?
 log "capture rc=$rc"
 if [ "$rc" -ne 0 ]; then

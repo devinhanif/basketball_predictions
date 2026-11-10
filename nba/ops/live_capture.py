@@ -96,6 +96,71 @@ def plan(
     return "start", f"first tip {first:%H:%MZ}, window to {last + WINDOW_TAIL:%H:%MZ}"
 
 
+#: the poller's own heartbeat fields are judged only when it is on (``fresh_alive`` present)
+FRESH_STALE_AFTER = timedelta(minutes=5)
+#: real-shape gate (Devin, 2026-11-10): the poller may not run until the core-API parser has been
+#: tested on two REAL bodies committed to the repo
+REAL_FIXTURE_DIR = Path("tests/live/fixtures/espn_core_real")
+REAL_FIXTURES = ("plays_limit1.json", "plays_last.json")
+FRESH_MIN_INTERVAL_S = 15.0  # Devin 2026-11-10: fastest safe; never below 15 s per live game
+LIVE_CAPTURE_CONFIG = Path("configs/live_capture.yaml")
+
+
+def fresh_interval(
+    config: Path = LIVE_CAPTURE_CONFIG, fixture_dir: Path = REAL_FIXTURE_DIR
+) -> tuple[float, str]:
+    """(interval seconds for ``--fresh-interval-s``, reason). Always fails safe to 0 (poller off).
+
+    Non-zero only if the config asks for it, is sane (>= FRESH_MIN_INTERVAL_S) and both real
+    core-API fixtures are committed (parser tests: tests/live/test_espn_core_real.py).
+    """
+    try:
+        import yaml
+
+        raw = (yaml.safe_load(config.read_text()) or {}).get("espn_fresh_interval_s", 0)
+        want = float(raw)
+    except Exception as e:
+        return 0.0, f"config unreadable ({type(e).__name__}), poller off"
+    if want <= 0:
+        return 0.0, "off (config 0)"
+    if want < FRESH_MIN_INTERVAL_S:
+        return 0.0, f"refused: {want}s is below the {FRESH_MIN_INTERVAL_S}s minimum, poller off"
+    from nba.live.espn_fresh import last_play_core
+
+    for f in REAL_FIXTURES:
+        path = fixture_dir / f
+        if not path.is_file():
+            return 0.0, f"refused: real core fixture missing ({f}), poller off"
+        try:
+            lp = last_play_core(json.loads(path.read_text()))
+        except Exception as e:
+            return 0.0, f"refused: fixture {f} does not parse ({type(e).__name__}), poller off"
+        if lp is None or not lp.play_id or lp.wallclock is None:
+            return 0.0, f"refused: fixture {f} does not parse to a play, poller off"
+    return want, "on"
+
+
+def fresh_problem(hb: Mapping[str, Any], now: datetime) -> str | None:
+    """Poller trouble inside the window; None when it is off, idle (no live game) or healthy."""
+    if "fresh_alive" not in hb:
+        return None
+    live = int(hb.get("fresh_live_games") or 0)
+    if live <= 0:
+        return None
+    if not hb.get("fresh_alive"):
+        why = hb.get("fresh_stopped_reason")
+        return f"fresh poller thread is dead with {live} live game(s) ({why})"
+    last = _ts(hb.get("fresh_last_game_success_ts"))
+    if last is None:
+        if int(hb.get("fresh_consecutive_fail") or 0) >= 3:
+            return f"fresh poller: no game success yet, {hb.get('fresh_consecutive_fail')} failures"
+        return None
+    if now - last > FRESH_STALE_AFTER:
+        mins = int((now - last).total_seconds() // 60)
+        return f"fresh poller: no success for {mins} min with {live} live game(s)"
+    return None
+
+
 def problem(
     now: datetime,
     tips: Sequence[datetime],
@@ -125,11 +190,17 @@ def problem(
 
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("cmd", choices=["plan"])
-    ap.add_argument("--date", type=date.fromisoformat, required=True, help="ET slate date")
+    ap.add_argument("cmd", choices=["plan", "fresh-interval"])
+    ap.add_argument("--date", type=date.fromisoformat, default=None, help="ET slate date (plan)")
     ap.add_argument("--now", default=None, help="ISO time (tests); default now")
     ap.add_argument("--data-dir", type=Path, default=Path("data"))
     a = ap.parse_args(argv)
+    if a.cmd == "fresh-interval":
+        interval, why = fresh_interval()
+        print(f"{interval:g} {why}")
+        return 0
+    if a.date is None:
+        ap.error("plan requires --date")
     now = _ts(a.now) if a.now else datetime.now(UTC)
     assert now is not None
     try:
