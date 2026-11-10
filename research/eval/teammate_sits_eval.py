@@ -4,9 +4,10 @@
 Model class: gradient-boosted trees (production ``props_context_residual`` heads, walk-forward month blocks); the two
 arms share every fitted head and every row and differ only in the three vacancy inputs of the sitter's teammates.
 
+    # cwd = the branch worktree (it reads the frozen docs/prereg and configs/ relatively)
     # label-free: everything up to (not including) the outcome join; prints G-REGATE
-    mkdir data/ops/heavy.lock && (PYTHONPATH=<worktree> python -W ignore -m research.eval.teammate_sits_eval \\
-        --data-root <main checkout> --dry-run; rmdir data/ops/heavy.lock)
+    mkdir <main checkout>/data/ops/heavy.lock && (PYTHONPATH=<worktree> python -W ignore -m research.eval.teammate_sits_eval \\
+        --data-root <main checkout> --dry-run; rmdir <main checkout>/data/ops/heavy.lock)
     # the single run (main session only, after the adversary diff)
     ... -m research.eval.teammate_sits_eval --data-root <main checkout> --run --sha <64 hex>
 
@@ -90,12 +91,33 @@ def verify_rule(path: Path = RULE, sha: str | None = None) -> str:
     return got
 
 
-def code_pin() -> str:
-    """12-hex hash of the harness, scenario and gate source (checkpoint key: changed code never reuses old heads)."""
+def code_pin(data_version: str = "") -> str:
+    """12-hex hash of the harness, scenario and gate source plus the data_version (checkpoint key: changed code or a
+    changed DB never reuses old heads)."""
     h = hashlib.sha256()
     for f in (Path(__file__), Path(S.__file__), Path(G.__file__)):
         h.update(f.read_bytes())
+    h.update(data_version.encode())
     return h.hexdigest()[:12]
+
+
+def data_version(root: Path) -> str:
+    """Newest data_version from the data root's manifest summary ("unknown" if absent)."""
+    f = root / "docs" / "data_manifests" / "latest.json"
+    return (
+        str(json.loads(f.read_text()).get("data_version", "unknown")) if f.exists() else "unknown"
+    )
+
+
+def git_head() -> str:
+    import subprocess
+
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
 
 
 def require_season(max_season: int) -> None:
@@ -434,8 +456,22 @@ def cluster_keys(r: dict[str, np.ndarray], season: int) -> dict[str, np.ndarray]
 
 
 def binding(cis: dict[str, dict[str, float]]) -> dict[str, float]:
-    """The widest of the three CIs (the envelope's binding member)."""
-    name = max(cis, key=lambda k: cis[k]["hi"] - cis[k]["lo"])
+    """Envelope over the three clusterings: [min lo, max hi] (at least as wide as the widest single CI; the
+    project's envelope, market_prior_residual_rule.envelope). Rule line 4."""
+    lo = np.array([c["lo"] for c in cis.values()], dtype=float)
+    hi = np.array([c["hi"] for c in cis.values()], dtype=float)
+    widest = max(cis, key=lambda k: cis[k]["hi"] - cis[k]["lo"])
+    return {"lo": float(np.min(lo)), "hi": float(np.max(hi)), "cluster": widest}  # type: ignore[dict-item]
+
+
+def widest(cis: dict[str, dict[str, float]]) -> dict[str, float]:
+    """The widest single CI (rule line 6 says 'the widest of' for the slope family)."""
+    name = max(
+        cis,
+        key=lambda k: (
+            (cis[k]["hi"] - cis[k]["lo"]) if np.isfinite(cis[k]["hi"] - cis[k]["lo"]) else np.inf
+        ),
+    )
     return {**cis[name], "cluster": name}  # type: ignore[dict-item]
 
 
@@ -451,6 +487,7 @@ def top5_share(d: np.ndarray, key: np.ndarray) -> float:
 
 
 def slice_masks(r: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    known = (r["pos_code"] != -1) & (r["sitter_pos"] != -1)
     return {
         "k=1": r["k"] == 1,
         "k=2-3": r["k"] >= 2,
@@ -458,8 +495,8 @@ def slice_masks(r: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
         "sitter_min10<30": r["sitter_min10"] < 30,
         "teammate_starter10>=0.5": r["starter10"] >= 0.5,
         "teammate_starter10<0.5": r["starter10"] < 0.5,
-        "same_pos_as_sitter": r["pos_code"] == r["sitter_pos"],
-        "other_pos": r["pos_code"] != r["sitter_pos"],
+        "same_pos_as_sitter": known & (r["pos_code"] == r["sitter_pos"]),
+        "other_pos": known & (r["pos_code"] != r["sitter_pos"]),
     }
 
 
@@ -471,7 +508,7 @@ def score_season(r: dict[str, np.ndarray], y: np.ndarray, season: int) -> dict[s
     delta = r["mean_s"] - r["mean_u"]
     resid = y.astype(float) - r["mean_u"]
     scis = {c: boot_slope(delta, resid, keys[c]) for c in CLUSTERS}
-    sbind = binding(scis)
+    sbind = widest(scis)
     out: dict[str, Any] = {
         "n": len(d),
         "point": float(d.mean()),
@@ -481,6 +518,7 @@ def score_season(r: dict[str, np.ndarray], y: np.ndarray, season: int) -> dict[s
         "slope": ols_slope(delta, resid),
         "slope_ci": scis,
         "slope_binding": sbind,
+        "slope_envelope": binding(scis),
         "p_slope_worst": max(c["p_le0"] for c in scis.values()),
         "top5_sitter_season": top5_share(d, keys["sitter_season"]),
         "top5_teammate_season": top5_share(d, keys["player_season"]),
@@ -590,12 +628,34 @@ def prepare(root: Path, stats: tuple[str, ...] = STATS) -> dict[str, Any]:
     _log(f"G-TIP {tip}")
     plant = planted_future(w, sitters)
     _log(f"planted future {plant}")
-    cache = CACHE / code_pin()  # checkpoints are keyed to this exact harness + scenario + gate code
+    dv = data_version(root)
+    pin = code_pin(dv)
+    cache = CACHE / pin  # checkpoints keyed to this exact code and data_version
     _log(f"checkpoints: {cache}")
     heads = {
         s: walk_heads(feats, arm_s, arm_u, sitters, w["static"], w["cfg"], s, cache=cache)
         for s in stats
     }
+    for season in SEASONS:
+        ref = None
+        for s in stats:
+            r = heads[s][str(season)]
+            keys = pl.DataFrame(
+                {"game_id": r["game_id"], "sitter_id": r["sitter_id"], "player_id": r["player_id"]}
+            )
+            if ref is None:
+                ref = keys
+            elif not keys.equals(ref):
+                raise RuntimeError(
+                    f"rule line 2: scored rows differ across stats in {season} ({s})"
+                )
+            j = keys.join(
+                feats.select("game_id", "player_id", s), on=["game_id", "player_id"], how="left"
+            )
+            if j.height != keys.height or j[s].null_count():
+                raise RuntimeError(
+                    f"outcome join would fail for {s} {season}; stop before any outcome is read"
+                )
     det = g_det(feats, arm_s, w["cfg"], stats[0])
     if not det:
         raise RuntimeError("G-DET: two fits of the first block differ")
@@ -605,6 +665,14 @@ def prepare(root: Path, stats: tuple[str, ...] = STATS) -> dict[str, Any]:
         "heads": heads,
         "guards": {"G-TIP": tip, "planted_future": plant, "G-DET": det, "G-DELTA": g_delta(heads)},
         "regate": rg,
+        "provenance": {
+            "rule_sha": FROZEN_SHA,
+            "code_pin": pin,
+            "git_head": git_head(),
+            "data_version": dv,
+            "n_boot": N_BOOT,
+            "seed": SEED,
+        },
     }
 
 
@@ -660,7 +728,9 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - maintainer
     OUT.mkdir(parents=True, exist_ok=True)
     g2 = json.dumps(prep["regate"], indent=2, sort_keys=True, default=str)
     (OUT / "g2_run.json").write_text(g2)
-    _log(f"g2_run.json sha256 {hashlib.sha256(g2.encode()).hexdigest()}")
+    g2_sha = hashlib.sha256(g2.encode()).hexdigest()
+    prep["provenance"]["g2_run_sha256"] = g2_sha
+    _log(f"g2_run.json sha256 {g2_sha}; provenance {json.dumps(prep['provenance'])}")
     (OUT / "guards.json").write_text(
         json.dumps(prep["guards"], indent=2, sort_keys=True, default=str)
     )
@@ -668,6 +738,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - maintainer
         _log("dry run: stopped before the outcome join")
         return 0
     res = score(prep)
+    res["provenance"] = prep["provenance"]
     (OUT / "results.json").write_text(json.dumps(res, indent=2, sort_keys=True, default=str))
     _log(json.dumps({s: res["decision"][s] for s in STATS}))
     return 0

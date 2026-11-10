@@ -203,3 +203,42 @@ def test_outcome_join_aligns_rows() -> None:
     labels = pl.DataFrame({"game_id": ["a", "b"], "player_id": [1, 2], "pts": [7, 9]})
     r = {"game_id": np.array(["b", "a"]), "player_id": np.array([2, 1])}
     assert E.outcomes(labels, r, "pts").tolist() == [9.0, 7.0]
+
+
+def test_binding_is_the_union_envelope_and_slope_keeps_the_widest_member() -> None:
+    cis = {
+        "game": {"lo": -0.020, "hi": -0.004},
+        "player_season": {"lo": -0.018, "hi": -0.008},
+        "sitter_season": {"lo": -0.025, "hi": -0.006},
+    }
+    env = E.binding(cis)
+    assert env["lo"] == -0.025 and env["hi"] == -0.004  # wider than any single member
+    w = E.widest(cis)
+    assert (w["lo"], w["hi"]) == (-0.025, -0.006) and str(w["cluster"]) == "sitter_season"
+
+
+def test_union_envelope_can_block_helps_that_the_widest_member_allows() -> None:
+    """An offset CI pair: the widest member ends below 0, the union crosses 0 -> not HELPS."""
+    cis = {
+        "game": {"lo": -0.020, "hi": 0.001},
+        "player_season": {"lo": -0.012, "hi": -0.008},
+        "sitter_season": {"lo": -0.030, "hi": -0.006},
+    }
+    assert E.widest(cis)["hi"] < 0 and E.binding(cis)["hi"] > 0
+
+
+def test_position_slices_exclude_unknown_positions() -> None:
+    r = {
+        "k": np.array([1, 1, 2]),
+        "sitter_min10": np.array([30.0, 20.0, 31.0]),
+        "starter10": np.array([0.6, 0.2, 0.9]),
+        "pos_code": np.array([-1, 1, 2]),
+        "sitter_pos": np.array([-1, 1, 0]),
+    }
+    m = E.slice_masks(r)
+    assert m["same_pos_as_sitter"].tolist() == [False, True, False]
+    assert m["other_pos"].tolist() == [False, False, True]
+
+
+def test_code_pin_depends_on_data_version() -> None:
+    assert E.code_pin("a") != E.code_pin("b") and len(E.code_pin("a")) == 12
