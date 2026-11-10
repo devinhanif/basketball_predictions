@@ -4,6 +4,9 @@ import { isLegStat, type LegStat, type Side } from "./legTypes";
 import { IS_ARTIFACT } from "./env";
 import { getPrefs, type Screen } from "./prefs";
 
+export type RecordTab = "replay" | "calibration" | "guess";
+export const RECORD_TABS: readonly RecordTab[] = ["replay", "calibration", "guess"];
+
 export type Route =
   | { name: "today"; date: string | null }
   | { name: "game"; id: string }
@@ -15,13 +18,14 @@ export type Route =
   | { name: "signals" }
   | { name: "hedge"; game: string | null; player: number | null; stat: string | null }
   | { name: "history" }
+  | { name: "record"; tab: RecordTab; date: string | null }
   | { name: "alerts" }
   | { name: "admin" };
 
 /** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
-export type TopName = "today" | "signals" | "hedge" | "history" | "alerts" | "swipe" | "picks" | "admin" | "settings";
+export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "alerts" | "swipe" | "picks" | "admin" | "settings";
 const ARTIFACT_NAME: Record<TopName, string> = {
-  today: "discover", signals: "signals", hedge: "hedge", history: "history", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs",
+  today: "discover", signals: "signals", hedge: "hedge", history: "history", record: "record", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs",
 };
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
@@ -70,6 +74,11 @@ export function parse(hash: string): Route {
       return { name: "hedge", game: q.get("game"), player: q.get("player") ? Number(q.get("player")) : null, stat: q.get("stat") };
     case "history":
       return { name: "history" };
+    case "record": {
+      const t = q.get("tab");
+      const tab: RecordTab = t === "calibration" || t === "guess" ? t : "replay";
+      return { name: "record", tab, date: q.get("date") };
+    }
     case "alerts":
       return { name: "alerts" };
     case "admin":
@@ -77,6 +86,12 @@ export function parse(hash: string): Route {
     default:
       return { name: "today", date: q.get("date") };
   }
+}
+
+/** Hash for a track-record tab, optionally a night of the replay. */
+export function recordHref(tab: RecordTab, date: string | null): string {
+  const q = [tab === "replay" ? "" : `tab=${tab}`, date === null ? "" : `date=${encodeURIComponent(date)}`].filter(Boolean).join("&");
+  return q === "" ? "#/record" : `#/record?${q}`;
 }
 
 /** Hash for a night's slate. */
@@ -101,6 +116,8 @@ export function plainName(route: Route): TopName | null {
       return route.date === null ? "swipe" : null;
     case "hedge":
       return route.game === null ? "hedge" : null;
+    case "record":
+      return route.tab === "replay" && route.date === null ? "record" : null;
     case "picks":
     case "settings":
     case "signals":

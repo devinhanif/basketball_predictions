@@ -223,20 +223,31 @@ function WpRow(props: { label: string; kind: "model" | "book"; homeP: number; ho
   );
 }
 
-export function WinBars(props: { wp: WinProbability; home: Team; away: Team }) {
+/** `showBook` false (the Learn and Explore lenses) leaves the sportsbook bar out: no market number on that screen. */
+export function WinBars(props: { wp: WinProbability; home: Team; away: Team; showBook?: boolean }) {
   const { wp, home, away } = props;
   if (wp.model_home === null) return <p class="muted small">We have no forecast for this game.</p>;
   return (
     <div class="wp">
       <WpRow kind="model" label="Our model" homeP={wp.model_home} home={home} away={away} />
-      {wp.market_home !== null ? (
+      {wp.market_home !== null && props.showBook !== false ? (
         <WpRow kind="book" label="Sportsbook odds" homeP={wp.market_home} home={home} away={away} />
       ) : null}
     </div>
   );
 }
 
-export function WinLegend() {
+export function WinLegend(props: { showBook?: boolean }) {
+  if (props.showBook === false) {
+    return (
+      <Explain>
+        <p>
+          The bar splits 100% between the two teams. <strong>Our model</strong> is our own forecast, made before the game using only what
+          was known then.
+        </p>
+      </Explain>
+    );
+  }
   return (
     <Explain>
       <p>

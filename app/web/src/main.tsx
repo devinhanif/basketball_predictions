@@ -9,6 +9,7 @@ import "./styles.css";
 import "./leg.css";
 import "./ui.css";
 import "./desk.css";
+import "./modes.css";
 
 applyTheme(getPrefs().theme);
 void startUserStateSync();

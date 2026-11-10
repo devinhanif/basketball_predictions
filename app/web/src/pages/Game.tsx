@@ -5,7 +5,10 @@ import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
 import { DistBar, DistLegend, Explain, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { OnItChip } from "../SharedUI";
-import { useMode, type Mode } from "../prefs";
+import { useLens, useMode, type Lens, type Mode } from "../prefs";
+import { LensSwitch } from "../Lens";
+import { GameKnowsPanel } from "../Knows";
+import { IS_ARTIFACT } from "../env";
 import { plainPlay } from "../plain";
 import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { legHref, nightHref } from "../router";
@@ -15,8 +18,9 @@ import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../type
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
 import { chanceSentence, didText, rangeSentence } from "../words";
 
-function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined }) {
+function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; lens: Lens }) {
   const { prop, player, actual } = props;
+  const market = props.lens === "market";
   const q = prop.q;
   return (
     <div class="prop-block">
@@ -25,7 +29,9 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
         <span class="small muted num">
           {prop.line_source === "reference"
             ? `Reference line ${lineText(prop.line)} (no usable sportsbook line)`
-            : prop.over_price !== null && prop.under_price !== null
+            : !market
+              ? `Line ${lineText(prop.line)}`
+              : prop.over_price !== null && prop.under_price !== null
               ? `Line ${lineText(prop.line)} · Over ${american(prop.over_price)} · Under ${american(prop.under_price)}${prop.price_book ? ` (${bookName(prop.price_book)})` : ""}`
               : `Line ${lineText(prop.line)} (no usable price for both sides)`}
         </span>
@@ -34,6 +40,11 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
         <a class="btn leg-open" href={legHref(props.gameId, props.playerId, prop.stat)}>
           Full breakdown: last 10, splits, teammates out
         </a>
+        {props.lens === "explore" && !IS_ARTIFACT ? (
+          <a class="btn leg-open" href={legHref(props.gameId, props.playerId, prop.stat)}>
+            Explore: move the line and the minutes
+          </a>
+        ) : null}
       </p>
       <OnItChip propId={prop.prop_id} />
       <p class="prop-say">
@@ -47,7 +58,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           <span>
             Our model: <b>{pctBounded(prop.model_p_over, prop.extrapolated)}</b> to go over
           </span>
-          {prop.market_p_over !== null ? (
+          {market && prop.market_p_over !== null ? (
             <span>
               {prop.price_book ? bookName(prop.price_book) : "Sportsbook"}: <b>{pct(prop.market_p_over)}</b>
             </span>
@@ -72,7 +83,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
           {pct(prop.p_play)} chance to play. {plainPlay(prop.p_play_label)}
         </p>
       ) : null}
-      <AltLine gameId={props.gameId} playerId={props.playerId} player={player} prop={prop} />
+      <AltLine gameId={props.gameId} playerId={props.playerId} player={player} prop={prop} showPrices={market} />
       {actual !== undefined ? (
         <p class="result-line">
           <span class="label">Final</span> {player} {didText(prop.stat, actual)}:{" "}
@@ -83,7 +94,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean; mode: Mode }) {
+function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean; mode: Mode; lens: Lens }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
@@ -132,7 +143,7 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
       {props.p.role ? <RoleSection role={props.p.role} player={props.p.name} /> : null}
       {STATS.map((s: Stat) => {
         const prop = props.p.props[s];
-        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={res?.actual[s]} /> : null;
+        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={res?.actual[s]} lens={props.lens} /> : null;
       })}
     </details>
   );
@@ -144,6 +155,7 @@ function Body({ g }: { g: GameDetail }) {
   const res: GameResult | null = result.status === "ready" ? result.data : null;
   const [side, setSide] = useState<"away" | "home">("away");
   const mode = useMode();
+  const lens = useLens();
   const team = side === "home" ? g.home : g.away;
   const players = g.players.filter((p) => p.side === side);
   const modelHome = g.win_probability.model_home;
@@ -158,6 +170,7 @@ function Body({ g }: { g: GameDetail }) {
         </p>
         <ModeToggle />
       </div>
+      <LensSwitch />
       <section class="panel scoreboard">
         <h1 class="sr">
           {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
@@ -191,8 +204,8 @@ function Body({ g }: { g: GameDetail }) {
           {res ? "Final" : `Tip-off ${tipTime(g.tip_utc)}`}
           {g.arena ? ` · ${g.arena}` : ""}
         </p>
-        <WinBars wp={g.win_probability} home={g.home} away={g.away} />
-        <WinLegend />
+        <WinBars wp={g.win_probability} home={g.home} away={g.away} showBook={lens === "market"} />
+        <WinLegend showBook={lens === "market"} />
         <Explain label="Where did this forecast come from?">
           <p>
             Forecast stamp: <span class="mono">{g.win_probability.model_stamp ?? "none"}</span>. In plain terms, the model was
@@ -234,6 +247,8 @@ function Body({ g }: { g: GameDetail }) {
       </section>
       ) : null}
 
+      {IS_ARTIFACT ? null : <GameKnowsPanel gameId={g.game_id} />}
+
       <section class="panel">
         <div class="row between wrap">
           <h2>Player lines</h2>
@@ -263,7 +278,7 @@ function Body({ g }: { g: GameDetail }) {
           {players.length === 0 ? (
             <p class="muted">We have no forecasts for this team in this game.</p>
           ) : (
-            players.map((p) => <PlayerRow key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} mode={mode} />)
+            players.map((p) => <PlayerRow key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} mode={mode} lens={lens} />)
           )}
         </div>
         <ul class="plain small muted">

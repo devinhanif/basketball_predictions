@@ -5,6 +5,7 @@ import { IS_ARTIFACT } from "./env";
 import { cleanName, hasWelcomed, markWelcomed, setLocalName, useIdentity } from "./identity";
 import { Icon, Logo } from "./icons";
 import { setPref, usePrefs, type Mode } from "./prefs";
+import { openTour, tourSeen } from "./tourState";
 
 const CHOICES: { mode: Mode; title: string; body: string; tag: string }[] = [
   { mode: "simple", title: "Simple", body: "The bigger picture at a glance: tonight's answer, the games in plain words, one line per player.", tag: "Clear. Focused. Easy to explore." },
@@ -127,6 +128,7 @@ export function Welcome() {
                 onClick={() => {
                   setPref("mode", mode);
                   markWelcomed();
+                  if (!IS_ARTIFACT && !tourSeen()) openTour();
                 }}
               >
                 Start in {mode === "simple" ? "Simple" : "Analyst"} mode <Icon name="arrow" />

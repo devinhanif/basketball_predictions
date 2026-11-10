@@ -3,7 +3,10 @@ import { api } from "../api";
 import { ErrorPanel, Explain, Loading, ModeToggle } from "../components";
 import { IS_ARTIFACT } from "../env";
 import { edgeLine, nearestFirst, contractSide } from "../edges";
-import { useMode } from "../prefs";
+import { useLens, useMode, type Lens } from "../prefs";
+import { LensSwitch } from "../Lens";
+import { ExplorePanel } from "../Explore";
+import { PlayerKnowsPanel } from "../Knows";
 import { OnItChip } from "../SharedUI";
 import { useLoad } from "../useLoad";
 import { STATS } from "../types";
@@ -146,8 +149,8 @@ function LineCard(props: {
 }
 
 /* ------------------------------------------------------------------ headline numbers */
-function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side; line: number; fresh: boolean }) {
-  const { data, row, side, line, fresh } = props;
+function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side; line: number; fresh: boolean; market: boolean }) {
+  const { data, row, side, line, fresh, market } = props;
   const n10 = data.ladder_n10;
   const n5 = data.ladder_n5;
   const h10 = row ? rowHits(row, side, 10) : data.last10.hits;
@@ -155,7 +158,7 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
   const p = row ? rowModel(row, side) : data.model.p_hit;
   const price = row ? (side === "over" ? row.over_price : row.under_price) : null;
   const range = fresh ? rangeText(data.last10) : null;
-  const book = bookChance(data.prices, data.line === line, row, side);
+  const book = market ? bookChance(data.prices, data.line === line, row, side) : null;
   const verb = side === "over" ? "went over" : "stayed under";
   return (
     <section class="leg-head" aria-label="Headline numbers">
@@ -205,6 +208,7 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
           {nText(data.last10)}. Ten games say less than they seem to: a streak is not an edge.
         </p>
       )}
+      {market ? (
       <p class="small num leg-price">
         {price !== null ? (
           <>
@@ -218,12 +222,13 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
           <span class="muted">No price is stored for this line.</span>
         )}
       </p>
+      ) : null}
     </section>
   );
 }
 
 /** A player with no earlier games in the loaded data (a preseason export): say so, show only what exists. */
-function NoHistory({ data, side, line, row }: { data: LegBreakdown; side: Side; line: number; row: LadderRow | null }) {
+function NoHistory({ data, side, line, row, market }: { data: LegBreakdown; side: Side; line: number; row: LadderRow | null; market: boolean }) {
   const p = row ? rowModel(row, side) : data.model.p_hit;
   const price = row ? (side === "over" ? row.over_price : row.under_price) : null;
   return (
@@ -248,6 +253,7 @@ function NoHistory({ data, side, line, row }: { data: LegBreakdown; side: Side; 
           )}
         </div>
       </div>
+      {market ? (
       <p class="small num leg-price">
         {price !== null ? (
           <>
@@ -257,6 +263,7 @@ function NoHistory({ data, side, line, row }: { data: LegBreakdown; side: Side; 
           <span class="muted">No price is stored for this line.</span>
         )}
       </p>
+      ) : null}
     </section>
   );
 }
@@ -394,7 +401,7 @@ function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side;
 }
 
 /* ------------------------------------------------------------------ alt lines side by side */
-function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (l: number) => void }) {
+function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (l: number) => void; market: boolean }) {
   const { data, line, side } = props;
   const rows = [-2, -1, 0, 1, 2]
     .map((k) => ladderAt(data.ladder, line + k))
@@ -414,7 +421,7 @@ function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (
               <th scope="col">Last 10</th>
               <th scope="col">Last 5</th>
               <th scope="col">Model</th>
-              <th scope="col">Price</th>
+              {props.market ? <th scope="col">Price</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -441,7 +448,7 @@ function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (
                   <td>{ofText(rowHits(r, side, 10), data.ladder_n10)}</td>
                   <td>{ofText(rowHits(r, side, 5), data.ladder_n5)}</td>
                   <td>{model && p !== null ? modelPct(p) : <span class="muted">none yet</span>}</td>
-                  <td>{px !== null ? american(px) : <span class="muted">none</span>}</td>
+                  {props.market ? <td>{px !== null ? american(px) : <span class="muted">none</span>}</td> : null}
                 </tr>
               );
             })}
@@ -802,6 +809,27 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
   );
 }
 
+/** The what-if lab, only for the four stats the model forecasts; any other stat says why there is none. */
+function LensExplore(props: { data: LegBreakdown; modelStat: boolean; lens: Lens }) {
+  if (IS_ARTIFACT) {
+    return (
+      <section class="panel flat" aria-label="What if">
+        <h2>What if?</h2>
+        <p class="small muted">The what-ifs need the live app. This snapshot holds the posted line only.</p>
+      </section>
+    );
+  }
+  if (!props.modelStat) {
+    return (
+      <section class="panel flat" aria-label="What if">
+        <h2>What if?</h2>
+        <p class="small muted">There is no model forecast for this stat, so there is nothing to move. The what-ifs cover points, rebounds, assists and threes.</p>
+      </section>
+    );
+  }
+  return <ExplorePanel gameId={props.data.game_id} playerId={props.data.player_id} stat={props.data.stat} lens={props.lens} />;
+}
+
 export function Leg(props: { gameId: string; playerId: number; stat: LegStat; side: Side; onStale: (s: boolean) => void }) {
   const [line, setLine] = useState<number | null>(null);
   const [side, setSide] = useState<Side>(props.side);
@@ -811,6 +839,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   const [pending, setPending] = useState(true);
   const [tick, setTick] = useState(0);
   const mode = useMode();
+  const lens = useLens();
   const { onStale } = props;
 
   useEffect(() => {
@@ -865,10 +894,12 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   const shown = line ?? data.line;
   const row = ladderAt(data.ladder, shown);
   const fresh = !pending && data.line === shown && data.side === side;
+  const market = lens === "market";
+  const modelStat = data.model.available && (data.stat === "pts" || data.stat === "reb" || data.stat === "ast" || data.stat === "fg3m");
   const depth = (
     <>
-      <Ladder data={data} line={shown} side={side} onLine={setLine} />
-      <Books data={data} line={shown} />
+      <Ladder data={data} line={shown} side={side} onLine={setLine} market={market} />
+      {market ? <Books data={data} line={shown} /> : null}
       <Splits data={data} side={side} line={shown} />
       <Teammates data={data} side={side} line={shown} />
       <RolePanel data={data} />
@@ -878,6 +909,8 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   return (
     <div class={`stack leg${fresh ? "" : " stale"}`} aria-busy={pending}>
       <Header data={data} line={shown} />
+      <LensSwitch />
+      {lens === "explore" ? <LensExplore data={data} modelStat={modelStat} lens={lens} /> : null}
       <LineCard
         data={data}
         line={shown}
@@ -889,22 +922,24 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
       />
       {data.prior_games === 0 ? (
         <>
-          <NoHistory data={data} side={side} line={shown} row={row} />
-          <Books data={data} line={shown} />
+          <NoHistory data={data} side={side} line={shown} row={row} market={market} />
+          {market ? <Books data={data} line={shown} /> : null}
         </>
       ) : (
         <>
-          <Headline data={data} row={row} side={side} line={shown} fresh={fresh} />
-          {mode === "analyst" ? <EdgePanel data={data} line={shown} /> : null}
+          <Headline data={data} row={row} side={side} line={shown} fresh={fresh} market={market} />
+          {market ? <EdgePanel data={data} line={shown} /> : null}
+          {market ? <LensExplore data={data} modelStat={modelStat} lens={lens} /> : null}
           <InWords data={data} />
           <HeadsUp data={data} />
           <Games data={data} side={side} line={shown} row={row} />
           <ModelPanel data={data} side={side} line={shown} row={row} />
+          {modelStat && !IS_ARTIFACT ? <PlayerKnowsPanel gameId={data.game_id} playerId={data.player_id} stat={data.stat} /> : null}
           {mode === "analyst" ? (
             depth
           ) : (
             <details class="panel more">
-              <summary>More depth: other lines, prices by book, splits, teammates, role, opponent</summary>
+              <summary>More depth: other lines, {market ? "prices by book, " : ""}splits, teammates, role, opponent</summary>
               <div class="stack">{depth}</div>
             </details>
           )}

@@ -6,15 +6,22 @@ import { useEffect, useState } from "preact/hooks";
 export type Theme = "system" | "light" | "dark";
 export type Mode = "simple" | "analyst";
 export type Screen = "today" | "signals" | "swipe" | "picks";
+/**
+ * What a game or player screen shows. Learn: how the game and the forecast work, with no price, edge or fee anywhere.
+ * Explore: Learn plus what-ifs you can move. Market: the existing views with prices, edges and fees.
+ */
+export type Lens = "learn" | "explore" | "market";
+export const LENSES: readonly Lens[] = ["learn", "explore", "market"];
 
 export interface Prefs {
   theme: Theme;
   mode: Mode;
   screen: Screen;
+  lens: Lens;
 }
 
-export const KEYS = { theme: "ph.theme", mode: "ph.mode", screen: "ph.screen" } as const;
-export const DEFAULTS: Prefs = { theme: "system", mode: "simple", screen: "today" };
+export const KEYS = { theme: "ph.theme", mode: "ph.mode", screen: "ph.screen", lens: "ph.lens" } as const;
+export const DEFAULTS: Prefs = { theme: "system", mode: "simple", screen: "today", lens: "learn" };
 
 const memory = new Map<string, string>();
 
@@ -45,6 +52,10 @@ export function parseScreen(v: string | null): Screen {
   return v === "signals" || v === "swipe" || v === "picks" ? v : "today";
 }
 
+export function parseLens(v: string | null): Lens {
+  return v === "explore" || v === "market" ? v : "learn";
+}
+
 let current: Prefs | null = null;
 const listeners = new Set<() => void>();
 
@@ -53,6 +64,7 @@ export function getPrefs(): Prefs {
     theme: parseTheme(readKey(KEYS.theme)),
     mode: parseMode(readKey(KEYS.mode)),
     screen: parseScreen(readKey(KEYS.screen)),
+    lens: parseLens(readKey(KEYS.lens)),
   };
   return current;
 }
@@ -94,6 +106,10 @@ export function usePrefs(): Prefs {
 
 export function useMode(): Mode {
   return usePrefs().mode;
+}
+
+export function useLens(): Lens {
+  return usePrefs().lens;
 }
 
 /** Is the page showing dark right now? An explicit choice wins; otherwise the system setting. */

@@ -10,6 +10,7 @@ import { moveSelection, search, KIND_LABEL, type SearchItem } from "./search";
 import { useIsAdmin, useNotices, useSearchIndex } from "./shellData";
 import { topHref, type Route, type TopName } from "./router";
 import { dismissToast, useToasts } from "./toast";
+import { openTour } from "./tourState";
 
 interface NavDef {
   name: TopName;
@@ -17,23 +18,26 @@ interface NavDef {
   icon: IconName;
 }
 // Track record and the Desk of earlier plans are now Model History and Signals; nothing else is listed until it exists.
-const WORKSPACE: NavDef[] = [
+const ALL_WORKSPACE: NavDef[] = [
   { name: "today", label: "Discover", icon: "discover" },
   { name: "signals", label: "Signals", icon: "signals" },
   { name: "hedge", label: "Hedge Finder", icon: "hedge" },
   { name: "history", label: "Model History", icon: "history" },
+  { name: "record", label: "Track record", icon: "record" },
   { name: "alerts", label: "Alerts", icon: "alerts" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
   { name: "picks", label: "My picks", icon: "picks" },
 ];
-const TABS: TopName[] = ["today", "signals", "alerts", "swipe", "picks"];
+// The track record reads the live API, which the single-file snapshot does not have.
+const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && n.name === "record"));
+const TABS: TopName[] = (["today", "record", "signals", "swipe", "picks"] as const).filter((t) => WORKSPACE.some((w) => w.name === t));
 
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
-  signals: "signals", hedge: "hedge", history: "history", alerts: "alerts", admin: "admin",
+  signals: "signals", hedge: "hedge", history: "history", record: "record", alerts: "alerts", admin: "admin",
 };
 const TITLES: Record<TopName, string> = {
-  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences",
+  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences",
 };
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day" };
 
@@ -179,6 +183,20 @@ function AboutModal(props: { onClose: () => void; private_: boolean; fixture: bo
         {props.fixture ? <li>The desk numbers in this build are a synthetic fixture, not JARVIS data.</li> : null}
         {props.asOf ? <li>Desk data as of {props.asOf}.</li> : null}
       </ul>
+      {IS_ARTIFACT ? null : (
+        <p>
+          <button
+            type="button"
+            class="btn"
+            onClick={() => {
+              props.onClose();
+              openTour();
+            }}
+          >
+            Take the tour
+          </button>
+        </p>
+      )}
       <p class="small muted">
         Analysis only, not advice. We do not take bets or sell picks. 21+ (US). If gambling is a problem, call 1-800-GAMBLER.
       </p>
@@ -214,6 +232,18 @@ function ProfileMenu(props: { onClose: () => void }) {
       <a class="pop-link" href={topHref("settings")} onClick={props.onClose}>
         Preferences
       </a>
+      {IS_ARTIFACT ? null : (
+        <button
+          type="button"
+          class="pop-link"
+          onClick={() => {
+            props.onClose();
+            openTour();
+          }}
+        >
+          Take the tour again
+        </button>
+      )}
       {IS_ARTIFACT ? (
         <p class="small muted pop-note">Your identity comes from the platform. There is no password here.</p>
       ) : (

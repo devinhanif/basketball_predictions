@@ -15,6 +15,10 @@ import { History } from "./pages/History";
 import { Alerts } from "./pages/Alerts";
 import { Admin } from "./pages/Admin";
 import { Welcome } from "./Welcome";
+import { Record } from "./pages/Record";
+import { Tour } from "./Tour";
+import { openTour, tourSeen } from "./tourState";
+import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
 import { IS_ARTIFACT } from "./env";
 
@@ -22,6 +26,11 @@ export function App() {
   const route = useRoute();
   const [stale, setStale] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    // First visit: the tour opens once (after the welcome, which opens it itself when it finishes).
+    if (!IS_ARTIFACT && hasWelcomed() && !tourSeen()) openTour();
+  }, []);
 
   useEffect(() => {
     api.meta().then(
@@ -78,6 +87,9 @@ export function App() {
     case "history":
       page = <History />;
       break;
+    case "record":
+      page = <Record tab={route.tab} date={route.date} />;
+      break;
     case "alerts":
       page = <Alerts />;
       break;
@@ -93,6 +105,7 @@ export function App() {
         {page}
       </Shell>
       <Welcome />
+      {IS_ARTIFACT ? null : <Tour />}
     </>
   );
 }
