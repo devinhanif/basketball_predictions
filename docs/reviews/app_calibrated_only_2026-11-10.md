@@ -119,3 +119,44 @@ interim look at the calibrated arm of a frozen test. That is a non-negotiable-4 
   and Claude and agents will not aggregate them before the look; the public API joins them by prop_id. Reverse: any
   aggregate read before the look is logged as an exposure and the look is reported as exposed."
 - Ledger: none.
+
+---
+
+## Re-review (7be9ef3b; diff 96d1633..7be9ef3b)
+
+The fixes hold. Overall the branch is now **SURVIVES**: no raw chance is served, the ladder is coherent, and no screen
+or single payload pairs a 2026 model chance with its outcome for locked nights.
+
+Verdict: APPROVED
+
+How I tested: worktree `agent-aed16da6a05fc9863` at 7be9ef3b. I ran my own API (:8765, `data/export/latest`), vite
+(:5293) and Chrome (:9672), and stopped all three. I did not touch 5173, 8000 or cloudflared.
+
+| Fix | Command / method | n | Result | Pass |
+|---|---|---|---|---|
+| M1 raw fields | Payload walker (inline Python) over slates, results, swipe (all 7 slates), and for 3 games per slate: games, result, knows. For 4 players per game, every stat: card, breakdown, knows, props. Plus parlay, contracts, calibration, top-parlays fixture and 30 guess reveals. Keys matching `raw` | 1,397 payloads | The only keys left are T493's `log_loss_cal_minus_raw` (a published statistic, not a chance). `line_cal.p_over_raw` is gone, and `p_raw`/`p_joint_raw` are excluded from top-parlays | PASS |
+| M3 chance and outcome in one object | Same walker: any object with a non-null chance key (`model_p_over`, `p_over`, `p_hit`, `model_over`, ...) and a non-null `actual`/`went_over` | 1,397 payloads | 0 objects. All 30 guess reveals (every one dated on or after 10-30) return `model_locked=true`, `model_p_over=null`, `stat_mean=null` | PASS |
+| M2 ladder (22/42/13 case) | `/api/breakdown/0022600160/1642854/pts?line=9.5`; `/api/props?line=8.5/9.5/10.5` | 11 rows | The ladder from 7.0 to 12.0 shows a chance only at 9.5 (0.424, line_cal). Every other row is `model_over=null`. `/api/props` returns 8.5 and 10.5 as `p_over=null, no_cal_here=true`. The leg page reads "There is no calibrated number for … at X" | PASS |
+| M3 screens | text dumps from Chrome (Learn, 375 px): game 0022600160 (11-02, locked) with "final score" opened and every `<details>` opened; Replay for 11-02 with players expanded; guess with a round revealed | 3 pages | **Game:** "Over 9.5 pts 42% calibrated" with the per-prop result replaced by "Result hidden while the model's number for this night is a locked test (about Dec 1). See it in Replay." Minutes played are shown, which is not the stat outcome. **Replay:** "He scored 43." with "The model's number for this night is part of a locked test until about Dec 1." and no chance, lean or typical night. **Guess:** "You said over. He had 5 assists…: over. You were right." with the same locked line and no model call | PASS |
+| 375 px Learn dark | `shots_c.mjs` (`scrollWidth` and elements past the viewport) | 4 pages | Game, replay and guess: `scrollWidth` 375 and nothing past the viewport. Leg: `scrollWidth` 375. The stat tab strip (`leg-tab` up to 546 px) is the horizontally scrolling chip row that was already there before this branch, not page overflow | PASS |
+| Gates (unpiped) | pytest; ruff check; ruff format --check; mypy; npm lint; typecheck; vitest | 391+1 skipped; 260 | all exit 0 | PASS |
+
+**`/api/games/{id}/result` still serving `actual` without a chance: acceptable, with one condition.**
+- Swipe and My picks need the outcome to settle a visitor's picks, and the outcome alone says nothing about the model.
+- The chance lives on `/api/games/{id}` and `/api/slates/{date}`, so a deliberate client-side join by player and stat
+  can still rebuild CAL-vs-outcome for the window.
+- The app no longer does that join on any screen, in any payload, or in local storage: `model_call` is no longer stored.
+- Condition: the lock is enforced in the UI only, which makes it a discipline rule. Record it in DECISIONS before merge.
+  Draft: "2026-11-10: LINE_CAL_LIVE lock in the app is display-level (nights from 2026-10-30: chance and per-prop outcome
+  never on one screen or payload); the public API still serves chances and outcomes on separate endpoints; Claude and
+  agents do not join them before the look; any such join is logged as an exposure. Reverse: after the look, or if a join
+  happens."
+- If Devin wants it technical rather than procedural, the next step is to withhold `model_p_over` on `/api/games` and
+  `/api/slates` for finished locked games. That also removes the chance from the game page after the final, which is a
+  product call.
+
+**New nits:** none that block. The game page's "Show the final score above to see how long he played" now shows minutes
+beside a calibrated chance. That is fine: minutes are not the outcome under test.
+
+**Not verified:** the artifact build (no `artifact-data`); the Market and Explore lenses at 375 px on this commit (only
+Learn dark was measured, as asked).
