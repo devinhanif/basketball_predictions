@@ -189,6 +189,7 @@ TABLES: dict[str, list[tuple[str, str]]] = {
     "prop_lines": [
         ("run_id", "VARCHAR"),
         ("made_at", "TIMESTAMP"),
+        ("paired_through", "TIMESTAMP"),  # quotes received <= this and < tip (>= made_at)
         ("game_id", "VARCHAR"),
         ("player_id", "INTEGER"),
         ("stat", "VARCHAR"),
@@ -326,11 +327,12 @@ def _read_lines(
         if not is_lock_error(exc):
             raise
         return reader.LinesBundle([], 0, "locked")
-    try:
-        return reader.prop_lines(con, props, window)
+    try:  # hold the capture store only for the one filtered read, never for the pairing loop
+        quotes = reader.fetch_quotes(con, props, window)
     finally:
         if con is not None:
             con.close()
+    return reader.pair_quotes(props, quotes)
 
 
 def _primary_counts(props: list[dict[str, Any]]) -> dict[str, int]:

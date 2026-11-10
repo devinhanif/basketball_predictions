@@ -202,8 +202,9 @@ def avg_rows(
         if key not in latest or (made_at, r[1]) > latest[key]:
             latest[key] = (made_at, r[1])
         rows.append({
-            "run_id": r[1], "made_at": made_at, "game_id": gid, "tipoff": tip,
-            "model_name": AVG_MODEL_NAME, "version": AVG_VERSION, "player_id": pid,
+            "run_id": r[1], "made_at": made_at, "lines_through": made_at,
+            "game_id": gid, "tipoff": tip, "model_name": AVG_MODEL_NAME,
+            "version": AVG_VERSION, "player_id": pid,
             "stat": stat, "lead_minutes": (tip - made_at).total_seconds() / 60.0,
             "comparison_only": True, "prediction_json": json.dumps(pred, sort_keys=True),
             "mean": pred["mean"], "std": pred["std"], "p_play": None, "proj_minutes": None,

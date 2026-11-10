@@ -127,6 +127,23 @@ class ForwardBundle:
     excluded_withdrawn: int = 0
 
 
+def pretip_run_times(con: duckdb.DuckDBPyConnection) -> list[datetime]:
+    """``made_at`` of every pretip run that stamped its models (``forward_model_stamps``, one row
+    per model per run, written for every run that built predictions, including a run whose rows
+    were all skipped by write-on-change). Empty when the table is absent."""
+    if not table_exists(con, STAMPS_TABLE):
+        return []
+    return [r[0] for r in con.execute(f"SELECT DISTINCT made_at FROM {STAMPS_TABLE}").fetchall()]  # noqa: S608
+
+
+def newest_cover(run_times: list[datetime], game_date: date, tipoff: datetime) -> datetime | None:
+    """The newest pretip run that covered a game: a stamped run made strictly before the tip, on
+    the game's ET date (a run predicts every upcoming game of its own slate date; a run for another
+    date is not counted, which can only lower the cutoff). None when no run qualifies."""
+    ok = [t for t in run_times if t < tipoff and et_date(t) == game_date]
+    return max(ok) if ok else None
+
+
 def _flatten_stamp(stamp: dict[str, Any] | None) -> dict[str, Any]:
     keys = ("weights_sha256", "weights_scope", "data_version", "fit_through", "n_train",
             "git_sha", "git_dirty", "stamped_at")  # fmt: skip
@@ -167,8 +184,10 @@ def forward_predictions(
     # a game the games feed has not returned (it lists started games only) takes its teams from the
     # schedule cache, then from the win row's stamped teams, instead of being dropped
     cache_teams = cached_game_teams(window.seasons, schedule_cache_dir)
+    run_times = pretip_run_times(con)
     withdrawn = withdrawn_players(con)  # misplaced players: forecast kept in the log, never shown
     kept: list[tuple[Any, ...]] = []
+    cover: dict[str, datetime | None] = {}  # game -> made_at of the newest pretip run covering it
     post_tip = 0
     n_withdrawn = 0
     for r in raw:
@@ -183,6 +202,8 @@ def forward_predictions(
         if not (window.first <= gdate <= window.day):
             continue
         kept.append(r)
+        if r[2] not in cover:
+            cover[r[2]] = newest_cover(run_times, gdate, tipoff)
     _assert_allowed({int(r[12]) for r in kept}, window.seasons)
 
     stamps = model_stamps(con, {r[0] for r in kept})
@@ -198,11 +219,16 @@ def forward_predictions(
     for r in kept:
         run_id, made_at, game_id, tipoff, model, version, target, pid, pred_s = r[:9]
         pred = _jloads(pred_s)
+        is_latest = latest[(game_id, model, target, int(pid))] == (made_at, run_id)
+        cov = cover.get(game_id)
         base: dict[str, Any] = {
             "run_id": run_id, "made_at": made_at, "game_id": game_id, "tipoff": tipoff,
+            # quotes may pair up to here: a latest row is unchanged at every later run that
+            # covered its game (write-on-change), a superseded row only up to its own made_at
+            "lines_through": max(made_at, cov) if (is_latest and cov is not None) else made_at,
             "model_name": model, "version": version, "player_id": int(pid),
             "lead_minutes": (tipoff - made_at).total_seconds() / 60.0,
-            "is_latest": latest[(game_id, model, target, int(pid))] == (made_at, run_id),
+            "is_latest": is_latest,
             "comparison_only": bool(pred.get("comparison_only", False)),
             "prediction_json": pred_s,
             **_flatten_stamp(stamps.get((run_id, model))),
@@ -600,37 +626,39 @@ def unusable_reason(book: str, side: str | None, price: int | None) -> str | Non
     return None
 
 
-def prop_lines(
-    odds: duckdb.DuckDBPyConnection | None,
-    props: list[dict[str, Any]],
-    window: Window,
-) -> LinesBundle:
-    """For each forward prop prediction (run, game, player, stat), the book quotes knowable when
-    it was made: ``received_at <= made_at`` (our clock after the response, naive UTC) and strictly
-    before the tip. The newest quote per (book, market, line, side) wins; main and alternate ladders
-    are separate markets. Nothing is de-vigged; a Polymarket Under beyond -1000 is kept but flagged
-    ``unusable``. ``player_id`` is the capture's name resolution (NULL = unresolved, not exported).
-    Only games of the exported prop rows are read, so a game outside the window's seasons never
-    appears; the row set is re-asserted against the allowed seasons."""
+@dataclass(frozen=True)
+class RawQuotes:
+    """The filtered quote read, held in memory so the capture store can be closed before pairing."""
+
+    raw: list[tuple[Any, ...]]
+    post: int
+    status: str  # ok | no_table | absent
+
+
+def _stat_of() -> dict[str, str]:
+    return {m: v[0] for m, v in LINE_MARKETS.items()}
+
+
+def fetch_quotes(
+    odds: duckdb.DuckDBPyConnection | None, props: list[dict[str, Any]], window: Window
+) -> RawQuotes:
+    """The only part that touches ``market_asof.duckdb``: one filtered read of the pre-tip quotes
+    for the games and players of ``props``; the caller closes the connection afterwards and the
+    pairing loop (:func:`pair_quotes`) runs on the in-memory rows. Only games of the exported
+    prop rows are read; the season set is re-asserted against the allowed seasons."""
     if odds is None:
-        return LinesBundle([], 0, "absent")
+        return RawQuotes([], 0, "absent")
     if not table_exists(odds, LINES_TABLE):
-        return LinesBundle([], 0, "no_table")
+        return RawQuotes([], 0, "no_table")
     _assert_allowed(
         {s for p in props if (s := guard.season_of_game_id(str(p["game_id"]))) is not None},
         window.seasons,
     )
-    preds: dict[tuple[str, str, int, str], tuple[datetime, datetime]] = {}
-    for p in props:  # models in one run share that run's quotes
-        preds[(p["run_id"], str(p["game_id"]), int(p["player_id"]), str(p["stat"]))] = (
-            p["made_at"],
-            p["tipoff"],
-        )
-    if not preds:
-        return LinesBundle([], 0, "ok")
-    stat_of = {m: v[0] for m, v in LINE_MARKETS.items()}
-    gids = sorted({k[1] for k in preds})
-    pids = sorted({k[2] for k in preds})
+    if not props:
+        return RawQuotes([], 0, "ok")
+    stat_of = _stat_of()
+    gids = sorted({str(p["game_id"]) for p in props})
+    pids = sorted({int(p["player_id"]) for p in props})
     gm, pm, mm = (",".join("?" for _ in xs) for xs in (gids, pids, stat_of))
     where = (
         f"game_id IN ({gm}) AND player_id IN ({pm}) AND market IN ({mm})"
@@ -650,27 +678,58 @@ def prop_lines(
         f"ORDER BY received_at, snapshot_kind",
         params,
     ).fetchall()
+    return RawQuotes(raw, int(post[0]) if post else 0, "ok")
+
+
+def pair_quotes(props: list[dict[str, Any]], quotes: RawQuotes) -> LinesBundle:
+    """For each forward prop prediction (run, game, player, stat), the book quotes knowable when
+    it was made: ``received_at <= lines_through`` (our clock after the response, naive UTC) and
+    strictly before the tip. ``lines_through`` is the row's ``made_at`` or, for a latest row, the
+    ``made_at`` of the newest pretip run that covered its game (write-on-change: the row is
+    unchanged at that run; docs/DESIGN_EXPORT_LINE_PAIRING.md). The newest quote per (book,
+    market, line, side) wins; main and alternate ladders are separate markets. Nothing is
+    de-vigged; a Polymarket Under beyond -1000 is kept but flagged ``unusable``. ``player_id`` is
+    the capture's name resolution (NULL = unresolved, not exported). No database access."""
+    if quotes.status != "ok":
+        return LinesBundle([], 0, quotes.status)
+    preds: dict[tuple[str, str, int, str], tuple[datetime, datetime, datetime]] = {}
+    for p in props:  # models in one run share that run's quotes
+        k = (p["run_id"], str(p["game_id"]), int(p["player_id"]), str(p["stat"]))
+        through = min(p.get("lines_through", p["made_at"]), p["tipoff"])  # never past the tip
+        if k in preds:  # arms of one group share the cutoff; on a clash keep the earlier one
+            through = min(through, preds[k][2])
+        preds[k] = (p["made_at"], p["tipoff"], through)
+    stat_of = _stat_of()
     by_player: dict[tuple[str, int], list[tuple[Any, ...]]] = defaultdict(list)
-    for r in raw:
+    for r in quotes.raw:
         by_player[(r[0], int(r[1]))].append(r)
     out: list[dict[str, Any]] = []
-    for (run_id, gid, pid, stat), (made_at, tipoff) in sorted(preds.items()):
+    for (run_id, gid, pid, stat), (made_at, tipoff, through) in sorted(preds.items()):
         newest: dict[tuple[str, str, float, str], tuple[Any, ...]] = {}
         for r in by_player.get((gid, pid), []):  # ascending received_at: the last one wins
-            if stat_of[r[2]] == stat and r[8] <= made_at and r[8] < tipoff:
+            if stat_of[r[2]] == stat and r[8] <= through and r[8] < tipoff:
                 newest[(r[3], r[2], float(r[5]), r[4])] = r
         for (book, market, point, side), r in sorted(newest.items()):
             reason = unusable_reason(book, side, int(r[6]))
             out.append({
-                "run_id": run_id, "made_at": made_at, "game_id": gid, "player_id": pid,
-                "stat": stat, "book": book, "market": market,
+                "run_id": run_id, "made_at": made_at, "paired_through": through,
+                "game_id": gid, "player_id": pid, "stat": stat, "book": book, "market": market,
                 "is_alternate": LINE_MARKETS[market][1], "line": point, "side": side,
                 "price_american": int(r[6]), "implied_prob_raw": r[7], "snapshot_ts": r[8],
                 "snapshot_kind": r[9], "last_update": r[10],
                 "minutes_before_tip": (tipoff - r[8]).total_seconds() / 60.0,
                 "unusable": reason is not None, "unusable_reason": reason,
             })  # fmt: skip
-    return LinesBundle(out, int(post[0]) if post else 0, "ok")
+    return LinesBundle(out, quotes.post, "ok")
+
+
+def prop_lines(
+    odds: duckdb.DuckDBPyConnection | None,
+    props: list[dict[str, Any]],
+    window: Window,
+) -> LinesBundle:
+    """:func:`fetch_quotes` then :func:`pair_quotes` on one open connection (tests, scratch)."""
+    return pair_quotes(props, fetch_quotes(odds, props, window))
 
 
 # ------------------------------------------------------------------------------ explainer
