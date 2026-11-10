@@ -186,3 +186,125 @@ Unchanged from the first review. The new identity strengthens test validity: the
 
 ### Drafted DECISIONS row (not appended)
 `| 2026-11-10 <time> | TEAMMATE_SITS re-review (diff edc9662a..5179d07c): M1-M7 and S1-S3 verbatim; null = -oracle identity confirmed (exact on midpoint taus); gate code matches text; exact 2024 G2: pts/reb/ast PASS, fg3m FLOOR_UNREACHABLE + SLOPE_UNRESOLVED. NOT_READY on four stale-text edits (R1-R4: section 9 exact values, G-DELTA word, O1 fg3m, kill criterion); freeze after those without another round. | docs/reviews/teammate_sits_prefreeze_2026-11-10.md | A diff beyond R1-R4 before freeze. |`
+
+---
+
+## Harness check (research/eval/teammate_sits_eval.py at dbbab6cc, against the frozen text c23f7b36), 2026-11-10
+
+**NOT_READY**: two code edits, plus a third only if the running dry-run reports a G-REGATE change. All are label-free; no outcome has been read and I did not run `--run` or a dry-run.
+
+Verdict: BLOCKED
+
+Top finding: `binding()` (line 436-439) takes the **widest single** clustering's CI. The frozen line 4 says "the **envelope** (widest) of three cluster bootstraps". The project's existing envelope (`research/eval/market_prior_residual_rule.py:272-284`) is **[min lo, max hi]** over the clusterings, which is at least as wide as the widest single one. The two readings differ whenever the clusterings' intervals are offset rather than nested. The union is the conservative reading for every word (HELPS needs hi < 0, HURTS needs lo > 0, CLOSED_TIE needs lo > floor), and it matches the worst-case p the same line uses. It must be fixed before the run, because the reading cannot be chosen after the numbers are out.
+
+### Checks run
+| check | command | result | pass |
+|---|---|---|---|
+| frozen body hash | `git show dbbab6cc:docs/prereg/TEAMMATE_SITS.md \| awk '/^=== RESULTS BELOW ===$/{exit} {print}' \| shasum -a 256` | c23f7b36...9d39d = `FROZEN_SHA` (line 36) | PASS |
+| tests | worktree at dbbab6cc: `.venv-1/bin/python -m pytest -q tests/research/teammate_sits -p no:cacheprovider --no-cov -W ignore` | 23 passed, exit 0 (unpiped) | PASS |
+| lint / format / types | `ruff check`, `ruff format --check`, `mypy research/eval/teammate_sits_eval.py` | exit 0 / 0 / 0 | PASS |
+
+### Line-by-line against the frozen text
+| frozen item | harness | verdict |
+|---|---|---|
+| verify_rule (status FROZEN, body hash; `--run` needs `--sha`) | 79-90, 644-645: `--run` without `--sha` refuses (`"" != FROZEN_SHA`) | PASS |
+| season <= 2024 | `require_season` 101-103, 203, 581; loads via `G.load` (`load_inputs(..., 2024)`) | PASS |
+| arms S/U, one sitter, k <= 3, rows = played teammates with n_prior >= 5 | `build_arms` 109-150 reuses `G.events` + `S.scenario_vacancy(remove=True)`; G-EQ asserts same keys and same non-vacancy columns | PASS (the key anti-join at 147 checks presence only; values are equal by construction) |
+| "same rows for all four stats" (line 2) | **not asserted** | **MUST H2** |
+| month-block heads, train = every played row before block start | 207-215: `month_blocks` = calendar months [start, end); `train = stat_frame(feats).filter(game_date < start)`; same as production `walk_forward_stat` (context_residual_eval.py:184-209) | PASS |
+| blinded test rows | `blind` 153-159 zeroes PROP_STATS before `predict_rows`; prediction reads only `stat_feature_names` | PASS |
+| integer CRPS, 199-point grid, both arms | 234-235 `to_integer_support`; 380-383 `crps_from_quantiles` | PASS |
+| three cluster bootstraps, B 5000, seed 2026 | 393-403, 469 | PASS |
+| binding CI = envelope | 436-439: widest single member | **MUST H1** (primary) |
+| p = worst-case one-sided over the three | 480 `max(p_lt0)`, p = (1 + #{m >= 0})/(B + 1), as in precedent | PASS |
+| BH m = 4 fixed, both families | 518-519 over all four `STATS`, fg3m included | PASS |
+| first-match words incl. 2023 sign | 524-533: HURTS → UNRESOLVED → HELPS (point <= floor, hi < 0, BH <= 0.05, 2023 point < 0) → CLOSED_TIE (point > -0.002 and lo > -0.005) → INCONCLUSIVE | PASS |
+| slope family and words | 534-544: SLOPE_UNRESOLVED → NO_SIGNAL (BH p_b > 0.05, lo <= 0 or NaN, 2023 slope <= 0) → UNDER (lo > 1) → OVER (hi < 1) → RIGHT_SIZED; binding = widest member, which is literally what line 6 says ("the widest of") | PASS (keep it literal; report the union too, SHOULD) |
+| slices, n >= 300, descriptive | 453-463, 489-500 (game-clustered CI; no vote) | PASS; `same_pos_as_sitter` counts pos_code -1 == -1 as "same" (SHOULD) |
+| G-TIP | 278-289: stops on any proxy fallback over event games | PASS |
+| G-REGATE | 351-374 (label-free `g2_stat` on run grids) and 622-626 (stops on any 2024 word change) | see H3 |
+| G-TOP5 | 442-450, 485-486, 556-558 (2024, >50% flagged) | PASS |
+| G-DELTA, information only | 342-348 | PASS |
+| G-DET | 249-272: two fits of the first 2023 block, pts | PASS |
+| planted future (whole dates) | 292-339: every box-score row on/after 3 event dates gets pts 99, minutes 48 and starter flipped; both arms' vacancy at that date's events must be unchanged. Stronger than the text | PASS |
+| display condition | 551-555: HELPS, RIGHT/UNDER, and k = 1 slice point <= 0 (missing slice → not displayable) | PASS |
+| kill criteria | 562-566: pts HURTS or OVER_REACTS; CLOSED_TIE on every non-UNRESOLVED stat | PASS |
+| g2_run.json and its hash in the run log | 660-663 | PASS |
+
+### G-REGATE: is stop-and-hand-back acceptable?
+The frozen text decides the case already: a stat that fails the re-gate "becomes UNRESOLVED (a stat cannot be promoted by the re-gate)". Stopping instead adds a human decision point after label-free numbers are seen. That is not a leak, but it is a forking path the rule did not declare, and the only continuation the text allows is "demote, never promote, and run". It also stops on a *promotion* (for example fg3m's re-gate reading PASS), which the text says to ignore. Judgement:
+- **If the dry-run now running logs `G-REGATE changed: none`**, `--run` reuses the same checkpoints (same code pin) and the same fixed re-gate seed, so it reproduces exactly and the stop cannot fire. No edit is needed.
+- **If it logs any change**, apply H3 before `--run`. Do not hand the choice to a person.
+
+### Drafter's choices
+1. **Seed per stat-season in G-REGATE** (`default_rng(G.SIZE_SEED)` fresh, line 366): accepted. It is deterministic and reproducible from the cached grids. It does not reproduce gate.py's sequential stream, which does not matter because the grids differ anyway.
+2. **Fresh rng per clustering in the bootstraps** (`default_rng(SEED)` in every call): accepted. It gives common random numbers across stats, arms and the CRPS/slope pair. The text fixes only "seed 2026"; correlated resampling across stats does not invalidate BH (positive dependence).
+3. **No coverage or shuffle guard** because it is not in the frozen text: accepted, and correct. My S4 was not adopted, and a guard added after the freeze that could void the run would be a rule change. A shuffle may be reported afterwards, labelled "not in the rule, no vote".
+4. The other three listed choices did not reach me. Visible choices I judged: G-DET on pts only (accepted; the text says "the first block"); planted future on 3 dates (accepted); percentile CI (accepted; precedent); stop on a G-REGATE change (H3, conditional).
+
+### MUST code edits
+
+**H1. `research/eval/teammate_sits_eval.py:436-439`, replace `binding` and add a literal-widest helper for the slope:**
+```python
+def binding(cis: dict[str, dict[str, float]]) -> dict[str, float]:
+    """Envelope over the three clusterings: [min lo, max hi] (at least as wide as the widest single CI; the
+    project's envelope, market_prior_residual_rule.envelope). Rule line 4."""
+    lo = np.array([c["lo"] for c in cis.values()], dtype=float)
+    hi = np.array([c["hi"] for c in cis.values()], dtype=float)
+    widest = max(cis, key=lambda k: cis[k]["hi"] - cis[k]["lo"])
+    return {"lo": float(np.min(lo)), "hi": float(np.max(hi)), "cluster": widest}  # type: ignore[dict-item]
+
+
+def widest(cis: dict[str, dict[str, float]]) -> dict[str, float]:
+    """The widest single CI (rule line 6 says 'the widest of' for the slope family)."""
+    name = max(cis, key=lambda k: (cis[k]["hi"] - cis[k]["lo"]) if np.isfinite(cis[k]["hi"] - cis[k]["lo"]) else np.inf)
+    return {**cis[name], "cluster": name}  # type: ignore[dict-item]
+```
+and at line 474 `sbind = binding(scis)` → `sbind = widest(scis)`, adding `"slope_envelope": binding(scis),` to the `out` dict for information. (`np.min` propagates NaN, so a non-identified slope still reads NO_SIGNAL through `not sb["lo"] > 0`.) Update `test_closed_tie_needs_the_ci_to_exclude_the_floor` and any test that reads `binding` keys, and add one test where two clusterings' CIs are offset (game [-0.020, -0.004], sitter [-0.025, -0.006]): the union's hi must be -0.004.
+
+**H2. In `prepare()` (after line 598, before `g_det`), assert the rule's "same rows for all four stats" and that the outcome join cannot fail mid-run.** The null check reads missingness only, never a value, the same class of information as the played flag:
+```python
+    for season in SEASONS:
+        ref = None
+        for s in stats:
+            r = heads[s][str(season)]
+            keys = pl.DataFrame({"game_id": r["game_id"], "sitter_id": r["sitter_id"], "player_id": r["player_id"]})
+            if ref is None:
+                ref = keys
+            elif not keys.equals(ref):
+                raise RuntimeError(f"rule line 2: scored rows differ across stats in {season} ({s})")
+            j = keys.join(feats.select("game_id", "player_id", s), on=["game_id", "player_id"], how="left")
+            if j.height != keys.height or j[s].null_count():
+                raise RuntimeError(f"outcome join would fail for {s} {season}; stop before any outcome is read")
+```
+Without H2, a null outcome would make `outcomes()` raise partway through `score()`, after some stats' outcomes were already read. Under "one run, no reruns" that is a touch with no result.
+
+**H3 (only if the dry-run's `G-REGATE changed` is not `none`). Replace the stop at 623-626 with the text's rule (demote only), and use the result in `decide`:**
+```python
+def effective_g2(rg: dict[str, Any]) -> dict[str, tuple[str, str]]:
+    """Section 7 G-REGATE: a stat failing the run's re-gate becomes UNRESOLVED; a stat is never promoted."""
+    out = {}
+    for s in STATS:
+        f_c, f_s = FROZEN_G2[s]
+        now = rg["by_season"][str(REPORT)][s]
+        out[s] = (f_c if f_c != "PASS" else now["crps_g2"], f_s if f_s != "PASS" else now["slope_g2"])
+    return out
+```
+In `score()`: delete the `raise`; compute `g2 = effective_g2(prep["regate"])`; return `{"scores": scores, "g2_effective": g2, "regate_changed": prep["regate"]["changed"], "decision": decide(scores, g2)}`. Any non-`PASS` CRPS word (`POWER` or `FLOOR_UNREACHABLE`) reads UNRESOLVED in `decide` (line 526 already does this).
+
+### SHOULD
+- `results.json`: add provenance: `FROZEN_SHA`, `code_pin()`, `git rev-parse HEAD`, the newest `data_version` from `docs/data_manifests/latest.json`, the g2_run.json sha, N_BOOT and SEED.
+- `slice_masks` (461-462): exclude rows where `pos_code == -1` or `sitter_pos == -1` from both position slices.
+- The docstring command (8-11) uses a relative `data/ops/heavy.lock`. Use the main checkout's absolute path so the lock guards the live job's directory wherever the command is run. State the cwd (it needs the frozen `docs/prereg` and `configs/`).
+- Cache key (593): include the data_version in `code_pin()` so a DB change between the dry-run and the run cannot reuse stale heads.
+
+### Single most likely way the run's answer is wrong if it ships as is
+A HELPS or CLOSED_TIE decided on the widest single CI where the union over the three clusterings would have crossed the boundary (H1).
+
+### Not verified
+- The dry-run's G-REGATE and G-DELTA output (it is running in the main session; I did not start another).
+- The three drafter choices that were not in the message.
+- Bootstrap runtime at B = 5000 × 3 clusterings × 2 families × 8 stat-seasons plus 8 slices (vectorised multinomial weights; expect seconds to a minute).
+
+### Drafted DECISIONS row (not appended)
+`| 2026-11-10 <time> | TEAMMATE_SITS harness check (dbbab6cc vs frozen c23f7b36): NOT_READY on H1 (binding CI must be the [min lo, max hi] envelope per line 4 and project precedent; slope keeps the literal widest member) and H2 (same-rows and outcome-join-null asserts in the dry-run); H3 (demote-only G-REGATE instead of stop) applies only if the dry-run logs a change. Everything else matches line by line; 23 tests pass. | docs/reviews/teammate_sits_prefreeze_2026-11-10.md | n/a |`
