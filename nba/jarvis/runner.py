@@ -88,6 +88,7 @@ class Runtime:
     card_client: Any | None = None  # tests: stand-in for the httpx client of the team cards
     card_sleep: Callable[[float], None] | None = None  # tests: replaces time.sleep on rate limits
     ht_scored: dict[str, Any] = field(default_factory=dict)  # this tick's halftime scorer result
+    ck_scored: dict[str, Any] = field(default_factory=dict)  # this tick's in-game checkpoint result
 
     def send(self, text: str) -> SendResult:
         """Deliver one message. With the real sinks each is deduped on its own (a sink that already
@@ -427,6 +428,9 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
             rt.book.note_alert(p.key, slate, p.edge_cents, now)
         rep["alerts"].append(res)
     rep["halftime"] = _halftime(rt, st, slate, now, rep)
+    rep["ingame_checkpoints"] = _checkpoints(
+        rt, slate, now
+    )  # paper log + silent card block; no alert
     try:  # in-game signals never break the tick; a busy store skips only this part
         from nba.jarvis.ingame_run import run_ingame
 
@@ -437,6 +441,29 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         rt, st, slate, now
     )  # LAST: alerts, check-ins and in-game posts never wait on it
     return rep
+
+
+def _checkpoints(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
+    """The in-game line model at every 5 game-minutes (jarvis/ingame_checkpoints): rows go to the
+    paper store, the newest checkpoint per game to the cards. Never raises, never alerts."""
+    try:
+        from nba.jarvis import ingame_checkpoints as IC
+
+        if not IC.enabled(rt.cfg):
+            rt.ck_scored = {}
+            return {"skipped": "disabled"}
+        live = latest_scoreboard(rt.cfg, slate)
+        games = [
+            lg.matchup
+            for lg in live
+            if lg.status not in ("STATUS_SCHEDULED", "STATUS_FINAL", "STATUS_HALFTIME")
+        ]
+        res = IC.score_checkpoints(rt.cfg, slate, now, games, dry_run=rt.dry_run)
+        rt.ck_scored = res
+        return {k: v for k, v in res.items() if k != "latest"}
+    except Exception as exc:  # noqa: BLE001 - the paper log never costs the tick
+        rt.ck_scored = {}
+        return {"ok": False, "error": type(exc).__name__}
 
 
 def _cards(rt: Runtime, st: SlateState, slate: date, now: datetime) -> dict[str, Any]:
@@ -697,6 +724,12 @@ def tick_line(rep: dict[str, Any]) -> str:
     hs = rep.get("ht_scorer")
     if hs:
         flags.append(f"ht_scored={hs['stored']}rows/{hs['games']}games")
+    ck = rep.get("ingame_checkpoints")
+    if isinstance(ck, dict):
+        if ck.get("ok") is False:
+            flags.append(f"ck_error={ck.get('error')}")
+        elif ck.get("stored"):
+            flags.append(f"ck_scored={ck['stored']}rows")
     return line + (" | " + " ".join(flags) if flags else "")
 
 

@@ -89,6 +89,7 @@ class JarvisConfig:
     )
     # per-team Discord live cards (nba/jarvis/cards, DECISIONS 2026-11-09): delivery only
     team_cards: dict[str, Any] = field(default_factory=lambda: {"enabled": False})
+    ingame_checkpoints: dict[str, Any] = field(default_factory=lambda: {"enabled": False})
 
     def props_sides_for(self, venue: str | None) -> tuple[str, ...]:
         """Sides a player prop may be bought on at ``venue`` (``None``: the global default)."""
@@ -255,6 +256,7 @@ def load_config(
         halftime_overs=dict(raw.get("halftime_overs", {"enabled": False})),
         pulls=dict(raw.get("pulls", {"hold_stale_alerts": False, "hold_stale_slate": False})),
         team_cards=dict(raw.get("team_cards", {"enabled": False})),
+        ingame_checkpoints=dict(raw.get("ingame_checkpoints", {"enabled": False})),
     )
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]
     if missing:
@@ -288,6 +290,14 @@ def load_config(
             )
         if not {"formula", "coefficient", "multiplier"} <= set(pin):
             raise ValueError("halftime_overs.fee_pin needs formula, coefficient, multiplier")
+    ic = cfg.ingame_checkpoints
+    if ic.get("enabled", False):
+        if not ic.get("store"):
+            raise ValueError("ingame_checkpoints.store is required")
+        if not cfg.halftime_overs.get("enabled", False):
+            raise ValueError("ingame_checkpoints serves the halftime_overs artifact: enable it too")
+        if not 1 <= int(ic.get("top_n", 3)) <= 3:
+            raise ValueError("ingame_checkpoints.top_n must be 1..3")
     tc = cfg.team_cards
     if tc.get("enabled", False):
         need = (

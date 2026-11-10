@@ -402,82 +402,102 @@ class NightReader:
         box: dict[str, list[dict[str, Any]]],
         snap: Snapshot,
     ) -> None:
-        ek = event_key(str(m.get("event_ticker", "")))
-        if ek is None or not ek.endswith(ht.away + ht.home):
-            return
-        k = strike_of(m)
-        name = player_of(m)
-        if k is None or name is None:
-            return
-        x = snap.excluded
-        x["markets_at_snapshot"] += 1
-        if m.get("status") != "active":
-            x["x_not_active"] += 1
-            return
-        ask = to_f(m.get("yes_ask_dollars"))
-        size = to_f(m.get("yes_ask_size_fp")) or 0.0
-        if ask is None or not (ASK_MIN_C <= round(100 * ask) <= ASK_MAX_C) or size < MIN_DEPTH:
-            x["x_no_tradeable_ask"] += 1
-            return
-        rows = box.get(fold(name), [])
-        if not rows:
-            x["x_player_unmatched"] += 1
-            x["unmatched_names:" + name] += 1
-            return
-        if len(rows) > 1:
-            x["x_player_ambiguous"] += 1
-            return
-        p = rows[0]
-        mins = int_field(p["row"], "MIN")
-        if p["dnp"] or not mins:
-            x["x_dnp_first_half"] += 1  # 0 first-half minutes: never scored
-            return
-        if p["ejected"]:
-            x["x_ejected"] += 1
-            return
-        cur = stat_value(p["row"], stat)
-        fouls = int_field(p["row"], "PF")
-        if cur is None or fouls is None:
-            x["x_stat_missing"] += 1
-            return
-        if cur >= k:
-            x["x_already_resolved"] += 1
-            return
-        if k not in GRID[stat]:
-            x["x_off_t508_grid"] += 1
-            return
-        lead = self._lead(ht, p["team"])
-        if lead is None:
-            x["x_score_missing"] += 1
-            return
-        bid = to_f(m.get("yes_bid_dollars"))
-        snap.excluded["scored_candidates"] += 1
-        snap.candidates.append(
-            Candidate(
-                series,
-                stat,
-                str(m.get("ticker")),
-                name,
-                str(p["name"]),
-                str(p["team"]),
-                k,
-                round(100 * ask),
-                None if bid is None else round(100 * bid),
-                size,
-                cur,
-                mins,
-                int(p["starter"]),
-                fouls,
-                lead,
-            )
-        )
+        consider_market(ht, m, series, stat, box, snap)
 
     @staticmethod
     def _lead(ht: Halftime, team: str) -> int | None:
-        if ht.away_score is None or ht.home_score is None:
-            return None
-        if team == ht.away_espn:
-            return ht.away_score - ht.home_score
-        if team == ht.home_espn:
-            return ht.home_score - ht.away_score
+        return lead_of(ht, team)
+
+
+def consider_market(
+    ht: Halftime,
+    m: dict[str, Any],
+    series: str,
+    stat: str,
+    box: dict[str, list[dict[str, Any]]],
+    snap: Snapshot,
+) -> None:
+    """One Kalshi market against one box score: append a Candidate to ``snap`` or count why not.
+
+    Shared by the halftime snapshot and the in-game checkpoint snapshots (same filters, same
+    exclusion words); ``ht`` supplies the teams and the score at the state being scored.
+    """
+    ek = event_key(str(m.get("event_ticker", "")))
+    if ek is None or not ek.endswith(ht.away + ht.home):
+        return
+    k = strike_of(m)
+    name = player_of(m)
+    if k is None or name is None:
+        return
+    x = snap.excluded
+    x["markets_at_snapshot"] += 1
+    if m.get("status") != "active":
+        x["x_not_active"] += 1
+        return
+    ask = to_f(m.get("yes_ask_dollars"))
+    size = to_f(m.get("yes_ask_size_fp")) or 0.0
+    if ask is None or not (ASK_MIN_C <= round(100 * ask) <= ASK_MAX_C) or size < MIN_DEPTH:
+        x["x_no_tradeable_ask"] += 1
+        return
+    rows = box.get(fold(name), [])
+    if not rows:
+        x["x_player_unmatched"] += 1
+        x["unmatched_names:" + name] += 1
+        return
+    if len(rows) > 1:
+        x["x_player_ambiguous"] += 1
+        return
+    p = rows[0]
+    mins = int_field(p["row"], "MIN")
+    if p["dnp"] or not mins:
+        x["x_dnp_first_half"] += 1  # 0 first-half minutes: never scored
+        return
+    if p["ejected"]:
+        x["x_ejected"] += 1
+        return
+    cur = stat_value(p["row"], stat)
+    fouls = int_field(p["row"], "PF")
+    if cur is None or fouls is None:
+        x["x_stat_missing"] += 1
+        return
+    if cur >= k:
+        x["x_already_resolved"] += 1
+        return
+    if k not in GRID[stat]:
+        x["x_off_t508_grid"] += 1
+        return
+    lead = lead_of(ht, p["team"])
+    if lead is None:
+        x["x_score_missing"] += 1
+        return
+    bid = to_f(m.get("yes_bid_dollars"))
+    snap.excluded["scored_candidates"] += 1
+    snap.candidates.append(
+        Candidate(
+            series,
+            stat,
+            str(m.get("ticker")),
+            name,
+            str(p["name"]),
+            str(p["team"]),
+            k,
+            round(100 * ask),
+            None if bid is None else round(100 * bid),
+            size,
+            cur,
+            mins,
+            int(p["starter"]),
+            fouls,
+            lead,
+        )
+    )
+
+
+def lead_of(ht: Halftime, team: str) -> int | None:
+    if ht.away_score is None or ht.home_score is None:
         return None
+    if team == ht.away_espn:
+        return ht.away_score - ht.home_score
+    if team == ht.home_espn:
+        return ht.home_score - ht.away_score
+    return None

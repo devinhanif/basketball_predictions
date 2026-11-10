@@ -178,6 +178,17 @@ halftime_overs:                 # halftime scorer (nba/jarvis/halftime_overs.py)
     coefficient: 0.07
     multiplier: 1.0
 
+ingame_checkpoints:             # the in-game line model at every 5 game-minutes (nba/jarvis/ingame_checkpoints.py): PAPER LOG + silent card block
+  # Devin 2026-11-09 (DECISIONS 21:31): run T508 arm M (+ glm_e) at 5, 10, ..., 45 elapsed game minutes per game on the
+  # capture the job already holds (no new request), append rows to a SIBLING of the halftime table, and show the latest
+  # checkpoint on the game card by editing it in place (an edit never notifies). It adds NO alert, NO ping, NO stake and
+  # changes no existing condition. Serves the halftime_overs artifact (same digest pin, fee pin, recency window).
+  # Overtime is excluded; a state older than 3 min since its last play, or a checkpoint more than 150 s past, is refused.
+  # Ships OFF: flipping it on is the merge-time decision (Devin's go + replay oracle), not part of the branch.
+  enabled: false
+  store: data/jarvis/ingame_checkpoints.duckdb
+  top_n: 3                      # overs shown on the card block (display only; the table keeps every row)
+
 exit_warning:                   # DON'T SELL line when a position's bid is far below its value (Devin, 2026-10-25: a $0 cash-out)
   # Chosen, not fitted. Honest scope (adversary review 2026-10-26): on a sane two-sided book this only measures
   # how wide the spread is (bid < ask/3), and it is NOT a value estimate: with the gates below it fired on

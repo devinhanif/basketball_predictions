@@ -52,6 +52,36 @@ class HalfLeg:
 
 
 @dataclass(frozen=True)
+class CkOver:
+    """One over from the newest in-game checkpoint: model probability against the live ask + fee."""
+
+    player: str
+    stat: str
+    line: int
+    p_model: float
+    p_glm_e: float
+    ask_c: int
+    bid_c: int | None
+    fee_c: int
+
+
+@dataclass(frozen=True)
+class CkView:
+    """The latest in-game checkpoint of a game, as the paper scorer stored it (display only)."""
+
+    checkpoint: int  # nominal elapsed game minutes: 5, 10, ..., 45
+    e_used: float
+    period: int
+    clock: str
+    known_at: datetime  # naive UTC: when every input of the checkpoint existed
+    n_units: int
+    n_flagged: int  # player-stats whose best strike clears the edge bar
+    primary: bool  # checkpoint >= 30 (the pre-declared late-game family)
+    extrapolated: bool  # served outside the checkpoint range the model was trained on
+    top: tuple[CkOver, ...] = ()
+
+
+@dataclass(frozen=True)
 class SettledRow:
     player: str
     stat: str
@@ -110,3 +140,6 @@ class CardData:
     recap: Recap | None = None
     alert_note: str = ""
     feed_age_min: float | None = None
+    checkpoint: CkView | None = (
+        None  # latest in-game model check (silent card edit; never an alert)
+    )

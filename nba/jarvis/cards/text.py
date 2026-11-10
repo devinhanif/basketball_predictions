@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
-from nba.jarvis.cards.model import CardData, HalfLeg, OverRow, Recap, SettledRow
+from nba.jarvis.cards.model import CardData, CkOver, HalfLeg, OverRow, Recap, SettledRow
 from nba.jarvis.render import VENUE, cents
 
 STAT = {"pts": "pts", "reb": "reb", "ast": "ast", "fg3m": "3PM"}
@@ -188,6 +188,48 @@ def _leg_lines(h: HalfLeg, style: Style) -> list[str]:
         price = f"live ask {h.ask_c}c ({bid}) vs model {round(100 * h.p_model)}%. "
     verdict = ("**Enter**: " if h.verdict == "enter" else "**Skip**: ") + h.why + "."
     return [pace, f"> {price}{verdict}"]
+
+
+# ------------------------------------------------------------------------------ in-game checkpoint
+
+
+def _period_label(period: int) -> str:
+    return f"Q{period}" if 1 <= period <= 4 else f"OT{max(period - 4, 1)}"
+
+
+def _ck_line(o: CkOver) -> str:
+    bid = "no bid" if o.bid_c is None else f"bid {o.bid_c}c"
+    return (
+        f"- {o.player} {line_label(o.line, o.stat)} (Yes): model {round(100 * o.p_model)}% "
+        f"(baseline glm_e {round(100 * o.p_glm_e)}%) vs ask {o.ask_c}c, {bid} + {o.fee_c}c fee"
+    )
+
+
+def checkpoint_field(card: CardData, style: Style) -> tuple[str, str] | None:
+    """The latest in-game model check, a few lines; same wording in wins and losses, no stake."""
+    v = card.checkpoint
+    if v is None or card.phase == "pretip":
+        return None
+    when = f"{_period_label(v.period)} {v.clock}" if v.clock else _period_label(v.period)
+    name = f"In-game model check, {v.checkpoint} game-min ({when})"
+    focus = (
+        "late-game mark (30+ game-min: where an edge is expected)"
+        if v.primary
+        else "early mark (descriptive only)"
+    )
+    head = f"UNPROVEN, paper, no stake: the market usually knows more. {focus.capitalize()}."
+    if v.extrapolated:
+        head += " The model is used outside the minutes it was trained on."
+    if not v.top:
+        body = (
+            f"No over clears the {style.min_edge_c:g}c bar after fees "
+            f"({v.n_flagged} of {plural(v.n_units, 'player-stat')} flagged)."
+        )
+        return name, f"{head}\n{body}"
+    lines = [_ck_line(o) for o in v.top]
+    note = "Baseline glm_e is fitted at the half only." if v.checkpoint != 24 else ""
+    tail = f"{v.n_flagged} of {plural(v.n_units, 'player-stat')} clear the bar. {note}".strip()
+    return name, "\n".join([head, *lines, tail])
 
 
 # ------------------------------------------------------------------------------ knowledge

@@ -163,8 +163,13 @@ def score_snapshot(
     slate: date,
     counts: Counter[str],
     min_prior: int = MIN_PRIOR,
+    e: float = 24.0,
 ) -> list[dict[str, Any]]:
-    """Score every candidate of one snapshot. A candidate with no usable history is counted, not scored."""
+    """Score every candidate of one snapshot. A candidate with no usable history is counted, not scored.
+
+    ``e`` is the elapsed game minutes of the state (24 = halftime, the default and the only value the
+    halftime job passes; the in-game checkpoint scorer passes its own).
+    """
     usable: list[tuple[he.Candidate, Recency]] = []
     for c in snap.candidates:
         r = rec.lookup(c.espn_name, c.team)
@@ -180,7 +185,7 @@ def score_snapshot(
         if not grp:
             continue
         cols = {
-            "e": np.full(len(grp), 24.0),
+            "e": np.full(len(grp), float(e)),
             "minutes": np.array([c.minutes for c, _ in grp], float),
             "starter": np.array([c.starter for c, _ in grp], float),
             "fouls": np.array([c.fouls for c, _ in grp], float),

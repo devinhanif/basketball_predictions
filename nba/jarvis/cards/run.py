@@ -9,6 +9,11 @@ writes nothing.
 Phases of a game, by the live scoreboard: ``pretip`` (post within ``post_lead_min`` of tip, refresh
 at most every ``pretip_min_edit_interval_min``), ``live`` (no edit: calm), ``halftime`` (edit),
 ``final`` (edit, then edit again when the box score settles the overs).
+
+In-game checkpoint block (Devin, 2026-11-09): while a game is live, the card is edited in place,
+silently, each time the paper scorer stores a newer checkpoint (every 5 game-minutes) so the block
+shows the latest one; Discord never notifies on an edit, and no alert, label or condition changes
+(``need_edit``'s other branches are untouched).
 """
 
 from __future__ import annotations
@@ -26,7 +31,7 @@ from nba.jarvis.cards import facts as F
 from nba.jarvis.cards import text as T
 from nba.jarvis.cards.discord import CardClient, CardResult, RateGate
 from nba.jarvis.cards.embed import build_embed, content_hash
-from nba.jarvis.cards.model import CardData, OverRow, Recap
+from nba.jarvis.cards.model import CardData, CkOver, CkView, OverRow, Recap
 from nba.jarvis.cards.recap import recap_for_game, settle_pending
 from nba.jarvis.cards.state import CardRecord, CardState
 from nba.jarvis.cards.webhooks import TeamWebhooks, fingerprint, load_team_webhooks
@@ -118,6 +123,9 @@ class Deps:
     hold: Callable[[Play], bool] | None = (
         None  # the 11-08 stale-reference hold of the slate preview
     )
+    ck_latest: dict[str, CkView] = field(
+        default_factory=dict
+    )  # matchup -> newest checkpoint (today's slate)
 
 
 def _box(
@@ -145,6 +153,7 @@ def build_card(
 ) -> CardData:
     cfg, s = d.cfg, d.cfg.team_cards
     slate = slate or d.st.slate
+    day_not_today = slate != d.st.slate  # checkpoints are loaded for today's slate only
     now = d.clock
     shown_at = now.isoformat(timespec="seconds")
     overs: list[OverRow] = []
@@ -183,6 +192,7 @@ def build_card(
         home_score=None if lg is None else lg.home_score, clock=lg.clock if lg else "",
         overs=tuple(overs), overs_frozen=frozen, overs_note=note, half=tuple(half),
         knows=F.game_knowledge(d.kb, g, now), recap=recap, alert_note=alert, feed_age_min=feed_age,
+        checkpoint=None if (phase == "pretip" or day_not_today) else d.ck_latest.get(g.matchup),
     )  # fmt: skip
 
 
@@ -193,9 +203,17 @@ def _had_card(state: CardState, slate: date, g: Game) -> bool:
 # ------------------------------------------------------------------------------ delivery
 
 
-def need_edit(rec: CardRecord, phase: str, h: str, now: datetime, interval_min: float) -> bool:
+def need_edit(
+    rec: CardRecord,
+    phase: str,
+    h: str,
+    now: datetime,
+    interval_min: float,
+    has_checkpoint: bool = False,
+) -> bool:
     """Calm rule: silent edits at halftime and final (when the content changed or the phase moved),
-    pre-tip refreshes at most every ``interval_min``, nothing while the game is live."""
+    pre-tip refreshes at most every ``interval_min``, nothing while the game is live, except that a
+    live card carrying an in-game checkpoint block is edited (silently) when its content changed."""
     if phase in ("halftime", "final"):
         return rec.phase != phase or rec.content_hash != h
     if phase == "pretip":
@@ -206,13 +224,15 @@ def need_edit(rec: CardRecord, phase: str, h: str, now: datetime, interval_min: 
         except ValueError:
             return True
         return (now - last) >= timedelta(minutes=interval_min)
+    if phase == "live" and has_checkpoint:
+        return rec.content_hash != h
     return False
 
 
 def deliver_one(
     client: CardClient, state: CardState, url: str, rec: CardRecord | None, *, slate: date,
     game_id: str, team: str, phase: str, embed: dict[str, Any], now: datetime,
-    interval_min: float, write: bool,
+    interval_min: float, write: bool, has_checkpoint: bool = False,
 ) -> str:  # fmt: skip
     """One (game, team) card: post, edit or nothing. Returns what happened (a word, never a URL)."""
     h = content_hash(embed)
@@ -228,7 +248,7 @@ def deliver_one(
         if not write:
             return "would_" + kind
         res = client.post(url, body)
-    elif need_edit(rec, phase, h, now, interval_min):
+    elif need_edit(rec, phase, h, now, interval_min, has_checkpoint):
         kind = "edit"
         if not write:
             return "would_edit"
@@ -285,6 +305,30 @@ def _make_hold(rt: Any, now: datetime, slate: date) -> Callable[[Play], bool] | 
     return hold
 
 
+def ck_views(scored: dict[str, Any] | None) -> dict[str, CkView]:
+    """Plain scorer summaries (``nba.jarvis.ingame_checkpoints.build_views``) -> card data."""
+    out: dict[str, CkView] = {}
+    for game, v in ((scored or {}).get("latest") or {}).items():
+        try:
+            ka = v["known_at"]
+            out[game] = CkView(
+                checkpoint=int(v["checkpoint"]), e_used=float(v["e_used"]), period=int(v["period"]),
+                clock=str(v["clock"]), known_at=ka.replace(tzinfo=None) if ka.tzinfo else ka,
+                n_units=int(v["n_units"]), n_flagged=int(v["n_flagged"]),
+                primary=bool(v["primary"]),
+                extrapolated=str(v.get("support")) != "trained",
+                top=tuple(
+                    CkOver(o["player_name"], o["stat"], int(o["k"]), float(o["p_model"]),
+                           float(o["p_glm_e"]), int(o["ask_c"]),
+                           None if o["bid_c"] is None else int(o["bid_c"]), int(o["fee_c"]))
+                    for o in v.get("top", [])
+                ),
+            )  # fmt: skip
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue  # one malformed summary costs that game's block, never the card
+    return out
+
+
 def _day_games(rt: Any, st: SlateState, day: date) -> list[Game]:
     if day == st.slate:
         return st.games
@@ -299,6 +343,7 @@ def _quiet(d: Deps, day: date, g: Game, phase: str, wh: TeamWebhooks, interval_m
     pre-tip card was written less than ``interval_min`` ago."""
     if phase not in ("live", "pretip"):
         return False
+    ck = d.ck_latest.get(g.matchup) if phase == "live" else None
     for t in (g.away_abbr, g.home_abbr):
         url = wh.urls.get(t)
         if url is None:
@@ -311,6 +356,12 @@ def _quiet(d: Deps, day: date, g: Game, phase: str, wh: TeamWebhooks, interval_m
                 if d.clock - datetime.fromisoformat(rec.ts) >= timedelta(minutes=interval_min):
                     return False
             except ValueError:
+                return False
+        if ck is not None:  # a checkpoint newer than this card's last write: build and (maybe) edit
+            try:
+                if ck.known_at > datetime.fromisoformat(rec.ts):
+                    return False
+            except (ValueError, TypeError):
                 return False
     return True
 
@@ -354,6 +405,7 @@ def run_cards(
         log.warning("card alert note unavailable (%s)", type(exc).__name__)
     d.hold = _make_hold(rt, now, slate)
     d.scorer_rows = list((getattr(rt, "ht_scored", None) or {}).get("rows") or [])
+    d.ck_latest = ck_views(getattr(rt, "ck_scored", None))
     http = rt.card_client
     gate = RateGate(
         float(s["rate_budget_s"]), rt.card_sleep or time.sleep, total_s=float(s["tick_budget_s"])
@@ -438,6 +490,7 @@ def _one_day(
                         client, d.state, url, d.state.latest(day, g.game_id, t), slate=day,
                         game_id=g.game_id, team=t, phase=phase, embed=embed, now=now,
                         interval_min=float(s["pretip_min_edit_interval_min"]), write=d.write,
+                        has_checkpoint=card.checkpoint is not None,
                     )  # fmt: skip
                 except Exception as exc:  # noqa: BLE001
                     log.warning("card slot %s %s failed (%s)", g.matchup, t, type(exc).__name__)
