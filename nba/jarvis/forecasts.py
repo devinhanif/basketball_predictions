@@ -7,13 +7,40 @@ then returns None; JARVIS keeps working on prices alone and says so.
 
 from __future__ import annotations
 
-from datetime import date
+import math
+from datetime import date, datetime
 from typing import Any
 
 from nba.jarvis.config import PARLAY_PATH, JarvisConfig
 from nba.jarvis.models import Quote
 from nba.parlay.joint import leg_marginal
 from nba.parlay.legs import Leg
+
+
+def stored_p_play(table: dict[int, float] | None, q: Quote) -> float | None:
+    """The one lookup of a stored P(plays) for a prop quote: None when there is no usable number
+    (not a player quote, no row, not finite, outside (0, 1]); never a default of 1.0, because a
+    missing forecast must cap the prop, not price it as a sure starter."""
+    if table is None or q.kind != "prop" or q.player_id is None:
+        return None
+    v = table.get(int(q.player_id))
+    if v is None or not math.isfinite(v) or not 0.0 < v <= 1.0:
+        return None
+    return float(v)
+
+
+class PPlayView:
+    """A model view plus an explicit P(plays) table (the player checkpoints pass the table read as
+    of their own clock). Same ``stored_p_play`` lookup as ``ModelView.p_play``: one path."""
+
+    def __init__(self, base: Any, pplay: dict[int, float]) -> None:
+        self._base, self._pplay = base, pplay
+
+    def p_yes(self, q: Any) -> float | None:
+        return None if self._base is None else self._base.p_yes(q)
+
+    def p_play(self, q: Any) -> float | None:
+        return stored_p_play(self._pplay, q)
 
 
 class ModelView:
@@ -79,3 +106,29 @@ class ModelView:
         except (KeyError, ValueError):
             return None
         return None
+
+    def p_play(self, q: Quote) -> float | None:
+        """Stored forward P(plays) for the quote's (game, player), from the same forecast rows
+        ``p_yes`` reads. None (so the caller caps the prop) when there is no row, the player is
+        ruled OUT on a report known now, or any of his rows was made after the game's real tip
+        (known-at: nothing made after tip is used). The rows are those present when the view loaded
+        (the view is rebuilt every run), the same clock as ``p_yes``."""
+        sl = self._slate()
+        if sl is None or q.kind != "prop" or q.player_id is None:
+            return None
+        ctx = sl.info.ctxs.get(q.game_id)
+        if ctx is None or q.player_id not in ctx.team_of:
+            return None
+        if (q.game_id, q.player_id) in sl.info.out_on_report:
+            return None
+        tip = getattr(sl.info, "tipoff", {}).get(q.game_id)
+        if tip is not None:
+            for (gid, pid, _stat), made in getattr(sl, "made_at", {}).items():
+                if gid == q.game_id and pid == q.player_id and _naive(made) > tip:
+                    return None
+        return stored_p_play(ctx.p_play, q)
+
+
+def _naive(made: Any) -> datetime:
+    d = made if isinstance(made, datetime) else datetime.fromisoformat(str(made))
+    return d.replace(tzinfo=None)

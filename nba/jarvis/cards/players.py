@@ -35,6 +35,7 @@ from nba.jarvis.cards.embed import DESC_MAX, enforce
 from nba.jarvis.cards.state import _append, _read
 from nba.jarvis.cards.webhooks import TeamWebhooks
 from nba.jarvis.config import JarvisConfig
+from nba.jarvis.forecasts import PPlayView
 from nba.jarvis.ingame import norm_name
 from nba.jarvis.models import Game
 from nba.jarvis.slate import SlateState
@@ -333,23 +334,6 @@ def read_store(cfg: JarvisConfig, gids: list[str], now: datetime) -> Store:
     return fwd, status, asof
 
 
-class _WithPPlay:
-    """The slate's model view plus the stored P(plays) as of the checkpoint. ``single_candidate``
-    is written to take it (``_p_play``) and, while Kalshi's DNP rule is unverified, prices a prop
-    on P(plays) x P(over | plays) when it exists and caps the play at thin when it does not. The
-    production ``ModelView`` has no ``p_play``, so the cards cap every prop; this adapter hands the
-    same function the number it asks for. Used for the player checkpoints only."""
-
-    def __init__(self, base: Any, pplay: dict[int, float]) -> None:
-        self._base, self._pplay = base, pplay
-
-    def p_yes(self, q: Any) -> float | None:
-        return None if self._base is None else self._base.p_yes(q)
-
-    def p_play(self, q: Any) -> float | None:
-        return None if q.player_id is None else self._pplay.get(int(q.player_id))
-
-
 def gather_game(
     cfg: JarvisConfig, st: SlateState, kb: Any, g: Game, now: datetime, minute: int,
     pc: PcpConfig, store: Store, hold: Any = None,
@@ -371,7 +355,7 @@ def gather_game(
     }
     shown_at = now.isoformat(timespec="seconds")
     priced = F.priced_lines(
-        cfg, replace(st, model=_WithPPlay(st.model, pplay)), g.game_id, shown_at, kb, hold, unmeas
+        cfg, replace(st, model=PPlayView(st.model, pplay)), g.game_id, shown_at, kb, hold, unmeas
     )
     starters, notes, lu_asof = _lineup(kb, g, minute <= pc.starters_from_min, now)
     gd.lineup_asof, gd.lineup_note = lu_asof, notes
