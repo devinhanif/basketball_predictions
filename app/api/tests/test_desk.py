@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ from parlayhitters_api.desk import DeskMissing, DeskRefused, check_desk, load_de
 from parlayhitters_api.edges import top_contracts
 
 FIX = Path(__file__).resolve().parents[2] / "fixtures"
+LOCAL = {"host": "127.0.0.1:8000"}
 
 
 def _shared() -> dict[str, Any]:
@@ -50,18 +52,18 @@ def test_missing_file_is_a_normal_state(tmp_path: Path) -> None:
         load_desk(tmp_path / "nope.json")
 
 
-def test_desk_route_is_private_only(
+def test_desk_route_serves_private_only_to_a_direct_local_request(
     export_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.delenv("PH_PRIVATE", raising=False)
     monkeypatch.setenv("APP_DESK_SHARED_FILE", str(FIX / "does_not_exist.json"))
     assert export_client.get("/api/desk").status_code == 404
     monkeypatch.setenv("PH_PRIVATE", "1")
-    monkeypatch.setenv("APP_DESK_FILE", str(FIX / "desk_fixture_shared.json"))
-    r = export_client.get("/api/desk")
-    assert r.status_code == 200 and r.json()["privacy"] == "shared"
+    monkeypatch.setenv("APP_DESK_FILE", str(FIX / "desk_fixture_private.json"))
+    r = export_client.get("/api/desk", headers=LOCAL)
+    assert r.status_code == 200 and r.json()["privacy"] == "private"
     monkeypatch.setenv("APP_DESK_FILE", str(FIX / "does_not_exist.json"))
-    assert export_client.get("/api/desk").status_code == 404
+    assert export_client.get("/api/desk", headers=LOCAL).status_code == 404
 
 
 def test_public_desk_serves_the_shared_cut(
@@ -87,6 +89,96 @@ def test_public_desk_refuses_a_cut_with_a_money_field(
     # a private-labelled file is refused even with no money fields
     f.write_text(json.dumps(_shared() | {"privacy": "private"}))
     assert export_client.get("/api/desk").status_code == 422
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"host": "x.trycloudflare.com"},
+        {"host": "localhost:5173", "cf-connecting-ip": "1.2.3.4"},
+        {"host": "localhost:5173", "cf-ray": "abc"},
+        {"host": "127.0.0.1:8000", "x-forwarded-for": "1.2.3.4"},
+    ],
+)
+def test_private_flag_alone_does_not_serve_the_private_cut_through_a_tunnel(
+    export_client: TestClient, monkeypatch: pytest.MonkeyPatch, headers: dict[str, str]
+) -> None:
+    monkeypatch.setenv("PH_PRIVATE", "1")
+    monkeypatch.setenv("APP_DESK_FILE", str(FIX / "desk_fixture_private.json"))
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(FIX / "desk_fixture_shared.json"))
+    r = export_client.get("/api/desk", headers=headers)
+    assert r.status_code == 200 and r.json()["privacy"] == "shared"
+
+
+def test_private_cut_is_served_on_localhost_and_ipv6_loopback(
+    export_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PH_PRIVATE", "1")
+    monkeypatch.setenv("APP_DESK_FILE", str(FIX / "desk_fixture_private.json"))
+    for host in ("localhost:5173", "127.0.0.1", "[::1]:8000"):
+        r = export_client.get("/api/desk", headers={"host": host})
+        assert r.json()["privacy"] == "private", host
+
+
+# What a leaky producer might add under other names; each must be refused at the public door.
+PLANTS: dict[str, Callable[[dict[str, Any]], object]] = {
+    "status.bankroll_usd": lambda d: d["status"].update(bankroll_usd=120.5),
+    "status.balance": lambda d: d["status"].update(balance={"now": 10}),
+    "plays.stake_units": lambda d: d["plays"][0].update(stake_units=2),
+    "plays.kelly_fraction": lambda d: d["plays"][0].update(kelly_fraction=0.1),
+    "plays.result.pnl_cents": lambda d: d["plays"][0]["result"].update(pnl_cents=-250),
+    "plays.contracts_filled": lambda d: d["plays"][0].update(contracts_filled=58),
+    "daily.pnl_cents": lambda d: d["daily"][0].update(pnl_cents=40),
+    "record.net_usd": lambda d: d["record"].update(net_usd=-12.0),
+    "text 69.00 USD": lambda d: d["alerts"][0].update(text="Up 69.00 USD on the day"),
+    "text 58 contracts": lambda d: d["alerts"][0].update(text="Bought 58 contracts"),
+    "text USD 2.75": lambda d: d["alerts"][0].update(text="Fee was USD 2.75"),
+    "text $.57": lambda d: d["alerts"][0].update(text="Paid $.57 each"),
+    "unknown top key": lambda d: d.update(wallet=1),
+    "path ~/": lambda d: d["alerts"][0].update(text="see ~/Documents/x"),
+    "path file://": lambda d: d["alerts"][0].update(text="see file:///tmp/x"),
+    "path data/": lambda d: d["alerts"][0].update(text="read data/jarvis/paper_book.duckdb"),
+    "object where a scalar belongs": lambda d: d["plays"][0].update(venue={"a": 1}),
+}
+
+
+@pytest.mark.parametrize("name", list(PLANTS))
+def test_public_desk_refuses_each_planted_money_field(
+    name: str, export_client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    d = _shared()
+    PLANTS[name](d)
+    f = tmp_path / "planted.json"
+    f.write_text(json.dumps(d))
+    monkeypatch.delenv("PH_PRIVATE", raising=False)
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(f))
+    r = export_client.get("/api/desk")
+    assert r.status_code == 422, name
+    assert str(tmp_path) not in r.text and "/Users/" not in r.text
+
+
+def test_public_desk_passes_the_real_producer_shape(
+    export_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    d = _shared()
+    assert d["plays"] and d["daily"] and d["observations"] and d["alerts"]
+    monkeypatch.delenv("PH_PRIVATE", raising=False)
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(FIX / "desk_fixture_shared.json"))
+    r = export_client.get("/api/desk")
+    assert r.status_code == 200
+    assert r.json()["sources"] == {}, "the producer's file names are not served"
+    assert r.json()["plays"] == d["plays"]
+
+
+def test_an_unreadable_file_is_refused_without_its_path(
+    export_client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    f = tmp_path / "broken.json"
+    f.write_text("{not json")
+    monkeypatch.delenv("PH_PRIVATE", raising=False)
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(f))
+    r = export_client.get("/api/desk")
+    assert r.status_code == 422 and str(tmp_path) not in r.text and "broken" not in r.text
 
 
 def test_public_desk_never_reads_desk_json(

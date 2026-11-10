@@ -343,7 +343,7 @@ def test_the_swipe_deck_is_made_of_posted_lines_before_tip(
     after = late.get(f"/api/slates/{EXPORT_DAY}/swipe").json()
     assert after["cards"] == [] and after["reason"] == "all_started"
     assert after["games_started"] == after["games_total"] > 0 and after["games_with_lines"] > 0
-    assert "already started" in after["note"] and "Player lines were captured for" in after["note"]
+    assert "already started" in after["note"] and "holds player lines for" in after["note"]
     assert deck["reason"] == "ok" and deck["games_started"] < deck["games_total"]
 
 
@@ -351,12 +351,13 @@ def test_the_empty_swipe_note_tells_the_true_reason() -> None:
     from parlayhitters_api.main import _swipe_empty_note
 
     assert "No games" in _swipe_empty_note("no_games", 0, 0, 0)
-    assert _swipe_empty_note("no_lines", 8, 2, 1) == (
-        "2 of 8 games have started, and no player lines have been captured yet for the "
-        "6 games still to play."
+    built = "2026-11-09T16:35:03Z"
+    assert _swipe_empty_note("no_lines", 8, 2, 1, built) == (
+        "2 of 8 games have started. This data (built Nov 9, 11:35 AM ET) holds no player lines "
+        "for the 6 games still to play."
     )
-    assert _swipe_empty_note("no_lines", 3, 0, 0) == (
-        "No player lines have been captured yet for the 3 games still to play."
+    assert _swipe_empty_note("no_lines", 3, 0, 0, built) == (
+        "This data (built Nov 9, 11:35 AM ET) carries no player lines."
     )
     assert "All 1 game has already started" in _swipe_empty_note("all_started", 1, 1, 0)
 

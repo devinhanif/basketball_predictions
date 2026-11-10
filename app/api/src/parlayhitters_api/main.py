@@ -5,7 +5,9 @@ from __future__ import annotations
 import os
 import random
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 from typing import Annotated, Any, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +16,8 @@ from fastapi.responses import JSONResponse
 
 from .breakdown import Breakdown, Side
 from .breakdown import build as build_breakdown
-from .desk import DeskMissing, DeskRefused, load_desk, load_shared_desk
+from .desk import DeskMissing, DeskRefused, load_desk
+from .desk_shared import load_shared_desk
 from .dissect.providers import default_router
 from .dissect.service import dissect_leg
 from .edges import leg_edges, top_contracts
@@ -83,27 +86,55 @@ def reset_store() -> None:
 StoreDep = Annotated[AnyStore, Depends(get_store)]
 
 
-def _swipe_empty_note(reason: str, total: int, started: int, with_lines: int) -> str:
-    """The true reason a night has nothing to swipe on, from counts the data holds."""
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+_PROXY_HEADERS = ("cf-connecting-ip", "cf-ray", "x-forwarded-for", "x-forwarded-host", "forwarded")
+
+
+def _host_name(host: str) -> str:
+    h = host.strip().lower()
+    if h.startswith("["):
+        return h[1 : h.find("]")] if "]" in h else h
+    return h.rsplit(":", 1)[0] if h.count(":") == 1 else h
+
+
+def _is_local_request(request: Request) -> bool:
+    """True only for a request that reached this machine directly, not via a tunnel or proxy."""
+    if any(request.headers.get(h) for h in _PROXY_HEADERS):
+        return False
+    return _host_name(request.headers.get("host", "")) in _LOCAL_HOSTS
+
+
+def _et_stamp(utc: str | None) -> str:
+    """ "Nov 9, 4:35 PM ET" from an ISO UTC time, or "unknown time" when it cannot be read."""
+    try:
+        t = datetime.fromisoformat(str(utc).replace("Z", "+00:00"))
+    except ValueError:
+        return "unknown time"
+    et = t.astimezone(ZoneInfo("America/New_York"))
+    return f"{et:%b} {et.day}, {et.hour % 12 or 12}:{et:%M} {'AM' if et.hour < 12 else 'PM'} ET"
+
+
+def _swipe_empty_note(
+    reason: str, total: int, started: int, with_lines: int, built_at: str | None = None
+) -> str:
+    """Why a night has nothing to swipe on, stating only what this data holds."""
     if reason == "no_games":
         return "No games are on the schedule for this night."
     games = f"{total} game{'' if total == 1 else 's'}"
     if reason == "all_started":
         lines = (
-            f" Player lines were captured for {with_lines} of them."
+            f" This data holds player lines for {with_lines} of them."
             if with_lines
-            else " No player lines were captured for any of them."
+            else " This data carries no player lines for any of them."
         )
         verb = "has" if total == 1 else "have"
         return f"All {games} {verb} already started, so picks are closed.{lines}"
     left = total - started
     still = f"{left} game{'' if left == 1 else 's'} still to play"
-    if started == 0:
-        return f"No player lines have been captured yet for the {still}."
-    return (
-        f"{started} of {games} {'has' if started == 1 else 'have'} started, "
-        f"and no player lines have been captured yet for the {still}."
-    )
+    if with_lines == 0:
+        return f"This data (built {_et_stamp(built_at)}) carries no player lines."
+    began = f"{started} of {games} {'has' if started == 1 else 'have'} started. " if started else ""
+    return f"{began}This data (built {_et_stamp(built_at)}) holds no player lines for the {still}."
 
 
 def create_app() -> FastAPI:
@@ -555,7 +586,9 @@ def register(app: FastAPI) -> None:
                 "Blind cards: the line and the price only. Drawn at random from every posted line; "
                 "players who do not play are void."
                 if cards
-                else _swipe_empty_note(reason, total, started, with_lines)
+                else _swipe_empty_note(
+                    reason, total, started, with_lines, store.meta().get("built_at")
+                )
             ),
             reason=reason,
             games_total=total,
@@ -629,10 +662,12 @@ def register(app: FastAPI) -> None:
         }
 
     @app.get("/api/desk")
-    def desk() -> Json:
-        """The desk export: the private file under PH_PRIVATE=1, otherwise only the shared cut."""
+    def desk(request: Request) -> Json:
+        """The desk export: the private file only for PH_PRIVATE=1 AND a direct local request;
+        everyone else, including anything arriving through a tunnel, gets the shared cut."""
+        private = os.environ.get("PH_PRIVATE") == "1" and _is_local_request(request)
         try:
-            return load_desk() if os.environ.get("PH_PRIVATE") == "1" else load_shared_desk()
+            return load_desk() if private else load_shared_desk()
         except DeskMissing:
             raise HTTPException(404, "no desk export has been written yet") from None
         except DeskRefused as e:
