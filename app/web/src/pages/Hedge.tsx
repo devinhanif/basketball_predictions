@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import { api, getTopContracts, type TopContract } from "../api";
 import { Avatar } from "../Avatar";
 import { Loading } from "../components";
+import { DeskAge } from "../DeskUI";
 import { deskOf, useDesk } from "../deskStore";
 import { latestPlayDate, playLabel, playsOn, type DeskPlay } from "../desk";
 import type { EdgeContract } from "../edges";
@@ -87,6 +88,7 @@ function Picker(props: { onPick: (p: Pick) => void }) {
       {plays.length > 0 ? (
         <>
           <div class="label">Desk plays, {date}</div>
+          {d ? <p class="small muted"><DeskAge desk={d} /></p> : null}
           <ul class="pick-list">
             {plays.map((p) => (
               <li key={p.play_id}>

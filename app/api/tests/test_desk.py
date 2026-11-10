@@ -54,12 +54,47 @@ def test_desk_route_is_private_only(
     export_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.delenv("PH_PRIVATE", raising=False)
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(FIX / "does_not_exist.json"))
     assert export_client.get("/api/desk").status_code == 404
     monkeypatch.setenv("PH_PRIVATE", "1")
     monkeypatch.setenv("APP_DESK_FILE", str(FIX / "desk_fixture_shared.json"))
     r = export_client.get("/api/desk")
     assert r.status_code == 200 and r.json()["privacy"] == "shared"
     monkeypatch.setenv("APP_DESK_FILE", str(FIX / "does_not_exist.json"))
+    assert export_client.get("/api/desk").status_code == 404
+
+
+def test_public_desk_serves_the_shared_cut(
+    export_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PH_PRIVATE", raising=False)
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(FIX / "desk_fixture_shared.json"))
+    r = export_client.get("/api/desk")
+    assert r.status_code == 200 and r.json()["privacy"] == "shared"
+
+
+def test_public_desk_refuses_a_cut_with_a_money_field(
+    export_client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    d = _shared()
+    d["balance"] = 12.5
+    f = tmp_path / "leaky.json"
+    f.write_text(json.dumps(d))
+    monkeypatch.delenv("PH_PRIVATE", raising=False)
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(f))
+    r = export_client.get("/api/desk")
+    assert r.status_code == 422 and "balance" in r.json()["detail"]
+    # a private-labelled file is refused even with no money fields
+    f.write_text(json.dumps(_shared() | {"privacy": "private"}))
+    assert export_client.get("/api/desk").status_code == 422
+
+
+def test_public_desk_never_reads_desk_json(
+    export_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PH_PRIVATE", raising=False)
+    monkeypatch.setenv("APP_DESK_FILE", str(FIX / "desk_fixture_shared.json"))
+    monkeypatch.setenv("APP_DESK_SHARED_FILE", str(FIX / "does_not_exist.json"))
     assert export_client.get("/api/desk").status_code == 404
 
 

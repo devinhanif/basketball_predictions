@@ -44,7 +44,7 @@ export function VerdictStrip(props: {
 function ticketsLine(t: TpResult): string {
   if (t.kind === "refused") return `The tickets file for this night did not pass our checks, so we are not showing it. ${plainText(t.detail)}`;
   if (t.kind === "ok") return `The tickets file for this night holds no tickets. ${plainText(t.data.empty_reason ?? "No reason was given")}.`;
-  return "No tickets are stored for this night yet. That is normal before the pre-tip run, not an error.";
+  return "No tickets have been made for this night yet. That is normal: they are made shortly before the games start, so check back closer to tip-off.";
 }
 
 /** The honest default is a first-class screen: a verdict card, not an error and not a softened message. */
@@ -60,7 +60,7 @@ function NoParlay(props: { date: string; p: ParlayState; speaks: boolean; ticket
           <li>
             {speaks
               ? `${verdictText(p)} ${whatWeChecked(p, false)}`
-              : `No parlay check is stored for ${longDate(date)}. The only one we hold is for ${longDate(p.report_date)}: ${verdictText(p)}`}
+              : `We did not run a parlay check for ${longDate(date)}. The latest one is for ${longDate(p.report_date)}: ${verdictText(p)}`}
           </li>
           <li>{ticketsLine(props.tickets)}</li>
           <li>{gateSentence(p.gate)}</li>

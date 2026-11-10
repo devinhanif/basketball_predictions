@@ -81,6 +81,20 @@ export function signed(x: number, digits = 4): string {
   return `${x >= 0 ? "+" : "-"}${Math.abs(x).toFixed(digits)}`;
 }
 
+/** "Sun, Nov 8, 6:45 PM ET": the weekday matters, because a desk file can be a day old. */
+export function deskStamp(utc: string): string {
+  return (
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: ET,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(utc)) + " ET"
+  );
+}
+
 /** Past this many hours the banner says the data is old (architecture section 6: the banner shows its age). */
 export const STALE_AFTER_HOURS = 30;
 

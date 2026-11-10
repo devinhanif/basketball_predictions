@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import random
 from collections.abc import Awaitable, Callable
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 
 from .breakdown import Breakdown, Side
 from .breakdown import build as build_breakdown
-from .desk import DeskMissing, DeskRefused, load_desk
+from .desk import DeskMissing, DeskRefused, load_desk, load_shared_desk
 from .dissect.providers import default_router
 from .dissect.service import dissect_leg
 from .edges import leg_edges, top_contracts
@@ -81,6 +81,29 @@ def reset_store() -> None:
 
 
 StoreDep = Annotated[AnyStore, Depends(get_store)]
+
+
+def _swipe_empty_note(reason: str, total: int, started: int, with_lines: int) -> str:
+    """The true reason a night has nothing to swipe on, from counts the data holds."""
+    if reason == "no_games":
+        return "No games are on the schedule for this night."
+    games = f"{total} game{'' if total == 1 else 's'}"
+    if reason == "all_started":
+        lines = (
+            f" Player lines were captured for {with_lines} of them."
+            if with_lines
+            else " No player lines were captured for any of them."
+        )
+        verb = "has" if total == 1 else "have"
+        return f"All {games} {verb} already started, so picks are closed.{lines}"
+    left = total - started
+    still = f"{left} game{'' if left == 1 else 's'} still to play"
+    if started == 0:
+        return f"No player lines have been captured yet for the {still}."
+    return (
+        f"{started} of {games} {'has' if started == 1 else 'have'} started, "
+        f"and no player lines have been captured yet for the {still}."
+    )
 
 
 def create_app() -> FastAPI:
@@ -484,8 +507,17 @@ def register(app: FastAPI) -> None:
         s = _need_slate(store, date)
         clock = store.slate_clock(date)
         cards: list[SwipeCard] = []
+        started = 0
+        with_lines = 0
         for g in s["games"]:
+            if any(
+                pr["over_price"] is not None and pr["under_price"] is not None
+                for pl in g["players"]
+                for pr in pl["props"].values()
+            ):
+                with_lines += 1
             if str(g["tip_utc"]) <= clock:  # refused at or after tip (ISO-8601 UTC sorts as text)
+                started += 1
                 continue
             for pl in g["players"]:
                 me, opp = (g["home"], g["away"]) if pl["side"] == "home" else (g["away"], g["home"])
@@ -510,6 +542,10 @@ def register(app: FastAPI) -> None:
                     )
         rng = random.Random(seed)  # noqa: S311 - a shuffle, not a secret
         rng.shuffle(cards)
+        total = len(s["games"])
+        reason: Literal["ok", "no_games", "all_started", "no_lines"] = "ok"
+        if not cards:
+            reason = "no_games" if total == 0 else "all_started" if started == total else "no_lines"
         return SwipeDeck(
             date=date,
             clock_utc=clock,
@@ -519,8 +555,12 @@ def register(app: FastAPI) -> None:
                 "Blind cards: the line and the price only. Drawn at random from every posted line; "
                 "players who do not play are void."
                 if cards
-                else "No cards: this data holds no sportsbook lines or prices to swipe on."
+                else _swipe_empty_note(reason, total, started, with_lines)
             ),
+            reason=reason,
+            games_total=total,
+            games_started=started,
+            games_with_lines=with_lines,
         )
 
     @app.get("/api/slates/{date}/results")
@@ -590,11 +630,9 @@ def register(app: FastAPI) -> None:
 
     @app.get("/api/desk")
     def desk() -> Json:
-        """The Jarvis Desk export, only when the API runs private (PH_PRIVATE=1)."""
-        if os.environ.get("PH_PRIVATE") != "1":
-            raise HTTPException(404, "the desk is not served by this API")
+        """The desk export: the private file under PH_PRIVATE=1, otherwise only the shared cut."""
         try:
-            return load_desk()
+            return load_desk() if os.environ.get("PH_PRIVATE") == "1" else load_shared_desk()
         except DeskMissing:
             raise HTTPException(404, "no desk export has been written yet") from None
         except DeskRefused as e:

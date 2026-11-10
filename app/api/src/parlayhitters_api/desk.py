@@ -1,7 +1,8 @@
 """Reader for the Jarvis Desk export (docs/contracts/desk_export_v1.md).
 
 The file is written by the market agent's ``nba/export/desk.py``; this module only reads it.
-The API serves it at ``/api/desk`` only when started with ``PH_PRIVATE=1``. A shared cut must hold
+The API serves the private file at ``/api/desk`` under ``PH_PRIVATE=1``, otherwise only the
+shared cut. A shared cut must hold
 no money field: if it does, the file is refused rather than shown.
 """
 
@@ -32,6 +33,14 @@ def desk_path() -> Path:
     if env:
         return Path(env)
     return Path(__file__).resolve().parents[4] / "data" / "export_private" / "desk.json"
+
+
+def shared_desk_path() -> Path:
+    """The shared cut, the only desk file the public API ever reads (never desk.json)."""
+    env = os.environ.get("APP_DESK_SHARED_FILE")
+    if env:
+        return Path(env)
+    return Path(__file__).resolve().parents[4] / "data" / "export_private" / "desk_shared.json"
 
 
 _DOLLAR = re.compile(r"\$\s?\d")
@@ -108,3 +117,14 @@ def load_desk(path: Path | None = None) -> Json:
     except (OSError, ValueError) as e:
         raise DeskRefused(f"unreadable: {e}") from None
     return check_desk(data)
+
+
+def load_shared_desk(path: Path | None = None) -> Json:
+    """The public read: the shared cut only. Anything else, or a money field, is refused."""
+    d = load_desk(path or shared_desk_path())
+    if d["privacy"] != "shared":
+        raise DeskRefused("the public desk file must be the shared cut")
+    leaked = money_fields(d)
+    if leaked:
+        raise DeskRefused(f"a shared cut must not hold money fields: {', '.join(leaked)}")
+    return d

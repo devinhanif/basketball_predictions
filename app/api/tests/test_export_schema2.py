@@ -340,7 +340,25 @@ def test_the_swipe_deck_is_made_of_posted_lines_before_tip(
         }  # fmt: skip
     # after tip nothing is dealt
     late = _live_client(export_dir, datetime(2024, 11, 13, 1, 0, tzinfo=UTC), monkeypatch)
-    assert late.get(f"/api/slates/{EXPORT_DAY}/swipe").json()["cards"] == []
+    after = late.get(f"/api/slates/{EXPORT_DAY}/swipe").json()
+    assert after["cards"] == [] and after["reason"] == "all_started"
+    assert after["games_started"] == after["games_total"] > 0 and after["games_with_lines"] > 0
+    assert "already started" in after["note"] and "Player lines were captured for" in after["note"]
+    assert deck["reason"] == "ok" and deck["games_started"] < deck["games_total"]
+
+
+def test_the_empty_swipe_note_tells_the_true_reason() -> None:
+    from parlayhitters_api.main import _swipe_empty_note
+
+    assert "No games" in _swipe_empty_note("no_games", 0, 0, 0)
+    assert _swipe_empty_note("no_lines", 8, 2, 1) == (
+        "2 of 8 games have started, and no player lines have been captured yet for the "
+        "6 games still to play."
+    )
+    assert _swipe_empty_note("no_lines", 3, 0, 0) == (
+        "No player lines have been captured yet for the 3 games still to play."
+    )
+    assert "All 1 game has already started" in _swipe_empty_note("all_started", 1, 1, 0)
 
 
 def test_settled_rows_carry_the_line_the_price_and_the_actual(export_client: TestClient) -> None:

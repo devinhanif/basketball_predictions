@@ -29,7 +29,7 @@ export function whatWeChecked(p: ParlayState, compact: boolean): string {
 
 /** What the model's track record is, in words. `settled` in the data means graded. */
 export function gateSentence(g: ParlayState["gate"]): string {
-  if (g === null) return "The track record behind this answer is not part of the data we have.";
+  if (g === null) return "We do not have a track record for this model to show yet.";
   if (g.gate_open) return "Our model has earned a track record, so it is allowed to vouch for a bet.";
   return `Our model has to earn trust first. It needs ${g.min_settled.toString()} graded picks over ${g.min_settled_dates.toString()} different days before we let it back a bet. So far: ${g.n_settled.toString()} picks over ${g.n_dates.toString()} days. Until then we just follow the sportsbooks.`;
 }
@@ -112,7 +112,7 @@ export function ParlayCard({ compact, date }: { compact: boolean; date?: string 
         ) : (
           <section class="panel flat" aria-label="Parlay check">
             <p class="small">
-              <strong>No parlay check is stored for {longDate(date ?? p.report_date)}.</strong> The only one we hold is for{" "}
+              <strong>We did not run a parlay check for {longDate(date ?? p.report_date)}.</strong> The latest one is for{" "}
               {longDate(p.report_date)}: {verdictText(p)}
             </p>
             {compact ? null : (

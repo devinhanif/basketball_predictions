@@ -732,7 +732,7 @@ function EdgePanel({ data, line }: { data: LegBreakdown; line: number }) {
     <section class="panel" aria-label="Edge after fees">
       <h2>Edge after fees</h2>
       {state.status === "loading" ? <p class="muted">Loading...</p> : null}
-      {state.status === "error" ? <p class="muted">No priced contract is stored for this player and stat in this data.</p> : null}
+      {state.status === "error" ? <p class="muted">No prediction-market price was found for this player and stat.</p> : null}
       {state.status === "ready" && state.data.contracts.length === 0 ? (
         <p class="muted">No prediction-market contract was priced for this player and stat, so there is no edge to show.</p>
       ) : null}

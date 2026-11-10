@@ -261,7 +261,7 @@ function Body({ g }: { g: GameDetail }) {
         <DistLegend reference={g.players.some((p) => Object.values(p.props).some((x) => x.line_source === "reference"))} />
         <div class="players">
           {players.length === 0 ? (
-            <p class="muted">No forecasts are stored for this team.</p>
+            <p class="muted">We have no forecasts for this team in this game.</p>
           ) : (
             players.map((p) => <PlayerRow key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} mode={mode} />)
           )}

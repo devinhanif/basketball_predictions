@@ -215,7 +215,7 @@ describe("headline and edge line (numbers only from stored fields)", () => {
   });
   it("states the night's answer", () => {
     expect(headline({ games: 7, engine: eng(), speaks: true, tickets: null }).text).toBe("7 games · 0 of 2,956 priced contracts clear an edge after fees · keep your money");
-    expect(headline({ games: 1, engine: eng(), speaks: false, tickets: null }).text).toBe("1 game · no pricing check is stored for this night · keep your money");
+    expect(headline({ games: 1, engine: eng(), speaks: false, tickets: null }).text).toBe("1 game · no pricing check was run for this night · keep your money");
     expect(headline({ games: 3, engine: null, speaks: false, tickets: null }).text).toContain("unavailable");
     const a = headline({ games: 7, engine: eng({ state: "A", headline_verdict: "positive_ev", counts: { n_contracts: 10, n_flagged_positive: 2 } }), speaks: true, tickets: null });
     expect(a.verdict).toBe("flagged");

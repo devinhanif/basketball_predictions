@@ -38,9 +38,9 @@ export function headline(i: HeadlineInput): Headline {
     const t = i.tickets;
     const has = t !== null && t.kind === "ok" && hasTickets(t.data);
     return {
-      text: has ? `${g} · unproven tickets listed (paper only) · keep your money` : `${g} · no pricing check is stored for this night · keep your money`,
+      text: has ? `${g} · unproven tickets listed (paper only) · keep your money` : `${g} · no pricing check was run for this night · keep your money`,
       verdict: "keep",
-      source: "Source: the parlay engine. Its stored check is for a different night, so it is not shown as this night's.",
+      source: "Source: the parlay engine. The latest check is for a different night, so it is not shown as this night's.",
     };
   }
   const priced = n(p.counts, "n_contracts");

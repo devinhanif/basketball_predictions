@@ -178,6 +178,11 @@ class SwipeDeck(BaseModel):
     seed: int
     cards: list[SwipeCard]
     note: str
+    # Why the deck is empty, in counts a screen can state (defaults keep older clients valid).
+    reason: Literal["ok", "no_games", "all_started", "no_lines"] = "ok"
+    games_total: int = 0
+    games_started: int = 0
+    games_with_lines: int = 0
 
 
 class Dist(BaseModel):

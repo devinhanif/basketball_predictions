@@ -173,6 +173,11 @@ export interface SwipeDeck {
   seed: number;
   cards: SwipeCardData[];
   note: string;
+  /** Why there are no cards; absent in older data and in the single-file snapshot. */
+  reason?: "ok" | "no_games" | "all_started" | "no_lines";
+  games_total?: number;
+  games_started?: number;
+  games_with_lines?: number;
 }
 
 export interface ResultRow {
