@@ -140,3 +140,24 @@ questionable; that is a new decision, not a fix to this branch.
 
 DECISIONS (for the main session, after M1/M2 and merge):
 `| 2026-11-10 hh:mm | MERGED agent/market-modelview-pplay <sha>: production ModelView gains p_play (stored forward P(plays); None when no row/OUT on a report known now/row made after tip/unreadable stamp/row without p_play); player checkpoints use the same lookup (PPlayView). Measured as-of on 11-04..11-09: strong 0 -> 0, alert-eligible 0 -> 0, thin prop plays 315 -> 68, overs on cards 0 -> 8. Adversary WOUNDED -> APPROVED (docs/reviews/modelview_pplay_2026-11-10.md). Standing risk: stale P(plays) on doubtful/questionable downgrades now priced, not capped (11 of 1,541 player-ticks at T-60; none positive). | Devin's decision (2026-11-10 12:47). | A positive-EV or alerting prop on a player downgraded after his last forward row; or Kalshi's DNP rule read. |`
+
+## Re-review (2026-11-10, diff 583293a4..ff41ff6b only)
+
+Verdict: APPROVED
+
+| Item | Command | n | Result | Pass |
+|---|---|---|---|---|
+| M1 made_at comparison wrapped | `git diff 583293a4..agent/market-modelview-pplay -- nba/jarvis/forecasts.py` | n/a | loop over `made_at` in `try/except (TypeError, ValueError): return None` (forecasts.py:133-141) | pass |
+| M1 planted-None attack, real slate | scratch `rr.py` (branch code on sys.path, `load_config(root=main checkout)`, read-only Toolbox), one priced player per slate, `made_at` overwritten with `None`, `"None"`, `""`, `"garbage"`, tz-aware datetime | 2 slates x 5 plants | every non-datetime plant -> `None`, nothing raised (exit 0); tz-aware plant handled (11-08: after tip -> None; 11-09: before tip -> value kept) | pass |
+| M2 carry check on real data | same script, 11-08 and 11-09 | 924 + 1,016 props_raw rows; 231 + 254 player-games | 924/924 and 1,016/1,016 rows carry `p_play`; `no_carry` Nones = 0 on both slates. All Nones explained: 11-08 8 OUT-on-report; 11-09 21 OUT + 1 not on ctx roster | pass |
+| M2 planted strip | same script: pop `p_play` from one priced player's raw rows | 2 | `p_play` -> None while `ctx.p_play` still 0.98 / 0.96 (the 1.0-default path is closed) | pass |
+| Tests incl. strict assert + two new tests | `PYTHONPATH=<branch> .venv-1/bin/python -m pytest -q -p no:cacheprovider --no-cov <branch>/tests/jarvis` | 478 | 477 passed, 1 skipped, exit 0; the strict `single_candidate` assert now runs unconditionally and passes | pass |
+
+New contradictions in the revision: none found. Diff scope matches the three listed fixes plus the review file.
+
+Minor (not blocking): `_naive` drops tzinfo without converting to UTC, so a non-UTC aware stamp would be
+misread; all live `made_at` values are naive-UTC strings, so dead today. Fix if ever needed:
+`d.astimezone(timezone.utc).replace(tzinfo=None) if d.tzinfo else d` at forecasts.py:146-147. The M2
+scan is O(props_raw) per call (~1k rows); fine at JARVIS tick rates.
+
+Not verified: a live JARVIS tick end to end; ruff/mypy on the branch (main session's checks).
