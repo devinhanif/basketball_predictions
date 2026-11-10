@@ -1,11 +1,12 @@
 # GAME_SCRIPTS_FORWARD: do the four game scripts happen as often as the model says, and do script-conditional legs hold, on the 2026-27 live log? (pre-registration)
 
-Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-10 13:05 CST (clock read by `date`). Not frozen. Nothing in this file has
+Status: **DRAFT, revision 1 (revision 0 13:05 CST; revision 1 Tue 2026-11-10 afternoon CST: Devin's five choices written in, harness
+written, text aligned with what the harness computes; section 13). Not frozen. Nothing in this file has
 been scored on any game after the freeze, and no 2026 script outcome has been computed by anyone for this draft (section 8).**
 - **How it becomes the rule:** the main session commits `prereg(GAME_SCRIPTS_FORWARD): <sha256>` of everything above the line
   `=== RESULTS BELOW ===` (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/GAME_SCRIPTS_FORWARD.md | shasum -a 256`), with the
-  status line changed to FROZEN in the same commit. Before that: Devin settles the open choices (section 11), the scoring harness is
-  written (section 10), and an adversary pre-freeze review returns READY_TO_FREEZE.
+  status line changed to FROZEN in the same commit. Devin's choices are settled (section 11) and the harness is written (section 10);
+  what remains before the freeze is an adversary pre-freeze review returning READY_TO_FREEZE.
 - **Origin:** Devin, 2026-11-10 12:52 (DECISIONS 56adf8f7), piece 4 of "how a game can play out". **Follows advice** (Claude recommended
   a forward test before any script number loses its `exploratory` label). Supersedes the draft `docs/contracts/combo_script_forward_rule_DRAFT.md`
   (adversary B1 of `docs/reviews/combo_math_2026-11-10.md`); its parts are kept, changed or dropped as listed in section 9.
@@ -54,7 +55,8 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
    CONDITIONAL_CALIBRATED (S-i and S-ii), IMPROVES_BUT_OFF (S-i only), NOT_SHOWN (else), INSUFFICIENT_DATA (< 150 realised games of s or
    < 2,000 legs). The same-player joint ratio is printed (descriptive, section 4.3), with no word.
 10. **S waits for LINE_CAL_LIVE.** Family S scores DraftKings `p_over_cal` outcomes on 2026 legs, which is LINE_CAL_LIVE's S3 cell. S is
-    computed only after LINE_CAL_LIVE's look is recorded in the ledger; if it is not, the S words are deferred, never computed early.
+    computed only after LINE_CAL_LIVE's look is recorded (its frozen harness output `reports/prereg_line_cal_live/results.json` exists);
+    if it is not, the primary run writes S as DEFERRED and `run-s` computes S later at the same D, never early.
 11. **Multiplicity.** Three declared families, BH within each (P: m = 4 on MISCALIBRATED; D: m = 2; S: m = 4 on S-i). The CALIBRATED and
     CONDITIONAL_CALIBRATED words are per-script equivalence (intersection-union) labels, so BH is not applied to them; the family size is
     stated. No word in one family depends on another.
@@ -84,7 +86,7 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
 ### 4.1 Integrity (any one voids every word: INTEGRITY_FAIL, results printed, no word)
 - more than 5% of final window games `unforecast`;
 - any scored game whose stamp `tipoff` differs from the schedule tip, or whose stamp is at or after the tip;
-- `joint_model.json` or `combo_params_v1.json` at the freeze commit not matching the sha256 prefixes in rule line 2;
+- `joint_model.json` or `combo_params_v1.json` at run time not matching the sha256 prefixes in rule line 2 (the run refuses);
 - the pinned `script_prior` disagreeing with a closed-form recomputation (the gate's `p_blowout`/`p_close`/`p_shootout`/`p_grind`) by more
   than 1e-9 on any game.
 - Not a void: the production win model changing version inside the window. The words are then computed on the games of the version in
@@ -93,18 +95,19 @@ been scored on any game after the freeze, and no 2026 script outcome has been co
 - n games, n dates, realised count and share, mean P, gap with date and game CIs, Brier, per script.
 - Reliability, fixed bins: blowout P [0, .30, .35, .40, .50, 1], close P [0, .20, .25, .30, 1]: n, mean P, realised share, game CI.
 - Calibration slope and intercept (logistic of outcome on logit P(s)) for blowout and close, date CI.
-- For shootout and grind (P is a constant band 0.253-0.271 by construction): mean(total - mu_t) and sd(total - mu_t) against the frozen
-  `sd_t` 18.82, date CIs. These two numbers decide both scripts; a miss is read through them.
-- Slices: calendar month; the first and second half of the window (drift); |mu_m| < 5, 5-10, >= 10 for blowout and close; NBA Cup group
-  games vs the rest.
-- Integrity counts: `unforecast`, `unplayed_or_postponed`, stamp lead minutes, win-model versions.
-- If a nightly `combo_<date>.json` or export row holds a stamped `game` block for a scored game: the count of games where its `mu_m`,
-  `mu_t` or `script_prior` differs from the recomputed one by more than 0.01 (the app showed a different number; listed by game).
+- For shootout and grind (P is a constant band 0.253-0.271 by construction): mean(total - mu_t) with its date CI and sd(total - mu_t)
+  against the frozen `sd_t` 18.82. These two numbers decide both scripts; a miss is read through them.
+- Slices: calendar month; the first and second half of the window (drift); |mu_m| < 5, 5-10, >= 10 for blowout and close (gap per
+  cell, no CI). The Cup slice of revision 0 is dropped: no Cup flag exists in the data.
+- Integrity counts: final games, `unforecast` and its share, stamps with a bad tip or at/after tip, win-model versions, the largest
+  closed-form deviation.
+- Dropped in revision 1: the comparison with a nightly stamped combo block (no such stamp exists yet; under O3a the scored number is the
+  recomputed one).
 - PRE_FREEZE: the same table on 2026-10-20 through the freeze date, once, labelled, no word.
 ### 4.3 Family S, descriptive
-- Per script: legs, games, realised over rate, mean U, mean C_s, Brier of each, by stat and starter/bench (BH over the 4 x 4 cells, labels
-  only).
-- Relative calibration: (realised - mean C_s) minus (realised - mean U) on ALL window legs, so a map that does not transport in 2026 is not
+- Per script: legs, games, realised over rate, mean U, mean C_s, Brier of each; the same table by stat and starter/bench (eight
+  cells, each cell's own S table, descriptive: no cell word is read or acted on).
+- The unconditional gap (realised - mean U) on ALL window legs is printed beside S-ii, so a map that does not transport in 2026 is not
   read as a script failure.
 - Same-player pairs (different stats, both legs main-line overs): realised joint / copula joint under s, game-clustered CI, n pairs.
 - Legs the app labels "above the tested range" (calibrated P > 0.75 or raw >= 0.80): counted inside S, also printed as a slice.
@@ -185,9 +188,8 @@ narrow or too wide); for shootout and grind, mean and sd of total - mu_t (is the
 ## 8. Data exposure (honest)
 - **Seen before this draft:** the 2023-24 script results (`combo_eval` runs 1 and 2, the adversary's reproduction, this gate's part B).
 - **Computed by this draft on 2026 (label-free):** game counts, stamp coverage, P(script) from the stamps, DraftKings leg counts.
-- **Not computed by this draft:** any 2026 final margin, total, total - mu_t, realised script, player stat or leg outcome. Unknown: whether
-  another session computed 2026 script shares while building pieces 1-3 (the script panel and tracker); the main session should ask
-  before freezing and record the answer. The window starts after the freeze either way.
+- **Not computed by this draft:** any 2026 final margin, total, total - mu_t, realised script, player stat or leg outcome. Asked and answered
+  (main session, 2026-11-10): no session computed 2026 script shares (section 10). The window starts after the freeze either way.
 - **Overlap:** S scores DraftKings `p_over_cal` on 2026 legs (LINE_CAL_LIVE S3); handled by rule line 10.
 
 ## 9. Lineage, playbook check, and what a result changes
@@ -229,26 +231,28 @@ model of combo mode (Gaussian copula plus a per-script latent shift).
   recentring of `mu_t` and, for close, a refit of `sd_m`, both estimated on games before a cut date, tested forward on the 2027-28 season).
   No other follow-up.
 
-## 10. Before the freeze (preconditions, not part of the rule text)
-- The harness `research/eval/game_scripts_forward_eval.py` (status / dryrun / run; real clock; pinned code; refuses season 2025 by name
-  for scoring; read-only connections) with tests on the fixture DB, written after Devin's choices and reviewed with this text.
-- The gate re-run on the freeze day with `--freeze <date>` and the S counts recomputed through the `line_cal` code (label-free).
-- The main session asks whether any session computed 2026 script shares (section 8) and records the answer.
+## 10. Harness and preconditions
+- **Harness** `research/eval/game_scripts_forward_eval.py` (pin in section 13; tests `tests/research/prereg_gates/test_game_scripts_forward_eval.py`):
+  `status` (label-free counts and the projected look; finals are a SQL boolean, no score value is read; `--s-legs` counts S legs through
+  the export's own `line_cal` code), `dryrun` (synthetic games and legs only, no database), `run` (the one look), `run-s` (family S at the
+  same D after LINE_CAL_LIVE's results exist). No command takes a date: the look reads the real ET clock. `run` refuses unless
+  `RULE_SHA256` and `FREEZE_COMMIT` are set and match this text, the look is open, the pinned inputs match, and no results file exists.
+  Every function that reads a score or a player stat of a window game requires an open look state; only season 2026 (prefix `002`) is
+  ever scored and any other season in a scored frame raises.
+- **At the freeze:** set `RULE_SHA256` (this text) in the freeze commit and `FREEZE_COMMIT` right after it (a harness change only, no
+  rule text change), and re-run `status --assume-freeze <date> --s-legs` (label-free) to record the exact S leg rate.
+- **Exposure answer (main session, 2026-11-10):** no session computed 2026 script shares; the 11-10 team recap computed per-team
+  game-winner records only, and the market agent building pieces 1-3 is told not to aggregate realised scripts.
 
-## 11. Open choices for Devin (multiple choice; my default first)
-- **O1 look size.** (a) **750 scored games, backstop 2027-03-28** (projected 03-07; power 0.58-0.71 at a perfect calibration);
-  (b) 600 games, backstop 2027-02-28 (projected 02-09; power 0.39-0.54, a word in time for the playoffs' app use);
-  (c) every regular-season game after the freeze (about 1,000; look after 2027-04-11; power about 0.8).
-- **O2 tolerance for P.** (a) **0.05**; (b) 0.06 (easier to pass; "within 6 points"); (c) 0.04 (cannot pass this season at 750; not
-  freezable under non-negotiable 8 unless O1 is (c), and even then power at gap 0 is about 0.35).
-- **O3 the as-of total feature.** (a) **as the live engine builds it, from every final game before the slate, which includes 2025-26
-  scores as a decaying input to 2026 forecasts only** (scores what the app shows; no 2025 game is evaluated); (b) from season-2026 games
-  only with the league mean as the prior (no 2025 row read; scores a number the app does not show); (c) score only the stamped export
-  value, starting when piece 1 writes it nightly (cleanest, but the window starts later and n shrinks).
-- **O4 family S.** (a) **include, after LINE_CAL_LIVE's look, tolerance 0.03**; (b) drop S (P and D only); (c) S descriptive only, no words.
-- **O5 window start.** (a) **after the freeze only** (as asked); (b) also score 2026-10-20 to the freeze (about 174 more games, reaches 750
-  about four weeks sooner, near 02-06; nobody has computed those outcomes as far as this draft knows). I recommend (a): the gain is four weeks, and
-  (b) needs a certainty about exposure we do not have (section 8).
+## 11. Devin's choices (settled 2026-11-10, all five defaults)
+- **O1 look size:** 750 scored games, backstop 2027-03-28 (rule line 6).
+- **O2 tolerance for P:** 0.05 (rule line 5).
+- **O3 the as-of total feature:** as the live engine builds it, from every final game before the slate, including 2025-26 scores as a
+  decaying input to 2026 forecasts only; no 2025 game is evaluated (section 4.4).
+- **O4 family S:** included, computed only after LINE_CAL_LIVE's look, tolerance 0.03 (rule lines 8-10).
+- **O5 window:** after the freeze only (rule line 1).
+Alternatives that were offered and not taken: 600 games / 02-28 or the full season; 0.06 or 0.04; a 2026-only feature or the export
+stamp; S dropped or descriptive; the pre-freeze games scored.
 
 ## 12. Priors (stated before any 2026 outcome; copied to docs/PREDICTIONS_LEDGER.md)
 - P words at the look (defaults): P(blowout CALIBRATED) 0.45; P(close CALIBRATED) 0.20, P(close MISCALIBRATED) 0.35; P(shootout
@@ -260,6 +264,17 @@ model of combo mode (Gaussian copula plus a per-script latent shift).
 - S: P(CONDITIONAL_CALIBRATED) blowout 0.25, close 0.03, shootout 0.08, grind 0.35; P(S-i passes) blowout 0.45, close 0.10, shootout 0.65,
   grind 0.85. Expected S-i dBrier: blowout -0.0018, close -0.0006, shootout -0.0024, grind -0.0040 (each 80% +-0.002).
 - Logistics: P(750 scored games reached by the backstop) 0.90; P(INTEGRITY_FAIL) 0.05; P(LINE_CAL_LIVE's look recorded before this look) 0.95.
+
+## 13. Revision log and harness pin
+- Revision 0 (13:05 CST, text e9779757): the draft with open choices.
+- Revision 1: Devin's choices (section 11); the exposure answer (section 10); the LINE_CAL_LIVE condition made checkable (rule line 10);
+  descriptive items aligned with the harness (Cup slice and the export-stamp comparison dropped, sd(total - mu_t) without a CI, stat x
+  role cells descriptive); the harness and its pin. S-leg gate re-check through the export's own `line_cal` code (`status
+  --assume-freeze 2026-10-19 --s-legs`, label-free, 85 s, 2026-11-10): 1,543 legs on 69 of 154 final games through 11-09, against the
+  gate's approximation of 1,547 on 70; section 5's S numbers stand. No 2026 outcome was read for this revision; the harness's only runs were on
+  synthetic data and a temporary test database.
+- Harness pin: see the commit that carries this revision (`git log -1 -- research/eval/game_scripts_forward_eval.py`); the file's sha256
+  is recorded in the hand-back and in the freeze commit message.
 
 === RESULTS BELOW ===
 

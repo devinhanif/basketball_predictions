@@ -1,3 +1,5 @@
+> **Superseded by `docs/prereg/GAME_SCRIPTS_FORWARD.md`** (draft, 2026-11-10); this file is kept as history and is not a rule.
+
 # DRAFT forward rule: script calibration on 2026 games (NOT frozen, NOT run)
 
 Status: draft written 2026-11-10 after adversary review `docs/reviews/combo_math_2026-11-10.md` (finding B1). A script may be labelled
