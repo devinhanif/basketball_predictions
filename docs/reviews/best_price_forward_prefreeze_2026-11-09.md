@@ -218,3 +218,88 @@ misreads. M2/M4 and guard 10.3 address it; S11 makes it visible.
 
 ## Drafted rows (not appended)
 - DECISIONS: `| 2026-11-09 | BEST_PRICE_FORWARD pre-freeze adversary review: NOT_READY (Verdict: BLOCKED); six MUST edits (self-test band unreachable at Read 1, book known-at filter, word order, player clustering, S3 label collision, deterministic order); overs-only descriptive slice recommended; window judged clean. docs/reviews/best_price_forward_prefreeze_2026-11-09.md | Freeze only after the MUSTs, a gate re-run and a re-review. | A re-review finding the revision introduces new contradictions. |`
+
+## Re-review: revision 1 (commit d4a6d8e, text hash 717222d0), 2026-11-09
+
+Re-computed text hash above `=== RESULTS BELOW ===`: `717222d09a1d8788380581b04473073aa863a1fee4a207d4f5509289b92a8dfa` (matches).
+Diff read in full: `git diff e4a9f73 d4a6d8e` (rule, gate, tests, DECISIONS, PREDICTIONS_LEDGER). The whole revision was checked for new
+contradictions, not only the listed fixes. No outcome-linked number was computed; season 2025 was not read; every connection was read-only.
+
+Verdict: BLOCKED
+
+Pre-freeze word: **NOT_READY**, for one one-line MUST (M7, below): the shuffled-pick guard (10.2), self-test 10.9(b) and the order in
+which the three cluster bootstraps draw from `default_rng(2026)` have no pinned seed or order, so a PASS guard can be re-drawn until it
+passes and M6's "every look reproduces bit for bit" is not yet true. **If the next diff from d4a6d8e is exactly M7 plus the two SHOULD
+texts below, verbatim, the rule is READY_TO_FREEZE without another review**; any other change needs one. The rule's own precondition
+also stands: `research/eval/best_price_forward_eval.py::decision_ci` (the scorer) must exist and reproduce gate.json before the freeze.
+
+### MUSTs from the first review
+
+| MUST | text | code | evidence | pass |
+|---|---|---|---|---|
+| M1 self-test band | verbatim (10.9(a)); 10.9(b) carries the correlation | `synthetic_power` uses the same DGP (corr 0.3, player shift 0.03) | see "the 4.5% cell" below: the rule's own CI is calibrated under this DGP | PASS |
+| M2 book known-at | verbatim (4.2) | `load_book_quotes` joins E, refuses `received_at > E`, counts them; `choose_quotes` picks latest received, latest update, worse price | my plant (`bpf/plant2.py`, exit 0): a `t60` row at E+1 min priced +250 and a relabelled row at E+59 min priced +300 were both refused (`refused 2`), and the chosen prices stayed -110/-110; new test `test_book_quotes_refuse_post_entry_t60_row` does the same at E+1 | PASS |
+| M3 word order | verbatim (section 8); 10.8 and 10.9 point to it | n/a (scorer not written) | one word per look; PASS and NO_POSITIVE_EV_FOUND still exclusive; Read 2 always closes | PASS |
+| M4 player clustering | verbatim (section 8 CI, 10.10 top-5 leave-out); power table re-done | SE by game, date and player, widest decides | gate.json power rows match the text table (e.g. 414 games: widest SE 0.0146, P(NPEF) 0.665 at the Read 1 level, 0.78 at Read 2) | PASS |
+| M5 label | "descriptive arm S6 ... never in the secondary family, S2-S3" | n/a | deviation from "S1-S3" is correct because S1 left the BH family (S1 adopted) | PASS |
+| M6 determinism | verbatim | `sort_picks` before every draw, keys sorted, timestamps and wall time dropped, Kalshi max-ts bounded at until+2 d | gate re-run twice by me: `8d26fc8548c76918be762b71dd3bbba4eb9e90097e6b52086d785beed9bf6af9` both runs, identical to the committed gate.json; the Kalshi file was writer-locked for about 150 s and the retry loop waited correctly | PASS |
+
+Verification on the revision: `.venv-1/bin/python -m pytest -q --no-cov tests/research/eval/test_best_price_forward_gate.py` → "14 passed",
+exit 0; `ruff check` exit 0; `ruff format --check` "2 files already formatted", exit 0; `mypy research/eval/best_price_forward_gate.py`
+"Success", exit 0. All run unpiped.
+
+### Disclosed deviations
+- **"S2-S3" instead of "S1-S3" (M5):** correct; it follows from S1 leaving the family. Accept.
+- **10.8 wording aligned to M3:** consistent. Accept.
+- **Extra determinism** (Kalshi `QUALIFY ... ORDER BY ts DESC, yes_bid, yes_ask`; prediction tie by JSON string; sorted JSON keys;
+  timestamps dropped; Kalshi max-ts bounded): all deterministic and none changes a count (2,129 picks before and after). One note: the Kalshi
+  tie-break takes the lower bid and ask when two rows share the latest `ts`, which is the better price for an over and the worse for an
+  under. Same-timestamp duplicates are rare and the effect is at most 1c; SHOULD align it with M2's "worse price for the bettor" in the
+  scorer. Not a blocker.
+- **`structure_counts` `dev_bins`** records only "best is Kalshi / best is a book", not the S11 deviation bins. S11 is a scorer
+  descriptive, so the gate does not need it; rename the variable or add the bins in the scorer. Minor.
+
+### The 4.5% cell: does the self-test limit or K need to change? No.
+The 4.5% is a **normal-approximation** diagnostic on **200** sets in one power row (414 games, Read 2 level). Under a correct 2% rate,
+P(X >= 9 of 200) = 0.020, and the chance that at least one of six rows reaches 9 is about 0.115 (exact binomial, rows treated as
+independent). The same row also shows 2.0% at the Read 1 level (P = 0.019 for one row): one noisy synthetic season, not a pattern (mean
+across rows about 2% at Read 2, as nominal).
+
+The question that matters is whether the rule's **actual** decision CI (percentile cluster bootstrap, widest of game/date/player) meets
+the self-test limits under the M1 DGP. I simulated it directly on the gate's real pick structure (`bpf/boot_cov.py`, K = 400 sets per row,
+B = 2,000, synthetic outcomes only, exit 0; season seed differs from the gate's, so this is an independent synthetic season):
+
+| games (picks, dates) | Read 1 level (nominal 0.5%): lower > truth / upper < truth | Read 2 level (nominal 2%): lower > truth / upper < truth |
+|---|---|---|
+| 414 (6,580, 55) | 0/400 (0.0%, CP 95% [0, 0.9%]) / 2/400 (0.5%) | 6/400 (1.5%, CP [0.55%, 3.2%]) / 9/400 (2.2%) |
+| 832 (13,227, 122) | 2/400 (0.5%) / 0/400 (0.0%) | 5/400 (1.25%, CP [0.4%, 2.9%]) / 4/400 (1.0%) |
+
+The actual CI is calibrated or slightly conservative (taking the widest of three intervals is conservative). At K = 1,000, a CI with a true
+rate of 2% fails the 3.5% limit with probability 0.0007, and one at 0.5% fails the 1.5% Read 1 limit with probability 0.0001. A CI at 1.5x
+nominal (3% at Read 2) would fail 15% of the time, which is the detection we want. **Keep K = 1,000 and the limits 1.5% / 3.5%.**
+
+### New findings on the whole revision
+- **M7 (MUST) seeds and draw order.** 10.2 (1,000 shuffles) and 10.9(b) name no generator, and section 8 does not say in which order the
+  three cluster bootstraps consume `default_rng(2026)`. A guard that runs on PASS cannot have a free seed.
+  - Section 10.2: replace "PASS needs the observed ROI above the 95th percentile of the shuffled ROIs." with "PASS needs the observed ROI
+    above the 95th percentile of the shuffled ROIs. `numpy.random.default_rng(2028)`, re-seeded at each look, one draw per pick in the
+    section 8 sort order; every kept venue quotes both sides at L, so a flipped pick keeps its venues."
+  - Section 10.9(b): after "with the same within-(game, player) correlation" insert "(`numpy.random.default_rng(2029)`)".
+  - Section 8 CI bullet: after "`numpy.random.default_rng(2026)` re-seeded at each look" insert "(one generator, consumed in the order
+    game, date, player)".
+- **S12 (SHOULD) contradiction in 13.2.** It says "SETTLED 2026-11-09 ... U1 as written" and then still asks "Which venues can you actually
+  use? If only Kalshi and Polymarket ...". Replace that remainder (from "Which venues can you actually use?" to "needs their fee pages
+  verified and a new rule id.") with: "If Devin later says he can use only Kalshi and Polymarket, S2 is the arm that matters for money and
+  the primary is an upper bound; adding Novig / ProphetX / Polymarket needs their fee pages verified and a new rule id."
+- **S13 (SHOULD) Kalshi tie-break.** In section 4.3 append: "If two rows share the latest `ts`, the worse price for the bettor on the pick
+  side is used (as 4.2)."
+- Everything else in the revision is consistent: the power text matches gate.json row by row; the DECISIONS and PREDICTIONS_LEDGER rows
+  carry the new hash and say no outcome was seen; the window, U1 and D_OVER are unchanged from what the first review approved.
+
+### Not verified (re-review)
+- The scorer and `decision_ci` do not exist yet (rule precondition; its reproduction of gate.json 8d26fc85 is the main session's check).
+- The coverage simulation reused the gate's 185 players (the rule's own caveat) and used B = 2,000, not 10,000; tail quantiles at 0.5% rest
+  on about 10 bootstrap points.
+
+### Drafted row (not appended)
+- DECISIONS: `| 2026-11-09 | BEST_PRICE_FORWARD rev 1 (717222d0) adversary re-review: MUSTs M1-M6 implemented in text and code (planted post-E book rows refused; gate.json byte-identical 8d26fc85 on two runs); 4.5% power cell is binomial noise: the rule's percentile widest-of-three CI shows 0-1.5% lower-bound exceedance at nominal 0.5% / 2% (K 400, B 2,000, synthetic); K = 1,000 and limits 1.5% / 3.5% kept. NOT_READY only for M7 (pin 10.2 / 10.9(b) seeds and bootstrap draw order); READY_TO_FREEZE if the next diff is exactly M7 + S12 + S13. | Scorer must still reproduce gate.json before freeze. | A scorer whose decision_ci departs from the percentile cluster bootstrap described. |`
