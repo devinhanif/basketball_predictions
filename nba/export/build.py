@@ -289,10 +289,28 @@ def _names(
 
 
 def _insert(con: duckdb.DuckDBPyConnection, table: str, rows: Sequence[dict[str, Any]]) -> int:
+    """Insert in row order. Bulk via an Arrow table (2026-11-10: executemany took ~10 min for 735k
+    prop_lines rows and timed the app export out); falls back to executemany if Arrow cannot
+    represent a column (mixed types), so the result is the same either way."""
     cols = [c for c, _ in TABLES[table]]
-    if rows:
+    if not rows:
+        return 0
+    quoted = ",".join(f'"{c}"' for c in cols)
+    try:
+        import pyarrow as pa
+
+        data = pa.table({f"c{i}": [_cell(r.get(c)) for r in rows] for i, c in enumerate(cols)})
+        con.register("_export_rows", data)
+        try:
+            src = ",".join(f"c{i}" for i in range(len(cols)))
+            con.execute(f'INSERT INTO "{table}" ({quoted}) SELECT {src} FROM _export_rows')
+        finally:
+            con.unregister("_export_rows")
+    except Exception as exc:  # noqa: BLE001 - any bulk failure: the row-by-row path below
+        log = logging.getLogger(__name__)
+        log.info("bulk insert of %s fell back (%s)", table, type(exc).__name__)
+        # INSERT ... SELECT is one statement (all or nothing); the table is new, so it is empty here
         q = ",".join("?" for _ in cols)
-        quoted = ",".join(f'"{c}"' for c in cols)
         con.executemany(
             f'INSERT INTO "{table}" ({quoted}) VALUES ({q})',
             [[_cell(r.get(c)) for c in cols] for r in rows],
