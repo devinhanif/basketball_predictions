@@ -12,14 +12,14 @@ import json
 import logging
 import os
 import subprocess
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 import duckdb
 
-from nba.export import guard, line_cal_fields, reader, rung_cal_fields
+from nba.export import guard, line_cal_fields, reader, rung_cal_fields, teammate_sits
 from nba.export.parlay import parlay_of_day
 
 SCHEMA_VERSION = 2  # additive changes keep 2: the app refuses unknown versions
@@ -216,6 +216,8 @@ TABLES: dict[str, list[tuple[str, str]]] = {
         ("status", "VARCHAR"),
         ("reason", "VARCHAR"),
     ],
+    # docs/contracts/teammate_sits_v1.md: "if a teammate sits"; empty = absent (manifest says why)
+    "teammate_sits": list(teammate_sits.COLUMNS),
     "players": [("player_id", "INTEGER"), ("full_name", "VARCHAR")],
     "teams": [("team_id", "INTEGER"), ("abbr", "VARCHAR"), ("full_name", "VARCHAR")],
 }
@@ -363,6 +365,27 @@ def _primary_counts(props: list[dict[str, Any]]) -> dict[str, int]:
     return dict(sorted(out.items()))
 
 
+def _sits_stage(
+    src: duckdb.DuckDBPyConnection,
+    day: date,
+    fwd: reader.ForwardBundle,
+    teams_of: Mapping[tuple[str, int], tuple[Any, Any]],
+    report: list[dict[str, Any]],
+    made_at: datetime,
+    model_root: Path | None,
+    budget_s: float,
+) -> teammate_sits.SitsResult:
+    """Scenario rows. ``compute`` never raises; this only gives it each prop row's resolved team."""
+    props = [
+        dict(p, team_id=teams_of.get((p["game_id"], p["player_id"]), (None, None))[0])
+        for p in fwd.prop_grids
+    ]
+    return teammate_sits.compute(
+        src, day, fwd.games, props, fwd.p_play, report, made_at,
+        model_root=model_root, budget_s=budget_s,
+    )  # fmt: skip
+
+
 def build_export(
     src_db: Path,
     out_dir: Path,
@@ -380,6 +403,8 @@ def build_export(
     git: Callable[[], dict[str, Any]] = git_info,
     version: Callable[[], str | None] = data_version,
     con: duckdb.DuckDBPyConnection | None = None,
+    sits_model_root: Path | None = None,
+    sits_budget_s: float = teammate_sits.DEFAULT_BUDGET_S,
 ) -> dict[str, Any]:
     """Build the export for ``day``; returns the manifest dict (also written to ``manifest.json``).
 
@@ -389,6 +414,10 @@ def build_export(
     ``con`` lets a test pass an open read-only connection; production passes ``src_db`` only.
     ``roster_dir`` (``data/rosters``) places players with no earlier current-season row from the
     game date's official pre-tip roster (``team_source='official_roster'``); None disables it.
+    ``sits_model_root`` (the CLI passes ``data/models/context_residual``; the default None
+    disables) holds production's cached heads for the
+    "if a teammate sits" scenarios (nba.export.teammate_sits); None disables them. They never fit a
+    model and never fail the export: any problem leaves the table empty and the manifest says why.
     ``odds_db`` is the live capture store (``data/markets/market_asof.duckdb``), opened read-only
     for ``prop_lines``; None (or an absent file) exports no lines and says so in the manifest.
     Raises ``guard.ExportRefused`` before reading anything when a holdout season is requested."""
@@ -417,6 +446,7 @@ def build_export(
         report = reader.explainer_rows(src, fwd.games, window)
         teams_of = reader.player_teams(src, fwd.prop_grids, fwd.games, window, roster_dir)
         grids = reader.prod_grids(src, (g["game_id"] for g in fwd.games))
+        sits = _sits_stage(src, day, fwd, teams_of, report, made_at, sits_model_root, sits_budget_s)
     finally:
         if own:
             src.close()
@@ -439,7 +469,7 @@ def build_export(
         "games": fwd.games, "win_probs": fwd.win_probs, "prop_grids": fwd.prop_grids,
         "model_stamps": fwd.stamps, "p_play": fwd.p_play, "settled_scores": scores,
         "box_scores": box,
-        "injury_report": report, "players": players, "teams": teams,
+        "injury_report": report, "teammate_sits": sits.rows, "players": players, "teams": teams,
         "prop_lines": lines.rows,
     }  # fmt: skip
     meta = {
@@ -501,6 +531,7 @@ def build_export(
                   "n_unusable": sum(1 for q in lines.rows if q["unusable"])},
         "rung_cal": rung,
         "line_cal": line_cal,
+        "teammate_sits": sits.info,
         "primary_sources": _primary_counts(fwd.prop_grids),
         "parlay": {"status": parlay["status"], "verdict": parlay["verdict"],
                    "n_evaluated": parlay["n_evaluated"]},
