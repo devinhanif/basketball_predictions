@@ -1,0 +1,1614 @@
+{
+ "cases": [
+  {
+   "expect": {
+    "lift": 1.0,
+    "marginals": [
+     0.5266
+    ],
+    "method": "marginal",
+    "p_all_play": 0.98,
+    "p_independent": 0.5266,
+    "p_joint": 0.5266,
+    "p_joint_incl_dnp": 0.516068,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    }
+   ],
+   "name": "single_leg"
+  },
+  {
+   "expect": {
+    "lift": 1.16335380021284,
+    "marginals": [
+     0.5266,
+     0.5503
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.98,
+    "p_independent": 0.28978798,
+    "p_joint": 0.3371259477890025,
+    "p_joint_incl_dnp": 0.33038342883322247,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 6.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "reb"
+    }
+   ],
+   "name": "same_player_pts_reb"
+  },
+  {
+   "expect": {
+    "lift": 1.293109930973761,
+    "marginals": [
+     0.5266,
+     0.5768
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.98,
+    "p_independent": 0.30374287999999994,
+    "p_joint": 0.3927729345905713,
+    "p_joint_incl_dnp": 0.38491747589875985,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 2.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "fg3m"
+    }
+   ],
+   "name": "same_player_pts_fg3m"
+  },
+  {
+   "expect": {
+    "lift": 0.8001031882215401,
+    "marginals": [
+     0.5266,
+     0.4497
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.98,
+    "p_independent": 0.23681201999999998,
+    "p_joint": 0.1894740522111831,
+    "p_joint_incl_dnp": 0.18568457116695944,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 6.5,
+     "player_id": 1,
+     "side": "under",
+     "stat": "reb"
+    }
+   ],
+   "name": "same_player_over_under_mixed"
+  },
+  {
+   "expect": {
+    "lift": 1.0,
+    "marginals": [
+     0.6324
+    ],
+    "method": "marginal",
+    "p_all_play": 0.98,
+    "p_independent": 0.6324,
+    "p_joint": 0.6324,
+    "p_joint_incl_dnp": 0.619752,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 20.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 29.5,
+     "player_id": 1,
+     "side": "under",
+     "stat": "pts"
+    }
+   ],
+   "name": "same_entity_interval"
+  },
+  {
+   "expect": {
+    "lift": null,
+    "marginals": [
+     0.0
+    ],
+    "method": "empty",
+    "p_all_play": 0.98,
+    "p_independent": 0.0,
+    "p_joint": 0.0,
+    "p_joint_incl_dnp": 0.0,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 29.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 20.5,
+     "player_id": 1,
+     "side": "under",
+     "stat": "pts"
+    }
+   ],
+   "name": "same_entity_empty"
+  },
+  {
+   "expect": {
+    "lift": 1.3631053180432393,
+    "marginals": [
+     0.5266,
+     0.5503,
+     0.5543
+    ],
+    "method": "qmc",
+    "p_all_play": 0.98,
+    "p_independent": 0.160629477314,
+    "p_joint": 0.21895489476121927,
+    "p_joint_incl_dnp": 0.21457579686599487,
+    "se": 2.173146231977881e-05
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 6.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "reb"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 5.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "ast"
+    }
+   ],
+   "name": "same_player_three_stats"
+  },
+  {
+   "expect": {
+    "lift": 0.9908599952014131,
+    "marginals": [
+     0.5266,
+     0.5443
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.882,
+    "p_independent": 0.28662837999999996,
+    "p_joint": 0.28400859523138877,
+    "p_joint_incl_dnp": 0.2504955809940849,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 8.5,
+     "player_id": 2,
+     "side": "over",
+     "stat": "pts"
+    }
+   ],
+   "name": "teammates"
+  },
+  {
+   "expect": {
+    "lift": 1.0059774422076568,
+    "marginals": [
+     0.5266,
+     0.5284
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.9506,
+    "p_independent": 0.27825543999999997,
+    "p_joint": 0.2799186958115661,
+    "p_joint_incl_dnp": 0.26609071223847475,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 21.5,
+     "player_id": 3,
+     "side": "over",
+     "stat": "pts"
+    }
+   ],
+   "name": "opponents"
+  },
+  {
+   "expect": {
+    "lift": 1.2863864804777203,
+    "marginals": [
+     0.5266,
+     0.5543,
+     0.5443,
+     0.5284
+    ],
+    "method": "qmc",
+    "p_all_play": 0.9506,
+    "p_independent": 0.0839511938703656,
+    "p_joint": 0.10799368081480239,
+    "p_joint_incl_dnp": 0.10265879298255115,
+    "se": 1.3392274161078376e-05
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 5.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "ast"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 8.5,
+     "player_id": 3,
+     "side": "over",
+     "stat": "reb"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 21.5,
+     "player_id": 3,
+     "side": "over",
+     "stat": "pts"
+    }
+   ],
+   "name": "four_legs_two_players"
+  },
+  {
+   "expect": {
+    "lift": 1.0442326833345255,
+    "marginals": [
+     0.587293468848657,
+     0.5266
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.98,
+    "p_independent": 0.3092687406957027,
+    "p_joint": 0.3229485269681632,
+    "p_joint_incl_dnp": 0.3164895564287999,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "gt": 0.0,
+     "kind": "team_margin",
+     "team": 1610612747
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    }
+   ],
+   "name": "home_win_and_star_pts"
+  },
+  {
+   "expect": {
+    "lift": 1.0702501337602393,
+    "marginals": [
+     0.5106089163433181,
+     0.5266
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.98,
+    "p_independent": 0.2688866553463913,
+    "p_joint": 0.2877759788508186,
+    "p_joint_incl_dnp": 0.28202045927380226,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "total",
+     "line": 227.5,
+     "side": "over"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    }
+   ],
+   "name": "total_over_and_pts"
+  },
+  {
+   "expect": {
+    "lift": 1.2240357849148407,
+    "marginals": [
+     0.4480217477853753,
+     0.47124607866622736
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.98,
+    "p_independent": 0.21112849180104765,
+    "p_joint": 0.2584288291795819,
+    "p_joint_incl_dnp": 0.2532602525959902,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 6.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "reb"
+    }
+   ],
+   "name": "script_blowout_pair",
+   "script": "blowout"
+  },
+  {
+   "expect": {
+    "lift": 1.0051305449211356,
+    "marginals": [
+     0.5622103186587675,
+     0.564815461544381
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.765,
+    "p_independent": 0.31754508061826525,
+    "p_joint": 0.3191742599188629,
+    "p_joint_incl_dnp": 0.24416830883793011,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 8.5,
+     "player_id": 2,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 7.5,
+     "player_id": 4,
+     "side": "over",
+     "stat": "pts"
+    }
+   ],
+   "name": "script_shootout_bench",
+   "script": "shootout"
+  }
+ ],
+ "game": {
+  "away_team": 1610612743,
+  "date": "2026-11-10",
+  "game": {
+   "mu_m": 3.0,
+   "mu_t": 228.0,
+   "sd_m": 13.6,
+   "sd_t": 18.8
+  },
+  "game_id": "G1",
+  "home_team": 1610612747,
+  "made_at": "2026-11-10T21:00:00Z",
+  "players": [
+   {
+    "name": "Home Star",
+    "p_play": 0.98,
+    "player_id": 1,
+    "starter": 1,
+    "stats": {
+     "ast": {
+      "k0": 1,
+      "main_line": 5.5,
+      "surv": [
+       0.9975,
+       0.9826,
+       0.938,
+       0.8488,
+       0.7149,
+       0.5543,
+       0.3937,
+       0.256,
+       0.1528,
+       0.0839,
+       0.0426,
+       0.0201,
+       0.0088,
+       0.0036,
+       0.0014,
+       0.0005,
+       0.0002,
+       0.0001
+      ]
+     },
+     "fg3m": {
+      "k0": 1,
+      "main_line": 2.5,
+      "surv": [
+       0.9502,
+       0.8009,
+       0.5768,
+       0.3528,
+       0.1847,
+       0.0839,
+       0.0335,
+       0.0119,
+       0.0038,
+       0.0011,
+       0.0003,
+       0.0001
+      ]
+     },
+     "pts": {
+      "k0": 9,
+      "main_line": 24.5,
+      "surv": [
+       0.9999,
+       0.9998,
+       0.9994,
+       0.9986,
+       0.9969,
+       0.9935,
+       0.9876,
+       0.9777,
+       0.9623,
+       0.9395,
+       0.908,
+       0.8664,
+       0.8145,
+       0.7527,
+       0.6825,
+       0.6061,
+       0.5266,
+       0.4471,
+       0.3706,
+       0.2998,
+       0.2366,
+       0.1821,
+       0.1367,
+       0.1001,
+       0.0715,
+       0.0498,
+       0.0338,
+       0.0225,
+       0.0146,
+       0.0092,
+       0.0057,
+       0.0034,
+       0.002,
+       0.0012,
+       0.0007,
+       0.0004,
+       0.0002,
+       0.0001,
+       0.0001
+      ]
+     },
+     "reb": {
+      "k0": 1,
+      "main_line": 6.5,
+      "surv": [
+       0.9991,
+       0.9927,
+       0.9704,
+       0.9182,
+       0.827,
+       0.6993,
+       0.5503,
+       0.4013,
+       0.2709,
+       0.1695,
+       0.0985,
+       0.0533,
+       0.027,
+       0.0128,
+       0.0057,
+       0.0024,
+       0.001,
+       0.0004,
+       0.0001
+      ]
+     }
+    },
+    "team": 1610612747
+   },
+   {
+    "name": "Home Bench",
+    "p_play": 0.9,
+    "player_id": 2,
+    "starter": 0,
+    "stats": {
+     "ast": {
+      "k0": 1,
+      "main_line": 1.5,
+      "surv": [
+       0.8647,
+       0.594,
+       0.3233,
+       0.1429,
+       0.0527,
+       0.0166,
+       0.0045,
+       0.0011,
+       0.0002
+      ]
+     },
+     "fg3m": {
+      "k0": 1,
+      "main_line": 0.5,
+      "surv": [
+       0.6988,
+       0.3374,
+       0.1205,
+       0.0338,
+       0.0077,
+       0.0015,
+       0.0003
+      ]
+     },
+     "pts": {
+      "k0": 1,
+      "main_line": 8.5,
+      "surv": [
+       0.9999,
+       0.9988,
+       0.9938,
+       0.9788,
+       0.945,
+       0.8843,
+       0.7932,
+       0.6761,
+       0.5443,
+       0.4126,
+       0.294,
+       0.197,
+       0.1242,
+       0.0739,
+       0.0415,
+       0.022,
+       0.0111,
+       0.0053,
+       0.0024,
+       0.0011,
+       0.0004,
+       0.0002,
+       0.0001
+      ]
+     },
+     "reb": {
+      "k0": 1,
+      "main_line": 2.5,
+      "surv": [
+       0.9502,
+       0.8009,
+       0.5768,
+       0.3528,
+       0.1847,
+       0.0839,
+       0.0335,
+       0.0119,
+       0.0038,
+       0.0011,
+       0.0003,
+       0.0001
+      ]
+     }
+    },
+    "team": 1610612747
+   },
+   {
+    "name": "Away Star",
+    "p_play": 0.97,
+    "player_id": 3,
+    "starter": 1,
+    "stats": {
+     "ast": {
+      "k0": 1,
+      "main_line": 3.5,
+      "surv": [
+       0.9817,
+       0.9084,
+       0.7619,
+       0.5665,
+       0.3712,
+       0.2149,
+       0.1107,
+       0.0511,
+       0.0214,
+       0.0081,
+       0.0028,
+       0.0009,
+       0.0003,
+       0.0001
+      ]
+     },
+     "fg3m": {
+      "k0": 1,
+      "main_line": 1.5,
+      "surv": [
+       0.8647,
+       0.594,
+       0.3233,
+       0.1429,
+       0.0527,
+       0.0166,
+       0.0045,
+       0.0011,
+       0.0002
+      ]
+     },
+     "pts": {
+      "k0": 7,
+      "main_line": 21.5,
+      "surv": [
+       0.9999,
+       0.9998,
+       0.9994,
+       0.9985,
+       0.9965,
+       0.9924,
+       0.9849,
+       0.9722,
+       0.9523,
+       0.9231,
+       0.883,
+       0.831,
+       0.7675,
+       0.694,
+       0.6131,
+       0.5284,
+       0.4436,
+       0.3626,
+       0.2883,
+       0.2229,
+       0.1676,
+       0.1225,
+       0.0871,
+       0.0602,
+       0.0405,
+       0.0265,
+       0.0169,
+       0.0105,
+       0.0064,
+       0.0038,
+       0.0022,
+       0.0012,
+       0.0007,
+       0.0004,
+       0.0002,
+       0.0001
+      ]
+     },
+     "reb": {
+      "k0": 1,
+      "main_line": 8.5,
+      "surv": [
+       0.9999,
+       0.9988,
+       0.9938,
+       0.9788,
+       0.945,
+       0.8843,
+       0.7932,
+       0.6761,
+       0.5443,
+       0.4126,
+       0.294,
+       0.197,
+       0.1242,
+       0.0739,
+       0.0415,
+       0.022,
+       0.0111,
+       0.0053,
+       0.0024,
+       0.0011,
+       0.0004,
+       0.0002,
+       0.0001
+      ]
+     }
+    },
+    "team": 1610612743
+   },
+   {
+    "name": "Away Bench",
+    "p_play": 0.85,
+    "player_id": 4,
+    "starter": 0,
+    "stats": {
+     "ast": {
+      "k0": 1,
+      "main_line": 2.5,
+      "surv": [
+       0.9502,
+       0.8009,
+       0.5768,
+       0.3528,
+       0.1847,
+       0.0839,
+       0.0335,
+       0.0119,
+       0.0038,
+       0.0011,
+       0.0003,
+       0.0001
+      ]
+     },
+     "fg3m": {
+      "k0": 1,
+      "main_line": 0.5,
+      "surv": [
+       0.6321,
+       0.2642,
+       0.0803,
+       0.019,
+       0.0037,
+       0.0006,
+       0.0001
+      ]
+     },
+     "pts": {
+      "k0": 1,
+      "main_line": 7.5,
+      "surv": [
+       0.9997,
+       0.997,
+       0.9862,
+       0.9576,
+       0.9004,
+       0.8088,
+       0.6866,
+       0.547,
+       0.4075,
+       0.2834,
+       0.1841,
+       0.1119,
+       0.0638,
+       0.0342,
+       0.0173,
+       0.0082,
+       0.0037,
+       0.0016,
+       0.0007,
+       0.0003,
+       0.0001
+      ]
+     },
+     "reb": {
+      "k0": 1,
+      "main_line": 2.5,
+      "surv": [
+       0.9179,
+       0.7127,
+       0.4562,
+       0.2424,
+       0.1088,
+       0.042,
+       0.0142,
+       0.0042,
+       0.0011,
+       0.0003,
+       0.0001
+      ]
+     }
+    },
+    "team": 1610612743
+   }
+  ],
+  "tip_utc": "2026-11-11T00:30:00Z"
+ },
+ "lift_ranking_top5": [
+  {
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 8.5,
+     "player_id": 2,
+     "side": "under",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 2.5,
+     "player_id": 2,
+     "side": "under",
+     "stat": "reb"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 0.5,
+     "player_id": 2,
+     "side": "under",
+     "stat": "fg3m"
+    }
+   ],
+   "lift": 1.9805734006489724,
+   "method": "qmc",
+   "p_independent": 0.05808709468800001,
+   "p_joint": 0.11504575466003104,
+   "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
+   "se": 3.6610980995269863e-05,
+   "side": "under"
+  },
+  {
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 8.5,
+     "player_id": 2,
+     "side": "under",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 1.5,
+     "player_id": 2,
+     "side": "under",
+     "stat": "ast"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 0.5,
+     "player_id": 2,
+     "side": "under",
+     "stat": "fg3m"
+    }
+   ],
+   "lift": 1.8666237807304398,
+   "method": "qmc",
+   "p_independent": 0.05572627704000001,
+   "p_joint": 0.10401999393443671,
+   "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
+   "se": 2.657731399602451e-05,
+   "side": "under"
+  },
+  {
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 7.5,
+     "player_id": 4,
+     "side": "under",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 2.5,
+     "player_id": 4,
+     "side": "under",
+     "stat": "reb"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 0.5,
+     "player_id": 4,
+     "side": "under",
+     "stat": "fg3m"
+    }
+   ],
+   "lift": 1.8140494085502212,
+   "method": "qmc",
+   "p_independent": 0.09062900106,
+   "p_joint": 0.16440548577039038,
+   "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
+   "se": 3.810072264421513e-05,
+   "side": "under"
+  },
+  {
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 21.5,
+     "player_id": 3,
+     "side": "under",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 8.5,
+     "player_id": 3,
+     "side": "under",
+     "stat": "reb"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 1.5,
+     "player_id": 3,
+     "side": "under",
+     "stat": "fg3m"
+    }
+   ],
+   "lift": 1.7971287980790394,
+   "method": "qmc",
+   "p_independent": 0.08725269672000001,
+   "p_joint": 0.15680433398556856,
+   "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
+   "se": 3.75031653511625e-05,
+   "side": "under"
+  },
+  {
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 24.5,
+     "player_id": 1,
+     "side": "under",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 6.5,
+     "player_id": 1,
+     "side": "under",
+     "stat": "reb"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 2.5,
+     "player_id": 1,
+     "side": "under",
+     "stat": "fg3m"
+    }
+   ],
+   "lift": 1.7793005823737091,
+   "method": "qmc",
+   "p_independent": 0.090094193136,
+   "p_joint": 0.16030465031537425,
+   "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
+   "se": 3.7151086341437056e-05,
+   "side": "under"
+  }
+ ],
+ "schema": "combo_export_v1",
+ "script_definitions": {
+  "blowout": {
+   "rule": "|final margin| >= 15"
+  },
+  "close": {
+   "rule": "|final margin| <= 5"
+  },
+  "grind": {
+   "max_total": 216,
+   "rule": "final total <= 216"
+  },
+  "shootout": {
+   "min_total": 240,
+   "rule": "final total >= 240"
+  }
+ },
+ "script_priors": {
+  "blowout": 0.297979401495009,
+  "close": 0.30693852251546283,
+  "grind": 0.2703674269657659,
+  "shootout": 0.2703674269657659
+ },
+ "shared": {
+  "corr": [
+   [
+    "game",
+    "ast",
+    "total",
+    0.0862,
+    55202
+   ],
+   [
+    "game",
+    "fg3m",
+    "total",
+    0.0931,
+    55202
+   ],
+   [
+    "game",
+    "margin",
+    "total",
+    -0.0161,
+    2633
+   ],
+   [
+    "game",
+    "pts",
+    "total",
+    0.1187,
+    55202
+   ],
+   [
+    "game",
+    "reb",
+    "total",
+    -0.0348,
+    55202
+   ],
+   [
+    "opponent",
+    "pts",
+    "pts",
+    0.0105,
+    292165
+   ],
+   [
+    "opponent",
+    "reb",
+    "reb",
+    0.0071,
+    292165
+   ],
+   [
+    "own_margin",
+    "ast",
+    "margin",
+    0.0829,
+    55202
+   ],
+   [
+    "own_margin",
+    "fg3m",
+    "margin",
+    0.0813,
+    55202
+   ],
+   [
+    "own_margin",
+    "margin",
+    "pts",
+    0.0881,
+    55202
+   ],
+   [
+    "own_margin",
+    "margin",
+    "reb",
+    0.0719,
+    55202
+   ],
+   [
+    "same_player",
+    "ast",
+    "fg3m",
+    0.0998,
+    55202
+   ],
+   [
+    "same_player",
+    "ast",
+    "pts",
+    0.1829,
+    55202
+   ],
+   [
+    "same_player",
+    "ast",
+    "reb",
+    0.2049,
+    55202
+   ],
+   [
+    "same_player",
+    "fg3m",
+    "pts",
+    0.5399,
+    55202
+   ],
+   [
+    "same_player",
+    "fg3m",
+    "reb",
+    0.123,
+    55202
+   ],
+   [
+    "same_player",
+    "pts",
+    "reb",
+    0.2957,
+    55202
+   ],
+   [
+    "teammate",
+    "ast",
+    "pts",
+    0.0304,
+    537220
+   ],
+   [
+    "teammate",
+    "pts",
+    "pts",
+    -0.0166,
+    268610
+   ]
+  ],
+  "scripts": {
+   "definitions": {
+    "blowout_abs_margin": 15,
+    "close_abs_margin": 5,
+    "total_delta": 12.0
+   },
+   "params": [
+    [
+     "blowout",
+     "pts",
+     "starter",
+     -0.2,
+     1.02,
+     1000
+    ],
+    [
+     "blowout",
+     "pts",
+     "bench",
+     0.15,
+     1.02,
+     1000
+    ],
+    [
+     "blowout",
+     "reb",
+     "starter",
+     -0.2,
+     1.02,
+     1000
+    ],
+    [
+     "blowout",
+     "reb",
+     "bench",
+     0.15,
+     1.02,
+     1000
+    ],
+    [
+     "blowout",
+     "ast",
+     "starter",
+     -0.2,
+     1.02,
+     1000
+    ],
+    [
+     "blowout",
+     "ast",
+     "bench",
+     0.15,
+     1.02,
+     1000
+    ],
+    [
+     "blowout",
+     "fg3m",
+     "starter",
+     -0.2,
+     1.02,
+     1000
+    ],
+    [
+     "blowout",
+     "fg3m",
+     "bench",
+     0.15,
+     1.02,
+     1000
+    ],
+    [
+     "close",
+     "pts",
+     "starter",
+     0.05,
+     0.98,
+     1000
+    ],
+    [
+     "close",
+     "pts",
+     "bench",
+     -0.04,
+     0.98,
+     1000
+    ],
+    [
+     "close",
+     "reb",
+     "starter",
+     0.05,
+     0.98,
+     1000
+    ],
+    [
+     "close",
+     "reb",
+     "bench",
+     -0.04,
+     0.98,
+     1000
+    ],
+    [
+     "close",
+     "ast",
+     "starter",
+     0.05,
+     0.98,
+     1000
+    ],
+    [
+     "close",
+     "ast",
+     "bench",
+     -0.04,
+     0.98,
+     1000
+    ],
+    [
+     "close",
+     "fg3m",
+     "starter",
+     0.05,
+     0.98,
+     1000
+    ],
+    [
+     "close",
+     "fg3m",
+     "bench",
+     -0.04,
+     0.98,
+     1000
+    ],
+    [
+     "shootout",
+     "pts",
+     "starter",
+     0.12,
+     1.03,
+     1000
+    ],
+    [
+     "shootout",
+     "pts",
+     "bench",
+     0.05,
+     1.03,
+     1000
+    ],
+    [
+     "shootout",
+     "reb",
+     "starter",
+     0.12,
+     1.03,
+     1000
+    ],
+    [
+     "shootout",
+     "reb",
+     "bench",
+     0.05,
+     1.03,
+     1000
+    ],
+    [
+     "shootout",
+     "ast",
+     "starter",
+     0.12,
+     1.03,
+     1000
+    ],
+    [
+     "shootout",
+     "ast",
+     "bench",
+     0.05,
+     1.03,
+     1000
+    ],
+    [
+     "shootout",
+     "fg3m",
+     "starter",
+     0.12,
+     1.03,
+     1000
+    ],
+    [
+     "shootout",
+     "fg3m",
+     "bench",
+     0.05,
+     1.03,
+     1000
+    ],
+    [
+     "grind",
+     "pts",
+     "starter",
+     -0.1,
+     0.97,
+     1000
+    ],
+    [
+     "grind",
+     "pts",
+     "bench",
+     -0.05,
+     0.97,
+     1000
+    ],
+    [
+     "grind",
+     "reb",
+     "starter",
+     -0.1,
+     0.97,
+     1000
+    ],
+    [
+     "grind",
+     "reb",
+     "bench",
+     -0.05,
+     0.97,
+     1000
+    ],
+    [
+     "grind",
+     "ast",
+     "starter",
+     -0.1,
+     0.97,
+     1000
+    ],
+    [
+     "grind",
+     "ast",
+     "bench",
+     -0.05,
+     0.97,
+     1000
+    ],
+    [
+     "grind",
+     "fg3m",
+     "starter",
+     -0.1,
+     0.97,
+     1000
+    ],
+    [
+     "grind",
+     "fg3m",
+     "bench",
+     -0.05,
+     0.97,
+     1000
+    ]
+   ],
+   "status": {
+    "blowout": "exploratory",
+    "close": "exploratory",
+    "grind": "exploratory",
+    "shootout": "exploratory"
+   }
+  }
+ },
+ "target_search": {
+  "band": [
+   0.35,
+   0.85
+  ],
+  "combos": [
+   {
+    "legs": [
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 25.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "pts"
+     },
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 3.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "fg3m"
+     }
+    ],
+    "lift": 1.5345973872074148,
+    "method": "exact_bivariate",
+    "p_independent": 0.15773688,
+    "p_joint": 0.24206260391424952,
+    "se": 0.0
+   },
+   {
+    "legs": [
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 24.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "pts"
+     },
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 3.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "fg3m"
+     }
+    ],
+    "lift": 1.446088710899911,
+    "method": "exact_bivariate",
+    "p_independent": 0.18578447999999997,
+    "p_joint": 0.26866083918841027,
+    "se": 0.0
+   },
+   {
+    "legs": [
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 2.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "fg3m"
+     },
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 26.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "pts"
+     }
+    ],
+    "lift": 1.382957755695643,
+    "method": "exact_bivariate",
+    "p_independent": 0.21376208,
+    "p_joint": 0.2956239264096325,
+    "se": 0.0
+   }
+  ],
+  "feasible": true,
+  "floor_mode": "p_band",
+  "k_legs": 2,
+  "objective": "max lift s.t. p_joint >= target, marginals in band",
+  "target": 0.15
+ },
+ "tolerance": {
+  "exact": 2e-06,
+  "qmc": "4*se + 1e-4"
+ }
+}

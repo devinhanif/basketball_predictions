@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Server-side builders for the combo payload (``docs/contracts/combo_export_v1.md``).
 
 Numpy lives here, never in ``combo.py``: this module turns stored production forecasts into
@@ -116,10 +117,15 @@ def trim_surv(row: F64, digits: int = SURV_DIGITS) -> tuple[int, list[float]]:
 
 
 def build_stat_entry(
-    cal_surv_row: F64, raw_surv_row: F64, main_line: float | None
+    cal_surv_row: F64,
+    raw_surv_row: F64,
+    main_line: float | None,
+    cal_k: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
     k0, vals = trim_surv(cal_surv_row)
     entry: dict[str, Any] = {"k0": k0, "surv": vals, "main_line": main_line}
+    if cal_k is not None:
+        entry["cal_k"] = [int(cal_k[0]), int(cal_k[1])]  # rungs where the map was applied directly
     if main_line is not None:
         k = int(math.floor(main_line)) + 1
         entry["raw_at_main"] = round(float(raw_surv_row[k - 1]), SURV_DIGITS)
@@ -163,12 +169,13 @@ def build_game_payload(
     players: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     """One game's block. ``players``: ``{player_id, name, team, p_play, starter, stats: {stat:
-    {"cal": F64 row, "raw": F64 row, "main_line": float | None}}}``. Rounding is the contract's
+    {"cal": F64 row, "raw": F64 row, "main_line": float | None, "cal_k": (lo, hi) | None}}}``. Rounding is the contract's
     (4 decimals for probabilities, 2 for game parameters)."""
     out_players = []
     for p in players:
         stats = {
-            s: build_stat_entry(v["cal"], v["raw"], v.get("main_line")) for s, v in p["stats"].items()
+            s: build_stat_entry(v["cal"], v["raw"], v.get("main_line"), v.get("cal_k"))
+            for s, v in p["stats"].items()
         }
         out_players.append(
             {
@@ -197,5 +204,7 @@ def build_game_payload(
     }
 
 
-def nightly(shared: Mapping[str, Any], games: Sequence[Mapping[str, Any]], night: str) -> dict[str, Any]:
+def nightly(
+    shared: Mapping[str, Any], games: Sequence[Mapping[str, Any]], night: str
+) -> dict[str, Any]:
     return {"schema": SCHEMA, "night": night, "shared": dict(shared), "games": list(games)}

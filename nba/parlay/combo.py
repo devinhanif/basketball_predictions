@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Combo mode reference implementation: pure probability math, no prices, no EV, no fees, no stakes.
 
 Standard library only, on purpose: the browser's TypeScript port is tested against this file's
@@ -49,6 +50,7 @@ QMC_POINTS = 1500
 QMC_SHIFTS = 8
 SIMPSON_N = 2000
 RHO_MAX = 0.9999
+SCREEN_QMC = (150, 4)  # search screening budget; answers are recomputed at the full budget
 
 Payload = Mapping[str, Any]
 
@@ -95,9 +97,9 @@ def line_to_bounds(line: float, side: str) -> tuple[int, float]:
         raise ValueError(f"line {line} is not an x.5 line")
     x = int(math.floor(line))
     if side == "over":
-        return x + 1, INF  # type: ignore[return-value]
+        return x + 1, INF
     if side == "under":
-        return 0, x  # type: ignore[return-value]
+        return 0, x
     raise ValueError(f"side must be 'over' or 'under', got {side!r}")
 
 
@@ -382,7 +384,8 @@ def _p_all_play(merged: Sequence[Merged], game: Payload) -> float:
     p = 1.0
     for m in merged:
         if m.entity.kind == "player" and m.entity.stat == _first_stat(merged, m.entity.player_id):
-            p *= float(_player(game, m.entity.player_id).get("p_play", 1.0))
+            pp = _player(game, m.entity.player_id).get("p_play")
+            p *= 1.0 if pp is None else float(pp)  # null = availability unknown: conditional only
     return p
 
 
@@ -405,8 +408,11 @@ def evaluate_game_legs(
     game: Payload,
     shared: Payload,
     script: str | None = None,
+    qmc: tuple[int, int] = (QMC_POINTS, QMC_SHIFTS),
 ) -> ComboResult:
-    """Joint P of ``legs`` (all in ``game``) with the independent P and lift."""
+    """Joint P of ``legs`` (all in ``game``) with the independent P and lift. ``qmc`` is
+    (points, shifts) for three or more entities; the searches screen with a small budget and
+    recompute their answers at the full one."""
     if not legs:
         raise ValueError("no legs")
     merged = merge_legs(legs, game)
@@ -428,7 +434,19 @@ def evaluate_game_legs(
     p_ind = math.prod(marg)
     p_play = _p_all_play(merged, game)
     if any(p <= 0.0 for p in marg) or any(m.b <= m.a for m in merged):
-        return ComboResult(0.0, p_ind, None if p_ind == 0 else 0.0, marg, 0.0, "empty", p_play, 0.0, 0.0, script, len(merged))
+        return ComboResult(
+            0.0,
+            p_ind,
+            None if p_ind == 0 else 0.0,
+            marg,
+            0.0,
+            "empty",
+            p_play,
+            0.0,
+            0.0,
+            script,
+            len(merged),
+        )
     k = len(merged)
     repair_t = 0.0
     if k == 1:
@@ -441,7 +459,7 @@ def evaluate_game_legs(
         else:
             chol = cholesky(r)
             assert chol is not None
-            p, se = genz_rect(chol, a, b)
+            p, se = genz_rect(chol, a, b, qmc[0], qmc[1])
             method = "qmc"
         # Frechet bounds: joint <= min marginal, joint >= sum - (k - 1)
         p = min(p, min(marg))
@@ -520,11 +538,27 @@ def script_prior(script: str, game: Payload, shared: Payload) -> float:
 # ---------------------------------------------------------------- framing 1: game-script lift
 
 _REASONS = {
-    ("same_player", "pts", "reb"): "same player: points and rebounds both grow with minutes played",
-    ("same_player", "ast", "pts"): "same player: points and assists both grow with minutes and usage",
-    ("same_player", "fg3m", "pts"): "same player: threes are points, so one hot shooting night moves both",
-    ("same_player", "ast", "reb"): "same player: assists and rebounds both grow with minutes",
-    ("same_player", "ast", "fg3m"): "same player: more minutes and touches lift both",
+    (
+        "same_player",
+        "pts",
+        "reb",
+    ): "same player: points and rebounds both rise and fall with minutes played",
+    (
+        "same_player",
+        "ast",
+        "pts",
+    ): "same player: points and assists both rise and fall with minutes and usage",
+    (
+        "same_player",
+        "fg3m",
+        "pts",
+    ): "same player: threes are points, so a hot or cold shooting night moves both",
+    (
+        "same_player",
+        "ast",
+        "reb",
+    ): "same player: assists and rebounds both rise and fall with minutes",
+    ("same_player", "ast", "fg3m"): "same player: minutes and touches move both",
     ("same_player", "fg3m", "reb"): "same player: both need minutes on the floor",
 }
 
@@ -548,8 +582,8 @@ def main_line_legs(game: Payload, side: str) -> list[dict[str, Any]]:
             if ml is None:
                 continue
             out.append(
-                {"kind": "player", "player_id": int(p["player_id"]), "stat": stat,
-                 "line": float(ml), "side": side}
+                {"kind": "player", "game_id": str(game["game_id"]), "player_id": int(p["player_id"]),
+                 "stat": stat, "line": float(ml), "side": side}
             )  # fmt: skip
     return out
 
@@ -572,18 +606,25 @@ def lift_ranking(
                     continue
                 if size >= 3 and not _has_same_player_pair(combo):
                     continue
-                res = evaluate_game_legs(combo, game, shared)
+                res = evaluate_game_legs(combo, game, shared, qmc=SCREEN_QMC)
                 if res.lift is None or res.p_joint < min_p_joint:
                     continue
-                pe1, pe2, prho = _strongest_pair(combo, game, table)
-                rows.append(
-                    {"legs": [dict(c) for c in combo], "side": side, "p_joint": res.p_joint,
-                     "p_independent": res.p_independent, "lift": res.lift, "se": res.se,
-                     "method": res.method,
-                     "reason": pair_reason(pe1, pe2, prho)}
-                )  # fmt: skip
+                rows.append({"legs": [dict(c) for c in combo], "side": side, "lift": res.lift,
+                             "p_joint": res.p_joint})  # fmt: skip
     rows.sort(key=lambda r: (-r["lift"], -r["p_joint"], str(r["legs"])))
-    return rows[:top_n]
+    out: list[dict[str, Any]] = []
+    for r in rows[: max(3 * top_n, top_n)]:  # recompute the screened leaders at the full budget
+        res = evaluate_game_legs(r["legs"], game, shared)
+        if res.lift is None or res.p_joint < min_p_joint:
+            continue
+        pe1, pe2, prho = _strongest_pair(r["legs"], game, table)
+        out.append(
+            {"legs": r["legs"], "side": r["side"], "p_joint": res.p_joint,
+             "p_independent": res.p_independent, "lift": res.lift, "se": res.se,
+             "method": res.method, "reason": pair_reason(pe1, pe2, prho)}
+        )  # fmt: skip
+    out.sort(key=lambda r: (-r["lift"], -r["p_joint"], str(r["legs"])))
+    return out[:top_n]
 
 
 def _has_same_player_pair(combo: Sequence[Mapping[str, Any]]) -> bool:
@@ -612,7 +653,10 @@ TARGET_P_MAX = 0.85  # no near-certain filler legs (the degenerate "lowest lines
 
 
 def candidate_legs(
-    game: Payload, p_min: float = TARGET_P_MIN, p_max: float = TARGET_P_MAX, floor_mode: str = "p_band"
+    game: Payload,
+    p_min: float = TARGET_P_MIN,
+    p_max: float = TARGET_P_MAX,
+    floor_mode: str = "p_band",
 ) -> list[dict[str, Any]]:
     """Over legs on the integer grid whose marginal lies in [p_min, p_max]. ``floor_mode``:
     ``p_band`` (default) or ``main_line`` (additionally the line must be at or above the posted
@@ -630,8 +674,8 @@ def candidate_legs(
                 if floor_mode == "main_line" and (ml is None or line < float(ml)):
                     continue
                 out.append(
-                    {"kind": "player", "player_id": int(p["player_id"]), "stat": stat,
-                     "line": line, "side": "over", "p": s}
+                    {"kind": "player", "game_id": str(game["game_id"]), "player_id": int(p["player_id"]),
+                     "stat": stat, "line": line, "side": "over", "p": s}
                 )  # fmt: skip
     return out
 
@@ -659,7 +703,9 @@ def target_search(
     cands = candidate_legs(game, p_min, p_max, floor_mode)
     frontier: list[tuple[Sequence[Mapping[str, Any]], float]] = [((), 1.0)]
     for _ in range(k_legs):
-        nxt: dict[tuple[tuple[int, str, float], ...], tuple[list[dict[str, Any]], float, float]] = {}
+        nxt: dict[
+            tuple[tuple[int, str, float], ...], tuple[list[Mapping[str, Any]], float, float]
+        ] = {}
         for combo, _score in frontier:
             used = {(c["player_id"], c["stat"]) for c in combo}
             for c in cands:
@@ -669,7 +715,7 @@ def target_search(
                 key = tuple(sorted((x["player_id"], x["stat"], x["line"]) for x in new))
                 if key in nxt:
                     continue
-                res = evaluate_game_legs(new, game, shared)
+                res = evaluate_game_legs(new, game, shared, qmc=SCREEN_QMC)
                 lift = res.lift if res.lift is not None else 0.0
                 nxt[key] = (new, lift, res.p_joint)
         ranked = sorted(nxt.values(), key=lambda t: (-t[1], -t[2], str(t[0])))

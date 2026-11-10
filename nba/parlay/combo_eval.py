@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Combo mode: measured lift, calibrated-vs-raw marginals and the script calibration check.
 
 PRE-STATED RULE (written before the first run of this module; nothing below changes after a result)
@@ -49,7 +50,7 @@ import math
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import duckdb
 import numpy as np
@@ -111,7 +112,7 @@ def load_season(model_dir: Path, season: int) -> dict[str, Any]:
     for stat in STATS:
         ds = d.filter(pl.col("stat") == stat)
         plist = ds["p_ge"].to_list()
-        k_max = int(ds["p_ge"].list.len().max() or 0)
+        k_max = int(cast(int, ds["p_ge"].list.len().max()))
         raw = np.zeros((ds.height, k_max))
         for i, row in enumerate(plist):
             raw[i, : len(row)] = row
@@ -157,13 +158,14 @@ def games_table(db: Path, joint_model: Path, game_rows_dir: Path) -> pl.DataFram
     params = GameModelParams.from_json(json.dumps(json.loads(joint_model.read_text())["params"]))
     feats = asof_total_features(g, params.halflife, params.prior_k)
     p = pl.concat(
-        [pl.read_parquet(game_rows_dir / f"game_rows_{s}.parquet").select("game_id", "p") for s in SEASONS]
+        [
+            pl.read_parquet(game_rows_dir / f"game_rows_{s}.parquet").select("game_id", "p")
+            for s in SEASONS
+        ]
     )
     g = g.join(feats, on="game_id", how="left").join(p, on="game_id", how="left")
     mu_t = [params.total_mu(f) for f in g["total_feat"].to_list()]
-    mu_m = [
-        float("nan") if pp is None else params.margin_mu(float(pp)) for pp in g["p"].to_list()
-    ]
+    mu_m = [float("nan") if pp is None else params.margin_mu(float(pp)) for pp in g["p"].to_list()]
     return g.with_columns(
         pl.Series("mu_t", mu_t),
         pl.Series("mu_m", mu_m),
@@ -182,9 +184,7 @@ def games_table(db: Path, joint_model: Path, game_rows_dir: Path) -> pl.DataFram
 # ---------------------------------------------------------------- calibration per fold
 
 
-def fit_fold_map(
-    pairs_dir: Path, model_dir: Path, train: int
-) -> lc.CalMap:
+def fit_fold_map(pairs_dir: Path, model_dir: Path, train: int) -> lc.CalMap:
     _refuse(train)
     d, _ = lcb.load_history(pairs_dir, model_dir, (train,))
     block = np.datetime64(f"{train + 1}-07-01", "D")
@@ -210,17 +210,15 @@ def add_z(data: dict[str, Any], seed: int) -> None:
 # ---------------------------------------------------------------- correlations and script params
 
 
-def game_residuals(
-    data: dict[str, Any], games: pl.DataFrame
-) -> list[GameResiduals]:
+def game_residuals(data: dict[str, Any], games: pl.DataFrame) -> list[GameResiduals]:
     gm = {r["game_id"]: r for r in games.iter_rows(named=True)}
     ids = np.concatenate([data[s]["game_id"] for s in STATS])
     pl_id = np.concatenate([data[s]["player_id"] for s in STATS])
     tm = np.concatenate([data[s]["team_id"] for s in STATS])
     st = np.concatenate([np.full(len(data[s]["y"]), i) for i, s in enumerate(STATS)])
     z = np.concatenate([data[s]["z"] for s in STATS])
-    order = np.argsort(ids, kind="stable")
-    ids, pl_id, tm, st, z = ids[order], pl_id[order], tm[order], st[order], z[order]
+    srt = np.argsort(ids, kind="stable")
+    ids, pl_id, tm, st, z = ids[srt], pl_id[srt], tm[srt], st[srt], z[srt]
     cuts = np.nonzero(np.r_[True, ids[1:] != ids[:-1]])[0]
     ends = np.r_[cuts[1:], len(ids)]
     out: list[GameResiduals] = []
@@ -246,9 +244,7 @@ def role_of(st10: F64) -> NDArray[np.str_]:
     return np.where(st10 >= 0.5, "starter", "bench")
 
 
-def fit_script_params(
-    data: dict[str, Any], games: pl.DataFrame
-) -> list[list[Any]]:
+def fit_script_params(data: dict[str, Any], games: pl.DataFrame) -> list[list[Any]]:
     """[script, stat, role, mu, sigma, n] per cell, shrunk toward (0, 1) with k = SCRIPT_K."""
     flags = {
         sc: dict(zip(games["game_id"].to_list(), games[sc].to_list(), strict=True))
@@ -276,9 +272,7 @@ def fit_script_params(
 # ---------------------------------------------------------------- legs and pairs
 
 
-def build_legs(
-    pairs_dir: Path, season: int, data: dict[str, Any]
-) -> dict[str, Any]:
+def build_legs(pairs_dir: Path, season: int, data: dict[str, Any]) -> dict[str, Any]:
     """DraftKings T-60 over legs at x.5 main lines with raw and calibrated P and the outcome."""
     _refuse(season)
     p = lcb.read_pairs(pairs_dir / f"pairs_{season}.parquet", season, (cb.BOOK,))
@@ -313,15 +307,21 @@ def build_legs(
     return {k: np.asarray(v) for k, v in cols.items()}
 
 
-def _pairs_indices(legs: dict[str, Any], seed: int, cap: int) -> dict[str, tuple[NDArray[np.int64], NDArray[np.int64]]]:
+def _pairs_indices(
+    legs: dict[str, Any], seed: int, cap: int
+) -> dict[str, tuple[NDArray[np.int64], NDArray[np.int64]]]:
     rng = np.random.default_rng(seed)
-    order = np.argsort(legs["game_id"], kind="stable")
-    gid = legs["game_id"][order]
+    srt = np.argsort(legs["game_id"], kind="stable")
+    gid = legs["game_id"][srt]
     cuts = np.nonzero(np.r_[True, gid[1:] != gid[:-1]])[0]
     ends = np.r_[cuts[1:], len(gid)]
-    acc: dict[str, list[tuple[NDArray[np.int64], NDArray[np.int64]]]] = {"SP": [], "TM": [], "OP": []}
+    acc: dict[str, list[tuple[NDArray[np.int64], NDArray[np.int64]]]] = {
+        "SP": [],
+        "TM": [],
+        "OP": [],
+    }
     for a, b in zip(cuts, ends, strict=True):
-        idx = order[a:b]
+        idx = srt[a:b]
         ii, jj = np.triu_indices(len(idx), 1)
         x, y = idx[ii], idx[jj]
         same_p = legs["player_id"][x] == legs["player_id"][y]
@@ -448,7 +448,13 @@ def _rho_lookup(table: Sequence[Sequence[Any]]) -> dict[tuple[str, str, str], fl
     return {(r[0], r[1], r[2]): float(r[3]) for r in table}
 
 
-def pair_rho_vec(legs: dict[str, Any], x: NDArray[Any], y: NDArray[Any], cls: str, tab: dict[tuple[str, str, str], float]) -> F64:
+def pair_rho_vec(
+    legs: dict[str, Any],
+    x: NDArray[Any],
+    y: NDArray[Any],
+    cls: str,
+    tab: dict[tuple[str, str, str], float],
+) -> F64:
     if cls in ("XG", "XG70"):
         return np.zeros(len(x))
     rel = {"SP": "same_player", "TM": "teammate", "OP": "opponent"}[cls]
@@ -461,7 +467,10 @@ def pair_rho_vec(legs: dict[str, Any], x: NDArray[Any], y: NDArray[Any], cls: st
 
 
 def eval_pairs(
-    legs: dict[str, Any], pairs: dict[str, tuple[Any, Any]], tab: dict[tuple[str, str, str], float], rng: np.random.Generator
+    legs: dict[str, Any],
+    pairs: dict[str, tuple[Any, Any]],
+    tab: dict[tuple[str, str, str], float],
+    rng: np.random.Generator,
 ) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for cls, (x, y) in pairs.items():
@@ -474,7 +483,9 @@ def eval_pairs(
         prod_cal, prod_raw = pc1 * pc2, pr1 * pr2
         resid = (legs["hit"][x] - pc1) * (legs["hit"][y] - pc2)
         resid_den = np.sqrt(pc1 * (1 - pc1) * pc2 * (1 - pc2))
-        joint = biv_over(latent_a(pc1), latent_a(pc2), rho) if cls not in ("XG", "XG70") else prod_cal
+        joint = (
+            biv_over(latent_a(pc1), latent_a(pc2), rho) if cls not in ("XG", "XG70") else prod_cal
+        )
         cl = legs["date"][x] if cls in ("XG", "XG70") else legs["game_id"][x]
         res: dict[str, Any] = {
             "n_pairs": int(len(x)),
@@ -489,7 +500,9 @@ def eval_pairs(
             "mean_raw_product": float(prod_raw.mean()),
             "mean_copula": float(joint.mean()),
             "logloss_copula_minus_indep": boot_mean(cl, ll(joint, hit) - ll(prod_cal, hit), rng),
-            "logloss_cal_minus_raw_product": boot_mean(cl, ll(prod_cal, hit) - ll(prod_raw, hit), rng),
+            "logloss_cal_minus_raw_product": boot_mean(
+                cl, ll(prod_cal, hit) - ll(prod_raw, hit), rng
+            ),
         }
         out[cls] = res
     return out
@@ -583,17 +596,23 @@ def script_label(folds: list[dict[str, Any]], sc: str) -> tuple[str, list[str]]:
         if "brier_script_minus_uncond" not in r:
             return "exploratory", ["insufficient sample"]
         if not r["brier_script_minus_uncond"]["hi"] < 0:
-            reasons.append(f"{f['fold']}: Brier CI upper {r['brier_script_minus_uncond']['hi']:+.5f} not < 0")
+            reasons.append(
+                f"{f['fold']}: Brier CI upper {r['brier_script_minus_uncond']['hi']:+.5f} not < 0"
+            )
         g = r["obs_minus_script"]
         if not (g["lo"] >= -0.02 and g["hi"] <= 0.02):
-            reasons.append(f"{f['fold']}: calibration-in-the-large CI [{g['lo']:+.4f}, {g['hi']:+.4f}] outside +-0.02")
+            reasons.append(
+                f"{f['fold']}: calibration-in-the-large CI [{g['lo']:+.4f}, {g['hi']:+.4f}] outside +-0.02"
+            )
         sp = r.get("same_player_pairs")
         if sp is None:
             reasons.append(f"{f['fold']}: no same-player pairs")
         else:
             q = sp["obs_over_script_joint"]
             if not (q["lo"] <= 1.0 <= q["hi"]):
-                reasons.append(f"{f['fold']}: same-player joint ratio CI [{q['lo']:.3f}, {q['hi']:.3f}] excludes 1")
+                reasons.append(
+                    f"{f['fold']}: same-player joint ratio CI [{q['lo']:.3f}, {q['hi']:.3f}] excludes 1"
+                )
     return ("calibrated" if not reasons else "exploratory"), reasons
 
 
@@ -642,7 +661,8 @@ def run(
     prior = {
         sc: {
             "realised_rate": {
-                int(s): float(games.filter(pl.col("season") == s)[sc].mean() or 0.0) for s in SEASONS
+                int(s): float(cast(float, games.filter(pl.col("season") == s)[sc].mean()))
+                for s in SEASONS
             }
         }
         for sc in ("blowout", "close", "shootout", "grind")
@@ -651,7 +671,12 @@ def run(
 
 
 def production_params(
-    model_dir: Path, pairs_dir: Path, db: Path, joint_model: Path, game_rows_dir: Path, map_path: Path
+    model_dir: Path,
+    pairs_dir: Path,
+    db: Path,
+    joint_model: Path,
+    game_rows_dir: Path,
+    map_path: Path,
 ) -> dict[str, Any]:
     """Pooled correlations and script parameters fitted on BOTH seasons with the shipped map
     (the payload's shared block). In-sample by construction; the fold results are the check."""
@@ -660,7 +685,12 @@ def production_params(
     both: dict[str, Any] = {}
     parts = {s: load_season(model_dir, s) for s in SEASONS}
     for stat in STATS:
-        both[stat] = {k: np.concatenate([parts[s][stat][k] for s in SEASONS]) if k != "raw" else _cat_raw([parts[s][stat]["raw"] for s in SEASONS]) for k in parts[2023][stat]}
+        both[stat] = {
+            k: np.concatenate([parts[s][stat][k] for s in SEASONS])
+            if k != "raw"
+            else _cat_raw([parts[s][stat]["raw"] for s in SEASONS])
+            for k in parts[2023][stat]
+        }
     calibrated_season(both, cal)
     add_z(both, SEED)
     pc = estimate_game_corr(game_residuals(both, games), SHRINK_K)
@@ -687,7 +717,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--params-out", default=None, help="write combo_params_v1.json")
     a = ap.parse_args(argv)
-    args = (Path(a.model_dir), Path(a.pairs_dir), Path(a.db), Path(a.joint_model), Path(a.game_rows_dir))
+    args = (
+        Path(a.model_dir),
+        Path(a.pairs_dir),
+        Path(a.db),
+        Path(a.joint_model),
+        Path(a.game_rows_dir),
+    )
     res = run(*args)
     res["made"] = date.today().isoformat()
     Path(a.out).write_text(json.dumps(res, indent=1, sort_keys=True) + "\n")

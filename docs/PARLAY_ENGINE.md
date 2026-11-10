@@ -177,3 +177,21 @@ legs only from games not yet tipped and quotes stamped at or before `made_at` (r
   synthetic; it lives outside the app's served directory. `app/fixtures/top_parlays_producer_sample.json` is a committed
   synthetic producer run. Both are validated through the app's `TopParlays` model in `app/api/tests/test_top_parlays_producer.py`.
   Extra fields the app ignores: `p_avg_raw`, `drivers`, `fee`, `fee_model`, `ev_basis`, `hindsight`, `diagnostics`, `fixture`.
+
+## Combo mode (no prices; `nba/parlay/combo*.py`, 2026-11-09)
+
+Devin approved a prices-free mode: pure probability math, the market kept entirely separate (no price, EV, fee, stake or Kelly anywhere in it).
+Contract: `docs/contracts/combo_export_v1.md` (payload, normative algorithms, size budget, evidence). Code: `combo.py` (standard-library
+reference the browser port is tested against; golden vectors in `tests/parlay/golden/combo_golden_v1.json`), `combo_build.py` (banded calibrated
+grids, PIT, payload packing), `combo_eval.py` (the pre-stated 2023-24 evidence harness), `combo_params_v1.json` (pooled correlations and script
+parameters fitted on 2023-24). Four framings: game-script lift (rank by joint over product of marginals), target probability (maximise lift
+subject to a joint target with every leg's marginal in [0.35, 0.85], so it cannot degenerate to the lowest lines), pick a script (blowout, close,
+shootout, grind, defined from the final score; only `grind` has passed its calibration check, the rest are labelled exploratory), build your own.
+Measured lift: same-player different stats about 1.17 to 1.20; teammates, opponents and different games 1.00 (residual r 0 within +-0.01).
+Maintainer run (about 2 minutes, reads seasons 2023-24 only, `nba.duckdb` read-only):
+```
+.venv-1/bin/python -m nba.parlay.combo_eval --model-dir reports/odds_history --pairs-dir data/ops/model_clv_pairs --db nba.duckdb \
+  --joint-model data/parlay/joint_model.json --game-rows-dir reports/odds_history \
+  --out reports/parlay/combo_eval_<date>.json --params-out nba/parlay/combo_params_v1.json
+```
+Export wiring comes after the steward's export branch merges.
