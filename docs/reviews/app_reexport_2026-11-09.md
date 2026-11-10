@@ -201,3 +201,61 @@ the capture side can also lose a 5-minute snapshot because the export's 38 s rea
 ## Drafted DECISIONS row (not appended)
 
 | 2026-11-09 21:50 | Adversary review of agent/steward-afternoon-reexport (docs/reviews/app_reexport_2026-11-09.md): WOUNDED, BLOCKED for install until the wrapper refuses to swap a lines-"locked" export over an "ok" one (F1) and has a total run deadline (F4). Freshness gain is real but capped (28 -> 165 of ~400 keys with posted lines on 11-09) by write-on-change plus received_at <= made_at; the pairing fix is a separate pre-registered nba.export change. Reverse: F1/F4 fixed and re-reviewed. |
+
+## Re-review: 4572973..06138c4 (2026-11-09, ~22:00 CT)
+
+Diff-only re-review of the steward's fixes on agent/steward-afternoon-reexport (`nba/ops/app_export.py`, `nba/ops/watchdog.py`,
+the plist, `tests/ops/test_app_export.py`, DAILY_PIPELINE.md, DECISIONS.md). F2 and the F3 pairing fix are out of scope (a later
+`nba/export` branch). Same rules: no replay, no 2025 data, launchd untouched.
+
+Verdict: APPROVED
+
+Adversary verdict for merge + install: **SURVIVES**, with one residual minor (F10, which comes from the fix I specified) and F2 still
+open by agreement. The blocker is closed: I planted locked-lines builds myself and `latest` stayed byte-identical every time.
+
+### Per finding
+
+| Finding | Fix in 06138c4 | Evidence | Status |
+|---|---|---|---|
+| F1 locked-lines swap | `lines_regression` (app_export.py, new): a stage whose `lines.status != "ok"` over a same-day "ok" export becomes rc 2 (retried in the same loop, then alert, no state); an unreadable stage manifest is rc 1 | My plant (`test_plant_locked_over_ok`, independent builder writing a real-shaped manifest): statuses `locked`, `absent`, `no_table`, `not_requested` and a manifest with no `lines` key all return rc 2; `latest/export.duckdb` and `manifest.json` byte-identical; state file unchanged; no stage left; `[app-export] build rc=2` in ALERTS.md | CLOSED |
+| F3 wording | docstring, DAILY_PIPELINE.md and the DECISIONS row now say lines pair only up to the row's own `made_at` and cite 28 / 165 of 409 | `git show 06138c4:` grep: "therefore reach latest" occurs 0 times in DECISIONS.md and app_export.py | CLOSED (wording) |
+| F4 deadline | `DEADLINE_S = 600`, each attempt `min(900, remaining)`, no attempt with < 240 s left (rc 2) | My plant (`test_deadline_bounds_total_wall_with_slow_builds`): builds that lock and consume their time, with sleeps, end at <= 600 s total. From a :05 start, the lock is released by ~:15, before the :20 pretip. A subprocess timeout SIGKILLs the child, which releases the DuckDB lock | CLOSED |
+| F5 single instance | `mkdir` lock `data/ops/app_export_lock` with pid; a dead owner is cleared; second instance returns 0 without touching the heartbeat | branch tests `test_second_instance_*`, `test_a_dead_owners_lock_*` pass | CLOSED (see residual R2) |
+| F6 orphans | `remove_orphan_stages` at start, dead pids only | branch test passes; name parsing checked by hand (`.latest.stage.<pid>`, `.latest.old.<pid>`) | CLOSED |
+| F7 state write | wrapped, logged; and any exception in the locked run now writes the END heartbeat plus an ALERTS line | branch tests `test_state_file_failure_*`, `test_an_unexpected_exception_*` pass | CLOSED |
+| F8 empty slate | `{}` gives "no games on today's slate" (no build); an exception gives the pretip trigger alone | branch tests pass; the first export of the day still builds on a no-game day (acceptable) | CLOSED |
+| F9 late slate | 23:05 and 23:35 added to the plist and `hours=range(12, 24)`; plist/spec test passes | 23:05 schedule = 22:05 ET (winter), catches the 21:50 ET pretip run | CLOSED |
+| F10 alert noise | back-off after 2 failures for the **same** pretip END | My plant (`test_backoff_under_real_cadence`): with a pretip run ending between every pair of slots and the build always failing, 18 slots gave 18 builds and 18 ALERTS lines. The back-off never engages because each slot sees a new pretip END. That is exactly the fix I wrote, and it was the wrong one | OPEN, minor (R1) |
+
+### Residuals (none blocks merge or install)
+
+* **R1 minor (F10, my error).** Fix: key the back-off on consecutive failed builds regardless of pretip END. For example, after
+  `FAIL_BACKOFF` consecutive failures, rebuild at most once per hour until a success. Or alert only on the first failure and every
+  4th after it. Location: `rebuild_reason` back-off block and `_note_failure` (the `pretip_end ==` condition). Effect today: a
+  persistent failure writes about 2 ALERTS lines an hour and repeats a read hold of up to 600 s every 30 min. The watchdog's
+  `app-export:rc` alert is deduped, so only ALERTS.md is noisy.
+* **R2 minor.** `acquire_lock` has no age cap (ops/nba_daily.sh clears after 3 h). A pid reused by an unrelated process keeps the
+  lock "alive". Every run then returns 0 without writing a heartbeat, and the watchdog catches it as `app-export:stale` at slot +
+  25 min, so it is visible, not silent. Two processes clearing the same dead lock at once can both proceed (a narrow race; manual
+  runs only). Fix: also clear a lock older than 30 min.
+* **R3 (F2 still open, by agreement).** The new 23:05 slot puts the market-store read (38 s measured) at about 22:05-22:15 ET.
+  That overlaps the t20 capture window (22:07.5-22:12.5 ET) of a 22:30 ET tip, so a late game's t20 snapshot can be lost the same
+  way as the earlier slots. F1 now protects the app side; the capture side waits for the `nba/export` branch (read quotes into
+  memory and close the connection before pairing).
+
+### Checks run (unpiped, exit codes shown)
+
+* Branch tests: `.venv/bin/python -m pytest -q -p no:cacheprovider --no-cov tests/ops/test_app_export.py tests/ops/test_watchdog.py`:
+  63 passed, exit 0 (48 before; the 15 new tests cover the locked-lines refusal, recovery on retry, no prior "ok" export,
+  unreadable staged manifest, two deadline cases, lock, dead-owner lock, orphan cleanup, state-file failure, crash heartbeat, swap
+  failure inside `run`, tips raising, empty slate and back-off).
+* Adversary plants (scratch file `test_attack_rereview.py`, run from the branch worktree):
+  `.venv/bin/python -m pytest -q -s -p no:cacheprovider --no-cov --rootdir=. <scratch>/test_attack_rereview.py`: 3 passed, exit 0.
+  Printed `F10 cadence: slots=18 builds=18 alerts=18`.
+* `ruff check` exit 0; `ruff format --check` exit 0 (3 files); `mypy nba/ops/app_export.py nba/ops/watchdog.py` exit 0.
+
+### Scope
+
+The diff does what the commit message says and nothing else. It touches no `nba/export` code and no known-at logic, and its doc
+edits are limited to the re-export paragraph and the DECISIONS row. Install still needs the replay oracle (main session) and
+Devin's go.
