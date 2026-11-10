@@ -262,3 +262,9 @@ def _pulls_store_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None
         "load_pulls_config",
         lambda: PullsConfig(requests_db=tmp_path / "pulls" / "pulls.duckdb"),
     )
+
+
+@pytest.fixture(autouse=True)
+def _no_real_team_webhooks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A developer's exported team-webhook variable must never reach a test (the cards would post)."""
+    monkeypatch.delenv("JARVIS_DISCORD_TEAM_WEBHOOKS", raising=False)

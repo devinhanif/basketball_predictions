@@ -85,6 +85,9 @@ class Runtime:
     pulls_cfg: PullsConfig | None = None  # tests; default configs/pulls.yaml
     pull_requester: Callable[..., Any] | None = None  # tests; default nba.pulls.store.request_pull
     pulls_loaded: bool = False  # configs/pulls.yaml is read once per Runtime (a bad file = no gate)
+    card_client: Any | None = None  # tests: stand-in for the httpx client of the team cards
+    card_sleep: Callable[[float], None] | None = None  # tests: replaces time.sleep on rate limits
+    ht_scored: dict[str, Any] = field(default_factory=dict)  # this tick's halftime scorer result
 
     def send(self, text: str) -> SendResult:
         """Deliver one message. With the real sinks each is deduped on its own (a sink that already
@@ -430,7 +433,46 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
         rep["ingame"] = run_ingame(rt, slate, st.games)
     except Exception as exc:
         rep["ingame"] = [{"ok": False, "error": type(exc).__name__}]
+    rep["cards"] = _cards(
+        rt, st, slate, now
+    )  # LAST: alerts, check-ins and in-game posts never wait on it
     return rep
+
+
+def _cards(rt: Runtime, st: SlateState, slate: date, now: datetime) -> dict[str, Any]:
+    """Per-team live cards (nba/jarvis/cards): delivery only, after every decision of the tick has
+    been made. Never raises: a card problem costs the cards, not the tick."""
+    try:
+        from nba.jarvis.cards.run import run_cards
+
+        def post_main(kind: str, texts: list[str], keys: list[str]) -> dict[str, Any]:
+            return _deliver(
+                rt, kind=kind, texts=texts, plays=[], slate=slate, inputs=keys,
+                explanations={}, keys=keys,
+            )  # fmt: skip
+
+        return run_cards(rt, st, slate, now, post_main)
+    except Exception as exc:  # noqa: BLE001 - a card never breaks the tick
+        log.warning("cards failed (%s)", type(exc).__name__)
+        return {"ok": False, "error": type(exc).__name__}
+
+
+def _main_halftime_wanted(rt: Runtime, g: Any) -> bool:
+    """False only when the operator turned the main-channel halftime posts off AND both team
+    channels of this game have a webhook (so the card carries them). Default: unchanged."""
+    tc = rt.cfg.team_cards
+    if not tc.get("enabled", False) or tc.get("main_channel", {}).get("keep_halftime_posts", True):
+        return True
+    try:
+        import os
+
+        from nba.jarvis.cards.run import webhooks_of
+
+        env = rt.env if rt.env is not None else ({} if rt.sender is not None else dict(os.environ))
+        urls = webhooks_of(rt.cfg, env).urls
+        return not (g.away_abbr in urls and g.home_abbr in urls)
+    except Exception:  # noqa: BLE001 - when unsure, keep the post
+        return True
 
 
 def _pulls_config(rt: Runtime) -> PullsConfig | None:
@@ -631,6 +673,27 @@ def tick_line(rep: dict[str, Any]) -> str:
         flags.append(f"prefetch={len(pf['filed'])}new/{len(pf['existing'])}open")
     if rep.get("lead_capped_after_hold"):
         flags.append(f"lead_capped_after_hold={rep['lead_capped_after_hold']}")
+    cd = rep.get("cards")
+    if isinstance(cd, dict):
+        if cd.get("ok") is False:
+            flags.append(f"cards_error={cd.get('error')}")
+        elif cd.get("errors"):
+            flags.append(f"cards_error={cd['errors'][0]}")
+        moved = {
+            k: v
+            for k, v in (cd.get("cards") or {}).items()
+            if k in ("posted", "edited", "reposted", "deferred", "failed", "lost_id")
+        }
+        if moved:
+            flags.append("cards=" + "/".join(f"{v}{k}" for k, v in sorted(moved.items())))
+        if cd.get("skipped") == "no team webhooks configured":
+            flags.append("cards=off(no webhooks)")
+        if cd.get("stopped"):
+            flags.append(f"cards_stopped={cd['stopped'].replace(' ', '_')}")
+        if cd.get("state_skipped"):
+            flags.append(f"cards_state_skipped={cd['state_skipped']}")
+        if cd.get("no_webhook_teams"):
+            flags.append(f"cards_no_webhook={len(cd['no_webhook_teams'])}")
     hs = rep.get("ht_scorer")
     if hs:
         flags.append(f"ht_scored={hs['stored']}rows/{hs['games']}games")
@@ -669,6 +732,7 @@ def _halftime(
         )
     except Exception as exc:
         scored = {"ok": False, "error": type(exc).__name__}
+    rt.ht_scored = scored
     if rep is not None and "stored" in scored:  # the scorer ran on halftime games: show that it did
         rep["ht_scorer"] = {
             "stored": scored["stored"], "refused": len(scored.get("refused", [])),
@@ -699,7 +763,7 @@ def _halftime_overs_one(
     if not lg.halftime or not scored.get("ok") or not scored.get("rows"):
         return None
     g = next((x for x in st.games if (x.away_abbr, x.home_abbr) == (lg.away, lg.home)), None)
-    if g is None:
+    if g is None or not _main_halftime_wanted(rt, g):
         return None
     s = HO.settings(rt.cfg)
     if not s.get("post_without_plays", False) and not todays_rows(rt.book, slate, g.game_id):
@@ -733,7 +797,7 @@ def _halftime_one(
     if not lg.halftime:
         return None
     g = next((x for x in st.games if (x.away_abbr, x.home_abbr) == (lg.away, lg.home)), None)
-    if g is None:
+    if g is None or not _main_halftime_wanted(rt, g):
         return None
     rows = todays_rows(rt.book, slate, g.game_id)
     if not rows:

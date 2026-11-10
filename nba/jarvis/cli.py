@@ -152,6 +152,37 @@ def build_parser() -> argparse.ArgumentParser:
     ec.add_argument("--contracts", type=float, help="contracts held (adds dollars given away)")
     ec.add_argument("--source", default="your fair", help="where the fair number comes from")
 
+    c = sub.add_parser(
+        "cards",
+        help="render the per-team Discord cards (never sends): print redacted JSON, --preview "
+        "writes HTML+JSON, --check-webhooks / --template help set the webhooks up",
+    )
+    _common(c)
+    c.add_argument("--dry-run", action="store_true", help="accepted for symmetry; this never sends")
+    c.add_argument("--preview", action="store_true", help="also write cards.json + cards.html")
+    c.add_argument("--out", help="preview directory (default data/jarvis/card_preview/<date>)")
+    c.add_argument("--phase", choices=["pretip", "live", "halftime", "final"],
+                   help="render every game in this phase (a demo of the later cards)")  # fmt: skip
+    c.add_argument("--game", help='only this matchup, e.g. "LAL@LAC"')
+    c.add_argument(
+        "--at", help="render as of this UTC moment (naive ISO), e.g. 2026-11-10T01:30:00"
+    )
+    c.add_argument(
+        "--pretip-at",
+        help="replay a finished night: price the overs as of this UTC moment into a throwaway "
+        "log, then build the halftime / final cards and the recap from it",
+    )
+    c.add_argument(
+        "--check-webhooks",
+        action="store_true",
+        help="validate the team webhooks (counts and team names only, never a URL)",
+    )
+    c.add_argument(
+        "--template",
+        action="store_true",
+        help="print the JSON skeleton with one empty slot per team",
+    )
+
     t = sub.add_parser("test-send", help="post one short test message (or --dry-run)")
     t.add_argument("--config", default=str(DEFAULT_PATH))
     t.add_argument("--dry-run", action="store_true")
@@ -269,6 +300,53 @@ def cmd_book(a: argparse.Namespace) -> int:
             print(scored_line(dict(zip(cols, r, strict=True))))
     finally:
         con.close()
+    return 0
+
+
+def cmd_cards(a: argparse.Namespace) -> int:
+    import json
+    import os
+
+    from nba.jarvis.cards import preview as PV
+    from nba.jarvis.cards.colors import ABBRS
+    from nba.jarvis.cards.run import webhooks_of
+
+    if a.template:
+        print(json.dumps({t: "" for t in ABBRS}, indent=2))
+        return 0
+    cfg = load_config(a.config, root=Path(a.root) if a.root else ROOT)
+    wh = webhooks_of(cfg, os.environ)
+    if a.check_webhooks:
+        print(wh.summary())
+        if wh.missing:
+            print("no webhook yet: " + ", ".join(wh.missing))
+        for grp in wh.shared:
+            print("same URL for: " + ", ".join(grp))
+        return 0 if wh.urls and not wh.invalid else 1
+    a.no_llm = True  # cards are deterministic templates; never ping Ollama
+    rt, slate = _runtime(a, dry_run=True)
+    if a.at:
+        moment = datetime.fromisoformat(a.at).replace(tzinfo=None)
+        rt.clock = lambda: moment
+    st = build_state(rt, slate)
+    pretip_at = datetime.fromisoformat(a.pretip_at).replace(tzinfo=None) if a.pretip_at else None
+    cards = PV.render_all(
+        rt, st, slate, rt.clock(), phase=a.phase, game=a.game, pretip_at=pretip_at
+    )
+    secrets = list(wh.urls.values())
+    print(PV.dumps(cards, secrets))
+    slots = [t for c in cards for t in c["channels"]]
+    print(
+        f"cards: {len(cards)} game(s); {len(slots)} channel slot(s), "
+        f"{sum(1 for t in slots if t in wh.urls)} with a webhook ({wh.summary()})",
+        file=sys.stderr,
+    )
+    if a.preview:
+        out = (
+            Path(a.out) if a.out else rt.cfg.root / "data" / "jarvis" / "card_preview" / str(slate)
+        )
+        jp, hp = PV.write_preview(cards, out)
+        print(f"preview written: {hp} and {jp}", file=sys.stderr)
     return 0
 
 
@@ -401,6 +479,7 @@ def main(argv: list[str] | None = None) -> int:
         "ask": cmd_ask,
         "book": cmd_book,
         "test-send": cmd_test_send,
+        "cards": cmd_cards,
         "pick": cmd_pick,
         "recap": cmd_recap,
         "weights": cmd_weights,

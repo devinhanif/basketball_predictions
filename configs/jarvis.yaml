@@ -204,6 +204,29 @@ pulls:                          # pull orchestrator (configs/pulls.yaml, docs/DE
                                 # slate.prefetch_lead_min); at preview time plays on a stale sharp line are left out and one
                                 # line says how many. Labels, edges and stakes of the other plays are untouched.
 
+team_cards:                     # per-team Discord live cards (nba/jarvis/cards; DECISIONS 2026-11-09): formatting and delivery ONLY
+  # Nothing here touches a price, an edge, a fee, a label or an alert condition. A card posts once per team channel
+  # (silent), then is edited at halftime and at the final. With no team webhooks configured the whole pass is a no-op.
+  enabled: true
+  env_var: JARVIS_DISCORD_TEAM_WEBHOOKS   # the NAME of the variable; its value is ONE JSON object {"LAL": "<webhook url>", ...}
+  keychain_service: ""          # optional: a macOS Keychain generic-password service holding the same JSON (used only when the variable is unset)
+  post_lead_min: 120            # a card posts when the game is this close to tip (pre-tip card)
+  pretip_min_edit_interval_min: 15   # pre-tip refreshes (silent edits) at most this often, and only if the card changed
+  top_overs: 3                  # overs per card (1 to 3), best EV after fees first
+  tz: America/New_York          # times on the card (title says ET)
+  pace_fraction: 0.5            # display: share of the line a player should have by the half to count as on pace
+  narrow_pts: 3.0               # display: model within this many points of the sharp line = narrow range
+  wide_pts: 8.0                 # display: this far apart or more = wide range
+  bar_width: 10                 # characters in the progress bar
+  rate_budget_s: 20             # most seconds one tick may wait on Discord rate limits; past it the edit is deferred to the next tick
+  tick_budget_s: 25             # ONE wall-clock budget for the whole card pass, network time included; after it (or the first network error or 5xx) the rest wait for the next tick
+  overview_post: true           # one short overview in the main channel the first time cards go up for the date
+  state: data/jarvis/cards_state.jsonl     # append-only: message ids per game and team
+  picks: data/jarvis/card_picks.jsonl      # append-only: every over a card showed, at the price shown first, and its settlement
+  main_channel:
+    keep_halftime_posts: true   # true = unchanged: the main channel keeps its halftime check-in and overs lines.
+                                # false = skip them for a game whose BOTH team channels have a webhook (the card carries them)
+
 paths:
   paper_book: data/jarvis/paper_book.duckdb
   fan_knowledge: docs/FAN_KNOWLEDGE.md
