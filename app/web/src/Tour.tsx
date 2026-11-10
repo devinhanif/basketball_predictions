@@ -31,7 +31,7 @@ function go(hash: string): void {
   window.location.hash = hash;
 }
 
-/** First-visit tour: six short steps, skippable, replayable from the profile menu and About. */
+/** First-visit tour: short steps, skippable, replayable from the profile menu and About. */
 export function Tour() {
   const open = useTourOpen();
   const [i, setI] = useState(0);
@@ -70,15 +70,33 @@ export function Tour() {
       body: (
         <>
           <p>
-            parlayhitters forecasts NBA games and player stats and shows its work. A forecast here is a <b>range</b>: a typical night and how far either side most nights land. It is not a
-            single number and not a promise.
+            We forecast NBA games and player stats and show our working. A forecast is a <b>range</b>: a typical night and how far either side most nights land. Not a promise.
           </p>
           <p>
-            It does not take bets, sell picks or tell you what to bet. Until the forecasts have a long enough record, the honest answer to "what should I
-            bet?" is <b>keep your money</b>. A clear "nothing worth betting tonight" is a result, not an error.
+            We do not take bets or sell picks. Until the record is long enough, the honest answer to "what should I bet?" is <b>keep your money</b>. "Nothing worth betting tonight" is a result, not an error.
           </p>
         </>
       ),
+    },
+    {
+      title: "Games, players, live",
+      body: (
+        <ol class="plain">
+          <li>
+            <b>Discover</b> lists tonight's games.
+          </li>
+          <li>Open a game to see each player's chances, and what the game knew before tip.</li>
+          <li>
+            Tap <b>Live</b> to follow the score, plays and player stats while it is on.
+          </li>
+        </ol>
+      ),
+      action: {
+        label: "See tonight's games",
+        go: () => {
+          go("#/");
+        },
+      },
     },
     {
       title: "Pick a lens",
@@ -119,28 +137,19 @@ export function Tour() {
         : undefined,
     },
     {
-      title: "What the game knew",
-      body: (
-        <p>
-          A game or player page shows <b>what the game knew, and when</b>: the forecasts stored before tip and the injury reports, in time order, so you can see how a
-          range tightened or moved as news arrived. The page also says in words why a player's range is wide: his minutes, his role, the opponent.
-        </p>
-      ),
-    },
-    {
       title: "Check the record",
       body: (
         <>
-          <p>The Track record has three tabs, none of them with a price:</p>
+          <p>The Track record has three tabs, none with a price:</p>
           <ul class="plain">
             <li>
-              <b>Replay a night.</b> Forecasts as they stood before tip, results hidden until you tap.
+              <b>Replay.</b> Forecasts as they stood before tip; results stay hidden until you tap.
             </li>
             <li>
               <b>Calibration.</b> When we said a chance, how often it happened, with how many cases and a range.
             </li>
             <li>
-              <b>Guess the line.</b> You call over or under on a played prop, then see what it did and the chance the model gave.
+              <b>Guess the line.</b> Call over or under on a played prop, then see what happened.
             </li>
           </ul>
         </>

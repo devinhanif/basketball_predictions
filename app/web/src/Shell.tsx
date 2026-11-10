@@ -172,7 +172,7 @@ function SearchModal(props: { index: SearchItem[]; onClose: () => void }) {
 
 function AboutModal(props: { onClose: () => void; private_: boolean; fixture: boolean; asOf: string | null }) {
   return (
-    <Modal title="About this workspace" onClose={props.onClose}>
+    <Modal title="About parlayhitters" onClose={props.onClose}>
       <p>
         <strong>{props.private_ ? "Jarvis Desk (private)." : "Public."}</strong>{" "}
         {props.private_
@@ -221,7 +221,7 @@ export function Bell({ unread }: { unread: number }) {
   );
 }
 
-function ProfileMenu(props: { onClose: () => void }) {
+function ProfileMenu(props: { onClose: () => void; onAbout: () => void }) {
   const id = useIdentity();
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
   return (
@@ -240,6 +240,16 @@ function ProfileMenu(props: { onClose: () => void }) {
       <a class="pop-link" href={topHref("settings")} onClick={props.onClose}>
         Preferences
       </a>
+      <button
+        type="button"
+        class="pop-link"
+        onClick={() => {
+          props.onClose();
+          props.onAbout();
+        }}
+      >
+        About this app and how it works
+      </button>
       {IS_ARTIFACT ? null : (
         <button
           type="button"
@@ -263,7 +273,7 @@ function ProfileMenu(props: { onClose: () => void }) {
             props.onClose();
           }}
         >
-          Sign out (forget my name on this device)
+          Forget my name on this device
         </button>
       )}
     </div>
@@ -468,7 +478,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
               <Avatar name={name} src={id.avatarUrl} size="sm" />
             </button>
           </div>
-          {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} /> : null}
+          {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} onAbout={() => { setAboutOpen(true); }} /> : null}
           {menuOpen ? (
             <nav class="nav-sheet" aria-label="All screens">
               {[...visible, ...mgmt].map((n) => link(n, "side-link"))}

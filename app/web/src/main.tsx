@@ -11,6 +11,7 @@ import "./ui.css";
 import "./desk.css";
 import "./modes.css";
 import "./live.css";
+import "./ux.css";
 
 applyTheme(getPrefs().theme);
 void startUserStateSync();
