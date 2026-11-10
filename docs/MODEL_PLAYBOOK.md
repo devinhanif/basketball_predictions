@@ -80,6 +80,31 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
 - Typical failure: power. One season detects about 0.002, above the plausible effect.
 - Checks: is the effect large enough to ever be detected? If not, monitor or pool seasons rather than test once.
 
+### Playbook check: combo mode (Gaussian copula over calibrated marginals + script shifts), 2026-11-09
+- Class: set / joint model. Gaussian copula of per-stat normal-score latents with pooled relation correlations, marginals from the frozen
+  LINE_CALIBRATION map applied across the grid (banded), plus a per-(script, stat, role) latent shift and scale.
+- Information or capacity? No new pre-tip information; the structure it exposes is the one thing the data supports, a same-player
+  minutes factor. Same-player pair lift is 1.17 to 1.20, 1.16 to 1.20 after removing the cross-game marginal offset (about 69,000 pairs, 1,300 games per fold); teammates, opponents and
+  different games have residual r of 0 within +-0.01. Capacity is not the lever.
+- Enough data? Pooled correlations use 55,000 same-player rows and 270,000+ pair rows per season; script cells have 290 to 444
+  realised games per script per season (the effective n is games, not player rows).
+- Valid test? Two folds (2023 -> 2024 walk-forward, 2024 -> 2023 cross-fit), game-clustered CIs, rule committed before the run
+  (`combo_eval.py`, fd81aaf). A first run built the calibrated grid by applying the map at every rung; a PIT diagnostic (sd 0.63) showed an
+  invalid latent and it was re-run banded (amendment recorded in the repo history, 4fa66a1, before the second run). Legs are overs at posted
+  lines and conditional on the player playing (the OOF rows have no DNPs). Remaining flaw: the banded grid's PIT sd is still 0.76 to 0.98, so it
+  is a set of calibrated leg probabilities, not a validated distribution. Triples and larger were not scored against outcomes.
+- Lineage: `joint_eval.py` (Gaussian kept over independence, -0.00053 log loss), the JOINT set transformer (no gain), T490 (independence
+  supported in 55 of 65 pools, dependence an artifact). This model carries the copula forward, drops the t copula (not kept over Gaussian) and
+  adds nothing for different-player legs because the data says there is nothing to add.
+- Scores against: log loss and Brier of the joint event at posted lines, not CRPS and not a price. Copula minus independence: -0.0090
+  [-0.0101, -0.0077] (2024) and -0.0071 [-0.0081, -0.0059] (2023) for same-player pairs, within -0.00005 of 0 for every other class.
+- Typical failures seen: map extrapolation fattening tails (fixed by the band); script effects under-predicted for close and shootout
+  (about 2 to 3 points; they stay `exploratory`); blowout same-player joint over-reacts in one fold. The linear copula cannot represent
+  the nonlinear blowout minutes cut, which the script shift only partly absorbs.
+- Verdict: no script is calibrated. `grind` passed the frozen check only in a second run, after an amendment decided on run 1's test-season
+  outcomes, and the pass is fragile to seed and month (adversary combo_math_2026-11-10); `blowout`, `close`, `shootout` failed. The copula is kept for
+  same-player legs only; triples are labelled model estimates.
+
 ## Play-by-play generative models (PBP_GPT)
 - Driven by: event volume and vocabulary consistency across seasons; long-context training; compute.
 - Data appetite: very high. Earlier runs used 2022 plus part of 2023 only (T082-T084); history has the same schema for 2019-21.
