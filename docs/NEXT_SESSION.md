@@ -16,6 +16,13 @@
 neighbours and configs/live_capture.yaml); TEAMMATE_SITS frozen and run: T526 pts HELPS (survives attack, direction + team-level bump only),
 reb HELPS but wounded (uncertain size), ast inconclusive, fg3m no word (ledger T526, T526-a). In flight: end-to-end usability pass on the app.
 
+**Final update ~05:00 CST:** also merged: usability pass (games first, live strip, loading copy, 44 px targets) + wording nits;
+"If a teammate sits" picker in Explore (export table + API; shows from the next export build). Everything in the queue is merged.
+Still yours: launchd installs (re-export, candles), the ESPN core fixture download then the one-line poller flip in
+configs/live_capture.yaml, the 30 Discord webhooks, the disk cleanup in data/rehearsal, the in-game checkpoints flag, and the
+O2 display choice for TEAMMATE_SITS. JARVIS must write the checkpoint snapshot JSON (docs/contracts/ingame_checkpoint_snapshot_v1.md)
+before the checkpoints flag is turned on.
+
 Loose ends (recorded, not chased): 3 pre-existing full-suite failures; checkpoint R1; export-pairing r3 copy; per-run coverage
 record in nba.daily; combo export wiring; LINE_CAL_LIVE look about Dec 1. Retro: docs/reviews/retro_2026-11-10.md.
 
