@@ -87,6 +87,8 @@ class JarvisConfig:
     pulls: dict[str, Any] = field(
         default_factory=lambda: {"hold_stale_alerts": False, "hold_stale_slate": False}
     )
+    # per-team Discord live cards (nba/jarvis/cards, DECISIONS 2026-11-09): delivery only
+    team_cards: dict[str, Any] = field(default_factory=lambda: {"enabled": False})
 
     def props_sides_for(self, venue: str | None) -> tuple[str, ...]:
         """Sides a player prop may be bought on at ``venue`` (``None``: the global default)."""
@@ -252,6 +254,7 @@ def load_config(
         props_by_venue=props_venue,
         halftime_overs=dict(raw.get("halftime_overs", {"enabled": False})),
         pulls=dict(raw.get("pulls", {"hold_stale_alerts": False, "hold_stale_slate": False})),
+        team_cards=dict(raw.get("team_cards", {"enabled": False})),
     )
     missing = [v for v in VENUES if v not in cfg.bankroll or v not in cfg.fees]
     if missing:
@@ -285,6 +288,22 @@ def load_config(
             )
         if not {"formula", "coefficient", "multiplier"} <= set(pin):
             raise ValueError("halftime_overs.fee_pin needs formula, coefficient, multiplier")
+    tc = cfg.team_cards
+    if tc.get("enabled", False):
+        need = (
+            "env_var", "post_lead_min", "pretip_min_edit_interval_min", "top_overs", "tz",
+            "pace_fraction", "narrow_pts", "wide_pts", "bar_width", "rate_budget_s",
+            "state", "picks",
+        )  # fmt: skip
+        absent = [k for k in need if k not in tc]
+        if absent:
+            raise ValueError(f"team_cards is missing {absent}")
+        if not 1 <= int(tc["top_overs"]) <= 3 or not 0.0 < float(tc["pace_fraction"]) <= 1.0:
+            raise ValueError("team_cards.top_overs must be 1..3 and pace_fraction in (0, 1]")
+        if not 0.0 <= float(tc["narrow_pts"]) < float(tc["wide_pts"]):
+            raise ValueError("team_cards.narrow_pts must be below wide_pts")
+        if not 5 <= int(tc["bar_width"]) <= 20 or float(tc["rate_budget_s"]) < 0:
+            raise ValueError("team_cards.bar_width must be 5..20 and rate_budget_s >= 0")
     if cfg.reserve_for_strong >= cfg.nightly_cap:
         raise ValueError("caps.reserve_for_strong_usd must be below caps.nightly_usd")
     return cfg

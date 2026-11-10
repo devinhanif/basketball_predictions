@@ -54,9 +54,15 @@ def feed_age_min(cfg: JarvisConfig, slate: date, now: datetime) -> float | None:
     return (now.replace(tzinfo=UTC) - ts).total_seconds() / 60.0
 
 
-def latest_scoreboard(cfg: JarvisConfig, slate: date) -> list[LiveGame]:
+def latest_scoreboard(
+    cfg: JarvisConfig, slate: date, until: datetime | None = None
+) -> list[LiveGame]:
+    """The newest snapshot (as of ``until`` when given, for a replay; never a later file)."""
     d = live_dir(cfg, slate) / "espn_scoreboard" / slate.isoformat()
     files = sorted(d.glob("*.json.gz")) if d.exists() else []
+    if until is not None:
+        stamp = until.strftime("%Y%m%dT%H%M%S")
+        files = [f for f in files if f.name[:15] <= stamp]
     if not files:
         return []
     f = files[-1]
