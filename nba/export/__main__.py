@@ -40,6 +40,16 @@ def main(argv: list[str] | None = None) -> int:
         help="official pre-tip roster cache (<dir>/<date>/<team>.parquet); places players with "
         "no earlier 2026 row",
     )
+    b.add_argument(
+        "--sits-model-root",
+        type=Path,
+        default=REPO_ROOT / "data" / "models" / "context_residual",
+        help="production's cached heads (<dir>/<date>/models.pkl) for the 'if a teammate sits' "
+        "scenarios; never fits; absent cache = no scenarios (the export still builds)",
+    )
+    b.add_argument(
+        "--no-sits", action="store_true", help="skip the 'if a teammate sits' scenarios entirely"
+    )
     b.add_argument("--parlay-dir", type=Path, default=REPO_ROOT / "reports" / "parlay")
     a = ap.parse_args(argv)
     try:
@@ -47,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
             a.db, a.out, a.date, lookback_days=a.lookback_days,
             box_games=a.box_games, box_days=a.box_days, seasons=a.season,
             parlay_dir=a.parlay_dir, odds_db=a.odds_db, roster_dir=a.roster_dir,
+            sits_model_root=None if a.no_sits else a.sits_model_root,
         )  # fmt: skip
     except guard.ExportRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
@@ -56,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(
         f"export {m['export_date']}: {m['row_counts']} parlay={m['parlay']['verdict']} "
-        f"lines={m['lines']['status']}"
+        f"lines={m['lines']['status']} sits={m['teammate_sits']['status']}"
     )
     for n, f in m["files"].items():
         print(f"  {n} sha256={f['sha256'][:12]} bytes={f['bytes']}")

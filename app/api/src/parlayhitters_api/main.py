@@ -61,6 +61,7 @@ from .models import (
     WinProbability,
 )
 from .role import player_role
+from .scenarios import ScenariosView, game_scenarios
 from .store import AnyStore, Json, load_store, store_key
 from .top_parlays import (
     TopParlaysMissing,
@@ -391,6 +392,12 @@ def register(app: FastAPI) -> None:
             players=players,
             notes=_game_notes(store),
         )
+
+    @app.get("/api/games/{game_id}/scenarios", response_model=ScenariosView)
+    def game_scenarios_route(game_id: str, store: StoreDep) -> ScenariosView:
+        """'If a teammate sits' for one game (read-only): points direction and a team-level size,
+        rebounds direction only, nothing else. Says why when it has nothing."""
+        return game_scenarios(store, _need_game(store, game_id))
 
     @app.get("/api/games/{game_id}/result")
     def game_result(game_id: str, store: StoreDep) -> dict[str, Any]:

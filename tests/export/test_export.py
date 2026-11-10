@@ -406,11 +406,14 @@ def test_cli_build_end_to_end(
             str(pdir),
             "--odds-db",
             str(tmp_path / "no_such_odds.duckdb"),
+            "--sits-model-root",
+            str(tmp_path / "no_models"),
         ]
     )
     assert rc == 0
+    printed = capsys.readouterr().out
     assert json.loads((out / PARLAY_NAME).read_text())["verdict"] == "no_positive_ev_found"
-    assert "export 2026-10-28" in capsys.readouterr().out
+    assert "export 2026-10-28" in printed and "sits=absent" in printed
 
 
 # ---------------------------------------------------------------------- prop_lines / team ids
@@ -733,3 +736,66 @@ def test_roster_stamped_after_made_at_or_after_tip_is_refused(src: Path, tmp_pat
     assert got[3002] == (None, None)
     assert got[3003] == (None, None)  # ambiguous between the two teams: unplaced
     assert got[3004] == (None, None)  # only today's roster counts
+
+
+def test_sits_table_exists_empty_and_manifest_says_why(src: Path, tmp_path: Path) -> None:
+    """No model cache: the export builds, the table is empty, the manifest names the reason."""
+    out = tmp_path / "out"
+    m = _build(src, out, sits_model_root=tmp_path / "no_models")
+    assert m["teammate_sits"]["status"] == "absent"
+    assert m["teammate_sits"]["reason"] == "no_model_cache" and m["teammate_sits"]["n_rows"] == 0
+    assert m["row_counts"]["teammate_sits"] == 0
+    default = _build(src, tmp_path / "out2")  # default None: disabled, same shape
+    assert default["teammate_sits"]["reason"] == "disabled"
+
+
+def test_a_crashing_scenario_step_never_fails_the_export(
+    src: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import nba.export.teammate_sits as sits
+
+    def boom(*a: Any, **k: Any) -> None:
+        raise MemoryError("scenario step died")
+
+    monkeypatch.setattr(sits, "_compute", boom)
+    m = _build(src, tmp_path / "out", sits_model_root=tmp_path)
+    assert m["teammate_sits"]["status"] == "absent"
+    assert m["teammate_sits"]["reason"] == "error:MemoryError"
+    assert m["row_counts"]["prop_grids"] > 0  # everything else is intact
+
+
+def test_a_broken_scenario_import_never_fails_the_export(
+    src: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The scenario code (lightgbm stack) is imported inside the guard: an ImportError there leaves
+    every other table intact and the manifest says why."""
+    import sys
+
+    import nba.export as pkg
+
+    monkeypatch.delitem(sys.modules, "nba.export.teammate_sits", raising=False)
+    monkeypatch.delattr(pkg, "teammate_sits", raising=False)
+    monkeypatch.delattr(pkg, "sits_core", raising=False)
+    monkeypatch.setitem(sys.modules, "nba.export.sits_core", None)  # forces ImportError
+    m = _build(src, tmp_path / "out", sits_model_root=tmp_path)
+    assert m["teammate_sits"]["status"] == "absent"
+    assert m["teammate_sits"]["reason"] in ("error:ImportError", "error:ModuleNotFoundError")
+    assert m["row_counts"]["teammate_sits"] == 0 and m["row_counts"]["prop_grids"] > 0
+
+
+def test_importing_the_export_does_not_load_the_model_stack() -> None:
+    import subprocess
+    import sys
+
+    code = (
+        "import nba.export.build, sys; "
+        "print('lightgbm' in sys.modules, 'nba.props.context_residual' in sys.modules)"
+    )
+    out = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=build_mod.REPO_ROOT,
+    ).stdout.strip()
+    assert out == "False False"

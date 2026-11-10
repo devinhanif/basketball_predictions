@@ -116,6 +116,50 @@
   margin: 6px 0 0;
 }
 
+/* ---- if a teammate sits ---- */
+.sits-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.sits-btn {
+  min-height: 44px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+}
+.sits-status {
+  display: block;
+}
+.sits-read p {
+  margin: 6px 0;
+}
+.sits-mates {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.sits-mates li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+.sits-name {
+  min-width: 9em;
+}
+.sits-dir {
+  font-variant-numeric: tabular-nums;
+}
+.sits-notes {
+  margin-top: 8px;
+}
+
 /* ---- what the game knew ---- */
 .kn-rail {
   list-style: none;

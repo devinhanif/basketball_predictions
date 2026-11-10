@@ -29,6 +29,8 @@ log = logging.getLogger("parlayhitters")
 class Store:
     mode = FIXTURE_MODE
     has_lines = True  # every fixture prop has a posted line and price
+    sits_info: Json | None = None  # the replay fixtures carry no 'if a teammate sits' scenarios
+    sits_rows: dict[str, list[Json]] = {}  # noqa: RUF012 - read-only, always empty here
 
     def __init__(self, root: Path | None = None) -> None:
         self.root = Path(os.environ.get("APP_FIXTURES_DIR") or root or DEFAULT_FIXTURES)
