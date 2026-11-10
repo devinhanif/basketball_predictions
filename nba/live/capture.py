@@ -9,6 +9,7 @@ Public data only.
 from __future__ import annotations
 
 import json
+import threading
 import time
 import traceback
 from collections.abc import Callable
@@ -49,7 +50,10 @@ class Budget:
     trades_max_tickers: int = (
         150  # markets whose trades are pulled per tick (largest volume jump first)
     )
-    trades_max_pages: int = 5
+    trades_page_budget: int = 200  # trade pages per tick, all tickers (carry-over beyond it)
+    trades_pages_per_ticker: int = 40  # one ticker cannot take the whole tick (fairness)
+    trades_page_reserve: int = 12  # requests left for probe_other after the trade pages
+    trades_page_limit: int = 1000
 
 
 @dataclass(frozen=True)
@@ -148,7 +152,35 @@ class State:
     volumes: dict[str, float] = field(default_factory=dict)  # ticker -> volume_fp at last tick
     trade_last_ts: dict[str, int] = field(default_factory=dict)
     trade_ids: dict[str, set[str]] = field(default_factory=dict)  # ids seen at last_ts
-    trade_pending: dict[str, None] = field(default_factory=dict)  # FIFO backlog of tickers to pull
+    trade_pending: dict[str, None] = field(default_factory=dict)  # backlog of tickers to pull
+    # Catch-up in progress per ticker. Pages come newest first, so the high-water mark
+    # (trade_last_ts / trade_ids) moves only when a catch-up reaches it; until then these hold what
+    # was stored, where to resume, and the newest print seen (the next mark).
+    trade_open: dict[str, dict[str, int | None]] = field(default_factory=dict)  # id -> ts
+    trade_cursor: dict[str, str] = field(default_factory=dict)
+    trade_open_max: dict[str, int] = field(default_factory=dict)
+    trade_429_streak: int = 0
+    trade_skip_ticks: int = 0
+
+
+@dataclass
+class TradePull:
+    trades: list[dict[str, Any]]
+    complete: bool
+    cursor: str | None = None
+    pages: int = 0
+    rate_limited: bool = False
+
+
+PROP_PREFIXES = ("KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBAPRA", "KXNBASTL", "KXNBABLK")
+
+
+def trade_priority(ticker: str) -> int:
+    """0 game winners, 1 player props, 2 everything else (spreads, totals, halves, doubles)."""
+    series = ticker.split("-")[0]
+    if series == "KXNBAGAME":
+        return 0
+    return 1 if series.startswith(PROP_PREFIXES) else 2
 
 
 class Capture:
@@ -177,6 +209,10 @@ class Capture:
         self.st = State()
         self.start_ts = self.now()
         self.out = out
+        self._page_lock = threading.Lock()
+        self._pages_left = 0
+        self._trade_stop = False  # a 429 this tick: no new trade pages until the next tick
+        self._load_trade_state()
 
     # ------------------------------------------------------------------ logging
     def log_error(self, what: str) -> None:
@@ -431,7 +467,9 @@ class Capture:
 
     def trade_targets(self) -> list[str]:
         """Backlog queue: slate markets whose cumulative volume (public ``volume_fp``) rose since
-        the last tick (first sight: any volume, largest jump first within a tick), oldest first."""
+        the last tick (first sight: any volume, largest jump first within a tick). Order: game
+        winners, then player props, then the rest; first-in first-out inside a class, so a catch-up
+        that was carried over resumes before new work."""
         jumps: list[tuple[float, str]] = []
         for m in self.st.last_markets:
             t = str(m.get("ticker", ""))
@@ -443,68 +481,190 @@ class Capture:
                 jumps.append((vol - prev, t))
             self.st.volumes[t] = max(vol, prev)
         jumps.sort(key=lambda x: (-x[0], x[1]))
-        for _, t in jumps:  # new work joins the back of the queue; the oldest entries go first
+        for _, t in jumps:  # new work joins the back of its class; the oldest entries go first
             self.st.trade_pending.setdefault(t, None)
-        return list(self.st.trade_pending)
+        queue = list(self.st.trade_pending)
+        return sorted(queue, key=lambda t: trade_priority(t))  # stable: FIFO within a class
 
-    def pull_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
+    # -- trade-state persistence (a restart resumes from the high-water marks) ----------------
+    @property
+    def trade_state_path(self) -> Path:
+        return self.out / "trade_state.json"
+
+    def _save_trade_state(self) -> None:
+        st = self.st
+        tickers = set(st.trade_last_ts) | set(st.trade_open) | set(st.trade_cursor)
+        body = {
+            "day": self.day.isoformat(),
+            "pending": list(st.trade_pending),
+            "tickers": {
+                t: {
+                    "hwm": st.trade_last_ts.get(t),
+                    "hwm_ids": sorted(st.trade_ids.get(t, set())),
+                    "open": st.trade_open.get(t, {}),
+                    "open_max": st.trade_open_max.get(t),
+                    "cursor": st.trade_cursor.get(t),
+                }
+                for t in sorted(tickers)
+            },
+        }
+        write_json_atomic(self.trade_state_path, body)
+
+    def _load_trade_state(self) -> None:
+        path = self.trade_state_path
+        if not path.exists():
+            return
+        try:
+            body = json.loads(path.read_text())
+            if body.get("day") != self.day.isoformat():
+                return
+            st = self.st
+            for t, d in (body.get("tickers") or {}).items():
+                if d.get("hwm") is not None:
+                    st.trade_last_ts[t] = int(d["hwm"])
+                st.trade_ids[t] = set(d.get("hwm_ids") or [])
+                if d.get("open"):
+                    st.trade_open[t] = {str(k): v for k, v in d["open"].items()}
+                if d.get("open_max") is not None:
+                    st.trade_open_max[t] = int(d["open_max"])
+                if d.get("cursor"):
+                    st.trade_cursor[t] = str(d["cursor"])
+            st.trade_pending = {str(t): None for t in body.get("pending") or []}
+        except (ValueError, OSError, AttributeError, TypeError):
+            self.log_error("trade_state unreadable; starting from first sight")
+            self.st.trade_last_ts.clear()
+            self.st.trade_ids.clear()
+            self.st.trade_open.clear()
+            self.st.trade_cursor.clear()
+            self.st.trade_open_max.clear()
+
+    # -- one ticker's catch-up --------------------------------------------------------------
+    def _take_page(self) -> bool:
+        with self._page_lock:
+            if self._trade_stop or self._pages_left <= 0 or self.fetcher.exhausted():
+                return False
+            self._pages_left -= 1
+            return True
+
+    def pull_trades(self, ticker: str) -> TradePull:
         try:
             return self._pull_trades(ticker)
         except Exception as exc:  # one bad ticker must not cost the rest of the tick
             self.log_error(f"trades {ticker} {type(exc).__name__}: {exc}"[:300])
-            return [], False
+            return TradePull([], False, self.st.trade_cursor.get(ticker))
 
-    def _pull_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
-        """New public trades for one ticker (min_ts = last seen, deduplicated by trade id).
-        Returns (trades, complete); incomplete when a page was skipped for budget or error."""
-        min_ts = self.st.trade_last_ts.get(ticker)
-        seen_ids = self.st.trade_ids.get(ticker, set())
+    def _pull_trades(self, ticker: str) -> TradePull:
+        """Newest-first pages from ``min_ts`` = the high-water mark until the cursor ends (the
+        server stops at the mark) or this tick's page budget is spent. Complete only when the
+        walk reached the mark; otherwise the cursor is returned and the next tick resumes there.
+        Deduplicated by trade id against the mark's second and this catch-up's earlier pages."""
+        st = self.st
+        hwm = st.trade_last_ts.get(ticker)
+        seen = set(st.trade_ids.get(ticker, set())) | set(st.trade_open.get(ticker, {}))
+        cursor = st.trade_cursor.get(ticker)
+        resumed = cursor is not None
         out: list[dict[str, Any]] = []
-        complete = True
-        for page, resp, body in kp.iter_trade_pages(
-            self.fetcher, ticker, min_ts, max_pages=self.budget.trades_max_pages
-        ):
+        pages = 0
+        limit = self.budget.trades_page_limit
+        while True:
+            if pages >= self.budget.trades_pages_per_ticker or not self._take_page():
+                return TradePull(out, False, cursor, pages)
+            resp, body = kp.fetch_trades_page(self.fetcher, ticker, hwm, cursor, limit)
+            pages += 1
             if body is None:
-                complete = False
-                if resp is not None:
-                    self.log_error(f"trades {ticker} p{page} http {resp.status}")
-                break
-            for tr in body.get("trades") or []:
-                if isinstance(tr, dict) and str(tr.get("trade_id", "")) not in seen_ids:
+                status = resp.status if resp is not None else None
+                if status is not None:
+                    self.log_error(f"trades {ticker} p{pages - 1} http {status}")
+                if resumed and status in (400, 404):  # stale cursor: restart from the newest page
+                    cursor, resumed = None, False
+                    continue
+                limited = status == 429
+                if limited:
+                    self._trade_stop = True
+                return TradePull(out, False, cursor, pages, limited)
+            resumed = False
+            page = [tr for tr in body.get("trades") or [] if isinstance(tr, dict)]
+            for tr in page:
+                tid = str(tr.get("trade_id", ""))
+                if tid not in seen:
+                    seen.add(tid)
                     out.append(tr)
-            if page == self.budget.trades_max_pages - 1 and body.get("cursor"):
-                complete = False  # more pages than the cap
-        return out, complete
+            nxt = str(body.get("cursor") or "")
+            stamps = [ts for tr in page if (ts := kp.trade_ts(tr)) is not None]
+            if hwm is not None and stamps and max(stamps) < hwm:
+                nxt = ""  # the whole page is older than the mark: caught up
+            if not nxt:
+                return TradePull(out, True, None, pages)
+            cursor = nxt
+
+    def _absorb_trades(self, t: str, pull: TradePull) -> None:
+        """Fold one ticker's pull into the catch-up state; move the mark only when complete."""
+        st = self.st
+        open_ids = st.trade_open.setdefault(t, {}) if pull.trades else st.trade_open.get(t, {})
+        for tr in pull.trades:
+            ts = kp.trade_ts(tr)
+            open_ids[str(tr.get("trade_id", ""))] = ts
+            if ts is not None:
+                st.trade_open_max[t] = max(st.trade_open_max.get(t, 0), ts)
+        if not pull.complete:
+            if pull.cursor:
+                st.trade_cursor[t] = pull.cursor
+            return
+        top = st.trade_open_max.get(t)
+        if top is not None:
+            prev = st.trade_last_ts.get(t, 0)
+            at_top = {i for i, ts in open_ids.items() if ts == top}
+            st.trade_ids[t] = (st.trade_ids.get(t, set()) | at_top) if top == prev else at_top
+            st.trade_last_ts[t] = max(top, prev)
+        st.trade_open.pop(t, None)
+        st.trade_cursor.pop(t, None)
+        st.trade_open_max.pop(t, None)
 
     def kalshi_trades(self, info: dict[str, Any]) -> None:
         """Public trades for every slate market that traded since the last tick, after the books.
-        One write-once raw file per tick; counts and skips go to ``ticks.jsonl``."""
-        backlog_before = len(self.st.trade_pending)
+        Complete catch-up per ticker, bounded by a per-tick page budget with carry-over. One
+        write-once raw file per tick; counts and skips go to ``ticks.jsonl``."""
+        st = self.st
+        backlog_before = len(st.trade_pending)
         targets = self.trade_targets()
         cap = self.budget.trades_max_tickers
-        skipped = list(targets[cap:])  # stay queued; pulled on the next ticks, oldest first
+        skipped = list(targets[cap:])  # stay queued; pulled on the next ticks
         targets = targets[:cap]
         got: dict[str, list[dict[str, Any]]] = {}
         incomplete: list[str] = []
-        from concurrent.futures import ThreadPoolExecutor
+        pages = 0
+        limited = False
+        if st.trade_skip_ticks > 0:  # backing off after repeated 429s: carry everything over
+            st.trade_skip_ticks -= 1
+            incomplete, targets = list(targets), []
+            results: list[TradePull] = []
+        else:
+            fetch = self.fetcher
+            room = max(0, fetch.tick_budget - fetch.tick_requests - self.budget.trades_page_reserve)
+            self._pages_left = min(self.budget.trades_page_budget, room)
+            self._trade_stop = False
+            from concurrent.futures import ThreadPoolExecutor
 
-        with ThreadPoolExecutor(max_workers=self.budget.orderbook_workers) as pool:
-            results = list(pool.map(self.pull_trades, targets))
-        for t, (trades, complete) in zip(targets, results, strict=True):
-            if not complete:
-                incomplete.append(t)
+            with ThreadPoolExecutor(max_workers=self.budget.orderbook_workers) as pool:
+                results = list(pool.map(self.pull_trades, targets))
+        for t, pull in zip(targets, results, strict=True):
+            pages += pull.pages
+            limited = limited or pull.rate_limited
+            carried = t in st.trade_open  # catch-up spanned ticks: prints newer than its first page
+            self._absorb_trades(t, pull)  # may have arrived since, so one verify pass follows
+            if pull.complete and not carried:
+                st.trade_pending.pop(t, None)
+            elif pull.complete:
+                pass  # stays queued; the next pass starts at the new mark and clears it
             else:
-                self.st.trade_pending.pop(t, None)
-            if trades:
-                got[t] = trades
-                stamps = [ts for tr in trades if (ts := kp.trade_ts(tr)) is not None]
-                if stamps:
-                    top = max(stamps)
-                    prev = self.st.trade_last_ts.get(t, 0)
-                    ids = self.st.trade_ids.get(t, set()) if top == prev else set()
-                    ids |= {str(tr.get("trade_id", "")) for tr in trades if kp.trade_ts(tr) == top}
-                    self.st.trade_last_ts[t] = max(top, prev)
-                    self.st.trade_ids[t] = ids
+                incomplete.append(t)
+            if pull.trades:
+                got[t] = pull.trades
+        if limited:
+            st.trade_429_streak += 1
+            st.trade_skip_ticks = min(2 ** (st.trade_429_streak - 1) - 1, 3)
+        elif pages > 0:
+            st.trade_429_streak = 0
         n = sum(len(v) for v in got.values())
         if got:
             self.store.save(
@@ -514,13 +674,20 @@ class Capture:
                 http_status=200,
                 note={"n_trades": n, "n_tickers": len(got), "n_incomplete": len(incomplete)},
             )
+        self._save_trade_state()  # after the raw write: a crash between them only duplicates
         info["trades"] = {
             "n": n,
             "tickers": len(got),
             "targets": len(targets),
-            "backlog": len(self.st.trade_pending),
+            "backlog": len(st.trade_pending),
         }
-        if backlog_before > 0 and not self.st.trade_pending:
+        if pages:
+            info["trades"]["pages"] = pages
+        if st.trade_cursor:
+            info["trades"]["carried_cursors"] = len(st.trade_cursor)
+        if limited:
+            info["trades"]["rate_limited"] = True
+        if backlog_before > 0 and not st.trade_pending:
             info["trades"]["backlog_cleared"] = True
         if skipped:
             info["skipped"]["trades"] = skipped[:50]

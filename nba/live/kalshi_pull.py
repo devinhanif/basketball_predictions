@@ -116,19 +116,39 @@ def iter_series_pages(
             return
 
 
+#: hard stop for one ticker's pagination in one call (a runaway cursor, never a normal cap)
+TRADE_PAGE_SAFETY = 2000
+
+
+def fetch_trades_page(
+    fetcher: Fetcher, ticker: str, min_ts: int | None, cursor: str | None, limit: int = 1000
+) -> tuple[Response | None, dict[str, Any] | None]:
+    """One public ``GET /markets/trades`` page (newest first); (response, parsed body)."""
+    params: dict[str, Any] = {"ticker": ticker, "limit": limit}
+    if min_ts is not None:
+        params["min_ts"] = int(min_ts)
+    if cursor:
+        params["cursor"] = cursor
+    resp = fetcher.get(f"{BASE}/markets/trades", params)
+    return resp, parse_body(resp)
+
+
 def iter_trade_pages(
-    fetcher: Fetcher, ticker: str, min_ts: int | None, limit: int = 1000, max_pages: int = 5
+    fetcher: Fetcher,
+    ticker: str,
+    min_ts: int | None,
+    limit: int = 1000,
+    max_pages: int | None = None,
+    cursor: str | None = None,
 ) -> Iterator[tuple[int, Response | None, dict[str, Any] | None]]:
-    """Paginated public ``GET /markets/trades`` for one ticker since ``min_ts`` (unix seconds)."""
-    cursor: str | None = None
-    for page in range(max_pages):
-        params: dict[str, Any] = {"ticker": ticker, "limit": limit}
-        if min_ts is not None:
-            params["min_ts"] = int(min_ts)
-        if cursor:
-            params["cursor"] = cursor
-        resp = fetcher.get(f"{BASE}/markets/trades", params)
-        body = parse_body(resp)
+    """Paginated public ``GET /markets/trades`` for one ticker since ``min_ts`` (unix seconds).
+
+    Pages until the cursor is empty (the server ends the walk at ``min_ts``, the previous
+    high-water mark). ``max_pages`` is an optional per-call bound, not a default; a caller that
+    sets it must treat a bounded stop as incomplete."""
+    cap = TRADE_PAGE_SAFETY if max_pages is None else max_pages
+    for page in range(cap):
+        resp, body = fetch_trades_page(fetcher, ticker, min_ts, cursor, limit)
         yield page, resp, body
         cursor = str(body.get("cursor") or "") if body else ""
         if not cursor:
