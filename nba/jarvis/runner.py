@@ -454,9 +454,7 @@ def _checkpoints(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
             return {"skipped": "disabled"}
         live = latest_scoreboard(rt.cfg, slate)
         games = [
-            lg.matchup
-            for lg in live
-            if lg.status not in ("STATUS_SCHEDULED", "STATUS_FINAL", "STATUS_HALFTIME")
+            lg.matchup for lg in live if lg.status not in ("STATUS_SCHEDULED", "STATUS_HALFTIME")
         ]
         res = IC.score_checkpoints(rt.cfg, slate, now, games, dry_run=rt.dry_run)
         rt.ck_scored = res

@@ -253,6 +253,8 @@ def deliver_one(
         if not write:
             return "would_edit"
         res = client.edit(url, rec.message_id, body)
+        if res.status in ("gone", "failed") and phase == "live":
+            return "failed"  # never repost (a new message can notify) for a live checkpoint edit
         if res.status in ("gone", "failed"):  # a definitive refusal: the old message is unusable
             kind = "repost"
             res = client.post(url, body)
