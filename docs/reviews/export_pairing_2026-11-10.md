@@ -140,3 +140,60 @@ shipped build and replace the claimed numbers; 6. design note edits (m1, B2 sent
 DECISIONS (draft): "2026-11-10 export line pairing (3db5cf7) blocked: AVG rows in the same run cancel the
 extension; the working version would drop line_cal on most rows; fix B1+B2+M2 and an OUT guard before merge.
 Reverse if a replay of the shipped build shows line_cal/rung_cal unchanged and the extension present."
+
+## Re-review (diff-only, 3db5cf7..5fc1a36, 2026-11-10)
+
+Scope: `git diff 3db5cf7 5fc1a36` (reader.py, build.py, design note, tests). Same read-only scratch copies,
+season 2026 only, reader-level runs one day at a time (machine load ~7), no full build, no replay. Code
+snapshot: `git archive 5fc1a36 nba tests` into the scratchpad (`new2/`). Scripts: `attack/a6.py`, `a7.py`,
+`test_planted2.py`.
+
+| Finding | Replant | n | Result |
+|---|---|---|---|
+| B1 AVG collapse | `test_planted2.py`: AVG row same run, AVG first or last in the input -> production row still pairs the later quote; a superseded production arm in the same run still lowers the cutoff | 3 tests | **FIXED** |
+| B1 on data | `a6.py 2026-11-04`: latest production keys paired, old rule 201 -> fixed 743; 91,156 quote rows newer than `made_at` | 1,872 latest prod rows | **FIXED** (the extension now happens) |
+| B2 cal fields | `build._read_lines` returns `(lines, cal_lines)`; `cal_lines` = `pair_quotes` with `lines_through = made_at`, the input proven identical to the old rule (145,444/145,444 rows, first review); both `attach` calls take `cal_lines.rows` only. Agent's 11-04 export: line_cal/rung_cal identical to main 52,899/52,899 | 52,899 rows | **FIXED** (by construction plus the agent's build comparison) |
+| M1 OUT | `a6.py`: extended latest production rows whose player is OUT at `lines_through` | 0 of 1,796 | **FIXED** for OUT |
+| M1 other drops | `a7.py`: extended latest prod player-games whose official-report status changed between `made_at` and the cutoff (a dropped player who was not OUT would show here) | 11-04: 21/449; 11-09: 11/233 | **Residual, small and benign in kind**: every transition is toward playing (questionable/probable -> available 29, not listed -> available/questionable 2, available -> not listed 1); none to doubtful or OUT. Threshold and roster drops stay invisible (disclosed in the design note) |
+| M2 other-model stamp | `a6.py`: extended rows by model = context 1,796, recency 1,796, int 1,194, lt 398; `_t15` 0, `_late` 0 | 5,184 | **FIXED** |
+| M2 late_ stamp | `test_late_like_escape_in_duckdb` (`late_x` excluded, `lateXx` kept: the `\_` escape works); `a6.py` rows whose cutoff equals a late stamp time: 0 | 1 test, 5,184 rows | **FIXED** |
+| Planted future | quote at exactly the cutoff in, +1 us out; at tip out; run at/after tip, other ET date, DST 11-01 boundary | 9 scratch tests, plain script, exit 0 | **PASS** |
+| No future quote | `a6.py`: quotes with `snapshot_ts > paired_through` or at/after tip | 0 of 190,424 | **PASS** |
+| Frozen consumers | `git grep -ln "prop_lines\|nba\.export\.reader\|from nba.export\|paired_through" 5fc1a36 -- research nba scripts ops`: only `nba/export/*` and the `top_source.py` docstring | 0 frozen readers | **PASS** (unchanged) |
+
+### Is the gain worth the known-at surface?
+
+The agent framed the gain as "keys with prop_lines 761 -> 769", which undersells it: that counts keys with a
+quote on *any* row (the t15 and late rows, made minutes before tip, already pair almost every key). The number
+that matters is the card the app shows. In the agent's 11-04 export (`pair/out_new_04/export.duckdb`, joined on
+`lines_run_id`), 743 of 1,872 primary rows have a price, against 160 under the old cut, and 742 of those 743
+show a quote newer than the forecast. On the card, that is a 4.6x gain in priced primary cards, not a 1% gain.
+
+What it risks is display only: no frozen rule, scorer or JARVIS path reads export `prop_lines` (check 4), the
+calibration fields are byte-identical, and every quote stays before both the covering run and the tip. The
+remaining surface is a key a covering run dropped for a reason other than OUT. The status-change detector finds
+none in the dangerous direction on two nights. My opinion: **merge**. The gain is real and visible, the
+surface is bounded and disclosed, and the per-run coverage record (live path, needs Devin) can wait for a
+night that shows a problem.
+
+### New minor findings (none blocking)
+
+- **r1:** `build._read_lines` now pairs twice. At lookback 7 one pairing took 7.4-14.2 s, so this adds about
+  that much again, outside the store hold, under the 600 s export deadline. Watch it on a loaded machine.
+- **r2:** the agent's summary metric (761 -> 769) should be replaced in the ledger and DECISIONS by the
+  primary-card metric (160 -> 743 on 11-04, n = 1,872 primaries) so the record states the gain correctly.
+- **r3:** the "what the game knew" timeline (`app/api/.../knows.py`) places a forecast at `made_at`. A shown
+  price can now be newer than that forecast. Nothing there claims the price was seen by the forecast, but the
+  app copy should not imply it.
+
+### Not verified (re-review)
+
+- The branch's own tests (`tests/export/test_line_pairing.py`, 8 tests) and the app suites: pytest is not in
+  `.venv`. The agent's 52,899/52,899 cal identity was taken from its build, not re-run by me (a full build was
+  out of budget). My identity argument is by construction.
+- The replay oracle (main session) and 11-05..11-09 primary-card counts.
+
+Re-review verdict: B1, B2, M1 (OUT) and M2 are fixed. The residual is disclosed and small. Recommend merge
+after the replay oracle is IDENTICAL and Devin gives the live-path go.
+
+Verdict: APPROVED
