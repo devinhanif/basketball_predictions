@@ -73,7 +73,8 @@ def settle_pending(
         if tip is not None and datetime.fromisoformat(str(tip)) > now:
             continue
         row: dict[str, Any] = {
-            "venue": p["venue"], "ticker": p["ticker"], "side": "yes", "kind": "prop",
+            "venue": p["venue"], "ticker": p["ticker"], "side": str(p.get("side", "yes")),
+            "kind": "prop",
             "game_id": p["game_id"], "stat": p["stat"], "player_id": p["player_id"],
             "threshold": p["line"], "team_id": None,
         }  # fmt: skip
@@ -117,6 +118,7 @@ def recap_for_game(cfg: JarvisConfig, state: CardState, game_id: str) -> Recap:
                 str(s["status"]),
                 s.get("won"),
                 float(s.get("units", 0.0)),
+                str(p.get("side", "yes")),
             )  # fmt: skip
         )
     hit = sum(1 for r in rows if r.status == "settled" and r.won)

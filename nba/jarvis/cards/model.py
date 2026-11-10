@@ -31,6 +31,7 @@ class OverRow:
     shown_at: str = ""
     quote_age_min: float | None = None  # age of the price when this card priced it (not frozen)
     stale: str = ""  # "" = priced now; else why the shown price is old (the over stays on the card)
+    side: str = "yes"  # "yes" = an over; "no" = an under (Kalshi No), priced on the DNP worst case
 
 
 @dataclass(frozen=True)
@@ -92,6 +93,7 @@ class SettledRow:
     status: str  # settled | void
     won: bool | None
     units: float
+    side: str = "yes"
 
 
 @dataclass(frozen=True)

@@ -34,20 +34,23 @@ def player_name(q_label: str, fallback: str) -> str:
     return head if head else fallback
 
 
-def pick_id(slate: date, game_id: str, ticker: str) -> str:
-    return sha([str(slate), game_id, ticker])
+def pick_id(slate: date, game_id: str, ticker: str, side: str = "yes") -> str:
+    """An over keeps its original id; an under (side "no") is its own pick on the same ticker."""
+    return sha(
+        [str(slate), game_id, ticker] if side == "yes" else [str(slate), game_id, ticker, side]
+    )
 
 
-def over_from_play(
-    p: Play, slate: date, shown_at: str, display_name: str, now: datetime | None = None
+def _row_from_play(
+    p: Play, slate: date, shown_at: str, display_name: str, now: datetime | None, side: str
 ) -> OverRow | None:
     leg = p.legs[0]
-    if leg.kind != "prop" or leg.side != "yes" or leg.stat is None or leg.threshold is None:
+    if leg.kind != "prop" or leg.side != side or leg.stat is None or leg.threshold is None:
         return None
     if p.edge_cents != p.edge_cents:  # NaN: no sharp line, no measured edge
         return None
     return OverRow(
-        pick_id=pick_id(slate, p.game_id, leg.ticker),
+        pick_id=pick_id(slate, p.game_id, leg.ticker, side),
         player=display_name,
         stat=leg.stat,
         line=float(leg.threshold),
@@ -55,7 +58,7 @@ def over_from_play(
         fee_c=float(p.fee_cents),
         fair=p.fair_prob,
         pin=p.pin_prob,
-        model=p.model_prob,
+        model=p.model_prob if side == "yes" else None,  # the stored No number counts a DNP as a win
         edge_c=float(p.edge_cents),
         ref_age_min=p.ref_age_min,
         label=p.label,
@@ -69,7 +72,47 @@ def over_from_play(
             if now is None or leg.quote_ts is None
             else max(0.0, (now - leg.quote_ts).total_seconds() / 60.0)
         ),
+        side=side,
     )
+
+
+def over_from_play(
+    p: Play, slate: date, shown_at: str, display_name: str, now: datetime | None = None
+) -> OverRow | None:
+    return _row_from_play(p, slate, shown_at, display_name, now, "yes")
+
+
+def under_from_play(
+    p: Play, slate: date, shown_at: str, display_name: str, now: datetime | None = None
+) -> OverRow | None:
+    """A prop No as an ``OverRow`` with ``side="no"`` (``model`` None, see ``_row_from_play``)."""
+    return _row_from_play(p, slate, shown_at, display_name, now, "no")
+
+
+UNDER_NOTE = (
+    "Unders are Kalshi's No, priced on the worst case: a player who does not play counts as a "
+    "No loss, because Kalshi's DNP rule is unverified. Positive here holds under either rule."
+)
+
+
+def under_display_ok(cfg: JarvisConfig, p: Play) -> bool:
+    """May this prop No be SHOWN (never alerted)? ``single_candidate`` always caps a prop No at
+    thin while the DNP rule is unverified; that cap exists because a No might be priced too
+    generously. Here the No is priced on its worst case, (1 - P(over)) x P(plays), i.e. a DNP is a
+    No loss, so its EV is a lower bound under any settlement rule and the cap is not needed to
+    DISPLAY it. Required: no stale / newer-reference cap, a real P(plays) in the price, and a fair
+    price no higher than that worst case (a model blend priced as 1 - P(over incl. DNP) would count
+    a DNP as a No win, so a blend above the Pinnacle-based price is refused). Thresholds, fees and
+    the alert gate are untouched; the label is not read."""
+    if is_capped(p):
+        return False
+    if cfg.kalshi_prop_dnp_rule_verified:
+        return True  # a verified rule prices the No plainly; the ordinary gates already ran
+    if p.fair_prob is None or p.pin_prob is None:
+        return False
+    if not any(n.startswith("fair price includes P(plays)") for n in p.notes):
+        return False
+    return p.fair_prob <= p.pin_prob + 1e-9
 
 
 #: Notes ``single_candidate`` attaches when it CAPS a play at thin for a weak input (a Pinnacle
@@ -118,6 +161,73 @@ def pregame_overs(
             best[key] = row
     ranked = sorted(best.values(), key=lambda r: (-r.edge_c, r.player))
     return ranked[:top_n], priced
+
+
+def pregame_unders(
+    cfg: JarvisConfig,
+    st: SlateState,
+    game_id: str,
+    top_n: int,
+    shown_at: str,
+    kb: Any = None,
+    hold: Callable[[Play], bool] | None = None,
+) -> tuple[list[OverRow], int]:
+    """The under (Kalshi No) twin of ``pregame_overs``: up to ``top_n`` with a measured edge above
+    zero after fee on the DNP worst case (``under_display_ok``), best first, one per player and
+    stat (the strike with the best EV), and how many were priced. Display only: the Play is never
+    handed to the alert path."""
+    best: dict[tuple[str, str], OverRow] = {}
+    priced = 0
+    for q in st.tradable(cfg):
+        if q.game_id != game_id or q.kind != "prop":
+            continue
+        p = single_candidate(cfg, st, q, "no")
+        if p is None or not under_display_ok(cfg, p) or (hold is not None and hold(p)):
+            continue
+        row = under_from_play(p, st.slate, shown_at, _name(q, kb), st.now)
+        if row is None:
+            continue
+        priced += 1
+        if row.edge_c <= 0.0:
+            continue
+        key = (row.player, row.stat)
+        if key not in best or (row.edge_c, row.line) > (best[key].edge_c, best[key].line):
+            best[key] = row
+    ranked = sorted(best.values(), key=lambda r: (-r.edge_c, r.player))
+    return ranked[:top_n], priced
+
+
+def priced_unders(
+    cfg: JarvisConfig,
+    st: SlateState,
+    game_id: str,
+    shown_at: str,
+    kb: Any = None,
+    hold: Callable[[Play], bool] | None = None,
+) -> dict[tuple[int, str], OverRow]:
+    """The under twin of ``priced_lines``: per (player_id, stat) the No with the best EV after fees
+    on the worst case (negative EV included; ties: the higher strike)."""
+    best: dict[tuple[int, str], OverRow] = {}
+    for q in st.tradable(cfg):
+        if q.game_id != game_id or q.kind != "prop" or not q.player_id:
+            continue
+        p = single_candidate(cfg, st, q, "no")
+        if p is None or not under_display_ok(cfg, p) or (hold is not None and hold(p)):
+            continue
+        row = under_from_play(p, st.slate, shown_at, _name(q, kb), st.now)
+        if row is None or row.player_id is None:
+            continue
+        key = (int(row.player_id), row.stat)
+        if key not in best or (row.edge_c, row.line) > (best[key].edge_c, best[key].line):
+            best[key] = row
+    return best
+
+
+def merge_ranked(overs: list[OverRow], unders: list[OverRow], top_n: int) -> list[OverRow]:
+    """Overs and unders in one list, best EV first (ties: over before under)."""
+    both = [*overs, *unders]
+    both.sort(key=lambda r: (-r.edge_c, r.side != "yes", r.player))
+    return both[:top_n]
 
 
 def priced_lines(
@@ -174,7 +284,7 @@ def _name(q: Quote, kb: Any = None) -> str:
 def pick_record(row: OverRow, slate: date, game: Game) -> dict[str, Any]:
     """What the paper log keeps the first time a card shows an over (price at prediction time)."""
     return {
-        "pick_id": row.pick_id, "slate": str(slate), "game_id": game.game_id,
+        "side": row.side, "pick_id": row.pick_id, "slate": str(slate), "game_id": game.game_id,
         "matchup": game.matchup, "tip": None if game.tipoff is None else str(game.tipoff),
         "ticker": row.ticker, "venue": row.venue, "player": row.player,
         "player_id": row.player_id, "stat": row.stat, "line": row.line, "ask": row.ask,
@@ -205,10 +315,11 @@ def overs_from_picks(picks: list[dict[str, Any]]) -> list[OverRow]:
             player_id=p.get("player_id"),
             includes_p_plays=bool(p.get("includes_p_plays")),
             shown_at=str(p.get("shown_at", "")),
+            side=str(p.get("side", "yes")),
         )  # fmt: skip
         for p in picks
     ]
-    return sorted(out, key=lambda r: (-r.edge_c, r.player))
+    return sorted(out, key=lambda r: (-r.edge_c, r.side != "yes", r.player))
 
 
 # ------------------------------------------------------------------------------ halftime

@@ -94,7 +94,7 @@ def test_no_number_on_an_over_line_is_invented() -> None:
 
 def test_no_over_says_the_honest_sentence() -> None:
     _, value = T.overs_field(card(overs=()), STYLE)
-    assert value == "No over has positive EV after fees tonight."
+    assert value == "No over or under has positive EV after fees tonight."
     assert "keep your money" not in value
     _, value = T.overs_field(card(overs=(), overs_note="No pre-tip card was posted."), STYLE)
     assert value == "No pre-tip card was posted."  # when we cannot know, we do not claim "no over"

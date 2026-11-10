@@ -161,6 +161,8 @@ def build_card(
     if phase == "pretip":
         top_n = int(s["top_overs"])
         overs, priced = F.pregame_overs(cfg, d.st, g.game_id, top_n, shown_at, d.kb, d.hold)
+        unders, priced_u = F.pregame_unders(cfg, d.st, g.game_id, top_n, shown_at, d.kb, d.hold)
+        overs, priced = F.merge_ranked(overs, unders, top_n), priced + priced_u
         logged = [p for p in d.state.picks(slate) if p["game_id"] == g.game_id]
         if logged:  # an over already shown never silently disappears: it stays, marked stale
             have = {o.pick_id for o in overs}
@@ -179,7 +181,9 @@ def build_card(
     half: list[Any] = []
     if phase == "halftime":
         box = _box(cfg, slate, lg, now)
-        half = F.half_legs(cfg, overs, d.scorer_rows, g.matchup, box)
+        half = F.half_legs(
+            cfg, [o for o in overs if o.side == "yes"], d.scorer_rows, g.matchup, box
+        )
     recap: Recap | None = None
     if phase == "final":
         recap = recap_for_game(cfg, d.state, g.game_id)
@@ -548,7 +552,7 @@ def _overview(
         "**JARVIS cards** are up for tonight: one per game in each team's channel "
         f"({counts['posted']} posted)."
     )
-    body = T.NO_OVER
+    body = T.NO_OVER_ONLY  # the main-channel note never carries an under
     if best:
         b = best[0]
         body = (
