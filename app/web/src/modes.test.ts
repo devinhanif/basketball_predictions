@@ -68,16 +68,18 @@ describe("the track record route", () => {
 });
 
 describe("the guess score", () => {
-  it("counts who was right, and gives a range only from 10 rounds", () => {
+  it("counts the visitor's own hits, and gives a range only from 10 rounds", () => {
     const rounds = [
-      makeRound("a", "over", "over", true), // both right
-      makeRound("b", "over", "under", true), // only you
-      makeRound("c", "under", "under", true), // the truth is over: both wrong
-      makeRound("d", "under", "over", true), // only the model right
+      makeRound("a", "over", "over", true),
+      makeRound("b", "over", "under", true),
+      makeRound("c", "under", "under", true), // the truth is over: wrong
+      makeRound("d", "under", "over", true),
     ];
-    expect(rounds[2]).toMatchObject({ you_right: false, model_right: false });
+    expect(rounds[2]).toMatchObject({ you_right: false });
     const s = scoreOf(rounds);
-    expect(s).toMatchObject({ n: 4, you: 2, model: 2, both: 1, onlyYou: 1, onlyModel: 1, neither: 1 });
+    expect(s).toMatchObject({ n: 4, you: 2 });
+    expect("model" in s).toBe(false);
+    expect("model_right" in (rounds[0] ?? {})).toBe(false);
     expect(s.youRange).toBeNull();
     const ten = scoreOf(Array.from({ length: 10 }, (_, i) => makeRound(`p${i.toString()}`, "over", "over", i < 6)));
     expect(ten.you).toBe(6);
@@ -96,8 +98,8 @@ describe("the guess score", () => {
     expect(loadRounds()).toEqual([]);
   });
   it("a round with the truth 'over' marks over as right", () => {
-    expect(makeRound("p", "over", "under", true)).toMatchObject({ you_right: true, model_right: false });
-    expect(makeRound("p", "under", "under", false)).toMatchObject({ you_right: true, model_right: true });
+    expect(makeRound("p", "over", "under", true)).toMatchObject({ you_right: true });
+    expect(makeRound("p", "under", "under", false)).toMatchObject({ you_right: true });
   });
 });
 

@@ -47,11 +47,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
         ) : (
           <p class="small rp-result num">
             He {didText(props.stat, a)}.{" "}
-            {posted
-              ? `That is ${a > prop.line ? "over" : "under"} the line, so our lean was ${(a > prop.line) === (lean === "over") ? "right" : "wrong"}.`
-              : a >= (q[4] ?? 0) && a <= (q[14] ?? 0)
-                ? "Inside the middle half of our forecast."
-                : "Outside the middle half of our forecast."}
+            {posted ? `That is ${a > prop.line ? "over" : "under"} the line.` : null}
           </p>
         )
       ) : (
@@ -430,10 +426,6 @@ function ScoreBoard({ score, onReset }: { score: Score; onReset: () => void }) {
           <div class="big-num num">{S(score.you)}</div>
         </div>
         <div>
-          <div class="label">The model</div>
-          <div class="big-num num">{S(score.model)}</div>
-        </div>
-        <div>
           <div class="label">Rounds</div>
           <div class="big-num num">{S(score.n)}</div>
         </div>
@@ -442,9 +434,10 @@ function ScoreBoard({ score, onReset }: { score: Score; onReset: () => void }) {
         <p class="small muted">No rounds yet. The score stays on this device.</p>
       ) : (
         <p class="small num">
-          Right: you {S(score.you)} of {S(score.n)} ({range(score.youRange)}); the model {S(score.model)} of {S(score.n)} ({range(score.modelRange)}). Both right {S(score.both)}, only you {S(score.onlyYou)}, only the model {S(score.onlyModel)}, neither {S(score.neither)}.
+          Right: you {S(score.you)} of {S(score.n)} ({range(score.youRange)}).
         </p>
       )}
+      <p class="small muted">The model's own scorecard for this season is a locked test; it appears after it reads (about Dec 1).</p>
       <button type="button" class="linklike small" onClick={onReset} disabled={score.n === 0}>
         Reset my score
       </button>
@@ -526,7 +519,6 @@ function Round(props: { card: GuessCard; index: number; total: number; onDone: (
           </p>
           <p class="num">
             The model gave the over <b>{pct(rev.model_p_over)}</b> <CalTag source={rev.model_p_source} />, so it said <b>{rev.model_call}</b>.{" "}
-            <span class={done.model_right ? "gs-right" : "gs-wrong"}>{done.model_right ? "It was right." : "It was wrong."}</span>
           </p>
           <p class="small muted num">Its typical night was {num(rev.stat_mean)}. One round says very little about either of you.</p>
         </div>
@@ -599,9 +591,9 @@ function Guess() {
   return (
     <div class="stack">
       <section class="panel">
-        <h2>Guess against the model</h2>
+        <h2>Guess the line</h2>
         <p class="small muted">
-          Real player lines from games already played. You see the line and his recent games; the result and the model's call stay hidden until you
+          Real player lines from games already played. You see the line and his recent games; the result and the model's chance stay hidden until you
           choose. The score stays on this device.
         </p>
       </section>
@@ -636,7 +628,7 @@ function Guess() {
 }
 
 /* ------------------------------------------------------------------ the page */
-const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay a night", calibration: "Calibration", guess: "Guess vs the model" };
+const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay a night", calibration: "Calibration", guess: "Guess the line" };
 
 export function Record(props: { tab: RecordTab; date: string | null }) {
   return (

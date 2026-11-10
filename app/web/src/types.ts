@@ -447,7 +447,6 @@ export interface GuessReveal {
   model_p_over: number;
   model_p_source: PSource;
   model_call: "over" | "under";
-  model_right: boolean;
   minutes: number | null;
   stat_mean: number;
   forecast_stamp: string;

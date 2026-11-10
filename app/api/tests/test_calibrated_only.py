@@ -127,13 +127,9 @@ def test_shown_probs_rules() -> None:
     assert shown_probs(_prop_dict(), 19.5).source == "model"
 
 
-def test_a_guess_reveal_shows_the_calibrated_chance_and_keeps_the_call_on_the_model_number() -> (
-    None
-):
-    """The reveal's chance is the one the screens show. The model's call (and so any tally of the
-    model being right) stays on the model's own number: a calibrated-versus-outcome tally is the
-    locked LINE_CAL_LIVE test, read once."""
-    from parlayhitters_api.forecast import forecast_probs
+def test_a_guess_reveal_shows_the_calibrated_chance_and_no_correctness_field() -> None:
+    """The reveal's chance is the one the screens show, the lean follows it, and nothing says
+    whether the model was right: that verdict is the locked LINE_CAL_LIVE test, read once."""
     from parlayhitters_api.trackrecord import guess_reveal
 
     pr = _prop_dict(line_cal=LC, actual=22)
@@ -154,5 +150,44 @@ def test_a_guess_reveal_shows_the_calibrated_chance_and_keeps_the_call_on_the_mo
     got = guess_reveal(Store(), "g1:7:pts")
     assert got is not None
     assert got.model_p_over == pytest.approx(0.43) and got.model_p_source == "line_cal"
-    raw = forecast_probs(pr["forecast"], 19.5).p_over
-    assert got.model_call == ("over" if raw >= 0.5 else "under")
+    assert got.model_call == ("over" if got.model_p_over >= 0.5 else "under")
+    assert "model_right" not in got.model_dump()
+
+
+def _all_keys(x: Any) -> set[str]:
+    if isinstance(x, dict):
+        return set(x) | {k for v in x.values() for k in _all_keys(v)}
+    if isinstance(x, list):
+        return {k for v in x for k in _all_keys(v)}
+    return set()
+
+
+def test_no_endpoint_returns_a_model_correctness_field_for_props(client: TestClient) -> None:
+    """LINE_CAL_LIVE (frozen): no model-versus-outcome verdict on 2026 props before its look.
+
+    Every response that carries both a model chance and a prop outcome is walked; none may carry
+    a field that says the model was right, wrong, correct or a hit.
+    """
+    # (the published 2024-25 T493 record carries its own "verdict"; it is not a 2026 prop result)
+    banned = ("right", "wrong", "correct", "model_hit", "lean_hit", "model_won")
+    gid, pid, stat = PLANTED
+    slates = client.get("/api/slates").json()
+    date = next(s["date"] for s in slates if s["finished"] > 0)
+    bodies: list[Any] = [
+        client.get(f"/api/slates/{date}").json(),
+        client.get(f"/api/slates/{date}/results").json(),
+        client.get(f"/api/slates/{date}/swipe").json(),
+        client.get(f"/api/games/{gid}").json(),
+        client.get(f"/api/games/{gid}/result").json(),
+        client.get(f"/api/card/{gid}/{pid}/{stat}").json(),
+        client.get("/api/track-record/calibration").json(),
+    ]
+    deck = client.get("/api/track-record/guess?seed=3&n=8").json()
+    assert deck["cards"]
+    for c in deck["cards"]:
+        g, p, s = c["prop_id"].split(":")
+        bodies.append(client.get(f"/api/track-record/guess/{g}/{p}/{s}").json())
+    for body in bodies:
+        keys = _all_keys(body)
+        hits = {k for k in keys if any(b in k.lower() for b in banned)}
+        assert not hits, hits

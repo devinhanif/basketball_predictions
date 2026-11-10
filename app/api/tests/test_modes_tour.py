@@ -184,7 +184,7 @@ def test_the_reveal_matches_the_stored_result_and_the_model_number(client: TestC
         assert r["actual"] == pl["props"][stat]["actual"]
         assert r["went_over"] == (r["actual"] > card["line"])
         assert r["model_call"] == ("over" if r["model_p_over"] >= 0.5 else "under")
-        assert r["model_right"] == ((r["model_call"] == "over") == r["went_over"])
+        assert "model_right" not in r
         assert 0 <= r["model_p_over"] <= 1
 
 

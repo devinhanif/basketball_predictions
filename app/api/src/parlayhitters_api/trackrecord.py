@@ -30,7 +30,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from .breakdown import Context
-from .forecast import dist_grid, forecast_probs, shown_probs
+from .forecast import dist_grid, shown_probs
 from .minutes import moments
 
 Json = dict[str, Any]
@@ -309,7 +309,6 @@ class GuessReveal(BaseModel):
     model_p_over: float
     model_p_source: str  # line_cal | rung_cal | model
     model_call: str  # "over" | "under"
-    model_right: bool
     minutes: float | None
     stat_mean: float
     forecast_stamp: str
@@ -400,12 +399,12 @@ def guess_reveal(store: Any, prop_id: str) -> GuessReveal | None:
     line = float(pr["line"])
     shown = shown_probs(pr, line)  # the calibrated chance where the export has one
     p = shown.p_over
-    raw_p = forecast_probs(pr["forecast"], line).p_over
     actual = int(pr["actual"])
     over = actual > line
-    # The model's call stays on its own number so no calibrated-versus-outcome tally is built here
-    # (LINE_CAL_LIVE); only the chance shown is the calibrated one.
-    call = "over" if raw_p >= 0.5 else "under"
+    # The lean follows the chance shown. No field says whether the model was right: the frozen
+    # LINE_CAL_LIVE rule forbids any model-versus-outcome verdict or tally on 2026 props until its
+    # single look (about Dec 1). The reveal carries the chance and the outcome side by side.
+    call = "over" if p >= 0.5 else "under"
     return GuessReveal(
         prop_id=prop_id,
         actual=actual,
@@ -414,7 +413,6 @@ def guess_reveal(store: Any, prop_id: str) -> GuessReveal | None:
         model_p_over=p,
         model_p_source=shown.source,
         model_call=call,
-        model_right=(call == "over") == over,
         minutes=None if pl["result"] is None else float(pl["result"]["minutes"]),
         stat_mean=moments(dist_grid(pr["forecast"])["p_ge"])[0],
         forecast_stamp=str(pr["forecast"]["stamp"]),

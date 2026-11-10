@@ -255,7 +255,13 @@
 }
 .rp-game {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
+}
+.rp-game .btn {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
 }
 .rp-players {
   display: grid;
@@ -331,7 +337,7 @@
 }
 .gs-cols {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   text-align: center;
 }
