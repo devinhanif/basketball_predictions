@@ -30,6 +30,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     c.add_argument("--legs-file", type=Path, default=LEGS_FILE)
     c.add_argument("--interval-s", type=float, default=60.0)
     c.add_argument("--max-requests-per-tick", type=int, default=300)
+    c.add_argument(
+        "--fresh-interval-s",
+        type=float,
+        default=0.0,
+        help="> 0: also run the ESPN freshness poller (live games only) at this cadence",
+    )
     c.add_argument("--once", action="store_true", help="one tick now (smoke test), no waiting")
     c.add_argument("--start-now", action="store_true", help="do not wait for the window start")
     o = sub.add_parser("offer", help="log one observed cash-out offer with the legs' public quotes")
@@ -59,6 +65,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     day = a.date or datetime.now(ET).date()
     out = a.out or ROOT / "data" / "raw" / f"live_{day.isoformat()}"
     budget = Budget(max_requests_per_tick=a.max_requests_per_tick, interval_s=a.interval_s)
+    fresh = None
+    if a.fresh_interval_s > 0:
+        from nba.live.espn_fresh import FreshPoller
+
+        fresh = FreshPoller(day, out, interval_s=a.fresh_interval_s)
     cap = Capture(
         day,
         out,
@@ -66,6 +77,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         fetcher=Fetcher(rate_per_s=budget.rate_per_s),
         budget=budget,
         legs_file=a.legs_file,
+        fresh=fresh,
     )
     return cap.run(once=a.once, start_now=a.start_now)
 
