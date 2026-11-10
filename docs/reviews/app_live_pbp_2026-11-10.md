@@ -100,3 +100,49 @@ checkpoint writer fail mid-game, silently, from the internet.
 - DECISIONS (only if Devin chooses M3 option (c)): "2026-11-10: live prop trackers show the calibrated pre-game chance
   beside in-game counts, including cleared overs, on LINE_CAL_LIVE-locked nights; accepted as display exposure, no
   tally; Claude and agents do not aggregate. Reverse: any aggregate read before the look."
+
+---
+
+## Re-review (1e84a039; diff de4ca503..1e84a039)
+
+All of M1, M2, M3 and the minors are fixed. My replay of the checks turned up one new major: the game-page live embed
+puts the per-prop outcome back next to the calibrated chances that the merged lock hides on that page. It is a small
+gate, but it reverses the lock merged yesterday, so the branch is not mergeable yet. **Overall: WOUNDED.**
+
+Verdict: BLOCKED
+
+How I tested: worktree `agent-a774eb25b6ab9e893` at 1e84a039. I ran my own API (:8765, `APP_LIVE_DIR` set to a scratch
+copy of the fixture with the final body held back, `APP_CHECKPOINT_SNAPSHOT` set to a missing file), vite (:5293) and
+Chrome (:9672). All were stopped. I did not touch 5173, 8000 or cloudflared.
+
+| Fix | Command / method | n | Result | Pass |
+|---|---|---|---|---|
+| M2 slot leak | replanted `live_attack.py` (total cap 2, 40 extra valid events) | 38 HubFull | Games dict 2 while full. **0** dead entries after viewers left (was 28/30). A fresh viewer is fine | PASS |
+| M1 checkpoint lock | `grep -rn "import duckdb\|duckdb.connect" app/`; read `live.py` | n/a | No DuckDB anywhere in `live.py`/`live_routes.py`. The only runtime DuckDB in `app/api/src` is `export_store.py:281` (`read_only=True` on the export copy, which was already there and is not a live store). Checkpoints are read from a published JSON (`ingame_checkpoint_snapshot_v1`), with a 15 s cache, a 5 MB cap, a version check and whitelisted fields | PASS |
+| Traversal set | the same 7 crafted paths over the real server | 7 | All 404 (`..%2F`, `%2e%2e`, `%0A` date and id, Arabic-Indic digits, `..%2f..%2fapp`, `//etc/passwd`). The `%0A` date that returned 200 before now returns 404 (`fullmatch`, `[0-9]`) | PASS |
+| Gzip bomb | 200 MB of spaces compressed into a 204 KB body under a valid event | 1 | Refused ("larger than 20000000 bytes decompressed"), `UnknownGame`, max RSS +40 MB, no entry left behind | PASS |
+| Stream headers | `/api/live/401909955/stream` with `Accept-Encoding: gzip` | 1 | `text/event-stream`, `Cache-Control: no-cache, no-transform` (now kept), no `Content-Encoding`, `X-Accel-Buffering: no`. Store routes still get `no-cache` | PASS |
+| M3 trackers on a locked night | `locked_render.mjs`: Live game 401909952 (2026-11-09, held in progress) with the Prop trackers tab opened; code read of `buildTrackers`/`chanceLocked`/`treatAsFinal` | 1 render + code | The note reads "Pre-game chances are not shown here. The model's number for this night is part of a locked test until about Dec 1." `chance` and `source` are null whenever `date >= 2026-10-30`, in progress or final. A game more than 4 h past tip is treated as final. The fixture's ESPN names do not match the export slate, so no tracker rows render ("No lines to track here"). The no-chance rule is pinned by `live.test.ts` | PASS |
+| Gates (unpiped) | pytest; ruff; format; mypy; eslint; tsc; vitest | 420+1 skipped; 284 | all exit 0 | PASS |
+
+**New M5 (major): the game-page live embed shows the per-prop outcome beside calibrated chances on locked nights.**
+- `pages/Game.tsx:221` renders `<GameLive g={g} />` on every game page.
+  - For a finished game it sits behind "Show play by play (shows the final score)".
+  - For a game in progress it is open.
+- Inside are the Box score tab (per-player PTS, REB, AST, 3PM, final or running) and the play feed.
+- The same page renders each player's calibrated chance (`Game.tsx:61,129`). The merged lock deliberately replaces
+  each per-prop result there with `RESULT_HIDDEN` (`Game.tsx:89,150`).
+- Rendered on `#/game/0022600203` (2026-11-09): after "Show play by play" and "Box score", the page lists, for example,
+  "LUKA DONCIC … 22 PTS 6 REB 9 AST 3 3PM". In this export the game has no posted-line chances, so the overlap did not
+  render here. On any locked night with posted lines, the chance and the outcome share one screen, which is what the
+  lock forbids and what M3 just removed from the trackers.
+- Fix (one gate): on a locked night (`isLockedNight(g.date)`), the game page shows only status, score and the "Open
+  the full live view" link, without `LiveGame`'s Box and Prop tabs (Plays text also reveals per-player scoring). The
+  full Live screen carries no chances on locked nights, so linking there is safe.
+- Add a render or unit test: on a locked date the game page never mounts the live box.
+
+The display-level lock is now consistent everywhere except this embed. With M5 fixed I expect to approve without
+another full pass: re-check only the game page on a locked date.
+
+**Not verified:** a real Cloudflare tunnel; tracker rows with real lines (fixture names do not match); the published
+checkpoint snapshot written by JARVIS (the contract exists, the writer is not on this branch).
