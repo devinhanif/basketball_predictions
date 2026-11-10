@@ -58,15 +58,17 @@ def test_overs_field_names_line_price_fair_ev_and_a_plain_why() -> None:
     assert name == "Top overs by EV after fees"
     assert "LeBron James 25+ pts" in value
     assert "ask 44c" in value and "fair 60c" in value
-    assert "EV +0.14 per $1 contract (+32%) after the 2c fee" in value
+    assert "EV +0.14 per $1 contract (+30%) after the 2c fee" in value
     assert "Pinnacle" in value and "chance he plays" in value and "12 min old" in value
-    assert "58%" in value and "moderate range" in value  # model 58 vs sharp 62: 4 pts apart
+    assert "58%" in value and "4 percentage points apart (some gap)" in value
+    assert "Kalshi asks 44c" in value and "puts fair at 62c; JARVIS fair 60c" in value
+    assert "range" not in value and " pts from" not in value
 
 
 def test_the_model_range_words_follow_the_configured_gap() -> None:
-    assert "narrow" in T.confidence_words(over(model=0.61, pin=0.62), STYLE)
-    assert "moderate" in T.confidence_words(over(model=0.58, pin=0.62), STYLE)
-    assert "wide range" in T.confidence_words(over(model=0.50, pin=0.62), STYLE)
+    assert "(close)" in T.confidence_words(over(model=0.61, pin=0.62), STYLE)
+    assert "(some gap)" in T.confidence_words(over(model=0.58, pin=0.62), STYLE)
+    assert "(far apart)" in T.confidence_words(over(model=0.50, pin=0.62), STYLE)
     assert "No model number" in T.confidence_words(over(model=None), STYLE)
 
 
@@ -79,8 +81,9 @@ def test_no_number_on_an_over_line_is_invented() -> None:
         f"{o.line:g}",
         f"{o.ask * 100:.0f}",
         f"{o.fair * 100:.0f}",
+        f"{o.pin * 100:.0f}",
         f"{o.edge_c / 100:.2f}",
-        f"{o.edge_c / (o.ask * 100) * 100:.0f}",
+        f"{o.edge_c / (o.ask * 100 + o.fee_c) * 100:.0f}",
         f"{o.fee_c:.0f}",
         f"{o.ref_age_min:.0f}",
         f"{o.model * 100:.0f}",
@@ -91,7 +94,8 @@ def test_no_number_on_an_over_line_is_invented() -> None:
 
 def test_no_over_says_the_honest_sentence() -> None:
     _, value = T.overs_field(card(overs=()), STYLE)
-    assert value == "No over is worth it tonight — keep your money."
+    assert value == "No over has positive EV after fees tonight."
+    assert "keep your money" not in value
     _, value = T.overs_field(card(overs=(), overs_note="No pre-tip card was posted."), STYLE)
     assert value == "No pre-tip card was posted."  # when we cannot know, we do not claim "no over"
 
@@ -138,7 +142,7 @@ def test_a_hit_and_a_miss_have_the_same_shape_and_only_the_hit_is_annotated() ->
     miss = SettledRow("Austin Reaves", "ast", 6.0, 0.44, 2.0, 14.0, "settled", False, -1.0)
     h, m = T.settled_line(hit), T.settled_line(miss)
     assert h.startswith(T.HIT) and m.startswith(T.MISS)
-    assert "this one hit; it was still a +32% bet" in h
+    assert "this one hit; it was a +30% EV bet when shown" in h
     assert "this one hit" not in m and "bet" not in m
     shape = re.compile(r"^. \d+\+ \w+ [\w ]+: bought at 44c \+ 2c fee: [+-]\d\.\d\d units")
     assert shape.match(h) and shape.match(m)
@@ -150,7 +154,7 @@ def test_the_recap_reports_units_and_withholds_a_claim_below_the_minimum() -> No
     rc = Recap(
         rows=(SettledRow("A B", "pts", 20.0, 0.5, 2.0, 9.0, "settled", True, 0.92),),
         waiting=1, n_hit=1, n_miss=0, units=0.92, season_n=7, season_hit=3, season_units=-0.8,
-        season_dates=4, claim_ok=False, min_n=30, min_dates=10,
+        season_dates=4,
     )  # fmt: skip
     f = T.recap_field(card(phase="final", recap=rc, away_score=110, home_score=104))
     assert f is not None
@@ -159,12 +163,11 @@ def test_the_recap_reports_units_and_withholds_a_claim_below_the_minimum() -> No
     assert "Waiting on the box score for 1 over" in value
     assert "**This game:** 1 hit, 0 miss, +0.92 units on paper" in value
     assert "n = 7 settled over 4 dates, 3 hit, 4 miss, -0.80 units" in value
-    assert "Insufficient sample (needs 30 settled over 10 dates): this claims nothing." in value
+    assert "descriptive, not a tested claim" in value and "CI" not in value
     assert T.recap_field(card(phase="pretip", recap=rc)) is None
-    ok = Recap(season_n=40, season_hit=18, season_units=1.5, season_dates=12, claim_ok=True,
-               ci=(0.04, -0.2, 0.3), min_n=30, min_dates=10)  # fmt: skip
-    line = T.season_line(ok)
-    assert "95% CI -0.20 to +0.30 (date-clustered)" in line and "Insufficient" not in line
+    big = Recap(season_n=400, season_hit=180, season_units=15.5, season_dates=40)
+    line = T.season_line(big)  # however large n gets, no interval and no claim is printed
+    assert "n = 400" in line and "CI" not in line and "descriptive" in line
 
 
 def test_knowledge_lists_the_channel_team_first_and_says_when_nothing_is_open() -> None:
@@ -174,7 +177,8 @@ def test_knowledge_lists_the_channel_team_first_and_says_when_nothing_is_open() 
     assert "**Game-time decisions:** LAL: Austin Reaves (questionable)." in v
     assert "**Starters:** LAL: A, B, C, D, E. Lineups read 3 min ago." in v
     assert "injury report is 45 min old" in v
-    assert "**How sure:**" in v and k.report_age_min == 45.0
+    assert "**Model vs sharp line** (agreement, not a confidence interval)" in v
+    assert k.report_age_min == 45.0
     empty = card(knows=Knows())
     _, v = T.knows_field(empty, STYLE)
     assert "no rotation player is listed out" in v and "none open" in v
@@ -250,7 +254,7 @@ def test_a_full_real_shaped_card_is_inside_every_limit_in_every_phase() -> None:
         SettledRow(f"Player Number{i}", "pts", 25.0, 0.44, 2.0, 14.0, "settled", i % 2 == 0, 0.5)
         for i in range(3)
     )
-    rc = Recap(rows=rows, n_hit=2, n_miss=1, units=0.4, season_n=9, season_hit=4, claim_ok=False)
+    rc = Recap(rows=rows, n_hit=2, n_miss=1, units=0.4, season_n=9, season_hit=4)
     for phase in ("pretip", "live", "halftime", "final"):
         c = card(
             phase=phase, overs=overs, half=legs if phase == "halftime" else (),

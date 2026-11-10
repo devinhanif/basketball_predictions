@@ -427,13 +427,15 @@ def _tick(rt: Runtime, slate: date, now: datetime) -> dict[str, Any]:
             rt.book.note_alert(p.key, slate, p.edge_cents, now)
         rep["alerts"].append(res)
     rep["halftime"] = _halftime(rt, st, slate, now, rep)
-    rep["cards"] = _cards(rt, st, slate, now)
     try:  # in-game signals never break the tick; a busy store skips only this part
         from nba.jarvis.ingame_run import run_ingame
 
         rep["ingame"] = run_ingame(rt, slate, st.games)
     except Exception as exc:
         rep["ingame"] = [{"ok": False, "error": type(exc).__name__}]
+    rep["cards"] = _cards(
+        rt, st, slate, now
+    )  # LAST: alerts, check-ins and in-game posts never wait on it
     return rep
 
 
@@ -680,10 +682,16 @@ def tick_line(rep: dict[str, Any]) -> str:
         moved = {
             k: v
             for k, v in (cd.get("cards") or {}).items()
-            if k in ("posted", "edited", "reposted", "deferred", "failed")
+            if k in ("posted", "edited", "reposted", "deferred", "failed", "lost_id")
         }
         if moved:
             flags.append("cards=" + "/".join(f"{v}{k}" for k, v in sorted(moved.items())))
+        if cd.get("skipped") == "no team webhooks configured":
+            flags.append("cards=off(no webhooks)")
+        if cd.get("stopped"):
+            flags.append(f"cards_stopped={cd['stopped'].replace(' ', '_')}")
+        if cd.get("state_skipped"):
+            flags.append(f"cards_state_skipped={cd['state_skipped']}")
         if cd.get("no_webhook_teams"):
             flags.append(f"cards_no_webhook={len(cd['no_webhook_teams'])}")
     hs = rep.get("ht_scorer")

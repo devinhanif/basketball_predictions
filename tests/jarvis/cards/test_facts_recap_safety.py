@@ -202,7 +202,7 @@ def test_settlement_waits_for_a_result_voids_a_dnp_and_is_idempotent(
     assert (rec.n_hit, rec.n_miss, rec.n_void, rec.waiting) == (1, 1, 1, 1)
     assert rec.units == pytest.approx(RC.units_for(0.44, 2.0, True) - 1.0)
     assert rec.season_n == 2  # a void is not counted in n
-    assert rec.claim_ok is False and rec.ci is None  # insufficient sample: claims nothing
+    assert not hasattr(rec, "ci")  # no interval exists on this population
 
 
 def test_a_game_that_has_not_tipped_is_never_settled(cfg: JarvisConfig, tmp_path: Path) -> None:
@@ -213,7 +213,7 @@ def test_a_game_that_has_not_tipped_is_never_settled(cfg: JarvisConfig, tmp_path
     assert RC.settle_pending(cfg, s, early, source=src) == 0  # type: ignore[arg-type]
 
 
-def test_the_season_ci_appears_only_past_the_configured_minimum(
+def test_the_season_line_counts_every_settled_over_across_dates(
     cfg: JarvisConfig, tmp_path: Path
 ) -> None:
     c = replace(cfg, min_settled=6, min_settled_dates=3)
@@ -230,13 +230,7 @@ def test_the_season_ci_appears_only_past_the_configured_minimum(
     RC.settle_pending(c, s, datetime(2026, 11, 1), source=FakeSource(outcomes))  # type: ignore[arg-type]
     rec = RC.recap_for_game(c, s, "G1")
     assert rec.season_n == n == 9 and rec.season_dates == 3
-    assert rec.claim_ok is True and rec.ci is not None
-    mean, lo, hi = rec.ci
-    assert lo <= mean <= hi
-    assert rec.min_n == 6 and rec.min_dates == 3
-    # the same record under the real floor says nothing
-    low = RC.recap_for_game(replace(c, min_settled=30, min_settled_dates=10), s, "G1")
-    assert low.claim_ok is False and low.ci is None
+    assert rec.season_hit == 6 and rec.season_units != 0.0
 
 
 def test_state_records_the_latest_per_game_and_team_and_survives_a_missing_file(
@@ -331,5 +325,5 @@ def test_config_block_names_the_variable_but_holds_no_secret() -> None:
 
 def test_the_card_files_are_written_one_line_at_a_time_to_the_configured_jsonl_only() -> None:
     text = (PKG / "state.py").read_text()
-    assert '.open("a"' in text and ".write_text(" not in text and "unlink" not in text
+    assert '.open("ab"' in text and ".write_text(" not in text and "unlink" not in text
     assert not any("open(" in line and '"w"' in line for line in text.splitlines())

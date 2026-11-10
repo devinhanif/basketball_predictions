@@ -4,18 +4,19 @@ An over is scored at the price it was FIRST shown (prediction time). "Units": ev
 unit, so a hit at cost c (ask plus fee per contract) earns (1 - c) / c units and a miss loses 1.
 A player who did not play is void (the venue's rule decides; nothing is guessed) and is excluded
 from n. Outcomes come from ``book.OutcomeSource`` (Kalshi's own result first, else the box score),
-read-only; a pick whose game has no result yet simply waits. The season CI is a bootstrap over
-slate dates and is shown only past the configured minimum (``min_settled``, ``min_settled_dates``);
-below it the card says "insufficient sample" and claims nothing.
+read-only; a pick whose game has no result yet simply waits. The season line is DESCRIPTIVE (n,
+hits, misses, units): no rule tests this population, so no interval and no claim is printed
+(DECISIONS 2026-11-10: card_picks.jsonl is never an input to a frozen rule, the kill switch or
+the model weights).
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
-from nba.jarvis.book import OutcomeSource, cluster_ci
+from nba.jarvis.book import OutcomeSource
 from nba.jarvis.cards.model import Recap, SettledRow
 from nba.jarvis.cards.state import CardState
 from nba.jarvis.config import JarvisConfig
@@ -58,6 +59,7 @@ def settle_pending(
     *,
     source: OutcomeSource | None = None,
     game_ids: set[str] | None = None,
+    min_slate: str | None = None,
 ) -> int:
     """Append a settlement for every logged over whose game now has a result. Idempotent."""
     src = source or OutcomeSource(cfg)
@@ -65,6 +67,8 @@ def settle_pending(
     for p in state.picks():
         if "settled" in p or (game_ids is not None and p["game_id"] not in game_ids):
             continue
+        if min_slate is not None and str(p["slate"]) < min_slate:
+            continue  # an old pick still waiting is not retried every tick
         tip = p.get("tip")
         if tip is not None and datetime.fromisoformat(str(tip)) > now:
             continue
@@ -118,9 +122,7 @@ def recap_for_game(cfg: JarvisConfig, state: CardState, game_id: str) -> Recap:
     hit = sum(1 for r in rows if r.status == "settled" and r.won)
     miss = sum(1 for r in rows if r.status == "settled" and not r.won)
     done = [p for p in allp if p.get("settled", {}).get("status") == "settled"]
-    vals = [(date.fromisoformat(str(p["slate"])), float(p["settled"]["units"])) for p in done]
-    dates = {d for d, _ in vals}
-    claim_ok = len(done) >= cfg.min_settled and len(dates) >= cfg.min_settled_dates
+    dates = {str(p["slate"]) for p in done}
     return Recap(
         rows=tuple(rows),
         waiting=waiting,
@@ -130,10 +132,6 @@ def recap_for_game(cfg: JarvisConfig, state: CardState, game_id: str) -> Recap:
         units=sum(r.units for r in rows if r.status == "settled"),
         season_n=len(done),
         season_hit=sum(1 for p in done if p["settled"].get("won")),
-        season_units=sum(v for _, v in vals),
+        season_units=sum(float(p["settled"]["units"]) for p in done),
         season_dates=len(dates),
-        claim_ok=claim_ok,
-        ci=cluster_ci(vals) if claim_ok else None,
-        min_n=cfg.min_settled,
-        min_dates=cfg.min_settled_dates,
     )

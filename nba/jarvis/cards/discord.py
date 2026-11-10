@@ -40,14 +40,24 @@ class RateGate:
         budget_s: float = 20.0,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        total_s: float = 25.0,
     ) -> None:
         self.budget_s = budget_s
+        self.deadline = (
+            clock() + total_s
+        )  # ONE wall-clock budget for the whole pass, network included
+        self.broken = (
+            False  # circuit: after the first transport error or 5xx, nothing more is tried
+        )
         self.spent_s = 0.0
         self._sleep = sleep
         self._clock = clock
         self._not_before: dict[str, float] = {}
         self._global_until = 0.0
         self.n_429 = 0
+
+    def stopped(self) -> bool:
+        return self.broken or self._clock() >= self.deadline
 
     def wait_needed(self, bucket: str) -> float:
         now = self._clock()
@@ -57,7 +67,7 @@ class RateGate:
         """Sleep if the budget allows; False means 'defer to the next tick'."""
         if seconds <= 0:
             return True
-        if self.spent_s + seconds > self.budget_s:
+        if self.spent_s + seconds > self.budget_s or self._clock() + seconds >= self.deadline:
             return False
         self._sleep(seconds)
         self.spent_s += seconds
@@ -91,12 +101,16 @@ class CardClient:
         http: Any | None = None,
         gate: RateGate | None = None,
         *,
-        timeout_s: float = 15.0,
+        timeout_s: float = 5.0,
         max_tries: int = 3,
         secrets: list[str] | None = None,
     ) -> None:
         self._own = http is None
-        self.http: Any = http if http is not None else httpx.Client(timeout=timeout_s)
+        self.http: Any = (
+            http
+            if http is not None
+            else httpx.Client(timeout=httpx.Timeout(timeout_s, connect=min(3.0, timeout_s)))
+        )
         self.gate = gate or RateGate()
         self.max_tries = max_tries
         self.secrets = list(secrets or [])
@@ -123,12 +137,15 @@ class CardClient:
         bucket = webhook_id(url)
         payload = {**body, "allowed_mentions": {"parse": []}}
         for _try in range(self.max_tries):
+            if self.gate.stopped():
+                return CardResult(False, "deferred", note="card pass stopped for this tick")
             if not self.gate.wait(self.gate.wait_needed(bucket)):
                 return CardResult(False, "deferred", note="rate limit wait over the tick budget")
             try:
                 resp = self.http.request(method, target, json=payload)
                 code = int(resp.status_code)
             except httpx.HTTPError as exc:  # a transport message can carry the URL: type only
+                self.gate.broken = True
                 return CardResult(False, "deferred", note=f"transport {type(exc).__name__}")
             hdr = getattr(resp, "headers", {}) or {}
             self.gate.note(
@@ -147,8 +164,9 @@ class CardClient:
                     return CardResult(False, "deferred", code=429, note="rate limited; next tick")
                 continue
             if code >= 500:
+                self.gate.broken = True
                 return CardResult(False, "deferred", code=code, note=f"discord HTTP {code}")
-            status = "gone" if code in (404, 10008) else "failed"
+            status = "gone" if code == 404 else "failed"
             return CardResult(
                 False,
                 status,

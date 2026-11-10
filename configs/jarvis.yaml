@@ -219,6 +219,7 @@ team_cards:                     # per-team Discord live cards (nba/jarvis/cards;
   wide_pts: 8.0                 # display: this far apart or more = wide range
   bar_width: 10                 # characters in the progress bar
   rate_budget_s: 20             # most seconds one tick may wait on Discord rate limits; past it the edit is deferred to the next tick
+  tick_budget_s: 25             # ONE wall-clock budget for the whole card pass, network time included; after it (or the first network error or 5xx) the rest wait for the next tick
   overview_post: true           # one short overview in the main channel the first time cards go up for the date
   state: data/jarvis/cards_state.jsonl     # append-only: message ids per game and team
   picks: data/jarvis/card_picks.jsonl      # append-only: every over a card showed, at the price shown first, and its settlement

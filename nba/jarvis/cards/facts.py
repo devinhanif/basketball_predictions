@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
 
@@ -64,18 +65,40 @@ def over_from_play(p: Play, slate: date, shown_at: str, display_name: str) -> Ov
     )
 
 
+#: Notes ``single_candidate`` attaches when it CAPS a play at thin for a weak input (a Pinnacle
+#: line older than max_ref_age_min, Pinnacle newer than the price, no P(plays)). A capped over is
+#: not shown.
+CAP_NOTES = (
+    "prop DNP rule unverified and no P(plays)",
+    "Pinnacle line is",
+    "min newer than this price",
+)
+
+
+def is_capped(p: Play) -> bool:
+    return any(n.startswith(CAP_NOTES[:2]) or CAP_NOTES[2] in n for n in p.notes)
+
+
 def pregame_overs(
-    cfg: JarvisConfig, st: SlateState, game_id: str, top_n: int, shown_at: str, kb: Any = None
+    cfg: JarvisConfig,
+    st: SlateState,
+    game_id: str,
+    top_n: int,
+    shown_at: str,
+    kb: Any = None,
+    hold: Callable[[Play], bool] | None = None,
 ) -> tuple[list[OverRow], int]:
     """Up to ``top_n`` overs with a measured edge above zero after fee, best EV first (one line per
-    player and stat), and how many overs were priced at all. Yes side of a prop only."""
+    player and stat), and how many overs were priced (and passed every gate) at all. Yes side of a
+    prop only. Same gates as the slate: a play capped at thin for a weak input, or held on a stale
+    Pinnacle reference (``hold``, the 11-08 preview hold), is neither shown nor counted."""
     best: dict[tuple[str, str], OverRow] = {}
     priced = 0
     for q in st.tradable(cfg):
         if q.game_id != game_id or q.kind != "prop":
             continue
         p = single_candidate(cfg, st, q, "yes")
-        if p is None:
+        if p is None or is_capped(p) or (hold is not None and hold(p)):
             continue
         row = over_from_play(p, st.slate, shown_at, _name(q, kb))
         if row is None:
@@ -213,6 +236,22 @@ def half_legs(
         if on
         else "the halftime scorer is off, so there is no live price"
     )
+    gm = [r for r in scorer_rows if r.get("game") == matchup]
+    top = (
+        HO.top_overs(
+            gm,
+            matchup,
+            float(s["min_edge"]),
+            int(s["top_n"]),
+            int(s["display_min_bid_c"]),
+            int(s["display_max_spread_c"]),
+        )  # fmt: skip
+        if on
+        else []
+    )
+    listed = {(norm_name(str(r["player_name"])), str(r["stat"]), int(r["k"])) for r in top}
+    listed_ps = {(k[0], k[1]) for k in listed}
+    top_n = int(s["top_n"]) if on else 0
     legs: list[HalfLeg] = []
     seen: set[tuple[str, str, int]] = set()
     for o in overs:
@@ -221,6 +260,13 @@ def half_legs(
         r = idx.get(key)
         if r is not None:
             verdict, why = _verdict(r, s)
+            if verdict == "enter" and key not in listed:  # the scorer's own list is the rule
+                verdict = "skip"
+                why = (
+                    "a better strike for this player clears the bar"
+                    if (key[0], key[1]) in listed_ps
+                    else f"it is not among the scorer's top {top_n} for this game"
+                )
             legs.append(
                 HalfLeg(o.player, o.stat, int(o.line), _int(r.get("cur")), int(r["ask_c"]),
                         _int(r.get("bid_c")), _int(r.get("fee_c")), float(r["p_model"]),
@@ -232,12 +278,7 @@ def half_legs(
                 HalfLeg(o.player, o.stat, int(o.line), cur, None, None, None, None, None, "skip",
                         none_why, True)
             )  # fmt: skip
-    extra = [] if not on else HO.top_overs(
-        [r for r in scorer_rows if r.get("game") == matchup],
-        matchup, float(s["min_edge"]), int(s["top_n"]),
-        int(s["display_min_bid_c"]), int(s["display_max_spread_c"]),
-    )  # fmt: skip
-    for r in extra:
+    for r in top:
         key = (norm_name(str(r["player_name"])), str(r["stat"]), int(r["k"]))
         if key in seen:
             continue

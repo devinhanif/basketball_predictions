@@ -117,4 +117,4 @@ def test_an_over_is_logged_only_once_a_card_showed_it(rt: Runtime, tmp_path: Pat
     assert st.picks(SLATE) == []
     assert rep["cards"].get("deferred", 0) == 4 and "posted" not in rep["cards"]
     run(rt)  # next tick: the posts go through, and now the over is logged at the price shown
-    assert [p["player"] for p in st.picks(SLATE)] == ["LeBron James"]
+    assert [p["player"] for p in R.state_of(rt.cfg).picks(SLATE)] == ["LeBron James"]

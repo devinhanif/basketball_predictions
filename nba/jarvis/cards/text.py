@@ -12,10 +12,10 @@ from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 from nba.jarvis.cards.model import CardData, HalfLeg, OverRow, Recap, SettledRow
-from nba.jarvis.render import cents
+from nba.jarvis.render import VENUE, cents
 
 STAT = {"pts": "pts", "reb": "reb", "ast": "ast", "fg3m": "3PM"}
-NO_OVER = "No over is worth it tonight — keep your money."
+NO_OVER = "No over has positive EV after fees tonight."
 DISCLAIMER = "Paper only. Not advice."
 
 ON_PACE, BEHIND, HIT, MISS, NEUTRAL = "🟢", "🟠", "✅", "❌", "⚪"
@@ -77,26 +77,26 @@ def status_line(card: CardData, tip_in: str = "") -> str:
 # ------------------------------------------------------------------------------ overs
 
 
+def agreement_word(gap: float, style: Style) -> str:
+    if gap <= style.narrow_pts:
+        return "close"
+    return "far apart" if gap >= style.wide_pts else "some gap"
+
+
 def confidence_words(row: OverRow, style: Style) -> str:
-    """How closely our model and the sharp line agree, in words (not a probability interval)."""
+    """How closely our model and the sharp line agree (NOT a confidence interval)."""
     if row.model is None or row.pin is None:
         return "No model number for this one, so the sharp line is the only read."
     gap = abs(row.model - row.pin) * 100.0
-    if gap <= style.narrow_pts:
-        word = "narrow range"
-    elif gap >= style.wide_pts:
-        word = "wide range, so lean on the edge less"
-    else:
-        word = "moderate range"
     below = f" That is below the {cents(row.ask)} price." if row.model < row.ask else ""
     return (
-        f"Our model has it at {row.model * 100:.0f}%, {gap:.0f} pts from the sharp line: {word}."
-        + below
+        f"Our model says {row.model * 100:.0f}%; it and the sharp line are "
+        f"{plural(round(gap), 'percentage point')} apart ({agreement_word(gap, style)})." + below
     )
 
 
 def ev_phrase(row: OverRow) -> str:
-    ev_pct = row.edge_c / (row.ask * 100.0) * 100.0
+    ev_pct = row.edge_c / (row.ask * 100.0 + row.fee_c) * 100.0
     return (
         f"EV {row.edge_c / 100.0:+.2f} per $1 contract ({ev_pct:+.0f}%) "
         f"after the {row.fee_c:.0f}c fee"
@@ -104,11 +104,15 @@ def ev_phrase(row: OverRow) -> str:
 
 
 def why_line(row: OverRow, style: Style) -> str:
-    bits = [f"Kalshi asks {cents(row.ask)}"]
-    if row.fair is not None:
+    venue = VENUE.get(row.venue, row.venue)
+    bits = [f"{venue} asks {cents(row.ask)}"]
+    sharp = row.pin if row.pin is not None else row.fair
+    if sharp is not None:
         age = "" if row.ref_age_min is None else f", {row.ref_age_min:.0f} min old"
         plays = ", adjusted for the chance he plays" if row.includes_p_plays else ""
-        bits.append(f"the sharp line (Pinnacle, no vig{plays}{age}) puts fair at {cents(row.fair)}")
+        bits.append(f"the sharp line (Pinnacle, no vig{plays}{age}) puts fair at {cents(sharp)}")
+    if row.fair is not None and sharp is not None and abs(row.fair - sharp) > 1e-9:
+        bits.append(f"JARVIS fair {cents(row.fair)}")
     return "; ".join(bits) + ". " + confidence_words(row, style)
 
 
@@ -139,6 +143,7 @@ def overs_field(card: CardData, style: Style) -> tuple[str, str]:
         lines.append(
             f"{e} **{i}. {o.player} {line_label(o.line, o.stat)}** — ask {cents(o.ask)}, "
             f"fair {'n/a' if o.fair is None else cents(o.fair)}, {ev_phrase(o)}"
+            + (f" ({o.stale})" if o.stale else "")
         )
         lines.append(f"> {why_line(o, style)}")
     return name, "\n".join(lines)
@@ -221,27 +226,19 @@ def knows_field(card: CardData, style: Style, channel_team: str | None = None) -
 
 
 def _sure_line(overs: tuple[OverRow, ...], style: Style) -> str:
+    head = "**Model vs sharp line** (agreement, not a confidence interval):"
     gaps = [
         abs(o.model - o.pin) * 100.0 for o in overs if o.model is not None and o.pin is not None
     ]
     if not overs:
-        return "**How sure:** no priced over, so no model range to report."
+        return f"{head} no over to compare."
     if not gaps:
-        return "**How sure:** no model number on these overs; the sharp line is the only read."
-    narrow = sum(1 for g in gaps if g <= style.narrow_pts)
-    wide = sum(1 for g in gaps if g >= style.wide_pts)
-    mid = len(gaps) - narrow - wide
-    parts = []
-    if narrow:
-        parts.append(f"{narrow} narrow (within {style.narrow_pts:g} pts of the sharp line)")
-    if mid:
-        parts.append(f"{mid} moderate")
-    if wide:
-        parts.append(f"{wide} wide ({style.wide_pts:g}+ pts apart)")
+        return f"{head} no model number on these overs; the sharp line is the only read."
+    words = [agreement_word(g, style) for g in gaps]
+    parts = [f"{words.count(w)} {w}" for w in ("close", "some gap", "far apart") if w in words]
     return (
-        f"**How sure:** model vs sharp line on {plural(len(gaps), 'over')}: "
-        + ", ".join(parts)
-        + "."
+        f"{head} on {plural(len(gaps), 'over')}, " + ", ".join(parts) + f" (close = within "
+        f"{style.narrow_pts:g} percentage points, far apart = {style.wide_pts:g} or more)."
     )
 
 
@@ -254,7 +251,8 @@ def settled_line(r: SettledRow) -> str:
         return f"{NEUTRAL} {base}; did not play, the venue's rule decides, not counted"
     out = f"{HIT if r.won else MISS} {base}: {r.units:+.2f} units"
     if r.won:
-        out += f" — this one hit; it was still a {r.edge_c / (r.ask * 100.0) * 100.0:+.0f}% bet"
+        pct = r.edge_c / (r.ask * 100.0 + r.fee_c) * 100.0
+        out += f" — this one hit; it was a {pct:+.0f}% EV bet when shown"
     return out
 
 
@@ -281,20 +279,10 @@ def recap_field(card: CardData) -> tuple[str, str] | None:
 
 
 def season_line(rc: Recap) -> str:
-    base = (
-        f"**Season so far:** n = {rc.season_n} settled over {plural(rc.season_dates, 'date')}, "
-        f"{rc.season_hit} hit, {rc.season_n - rc.season_hit} miss, {rc.season_units:+.2f} units."
-    )
-    if not rc.claim_ok:
-        return base + (
-            f" Insufficient sample (needs {rc.min_n} settled over {rc.min_dates} dates): "
-            "this claims nothing."
-        )
-    if rc.ci is None:
-        return base + " Too few dates for an interval."
-    mean, lo, hi = rc.ci
     return (
-        base + f" Mean {mean:+.2f} units per over, 95% CI {lo:+.2f} to {hi:+.2f} (date-clustered)."
+        f"**Season so far** (descriptive, not a tested claim): n = {rc.season_n} settled over "
+        f"{plural(rc.season_dates, 'date')}, {rc.season_hit} hit, "
+        f"{rc.season_n - rc.season_hit} miss, {rc.season_units:+.2f} units."
     )
 
 

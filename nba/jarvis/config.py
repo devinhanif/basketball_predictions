@@ -293,6 +293,7 @@ def load_config(
         need = (
             "env_var", "post_lead_min", "pretip_min_edit_interval_min", "top_overs", "tz",
             "pace_fraction", "narrow_pts", "wide_pts", "bar_width", "rate_budget_s",
+            "tick_budget_s",
             "state", "picks",
         )  # fmt: skip
         absent = [k for k in need if k not in tc]

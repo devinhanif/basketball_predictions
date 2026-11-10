@@ -17,7 +17,7 @@ import logging
 import os
 import time
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -33,7 +33,7 @@ from nba.jarvis.cards.webhooks import TeamWebhooks, fingerprint, load_team_webho
 from nba.jarvis.config import JarvisConfig
 from nba.jarvis.ingame import PlayerLine, load_snapshots
 from nba.jarvis.live import LiveGame, feed_age_min, latest_scoreboard
-from nba.jarvis.models import Game
+from nba.jarvis.models import Game, Play
 from nba.jarvis.render import cents
 from nba.jarvis.slate import SlateState
 
@@ -115,6 +115,9 @@ class Deps:
     sent_alert_keys: set[str] = field(default_factory=set)
     scorer_rows: list[dict[str, Any]] = field(default_factory=list)
     write: bool = True  # False: log nothing (dry run / preview)
+    hold: Callable[[Play], bool] | None = (
+        None  # the 11-08 stale-reference hold of the slate preview
+    )
 
 
 def _box(
@@ -147,7 +150,18 @@ def build_card(
     overs: list[OverRow] = []
     frozen, note = phase != "pretip", ""
     if phase == "pretip":
-        overs, _priced = F.pregame_overs(cfg, d.st, g.game_id, int(s["top_overs"]), shown_at, d.kb)
+        top_n = int(s["top_overs"])
+        overs, priced = F.pregame_overs(cfg, d.st, g.game_id, top_n, shown_at, d.kb, d.hold)
+        logged = [p for p in d.state.picks(slate) if p["game_id"] == g.game_id]
+        if logged:  # an over already shown never silently disappears: it stays, marked stale
+            have = {o.pick_id for o in overs}
+            why = "price now stale" if priced == 0 else "no longer listed at the current price"
+            kept = [
+                replace(o, stale=why) for o in F.overs_from_picks(logged) if o.pick_id not in have
+            ]
+            overs = [*overs, *kept][: max(top_n, 5)]
+        elif priced == 0:
+            note = "No fresh price to judge an over right now."
     else:
         logged = [p for p in d.state.picks(slate) if p["game_id"] == g.game_id]
         overs = F.overs_from_picks(logged)[: int(s["top_overs"])] if logged else []
@@ -205,6 +219,10 @@ def deliver_one(
     fp = fingerprint(url)
     body = {"embeds": [embed]}
     kind: str
+    if rec is not None and rec.fp == fp and not rec.message_id:
+        return (
+            "unchanged"  # Discord took the post but sent no id: it cannot be edited, never re-post
+        )
     if rec is None or rec.fp != fp:
         kind = "post" if rec is None else "repost"
         if not write:
@@ -233,12 +251,38 @@ def _record(
                        now.isoformat(timespec="seconds"))
         )  # fmt: skip
         return {"post": "posted", "edit": "edited", "repost": "reposted"}[kind]
-    if res.ok:
-        return "failed_no_message_id"
+    if res.ok:  # accepted, no id back: record the slot so a retry cannot duplicate the card
+        state.record(
+            CardRecord(str(slate), game_id, team, "", phase, h, fp, "lost",
+                       now.isoformat(timespec="seconds"))
+        )  # fmt: skip
+        return "lost_id"
     return res.status if res.status in ("deferred", "failed") else "failed"
 
 
 # ------------------------------------------------------------------------------ the pass
+
+
+def _make_hold(rt: Any, now: datetime, slate: date) -> Callable[[Play], bool] | None:
+    """The slate preview's stale-reference hold (pulls.hold_stale_slate), applied to card overs."""
+    try:
+        from nba.jarvis import runner as RN
+
+        gate = RN._gate(rt, now, "hold_stale_slate")
+    except Exception:  # noqa: BLE001 - fail open, as the preview does
+        return None
+    if gate is None:
+        return None
+
+    def hold(p: Play) -> bool:
+        if p.ref_age_min is None or p.ref_age_min <= gate.limit:
+            return False
+        try:
+            return bool(gate.released(p.game_id, slate) is None)
+        except Exception:  # noqa: BLE001
+            return False
+
+    return hold
 
 
 def _day_games(rt: Any, st: SlateState, day: date) -> list[Game]:
@@ -308,9 +352,12 @@ def run_cards(
         d.sent_alert_keys = rt.book.sent_keys("alert", slate) if rt.book.path.exists() else set()
     except Exception as exc:  # noqa: BLE001
         log.warning("card alert note unavailable (%s)", type(exc).__name__)
+    d.hold = _make_hold(rt, now, slate)
     d.scorer_rows = list((getattr(rt, "ht_scored", None) or {}).get("rows") or [])
     http = rt.card_client
-    gate = RateGate(float(s["rate_budget_s"]), rt.card_sleep or time.sleep)
+    gate = RateGate(
+        float(s["rate_budget_s"]), rt.card_sleep or time.sleep, total_s=float(s["tick_budget_s"])
+    )
     client = CardClient(http, gate, secrets=list(wh.urls.values()))
     counts: dict[str, int] = {}
     missing: set[str] = set()
@@ -321,8 +368,8 @@ def run_cards(
             days = [slate - timedelta(days=1), slate]
         for day in days:
             _one_day(rt, d, client, wh, day, style, s, counts, missing, errors, now)
-        if write:
-            settle_pending(cfg, state, now)
+        if write and not gate.stopped():
+            settle_pending(cfg, state, now, min_slate=str((now - timedelta(days=3)).date()))
         _overview(rt, d, slate, counts, post_main)
     finally:
         client.close()
@@ -337,6 +384,10 @@ def run_cards(
     if errors:
         rep["errors"] = errors
     rep["rate_429"] = gate.n_429
+    if state.skipped:
+        rep["state_skipped"] = state.skipped
+    if gate.stopped():
+        rep["stopped"] = "broken" if gate.broken else "tick budget"
     return rep
 
 
@@ -363,13 +414,16 @@ def _one_day(
         for t in teams:
             if t not in wh.urls:
                 missing.add(t)
-        if not any(t in wh.urls for t in teams):
+        n_slots = sum(1 for t in teams if t in wh.urls)
+        if n_slots == 0:
             continue
-        if _quiet(d, day, g, phase, wh, float(s["pretip_min_edit_interval_min"])):
-            n = sum(1 for t in teams if t in wh.urls)
-            counts["unchanged"] = counts.get("unchanged", 0) + n
-            continue  # nothing can be posted or edited: do not even read the knowledge stores
+        if client.gate.stopped():  # one budget and one circuit for the pass: the rest wait a tick
+            counts["deferred"] = counts.get("deferred", 0) + n_slots
+            continue
         try:
+            if _quiet(d, day, g, phase, wh, float(s["pretip_min_edit_interval_min"])):
+                counts["unchanged"] = counts.get("unchanged", 0) + n_slots
+                continue  # nothing can be posted or edited: do not read the knowledge stores
             if phase == "final" and d.write:
                 settle_pending(cfg, d.state, now, game_ids={g.game_id})
             card = build_card(d, g, phase, lg, age, day)
@@ -378,12 +432,18 @@ def _one_day(
                 url = wh.urls.get(t)
                 if url is None:
                     continue
-                embed = build_embed(card, t, style)
-                what = deliver_one(
-                    client, d.state, url, d.state.latest(day, g.game_id, t), slate=day,
-                    game_id=g.game_id, team=t, phase=phase, embed=embed, now=now,
-                    interval_min=float(s["pretip_min_edit_interval_min"]), write=d.write,
-                )  # fmt: skip
+                try:  # one team's failure never costs the other team's card
+                    embed = build_embed(card, t, style)
+                    what = deliver_one(
+                        client, d.state, url, d.state.latest(day, g.game_id, t), slate=day,
+                        game_id=g.game_id, team=t, phase=phase, embed=embed, now=now,
+                        interval_min=float(s["pretip_min_edit_interval_min"]), write=d.write,
+                    )  # fmt: skip
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("card slot %s %s failed (%s)", g.matchup, t, type(exc).__name__)
+                    log.debug("slot failure detail: %s", wh.redact(repr(exc)))
+                    errors.append(f"{g.matchup}/{t}:{type(exc).__name__}")
+                    continue
                 counts[what] = counts.get(what, 0) + 1
                 shown = shown or what in ("posted", "edited", "reposted")
             if shown and phase == "pretip" and d.write:
@@ -410,7 +470,7 @@ def _overview(
     for g in d.st.games:
         if g.tipoff is None or g.tipoff <= d.clock:
             continue
-        best += F.pregame_overs(d.cfg, d.st, g.game_id, 1, "", d.kb)[0]
+        best += F.pregame_overs(d.cfg, d.st, g.game_id, 1, "", d.kb, d.hold)[0]
     best.sort(key=lambda r: (-r.edge_c, r.player))
     head = (
         "**JARVIS cards** are up for tonight: one per game in each team's channel "

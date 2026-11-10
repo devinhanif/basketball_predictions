@@ -29,6 +29,7 @@ class OverRow:
     player_id: int | None
     includes_p_plays: bool = False
     shown_at: str = ""
+    stale: str = ""  # "" = priced now; else why the shown price is old (the over stays on the card)
 
 
 @dataclass(frozen=True)
@@ -74,10 +75,6 @@ class Recap:
     season_hit: int = 0
     season_units: float = 0.0
     season_dates: int = 0
-    claim_ok: bool = False
-    ci: tuple[float, float, float] | None = None
-    min_n: int = 0
-    min_dates: int = 0
 
 
 @dataclass(frozen=True)

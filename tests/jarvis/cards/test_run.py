@@ -145,7 +145,9 @@ def test_the_pretip_card_shows_the_over_with_ev_and_the_other_game_says_keep_you
     overs = g1["fields"][0]["value"]
     assert "LeBron James" in overs and "25+ pts" in overs and "EV +" in overs and "ask 44c" in overs
     g2 = next(c for c in http.of("POST") if "OKC" in c[1])[2]["embeds"][0]
-    assert g2["fields"][0]["value"] == "No over is worth it tonight — keep your money."
+    assert (
+        g2["fields"][0]["value"] == "No fresh price to judge an over right now."
+    )  # no props priced
     assert g1["footer"]["text"].endswith("Paper only. Not advice.")
 
 
@@ -256,8 +258,8 @@ def test_the_final_card_updates_again_when_the_box_score_settles_the_over(
     assert rep["cards"]["edited"] == 2
     last = http.of("PATCH")[-1][2]["embeds"][0]
     rec = next(f for f in last["fields"] if f["name"] == "Recap")["value"]
-    assert "this one hit; it was still a" in rec and "1 hit, 0 miss" in rec
-    assert "Insufficient sample" in rec and "n = 1" in rec
+    assert "this one hit; it was a +" in rec and "1 hit, 0 miss" in rec
+    assert "descriptive, not a tested claim" in rec and "n = 1" in rec
 
 
 def test_a_missing_edit_target_is_replaced_by_a_new_post_and_recorded(
