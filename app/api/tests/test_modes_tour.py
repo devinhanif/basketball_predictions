@@ -155,7 +155,7 @@ def test_an_empty_bin_says_nothing() -> None:
 def test_the_deck_hides_the_outcome_and_the_forecast(client: TestClient) -> None:
     d = client.get("/api/track-record/guess?seed=4&n=6").json()
     assert len(d["cards"]) == 6 and d["reason"] == "ok"
-    banned = {"actual", "model_p_over", "model_call", "went_over", "p_over", "mean", "q"}
+    banned = {"actual", "model_p_over", "went_over", "p_over", "mean", "q"}
     assert not (_keys(d) & banned)
     _no_prices(d)
     for c in d["cards"]:
@@ -183,8 +183,8 @@ def test_the_reveal_matches_the_stored_result_and_the_model_number(client: TestC
         pl = next(p for p in g["players"] if p["player_id"] == int(pid))
         assert r["actual"] == pl["props"][stat]["actual"]
         assert r["went_over"] == (r["actual"] > card["line"])
-        assert r["model_call"] == ("over" if r["model_p_over"] >= 0.5 else "under")
-        assert "model_right" not in r
+        assert "model_call" not in r and "model_right" not in r
+        assert r["model_locked"] is False  # 2024 fixture nights are before the lock
         assert 0 <= r["model_p_over"] <= 1
 
 

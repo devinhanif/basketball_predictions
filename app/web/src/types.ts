@@ -254,12 +254,14 @@ export interface ProbAtLine {
   player_id: number;
   stat: Stat;
   line: number;
-  p_over: number;
-  p_under: number;
-  p_push: number;
+  /** null where the prop has a calibrated number elsewhere but none at this line (no_cal_here). */
+  p_over: number | null;
+  p_under: number | null;
+  p_push: number | null;
   extrapolated: boolean;
   /** The calibrated number (line_cal, rung_cal) or the model's own with no calibrated value (model). */
   p_source: PSource;
+  no_cal_here: boolean;
   method: string;
   main_line: number;
   is_main_line: boolean;
@@ -281,7 +283,6 @@ export interface LineCal {
   book: string;
   main_line: number;
   price_at: string | null;
-  p_over_raw: number;
   p_over_cal: number;
   map: string;
   map_sha8: string;
@@ -444,11 +445,12 @@ export interface GuessReveal {
   actual: number;
   line: number;
   went_over: boolean;
-  model_p_over: number;
-  model_p_source: PSource;
-  model_call: "over" | "under";
+  /** True for nights inside the locked test: no model number is served, outcome only. */
+  model_locked: boolean;
+  model_p_over: number | null;
+  model_p_source: PSource | null;
   minutes: number | null;
-  stat_mean: number;
+  stat_mean: number | null;
   forecast_stamp: string;
 }
 

@@ -4,10 +4,18 @@ import { wilson } from "./stats";
 
 export type Guess = "over" | "under";
 
+/** Props on nights dated on or after this day sit inside the LINE_CAL_LIVE window (frozen rule): until its
+ * single look (about Dec 1) the app shows no model chance or call beside their outcomes. Must equal
+ * MODEL_LOCK_FROM in api/trackrecord.py. */
+export const MODEL_LOCK_FROM = "2026-10-30";
+export const LOCK_NOTE = "The model's number for this night is part of a locked test until about Dec 1.";
+export function isLockedNight(date: string): boolean {
+  return date >= MODEL_LOCK_FROM;
+}
+
 export interface GuessRound {
   prop_id: string;
   guess: Guess;
-  model_call: Guess;
   went_over: boolean;
   you_right: boolean;
 }
@@ -21,7 +29,6 @@ export function isRound(x: unknown): x is GuessRound {
   return (
     typeof r["prop_id"] === "string" &&
     (r["guess"] === "over" || r["guess"] === "under") &&
-    (r["model_call"] === "over" || r["model_call"] === "under") &&
     typeof r["went_over"] === "boolean" &&
     typeof r["you_right"] === "boolean"
   );
@@ -42,9 +49,9 @@ export function saveRounds(rounds: readonly GuessRound[]): void {
   writeKey(GUESS_KEY, JSON.stringify(rounds.slice(-KEEP)));
 }
 
-export function makeRound(propId: string, guess: Guess, modelCall: Guess, wentOver: boolean): GuessRound {
+export function makeRound(propId: string, guess: Guess, wentOver: boolean): GuessRound {
   const truth: Guess = wentOver ? "over" : "under";
-  return { prop_id: propId, guess, model_call: modelCall, went_over: wentOver, you_right: guess === truth };
+  return { prop_id: propId, guess, went_over: wentOver, you_right: guess === truth };
 }
 
 export interface Score {

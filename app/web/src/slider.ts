@@ -22,6 +22,7 @@ export const CAL_NO_LINE =
 export const CAL_OUT_OF_FIT =
   "No calibrated number at this line: the adjustment was only tested where the model's chance of over is 50% or more.";
 export const CAL_OUT_OF_RANGE = "No calibrated number at this line: it is beyond the lines the adjustment covers.";
+export const NO_CAL_HERE = "No calibrated number at this line.";
 export const CAL_NOT_EXPORTED = "No calibrated number was exported for this prop.";
 
 /** Outside the Market lens a book's name is not shown: "DraftKings line" reads "sportsbook line". */
@@ -38,10 +39,26 @@ export const LINE_CAL_REASONS: Record<string, string> = {
   ambiguous_main_line: "No calibrated number: DraftKings posted more than one candidate main line, so none was chosen.",
   whole_number_line: "No calibrated number: the DraftKings line is a whole number, which the adjustment does not cover.",
 };
+/** The codes of the export contract; must equal NULL_REASONS in api/forecast.py. */
+export const NULL_REASON_CODES: ReadonlySet<string> = new Set([
+  "no_book_line",
+  "ambiguous_main_line",
+  "no_production_row",
+  "no_production_grid",
+  "grid_mismatch",
+  "no_survival",
+  "no_starter_rate",
+  "map_unavailable",
+  "no_quartiles",
+  "whole_number_line",
+]);
 export const LINE_CAL_REASON_GENERIC = "No calibrated number: the calibrated number could not be reproduced for this row.";
 
 export function lineCalReason(code: string | null | undefined): string | null {
   if (code === null || code === undefined) return null;
+  // Only the contract's codes count, the same set the API accepts (forecast.py NULL_REASONS); an
+  // unknown code reads as no reason, so the game page and the leg page agree.
+  if (!NULL_REASON_CODES.has(code)) return null;
   return LINE_CAL_REASONS[code] ?? LINE_CAL_REASON_GENERIC;
 }
 
@@ -126,10 +143,11 @@ export function modelLine(pge: readonly number[]): number {
 
 export interface Reading {
   line: number;
-  p_over: number;
-  p_under: number;
-  /** Raw model P(over) at this line, straight from the forecast table. */
-  p_raw: number;
+  /** null where the prop has a calibrated number elsewhere but none at this line (no_cal_here). */
+  p_over: number | null;
+  p_under: number | null;
+  /** True when no percentage is shown: a model-only chance beside a calibrated one is on another scale. */
+  no_cal_here: boolean;
   /** Frozen-map calibrated P(over) at this exact line, or null (never approximated). */
   p_cal: number | null;
   cal_book: string | null;
@@ -159,11 +177,15 @@ export interface SliderInput {
   line_cal_null_reason?: string | null;
 }
 
-function common(input: SliderInput, line: number, raw: number) {
+/** The export gives this prop a calibrated number somewhere (main line or a listed rung). */
+export function hasCalibrated(input: SliderInput): boolean {
+  return (input.line_cal ?? null) !== null || (input.rung_cal !== null && input.rung_cal.lines.length > 0);
+}
+
+function common(input: SliderInput, line: number) {
   const tail = isTail(input.p_ge, line);
   return {
     line,
-    p_raw: raw,
     tail,
     tail_note: tail ? TAIL_NOTE : null,
     is_posted: input.posted_line !== null && Math.abs(line - input.posted_line) < 1e-9,
@@ -175,7 +197,8 @@ function common(input: SliderInput, line: number, raw: number) {
 /** At the book's main line: the LINE_CALIBRATION number, and the raw input it was computed from. */
 function readLineCal(input: SliderInput, line: number, lc: LineCal): Reading {
   return {
-    ...common(input, line, lc.p_over_raw),
+    ...common(input, line),
+    no_cal_here: false,
     p_over: lc.p_over_cal,
     p_under: 1 - lc.p_over_cal,
     p_cal: lc.p_over_cal,
@@ -184,6 +207,22 @@ function readLineCal(input: SliderInput, line: number, lc: LineCal): Reading {
     source: "line_cal",
     label: `calibrated at the book's main line with ${lc.map} (T493), map ${lc.map_sha8}${lc.fit_through !== null ? `, fit through ${lc.fit_through}` : ""}`,
     plain: PLAIN_CALIBRATED,
+  };
+}
+
+/** A line with no calibrated number on a prop that has one elsewhere: say so, print no percentage. */
+function hidden(input: SliderInput, line: number): Reading {
+  return {
+    ...common(input, line),
+    p_over: null,
+    p_under: null,
+    no_cal_here: true,
+    p_cal: null,
+    cal_book: input.line_cal?.book ?? input.rung_cal?.book ?? null,
+    cal_note: NO_CAL_HERE,
+    source: "model",
+    label: NO_CAL_HERE,
+    plain: NO_CAL_HERE,
   };
 }
 
@@ -198,10 +237,12 @@ export function read(input: SliderInput, line: number): Reading {
   // The export knows why there is no line-calibrated number: at the book's line say so and show the
   // raw number alone (the rung map is not substituted); elsewhere the rung map keeps its own rules.
   if (known !== null && (atMain || input.rung_cal === null)) {
+    if (hasCalibrated(input)) return hidden(input, line);
     const raw = pOver(input.p_ge, line);
     const approx = input.method === "quantile" ? " Read off a 19-point quantile grid, so rougher." : "";
     return {
-      ...common(input, line, raw),
+      ...common(input, line),
+      no_cal_here: false,
       p_over: raw,
       p_under: 1 - raw,
       p_cal: null,
@@ -215,6 +256,7 @@ export function read(input: SliderInput, line: number): Reading {
   const rung = input.rung_cal?.lines.find((r) => Math.abs(r.line - line) < 1e-9);
   const raw = pOver(input.p_ge, line);
   const calibrated = rung !== undefined;
+  if (!calibrated && hasCalibrated(input)) return hidden(input, line);
   const p_over = rung !== undefined ? rung.p_over : raw;
   const tail = isTail(input.p_ge, line);
   const cal_note = calibrated
@@ -233,7 +275,7 @@ export function read(input: SliderInput, line: number): Reading {
     line,
     p_over,
     p_under: 1 - p_over,
-    p_raw: raw,
+    no_cal_here: false,
     p_cal: rung !== undefined ? rung.p_over : null,
     cal_book: input.rung_cal?.book ?? null,
     cal_note,

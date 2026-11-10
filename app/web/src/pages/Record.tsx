@@ -6,7 +6,7 @@ import { longDate, lineText, num, pct, tipTime } from "../format";
 import { TeamTag } from "../components";
 import { legHref, recordHref, type RecordTab } from "../router";
 import { useLens } from "../prefs";
-import { loadRounds, makeRound, newSeed, saveRounds, scoreOf, type Guess, type GuessRound, type Score } from "../record";
+import { LOCK_NOTE, isLockedNight, loadRounds, makeRound, newSeed, saveRounds, scoreOf, type Guess, type GuessRound, type Score } from "../record";
 import { STATS, STAT_LABEL, type CalBin, type CalSeries, type PropsPublished, type GameSummary, type GuessCard, type GuessDeck, type GuessReveal, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
 import { useLoad } from "../useLoad";
 import { didText, sideText } from "../words";
@@ -14,12 +14,11 @@ import { didText, sideText } from "../words";
 const S = (n: number): string => n.toString();
 
 /* ------------------------------------------------------------------ replay a night */
-function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null | undefined; open: boolean; onOpen: () => void; ready: boolean; showSource: boolean }) {
+function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null | undefined; open: boolean; onOpen: () => void; ready: boolean; showSource: boolean; locked: boolean }) {
   const prop: PropView | undefined = props.p.props[props.stat];
   if (!prop) return null;
   const q = prop.q;
   const posted = prop.line_source === "posted";
-  const lean: Guess = prop.model_p_over >= 0.5 ? "over" : "under";
   const a = props.actual;
   return (
     <li class="rp-player">
@@ -33,7 +32,13 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
       <div class="rp-call num">
         {posted ? (
           <>
-            Line {lineText(prop.line)}: we gave the over <b>{pct(prop.model_p_over)}</b> <CalTag source={prop.model_p_source} />, so we leaned <b>{lean}</b>.
+            {props.locked ? (
+              <>Line {lineText(prop.line)}.</>
+            ) : (
+              <>
+                Line {lineText(prop.line)}: we gave the over <b>{pct(prop.model_p_over)}</b> <CalTag source={prop.model_p_source} />.
+              </>
+            )}
           </>
         ) : (
           <>No usable sportsbook line; reference line {lineText(prop.line)} (the middle of our forecast).</>
@@ -59,7 +64,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
   );
 }
 
-function ReplayGame({ g }: { g: GameSummary }) {
+function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
   const [want, setWant] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
   const [stat, setStat] = useState<Stat>("pts");
@@ -138,6 +143,7 @@ function ReplayGame({ g }: { g: GameSummary }) {
                     open={open.has(p.player_id)}
                     ready={r !== null}
                     showSource={new Set(players.map((x) => x.props[stat]?.model_source)).size > 1}
+                    locked={locked}
                     onOpen={() => {
                       setWant(true);
                       setOpen((o) => new Set(o).add(p.player_id));
@@ -181,6 +187,7 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
       <section class="panel">
         <h2>Pick a night</h2>
         <p class="small muted">Each forecast below is the last one stored before that game's tip. Results stay hidden until you tap.</p>
+        {isLockedNight(props.date) ? <p class="small muted">{LOCK_NOTE}</p> : null}
         <div class="tabs rp-nights" role="group" aria-label="Night">
           {props.nights.map((n) => (
             <a key={n.date} class="tab" href={recordHref("replay", n.date)} aria-current={n.date === props.date ? "true" : undefined}>
@@ -194,7 +201,7 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
         {(s) => (
           <div class="stack">
             {s.games.map((g) => (
-              <ReplayGame key={g.game_id} g={g} />
+              <ReplayGame key={g.game_id} g={g} locked={isLockedNight(props.date)} />
             ))}
           </div>
         )}
@@ -460,7 +467,7 @@ function Round(props: { card: GuessCard; index: number; total: number; onDone: (
       (r) => {
         if (!live) return;
         setRev(r.data);
-        const round = makeRound(card.prop_id, picked, r.data.model_call, r.data.went_over);
+        const round = makeRound(card.prop_id, picked, r.data.went_over);
         setDone(round);
         props.onDone(round);
       },
@@ -517,10 +524,16 @@ function Round(props: { card: GuessCard; index: number; total: number; onDone: (
             {rev.minutes !== null ? ` in ${num(rev.minutes, 0)} minutes` : ""}: <b>{rev.went_over ? "over" : "under"}</b>.{" "}
             <span class={done.you_right ? "gs-right" : "gs-wrong"}>{done.you_right ? "You were right." : "You were wrong."}</span>
           </p>
-          <p class="num">
-            The model gave the over <b>{pct(rev.model_p_over)}</b> <CalTag source={rev.model_p_source} />, so it said <b>{rev.model_call}</b>.{" "}
+          {rev.model_p_over !== null && rev.model_p_source !== null ? (
+            <p class="num">
+              The model gave the over <b>{pct(rev.model_p_over)}</b> <CalTag source={rev.model_p_source} />.
+            </p>
+          ) : (
+            <p class="small muted">{LOCK_NOTE}</p>
+          )}
+          <p class="small muted num">
+            {rev.stat_mean !== null ? `Its typical night was ${num(rev.stat_mean)}. ` : ""}One round says very little about either of you.
           </p>
-          <p class="small muted num">Its typical night was {num(rev.stat_mean)}. One round says very little about either of you.</p>
         </div>
       )}
     </section>

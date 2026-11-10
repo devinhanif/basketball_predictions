@@ -224,17 +224,25 @@ export function LineSlider({ card }: { card: CardView }) {
         Bars are the model's chance of each count. Shaded: the middle 80% ({quantile(card.dist.p_ge, 0.1)} to {quantile(card.dist.p_ge, 0.9)}).
         Solid line: your line. Dotted: the model's line. Accent bars: over.
       </p>
-      <div class="ls-read" aria-live="polite">
-        <div class="ls-side">
-          <div class="big-num num">{pct(r.p_over)}</div>
-          <div class="alt-tag">over</div>
-        </div>
-        <div class="ls-side">
-          <div class="big-num num">{pct(r.p_under)}</div>
-          <div class="alt-tag">under</div>
-        </div>
-      </div>
-      <ProbBar over={r.p_over} label={`At line ${lineText(line)}`} />
+      {r.p_over !== null && r.p_under !== null ? (
+        <>
+          <div class="ls-read" aria-live="polite">
+            <div class="ls-side">
+              <div class="big-num num">{pct(r.p_over)}</div>
+              <div class="alt-tag">over</div>
+            </div>
+            <div class="ls-side">
+              <div class="big-num num">{pct(r.p_under)}</div>
+              <div class="alt-tag">under</div>
+            </div>
+          </div>
+          <ProbBar over={r.p_over} label={`At line ${lineText(line)}`} />
+        </>
+      ) : (
+        <p class="ls-read ls-nocal" aria-live="polite">
+          <b>No calibrated number at this line.</b> Step back to the calibrated line to read a chance; the bars above are the forecast itself.
+        </p>
+      )}
       <div class="ls-pair small num" aria-live="polite">
         {calLine !== null ? <div class="ls-cal">{market ? calLine : hideBook(calLine)}</div> : <div class="ls-cal none muted">{market ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
       </div>

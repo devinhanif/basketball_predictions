@@ -32,6 +32,7 @@ from .forecast import (
     devig_over,
     dist_grid,
     forecast_method,
+    no_cal_here,
     shown_probs,
 )
 from .knows import GameKnows, PlayerKnows, game_knows, player_knows
@@ -430,6 +431,7 @@ def register(app: FastAPI) -> None:
                 q = [float(v) for v in forecast["q"]]
                 posted = pl["props"][stat]
                 lp = shown_probs(posted, line)
+                hide = no_cal_here(posted, lp)
                 priced = posted["over_price"] is not None
                 is_main = float(posted["line"]) == line
                 return ProbAtLine(
@@ -437,11 +439,12 @@ def register(app: FastAPI) -> None:
                     player_id=player_id,
                     stat=stat,
                     line=line,
-                    p_over=lp.p_over,
-                    p_under=lp.p_under,
-                    p_push=lp.p_push,
+                    p_over=None if hide else lp.p_over,
+                    p_under=None if hide else lp.p_under,
+                    p_push=None if hide else lp.p_push,
                     extrapolated=lp.extrapolated,
                     p_source=lp.source,  # type: ignore[arg-type]
+                    no_cal_here=hide,
                     method=forecast_method(forecast),
                     taus=list(TAUS),
                     q=q,

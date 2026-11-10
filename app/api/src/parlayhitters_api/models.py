@@ -52,7 +52,6 @@ class LineCal(BaseModel):
     book: str
     main_line: float
     price_at: str | None = None
-    p_over_raw: float = Field(ge=0, le=1)
     p_over_cal: float = Field(ge=0, le=1)
     map: str
     map_sha8: str
@@ -146,11 +145,13 @@ class ProbAtLine(BaseModel):
     player_id: int
     stat: Stat
     line: float
-    p_over: float
-    p_under: float
-    p_push: float
+    # None where the prop has a calibrated number elsewhere but none at this line (no_cal_here).
+    p_over: float | None
+    p_under: float | None
+    p_push: float | None
     extrapolated: bool
     p_source: Literal["line_cal", "rung_cal", "model"] = "model"
+    no_cal_here: bool = False
     method: str
     taus: list[float]
     q: list[float]

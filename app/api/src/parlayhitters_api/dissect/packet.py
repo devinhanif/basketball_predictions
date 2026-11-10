@@ -110,6 +110,7 @@ def build_packet(b: Breakdown) -> Packet:
             "p_hit": m.p_hit,
             "p_over": m.p_over,
             "p_under": m.p_under,
+            "no_cal_here": m.no_cal_here,
             "mean": m.mean,
             "typical": m.typical,
             "extrapolated": m.extrapolated,

@@ -301,16 +301,22 @@ class GuessDeck(BaseModel):
     note: str
 
 
+# Props on slates dated on or after this day sit inside the LINE_CAL_LIVE window: until its single
+# look (about Dec 1) the app shows no model chance, call or typical night beside their outcomes.
+MODEL_LOCK_FROM = "2026-10-30"
+
+
 class GuessReveal(BaseModel):
     prop_id: str
     actual: int
     line: float
     went_over: bool
-    model_p_over: float
-    model_p_source: str  # line_cal | rung_cal | model
-    model_call: str  # "over" | "under"
+    # None while the night is inside the locked test (model_locked): outcome only.
+    model_locked: bool
+    model_p_over: float | None
+    model_p_source: str | None  # line_cal | rung_cal | model
     minutes: float | None
-    stat_mean: float
+    stat_mean: float | None
     forecast_stamp: str
 
 
@@ -401,19 +407,18 @@ def guess_reveal(store: Any, prop_id: str) -> GuessReveal | None:
     p = shown.p_over
     actual = int(pr["actual"])
     over = actual > line
-    # The lean follows the chance shown. No field says whether the model was right: the frozen
-    # LINE_CAL_LIVE rule forbids any model-versus-outcome verdict or tally on 2026 props until its
-    # single look (about Dec 1). The reveal carries the chance and the outcome side by side.
-    call = "over" if p >= 0.5 else "under"
+    # No field says whether the model was right, and for nights inside the LINE_CAL_LIVE window
+    # (MODEL_LOCK_FROM on) the reveal carries no model number at all, only the outcome.
+    locked = str(g["date"]) >= MODEL_LOCK_FROM
     return GuessReveal(
         prop_id=prop_id,
         actual=actual,
         line=line,
         went_over=over,
-        model_p_over=p,
-        model_p_source=shown.source,
-        model_call=call,
+        model_locked=locked,
+        model_p_over=None if locked else p,
+        model_p_source=None if locked else shown.source,
         minutes=None if pl["result"] is None else float(pl["result"]["minutes"]),
-        stat_mean=moments(dist_grid(pr["forecast"])["p_ge"])[0],
+        stat_mean=None if locked else moments(dist_grid(pr["forecast"])["p_ge"])[0],
         forecast_stamp=str(pr["forecast"]["stamp"]),
     )

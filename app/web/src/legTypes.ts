@@ -105,6 +105,8 @@ export interface LegModel {
   extrapolated: boolean;
   /** The calibrated number, or the model's own with no calibrated value (model). */
   p_source: "line_cal" | "rung_cal" | "model";
+  /** The prop has a calibrated number elsewhere but none at this line: no chance is given here. */
+  no_cal_here: boolean;
   stamp: string | null;
   source: string;
   source_label: string;

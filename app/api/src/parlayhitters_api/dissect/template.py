@@ -52,6 +52,11 @@ def _form(p: Packet) -> str:
 
 def _model(p: Packet) -> str:
     m = p["model"]
+    if m["available"] and m["p_hit"] is None and m.get("no_cal_here"):
+        return (
+            "We have no calibrated number at this line, so there is nothing to set these recent "
+            "games against."
+        )
     if not m["available"] or m["p_hit"] is None:
         return (
             "We have no model forecast for this stat, so there is nothing to set these recent "

@@ -139,6 +139,22 @@ def shown_probs(prop: dict[str, Any], line: float) -> ShownProbs:
     return ShownProbs(raw.p_over, raw.p_under, raw.p_push, raw.extrapolated, "model")
 
 
+def has_calibrated(prop: dict[str, Any]) -> bool:
+    """Whether the export gives this prop a calibrated number anywhere (line_cal or rung_cal)."""
+    if clean_line_cal(prop.get("line_cal")) is not None:
+        return True
+    rc = clean_rung_cal(prop.get("rung_cal"))
+    return rc is not None and len(rc["lines"]) > 0
+
+
+def no_cal_here(prop: dict[str, Any], shown: ShownProbs) -> bool:
+    """True where a screen says "no calibrated number at this line" instead of printing a chance:
+    the prop has a calibrated number somewhere, but not at this line. A model-only percentage beside
+    a calibrated one is on a different scale (the two cannot be ordered against each other), so it
+    is not shown. Props with no calibrated number anywhere keep their model-only chances."""
+    return shown.source == "model" and has_calibrated(prop)
+
+
 def forecast_method(forecast: dict[str, Any]) -> str:
     surv = forecast.get("surv")
     if surv and surv_complete(surv["c"], int(surv["n"])):

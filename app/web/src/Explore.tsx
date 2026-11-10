@@ -114,7 +114,7 @@ function MinutesBlock(props: {
 }
 
 /** Type a price and a fee: break-even chance and EV per $1 against the model's number. */
-function PriceBlock(props: { card: CardView; q: number; side: "over" | "under"; onSide: (s: "over" | "under") => void; qLabel: string }) {
+function PriceBlock(props: { card: CardView; q: number | null; side: "over" | "under"; onSide: (s: "over" | "under") => void; qLabel: string }) {
   const { card } = props;
   const fmt = (n: number | null): string => (n === null ? "" : n > 0 ? `+${S(n)}` : S(n));
   const [overText, setOver] = useState("");
@@ -126,7 +126,7 @@ function PriceBlock(props: { card: CardView; q: number; side: "over" | "under"; 
   const coefficient = fee?.coefficient ?? null;
   const typed = parseOdds(props.side === "over" ? overText : underText);
   const both = parseOdds(overText) !== null && parseOdds(underText) !== null ? bookChance(parseOdds(overText) ?? 0, parseOdds(underText) ?? 0) : null;
-  const read_ = typed === null ? null : priceRead(props.q, typed, kind, coefficient, Number(custom) || 0);
+  const read_ = typed === null || props.q === null ? null : priceRead(props.q, typed, kind, coefficient, Number(custom) || 0);
   const posted = card.line_source === "posted" && card.over_price !== null && card.under_price !== null;
   return (
     <div class="xp-block">
@@ -207,7 +207,7 @@ function PriceBlock(props: { card: CardView; q: number; side: "over" | "under"; 
             </div>
             <div>
               <dt>{props.qLabel}</dt>
-              <dd class="num">{pct(props.q, 1)}</dd>
+              <dd class="num">{props.q === null ? "no calibrated number at this line" : pct(props.q, 1)}</dd>
             </div>
             <div>
               <dt>Gap (model minus break-even)</dt>
@@ -275,8 +275,8 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
     line_cal_null_reason: card.line_cal_null_reason ?? null,
   };
   const r = read(input, line);
-  const pOver = unchanged ? r.p_over : overAt(dist, line);
-  const pUnder = 1 - pOver;
+  const pOver: number | null = unchanged ? r.p_over : overAt(dist, line);
+  const pUnder = pOver === null ? null : 1 - pOver;
   const moved = momentsOf(dist);
   const id = `xp-line-${card.prop_id}`;
   const stat = card.stat;
@@ -288,7 +288,7 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   marks.push({ at: model, name: "model's line" });
   const showPrice = lens === "market" || priceOn;
   const calLine = unchanged ? calibratedLine(r) : null;
-  const qSide = side === "over" ? pOver : pUnder;
+  const qSide: number | null = side === "over" ? pOver : pUnder;
   return (
     <div class="stack tight">
       <div class="xp-block">
@@ -324,17 +324,25 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
           Bars are the chance of each count. Shaded: the middle 80%. Solid line: your line. Accent bars: over.
           {unchanged ? "" : ` Typical night now ${moved.mean.toFixed(1)}, was ${base.mean.toFixed(1)}.`}
         </p>
-        <div class="ls-read" aria-live="polite">
-          <div class="ls-side">
-            <div class="big-num num">{pct(pOver)}</div>
-            <div class="alt-tag">over</div>
-          </div>
-          <div class="ls-side">
-            <div class="big-num num">{pct(pUnder)}</div>
-            <div class="alt-tag">under</div>
-          </div>
-        </div>
-        <ProbBar over={pOver} label={`At line ${lineText(line)}`} />
+        {pOver !== null && pUnder !== null ? (
+          <>
+            <div class="ls-read" aria-live="polite">
+              <div class="ls-side">
+                <div class="big-num num">{pct(pOver)}</div>
+                <div class="alt-tag">over</div>
+              </div>
+              <div class="ls-side">
+                <div class="big-num num">{pct(pUnder)}</div>
+                <div class="alt-tag">under</div>
+              </div>
+            </div>
+            <ProbBar over={pOver} label={`At line ${lineText(line)}`} />
+          </>
+        ) : (
+          <p class="ls-read ls-nocal" aria-live="polite">
+            <b>No calibrated number at this line.</b> Step back to the calibrated line to read a chance; the bars above are the forecast itself.
+          </p>
+        )}
         <p class="small ls-say">
           Over {lineText(line)} means {sideText(stat, line, "over")}. Under means {sideText(stat, line, "under")}.
         </p>

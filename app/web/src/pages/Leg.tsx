@@ -191,7 +191,9 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
               </div>
             </>
           ) : (
-            <div class="leg-sub strong">No model forecast for this stat yet</div>
+            <div class="leg-sub strong">
+              {data.model.available ? "No calibrated number at this line" : "No model forecast for this stat yet"}
+            </div>
           )}
         </div>
         {book ? (
@@ -252,7 +254,9 @@ function NoHistory({ data, side, line, row, market }: { data: LegBreakdown; side
               </div>
             </>
           ) : (
-            <div class="leg-sub strong">No model forecast for this stat yet</div>
+            <div class="leg-sub strong">
+              {data.model.available ? "No calibrated number at this line" : "No model forecast for this stat yet"}
+            </div>
           )}
         </div>
       </div>
@@ -384,7 +388,7 @@ function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side;
             <CalTag source={chanceSource(row, m)} />
           </>
         ) : (
-          "No chance computed at this line."
+          "No calibrated number at this line."
         )}
       </p>
       <p class="small">{m.reason}</p>
@@ -456,6 +460,8 @@ function Ladder(props: { data: LegBreakdown; line: number; side: Side; onLine: (
                       <>
                         {modelPct(p)} <CalTag source={r.model_source} />
                       </>
+                    ) : model ? (
+                      <span class="muted small" style={{ whiteSpace: "normal" }}>no calibrated number here</span>
                     ) : (
                       <span class="muted">none yet</span>
                     )}

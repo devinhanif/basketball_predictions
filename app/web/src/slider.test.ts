@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { pct } from "./format";
 import {
   CAL_NOT_EXPORTED,
+  NO_CAL_HERE,
   CAL_NO_LINE,
   CAL_OUT_OF_FIT,
   CAL_OUT_OF_RANGE,
@@ -118,13 +119,21 @@ describe("the honesty labels", () => {
     expect(r.is_posted && r.is_book_main).toBe(true);
   });
 
-  it("falls back to the raw model, labelled model only, at an unlisted line", () => {
-    const r = read(base, 3.5); // higher than every listed line: raw P(over) < 0.5 is never listed
+  it("at an unlisted line of a calibrated prop, gives no percentage and says so", () => {
+    const r = read(base, 3.5); // higher than every listed line
+    expect(r.source).toBe("model");
+    expect(r.p_over).toBeNull();
+    expect(r.no_cal_here).toBe(true);
+    expect(r.label).toBe(NO_CAL_HERE);
+    expect(r.label).not.toContain("calibrated using");
+  });
+
+  it("with no calibrated number anywhere, the model-only number is shown at an unlisted line", () => {
+    const r = read({ ...base, rung_cal: null }, 3.5);
     expect(r.source).toBe("model");
     expect(r.p_over).toBeCloseTo(0.35);
     expect(r.label).toBe(MODEL_ONLY);
     expect(r.label).toContain("model only, not calibrated off the main line");
-    expect(r.label).not.toContain("calibrated using");
   });
 
   it("with no rung_cal at all, even the posted line is model only", () => {
@@ -162,7 +171,6 @@ describe("the honesty labels", () => {
 describe("the calibrated number alone", () => {
   it("shows the calibrated number, labelled, and never the raw one beside it", () => {
     const r = read(base, 2.5);
-    expect(r.p_raw).toBeCloseTo(pOver(PGE, 2.5), 12);
     expect(r.p_cal).toBe(0.6);
     expect(r.cal_note).toBeNull();
     const cal = calibratedLine(r);
@@ -170,19 +178,20 @@ describe("the calibrated number alone", () => {
     expect(r.p_over).toBe(0.6);
     expect(cal).not.toContain(pct(pOver(PGE, 2.5)));
   });
-  it("shows the model-only number alone with a reason when the line is not listed, never an approximation", () => {
+  it("gives no percentage when the line is not listed on a prop that has a calibrated number, never an approximation", () => {
     const r = read(base, 3.5);
     expect(r.p_cal).toBeNull();
     expect(calibratedLine(r)).toBeNull();
-    expect(r.cal_note).toBe(r.p_raw < 0.5 ? CAL_OUT_OF_FIT : CAL_OUT_OF_RANGE);
-    expect(r.p_raw).toBeCloseTo(pOver(PGE, 3.5), 12);
+    expect(r.p_over).toBeNull();
+    expect(r.no_cal_here).toBe(true);
+    expect(r.cal_note).toBe(NO_CAL_HERE);
   });
   it("names the fit-support reason when raw is under 50% and the range reason when it is not", () => {
-    const hi = read({ ...base, rung_cal: { ...RUNG, lines: [{ line: 0.5, p_over: 0.9 }] } }, 1.5);
-    expect(hi.p_raw).toBeGreaterThanOrEqual(0.5);
+    const hi = read({ ...base, rung_cal: { ...RUNG, lines: [] } }, 1.5);
+    expect(pOver(PGE, 1.5)).toBeGreaterThanOrEqual(0.5);
     expect(hi.cal_note).toBe(CAL_OUT_OF_RANGE);
     const lo = read({ ...base, rung_cal: { ...RUNG, lines: [] } }, 5.5);
-    expect(lo.p_raw).toBeLessThan(0.5);
+    expect(pOver(PGE, 5.5)).toBeLessThan(0.5);
     expect(lo.cal_note).toBe(CAL_OUT_OF_FIT);
   });
   it("with no rung_cal, gives the no-line reason only when there is no book line, else not-exported", () => {
@@ -195,7 +204,7 @@ describe("the calibrated number alone", () => {
     expect(r.p_cal).toBe(0);
     expect(calibratedLine(r)).toContain("0%");
     expect(read({ ...base, rung_cal: { ...RUNG, lines: [{ line: 0.5, p_over: 1 }] } }, 0.5).p_cal).toBe(1);
-    expect(r.p_raw).toBe(0);
+    expect(pOver(PGE, 9.5)).toBe(0);
   });
   it("uses plain words with no advice terms", () => {
     const words = /\b(ev|expected value|take it|lock|guaranteed|bet this|best bet)\b/i;
