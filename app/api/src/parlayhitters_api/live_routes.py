@@ -27,16 +27,18 @@ from .live import (
 
 
 def _need_event(event_id: str) -> str:
-    if not EVENT_RE.match(event_id):
+    if not EVENT_RE.fullmatch(event_id):
         raise HTTPException(404, "unknown game")
     return event_id
 
 
 def register_live(app: FastAPI, hub: LiveHub) -> None:
+    app.state.live_hub = hub
+
     @app.get("/api/live/{date}")
     async def live_games(date: str) -> dict[str, Any]:
         """Every game the capture holds for a slate date with its latest state and how old it is."""
-        if not DATE_RE.match(date):
+        if not DATE_RE.fullmatch(date):
             raise HTTPException(404, "not a date")
         return await asyncio.to_thread(games_on, hub.root, date)
 

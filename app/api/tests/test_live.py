@@ -13,7 +13,6 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-import duckdb
 import pytest
 from fastapi.testclient import TestClient
 from live_harness import (
@@ -41,7 +40,7 @@ NAMES = sorted(p.name for p in SRC.iterdir())  # pre, 2 early, mid, final
 def root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     copy_fixture(tmp_path)
     monkeypatch.setenv(L.LIVE_ENV, str(tmp_path))
-    monkeypatch.setenv(L.CHECKPOINT_ENV, str(tmp_path / "none.duckdb"))
+    monkeypatch.setenv(L.CHECKPOINT_ENV, str(tmp_path / "none.json"))
     return tmp_path
 
 
@@ -212,48 +211,70 @@ def test_live_module_does_not_import_nba() -> None:
 # ------------------------------------------------------------------------------ checkpoint gate
 
 
-def make_checkpoint_db(path: Path, event: str) -> None:
-    con = duckdb.connect(str(path))
-    con.execute(
-        "CREATE TABLE checkpoint_scored (checkpoint INTEGER, e_used DOUBLE, "
-        "model_support VARCHAR, period INTEGER, clock VARCHAR, known_at TIMESTAMP, "
-        "player_name VARCHAR, stat VARCHAR, k INTEGER, p_model DOUBLE, cur INTEGER, "
-        "minutes INTEGER, fouls INTEGER, event_id VARCHAR, mode VARCHAR, "
-        "ask_c INTEGER, edge_model DOUBLE)"
-    )
-    for ck, p in ((20, 0.4), (25, 0.5)):
-        con.execute(
-            "INSERT INTO checkpoint_scored VALUES (?, 25.1, 'trained', 3, '3:39', "
-            "'2026-11-10 01:40:00', 'Luka Doncic', 'pts', 30, ?, 22, 25, 1, ?, 'live', 55, 0.07)",
-            [ck, p, event],
-        )
-    con.execute(
-        "INSERT INTO checkpoint_scored VALUES (25, 25.1, 'trained', 3, '3:39', "
-        "'2026-11-10 01:40:00', 'Replay Guy', 'pts', 10, 0.9, 5, 20, 0, ?, 'replay', 55, 0.07)",
-        [event],
-    )
-    con.close()
+def write_snapshot(path: Path, event: str) -> None:
+    row = {
+        "player": "Luka Doncic",
+        "stat": "pts",
+        "k": 30,
+        "p_model": 0.5,
+        "cur": 22,
+        "minutes": 25,
+        "fouls": 1,
+    }
+    game = {
+        "checkpoint": 25,
+        "e_used": 25.1,
+        "support": "trained",
+        "period": 3,
+        "clock": "3:39",
+        "known_at": "2026-11-10T01:40:00",
+        "rows": [
+            {**row, "ask_c": 55, "edge_model": 0.07, "bid_c": 50}
+        ],  # extra fields must not pass through
+    }
+    path.write_text(json.dumps({"version": 1, "generated_at": "x", "games": {event: game}}))
 
 
-def test_checkpoint_absent_final_and_present(
-    root: Path, tmp_path_factory: pytest.TempPathFactory
+def test_checkpoint_comes_only_from_a_published_snapshot(
+    root: Path, tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     c = TestClient(create_app())
     j = c.get(f"/api/live/{EVENT}/checkpoint").json()
     assert j["available"] is False and j["label"].startswith("UNPROVEN: no live record")
-    db = tmp_path_factory.mktemp("ck") / "ingame_checkpoints.duckdb"
-    make_checkpoint_db(db, EVENT)
-    r = L.read_checkpoint(EVENT, "in", db)
-    assert r["available"] is True and r["checkpoint"] == 25  # the newest checkpoint only
-    assert [x["player"] for x in r["rows"]] == ["Luka Doncic"]  # live rows only, not replay
+    d = tmp_path_factory.mktemp("ck")
+    snap = d / "ingame_checkpoints_latest.json"
+    write_snapshot(snap, EVENT)
+    L._ck_cache.clear()
+    r = L.read_checkpoint(EVENT, "in", snap)
+    assert r["available"] is True and r["checkpoint"] == 25
+    assert [x["player"] for x in r["rows"]] == ["Luka Doncic"]
     assert r["label"] == "UNPROVEN: no live record; most nights the market already knows this."
-    text = json.dumps(r)
-    assert not re.search(r"ask|bid|edge|price|fee", text)
-    assert L.read_checkpoint(EVENT, "post", db)["available"] is False
-    assert L.read_checkpoint("999999999", "in", db)["available"] is False
-    empty = db.with_name("empty.duckdb")
-    duckdb.connect(str(empty)).close()
-    assert L.read_checkpoint(EVENT, "in", empty)["available"] is False  # no table: quiet, not a 500
+    assert not re.search(r"ask|bid|edge|price|fee", json.dumps(r))  # whitelisted fields only
+    assert L.read_checkpoint(EVENT, "post", snap)["available"] is False
+    assert L.read_checkpoint("999999999", "in", snap)["available"] is False
+    bad = d / "bad.json"
+    bad.write_text("{not json")
+    assert L.read_checkpoint(EVENT, "in", bad)["available"] is False  # quiet, not a 500
+    wrong = d / "wrong.json"
+    wrong.write_text(json.dumps({"version": 2, "games": {}}))
+    assert L.read_checkpoint(EVENT, "in", wrong)["available"] is False
+
+
+def test_checkpoint_snapshot_is_cached_for_15_seconds(tmp_path: Path) -> None:
+    snap = tmp_path / "s.json"
+    write_snapshot(snap, EVENT)
+    L._ck_cache.clear()
+    assert L.read_checkpoint(EVENT, "in", snap)["available"] is True
+    snap.unlink()  # a second read inside the window does not touch the file
+    assert L.read_checkpoint(EVENT, "in", snap)["available"] is True
+    L._ck_cache.clear()
+    assert L.read_checkpoint(EVENT, "in", snap)["available"] is False
+
+
+def test_app_never_opens_the_jarvis_store() -> None:
+    text = (Path(L.__file__)).read_text()
+    assert "duckdb" not in text.replace("DuckDB store", "")  # no import, no connect
+    assert "read_only" not in text
 
 
 # ------------------------------------------------------------------------------ SSE, end to end
@@ -390,3 +411,145 @@ def test_landed_body_reaches_the_client_quickly(root: Path) -> None:
     p50, p95 = statistics.median(lat), percentile(lat, 0.95)
     # the watcher polls every 0.2 s, so a body waits 0 to 0.2 s and then costs one parse
     assert p50 < 0.3 and p95 < 0.6, (p50, p95, max(lat))
+
+
+# ------------------------------------------------------------------------------ review fixes
+
+
+def many_events(root: Path, n: int) -> list[str]:
+    ids = []
+    for i in range(n):
+        eid = f"4019100{i:02d}"
+        d = body_dir(root, eid)
+        d.mkdir(parents=True)
+        land(SRC / NAMES[1], d, "20261110T002113Z")  # in progress, so a viewer holds a slot
+        ids.append(eid)
+    return ids
+
+
+def test_refused_subscribes_leave_no_dead_slots(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(L, "MAX_SUBS_TOTAL", 2)
+    ids = many_events(root, 12)
+
+    async def run() -> None:
+        hub = L.LiveHub(root, 0.05)
+        held = [await hub.subscribe(ids[0]), await hub.subscribe(ids[1])]
+        for eid in ids[2:]:
+            with pytest.raises(L.HubFull):
+                await hub.subscribe(eid)
+        assert set(hub.games) == {ids[0], ids[1]}  # refusals created nothing
+        hub.unsubscribe(ids[0], held[0][0])
+        hub.unsubscribe(ids[1], held[1][0])
+        await asyncio.sleep(0.3)
+        assert hub.games == {} and hub.n_subs == 0
+        with pytest.raises(L.UnknownGame):
+            await hub.subscribe("999999999")
+        assert hub.games == {}
+        # a game that cannot be read leaves no entry either
+        for f in body_dir(root, ids[5]).iterdir():
+            f.write_bytes(b"x")
+        with pytest.raises(L.UnknownGame):
+            await hub.subscribe(ids[5])
+        assert hub.games == {}
+
+    asyncio.run(run())
+
+
+def test_watched_game_cap_does_not_fill_with_dead_entries(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(L, "MAX_WATCHED_GAMES", 3)
+    monkeypatch.setattr(L, "MAX_SUBS_PER_GAME", 1)
+    ids = many_events(root, 8)
+
+    async def run() -> None:
+        hub = L.LiveHub(root, 0.05)
+        keep = [await hub.subscribe(ids[i]) for i in range(3)]
+        for eid in ids[3:]:
+            with pytest.raises(L.HubFull):
+                await hub.subscribe(eid)
+        with pytest.raises(L.HubFull):
+            await hub.subscribe(ids[0])  # per-game cap
+        assert len(hub.games) == 3
+        for i, (sub, _f, _fin) in enumerate(keep):
+            hub.unsubscribe(ids[i], sub)
+        await asyncio.sleep(0.3)
+        assert hub.games == {}
+        await hub.subscribe(ids[7])  # slots are free again
+
+    asyncio.run(run())
+
+
+def test_client_disconnect_releases_the_slot(root: Path) -> None:
+    d = body_dir(root)
+    shutil.rmtree(d)
+    land(SRC / NAMES[1], d, "20261110T002113Z")
+    app = create_app()
+    srv = start_server(app)
+    try:
+        cs = [SseClient(srv.port, f"/api/live/{EVENT}/stream").start() for _ in range(3)]
+        for c in cs:
+            assert c.wait(lambda ev: len(ev) >= 1)
+        hub = app.state.live_hub
+        assert hub.n_subs == 3
+        for c in cs:
+            c.close()
+        deadline = (
+            time.time() + 20
+        )  # disconnect is noticed at the next write: land a body to prompt it
+        land(SRC / NAMES[2], d, "20261110T004116Z")
+        n = 99
+        while time.time() < deadline:
+            n = hub.n_subs
+            if n == 0 and hub.games == {}:
+                break
+            time.sleep(0.2)
+        assert n == 0 and hub.games == {}
+    finally:
+        srv.stop()
+
+
+def test_odd_ids_and_dates_never_reach_the_disk(root: Path) -> None:
+    c = TestClient(create_app())
+    for path in (
+        "/api/live/2026-11-09%0A",
+        "/api/live/%D9%A2%D9%A0%D9%A2%D9%A6-11-09",
+        "/api/live/..%2F..%2Fetc/stream",
+        "/api/live/%2e%2e/snapshot",
+        "/api/live/401909952%0A/snapshot",
+        "/api/live/%D9%A4%D9%A0%D9%A1%D9%A9%D9%A0%D9%A9%D9%A9%D9%A5%D9%A2/snapshot",
+        "/api/live/401909952%00/plays",
+    ):
+        assert c.get(path).status_code in (404, 422), path
+    assert not L.DATE_RE.fullmatch("2026-11-09\n") and not L.EVENT_RE.fullmatch("401909952\n")
+    assert not L.EVENT_RE.fullmatch("\u0664\u0660\u0661\u0669\u0660\u0669")
+
+
+def test_oversized_body_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(L, "MAX_BODY_BYTES", 1000)
+    p = tmp_path / "20261110T000000Z.json.gz"
+    p.write_bytes(gzip.compress(b" " * 100_000))  # a small file that inflates enormously
+    with pytest.raises(L.BodyError, match="larger than"):
+        L.load_state(L.BodyRef(p, "capture", "20261110T000000Z", 0), DATE, EVENT)
+
+
+def test_stream_keeps_no_transform(root: Path) -> None:
+    srv = start_server(create_app())
+    try:
+        import http.client
+
+        conn = http.client.HTTPConnection("127.0.0.1", srv.port, timeout=5)
+        conn.request("GET", f"/api/live/{EVENT}/stream")
+        r = conn.getresponse()
+        assert r.status == 200 and r.getheader("Cache-Control") == "no-cache, no-transform"
+        assert r.getheader("Content-Type", "").startswith("text/event-stream")
+        conn.close()
+        c2 = http.client.HTTPConnection("127.0.0.1", srv.port, timeout=5)
+        c2.request("GET", f"/api/live/{DATE}")
+        r2 = c2.getresponse()
+        assert r2.getheader("Cache-Control") == "no-cache"  # other routes unchanged
+        c2.close()
+    finally:
+        srv.stop()

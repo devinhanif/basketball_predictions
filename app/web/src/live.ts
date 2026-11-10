@@ -1,6 +1,6 @@
 // Live play-by-play: wire types, the delta reducer, honest ages, the pace rule and prop trackers.
 // Pure functions only (the stream itself is in useLive.ts). No price, odds or edge appears anywhere in the live view.
-import type { PropView, Stat } from "./types";
+import type { PSource, PropView, Stat } from "./types";
 import { MODEL_LOCK_FROM } from "./record";
 
 export const ATTRIBUTION = "Play-by-play: ESPN. Not affiliated.";
@@ -282,13 +282,17 @@ export interface Tracker {
   expected: number | null;
   minutes: number | null;
   fouls: number | null;
-  /** The calibrated pre-game chance of the over, or null (model-only numbers are never shown here). */
+  /** The calibrated pre-game chance of the over, or null: model-only numbers are never shown here, and on a night
+   *  under the LINE_CAL_LIVE lock no chance is shown at all. */
   chance: number | null;
+  /** Where `chance` came from (line_cal or rung_cal), for the label; null when there is none. */
+  source: PSource | null;
   extrapolated: boolean;
 }
 
 /** The lines on a game against the live box. Posted lines only; a reference line is not a line anyone set. */
 export function buildTrackers(players: TrackerInput[], live: LiveState): Tracker[] {
+  const showChance = !chanceLocked(live.date);
   const rows = Object.values(live.box);
   const out: Tracker[] = [];
   for (const p of players) {
@@ -313,7 +317,8 @@ export function buildTrackers(players: TrackerInput[], live: LiveState): Tracker
         expected: expectedBy(prop.line, live.status.elapsed_min),
         minutes: row ? row.min : null,
         fouls: row ? row.pf : null,
-        chance: prop.model_p_source === "model" ? null : prop.model_p_over,
+        chance: showChance && prop.model_p_source !== "model" ? prop.model_p_over : null,
+        source: showChance && prop.model_p_source !== "model" ? prop.model_p_source : null,
         extrapolated: prop.extrapolated,
       });
     }
@@ -321,10 +326,21 @@ export function buildTrackers(players: TrackerInput[], live: LiveState): Tracker
   return out;
 }
 
-/** Once a game is final on a night under the LINE_CAL_LIVE lock, trackers give way to the lock note (no model call
- *  is shown next to an outcome). An in-progress game is not final, so its trackers show. */
-export function trackersLocked(state: GameState, date: string): boolean {
-  return state === "post" && date >= MODEL_LOCK_FROM;
+/** On a night under the LINE_CAL_LIVE lock (from MODEL_LOCK_FROM) trackers carry progress and pace only: no pre-game
+ *  chance, in progress or final, so a chance never shares a screen with a count that has already decided the prop. */
+export function chanceLocked(date: string): boolean {
+  return date >= MODEL_LOCK_FROM;
+}
+
+/** Hours after tip at which a game is treated as over even if no final body was captured. */
+export const OVER_AFTER_H = 4;
+
+/** Final, or started so long ago that it must be (the capture can stop before ESPN flips to final). */
+export function treatAsFinal(state: GameState, tipUtc: string | null, nowMs: number): boolean {
+  if (state === "post") return true;
+  if (state === "pre" || tipUtc === null) return false;
+  const tip = Date.parse(tipUtc);
+  return Number.isFinite(tip) && nowMs - tip > OVER_AFTER_H * 3600 * 1000;
 }
 
 /** Sort: closest to going over first, lines already cleared last, then by player. */

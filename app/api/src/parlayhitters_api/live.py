@@ -23,13 +23,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import gzip
 import json
 import logging
 import os
 import re
 import threading
 import time
+import zlib
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -40,17 +40,17 @@ log = logging.getLogger("parlayhitters.live")
 
 LIVE_ENV = "APP_LIVE_DIR"
 POLL_ENV = "APP_LIVE_POLL_S"
-CHECKPOINT_ENV = "APP_CHECKPOINT_DB"
+CHECKPOINT_ENV = "APP_CHECKPOINT_SNAPSHOT"
 DEFAULT_ROOT = Path(__file__).resolve().parents[4] / "data" / "raw"
-DEFAULT_CHECKPOINT_DB = (
-    Path(__file__).resolve().parents[4] / "data" / "jarvis" / "ingame_checkpoints.duckdb"
+DEFAULT_CHECKPOINT_SNAPSHOT = (
+    Path(__file__).resolve().parents[4] / "data" / "jarvis" / "ingame_checkpoints_latest.json"
 )
 
 # Copied from nba/live/capture.py ESPN_TO_KALSHI (ESPN abbreviation -> the tricode the app uses).
 ESPN_TO_TRI = {"GS": "GSW", "NY": "NYK", "SA": "SAS", "NO": "NOP", "UTAH": "UTA", "WSH": "WAS"}
 
-EVENT_RE = re.compile(r"^\d{6,12}$")
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+EVENT_RE = re.compile(r"[0-9]{6,12}")
+DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 STAMP_RE = re.compile(r"^(\d{8}T\d{6}Z)(?:_(\d+))?\.json\.gz$")
 
 ATTRIBUTION = "Play-by-play: ESPN. Not affiliated."
@@ -67,6 +67,7 @@ MAX_WATCHED_GAMES = 30
 QUEUE_MAX = 64
 HEARTBEAT_S = 15.0
 PARSE_CACHE_MAX = 64
+MAX_BODY_BYTES = 20_000_000  # decompressed; a larger body is refused, not parsed
 
 
 # ----------------------------------------------------------------------------- locating bodies
@@ -146,7 +147,7 @@ def locate_event(root: Path, event_id: str) -> str | None:
         return None
     for name in nights[:4]:
         date = name[len("live_") :]
-        if DATE_RE.match(date) and (root / name / "espn_summary" / event_id).is_dir():
+        if DATE_RE.fullmatch(date) and (root / name / "espn_summary" / event_id).is_dir():
             return date
     return None
 
@@ -154,7 +155,7 @@ def locate_event(root: Path, event_id: str) -> str | None:
 def list_event_ids(root: Path, date: str) -> list[str]:
     base = root / f"live_{date}" / "espn_summary"
     try:
-        return sorted(p.name for p in base.iterdir() if EVENT_RE.match(p.name) and p.is_dir())
+        return sorted(p.name for p in base.iterdir() if EVENT_RE.fullmatch(p.name) and p.is_dir())
     except OSError:
         return []
 
@@ -366,9 +367,13 @@ def parse_body(raw: bytes, ref: BodyRef, date: str, event_id: str) -> GameState:
 
 def load_state(ref: BodyRef, date: str, event_id: str) -> GameState:
     try:
-        raw = gzip.decompress(ref.path.read_bytes())
-    except (OSError, EOFError) as exc:
+        packed = ref.path.read_bytes()
+        d = zlib.decompressobj(wbits=31)
+        raw = d.decompress(packed, MAX_BODY_BYTES + 1)
+    except (OSError, EOFError, zlib.error) as exc:
         raise BodyError(f"cannot read {ref.path.name}: {exc}") from exc
+    if len(raw) > MAX_BODY_BYTES:
+        raise BodyError(f"{ref.path.name} is larger than {MAX_BODY_BYTES} bytes decompressed")
     return parse_body(raw, ref, date, event_id)
 
 
@@ -476,6 +481,8 @@ class LiveHub:
 
     async def subscribe(self, event_id: str) -> tuple[Subscriber, list[str], bool]:
         """(subscriber, first messages, already_final). Raises UnknownGame / HubFull."""
+        if self.n_subs >= MAX_SUBS_TOTAL:  # every cap is checked before any entry exists
+            raise HubFull("too many viewers")
         gw = self.games.get(event_id)
         if gw is None:
             if len(self.games) >= MAX_WATCHED_GAMES:
@@ -485,14 +492,18 @@ class LiveHub:
                 raise UnknownGame(event_id)
             gw = self.games.get(event_id) or GameWatch(event_id, date)
             self.games[event_id] = gw
-        if self.n_subs >= MAX_SUBS_TOTAL or len(gw.subs) >= MAX_SUBS_PER_GAME:
+        elif len(gw.subs) >= MAX_SUBS_PER_GAME:
             raise HubFull("too many viewers")
-        if gw.state is None:
-            await self._refresh(gw)
-        if gw.state is None:
-            if not gw.subs and gw.task is None:
-                self.games.pop(event_id, None)
-            raise UnknownGame(event_id)
+        try:
+            if gw.state is None:
+                await self._refresh(gw)
+            if gw.state is None:
+                raise UnknownGame(event_id)
+            if self.n_subs >= MAX_SUBS_TOTAL or len(gw.subs) >= MAX_SUBS_PER_GAME:
+                raise HubFull("too many viewers")  # filled while we were reading the body
+        except BaseException:
+            self._drop_if_idle(gw)
+            raise
         sub = Subscriber()
         now = datetime.now(UTC)
         first = [sse("snapshot", snapshot_payload(gw.state, gw.seq, now), gw.seq)]
@@ -504,9 +515,17 @@ class LiveHub:
             self.n_subs += 1
             if gw.task is None or gw.task.done():
                 gw.task = asyncio.create_task(self._watch(gw))
-        if final and not gw.subs and (gw.task is None or gw.task.done()):
-            self.games.pop(event_id, None)
+        self._drop_if_idle(gw)  # a final game keeps no entry
         return sub, first, final
+
+    def _drop_if_idle(self, gw: GameWatch) -> None:
+        """Remove an entry nobody is watching and no task is serving (a refusal, or a final)."""
+        if (
+            not gw.subs
+            and (gw.task is None or gw.task.done())
+            and self.games.get(gw.event_id) is gw
+        ):
+            del self.games[gw.event_id]
 
     def unsubscribe(self, event_id: str, sub: Subscriber) -> None:
         gw = self.games.get(event_id)
@@ -660,64 +679,79 @@ def plays_before(state: GameState, before: int, limit: int) -> list[dict[str, An
 # ----------------------------------------------------------------------------- checkpoints
 
 
-def checkpoint_db() -> Path:
-    return Path(os.environ.get(CHECKPOINT_ENV) or DEFAULT_CHECKPOINT_DB)
+def checkpoint_snapshot_path() -> Path:
+    return Path(os.environ.get(CHECKPOINT_ENV) or DEFAULT_CHECKPOINT_SNAPSHOT)
 
 
-def read_checkpoint(event_id: str, game_state: str, db: Path | None = None) -> dict[str, Any]:
-    """The newest in-game checkpoint rows for a game, only if the JARVIS store exists and has rows.
-    No price, ask, bid or edge is returned (the live view carries no prices)."""
+_ck_cache: dict[str, tuple[float, dict[str, Any] | None]] = {}
+_ck_lock = threading.Lock()
+CHECKPOINT_TTL_S = 15.0
+
+
+def _load_snapshot(path: Path) -> dict[str, Any] | None:
+    """The published checkpoint snapshot (docs/contracts/ingame_checkpoint_snapshot_v1.md).
+
+    Cached 15 s per process.
+
+    The app never opens the JARVIS DuckDB store: a reader there can make the live writer fail."""
+    key = str(path)
+    with _ck_lock:
+        hit = _ck_cache.get(key)
+        if hit is not None and time.monotonic() - hit[0] < CHECKPOINT_TTL_S:
+            return hit[1]
+    data: dict[str, Any] | None = None
+    try:
+        raw = path.read_bytes()
+        if len(raw) <= 5_000_000:
+            parsed = json.loads(raw)
+            if (
+                isinstance(parsed, dict)
+                and parsed.get("version") == 1
+                and isinstance(parsed.get("games"), dict)
+            ):
+                data = parsed
+    except (OSError, ValueError):
+        data = None
+    with _ck_lock:
+        _ck_cache[key] = (time.monotonic(), data)
+    return data
+
+
+def read_checkpoint(event_id: str, game_state: str, path: Path | None = None) -> dict[str, Any]:
+    """The newest in-game checkpoint rows for a game from the published snapshot, if one exists and
+    holds rows for it. Only whitelisted fields are copied out: no price, ask, bid or edge."""
     base: dict[str, Any] = {"game_id": event_id, "label": CHECKPOINT_LABEL, "available": False}
     if game_state == "post":
         return {**base, "reason": "hidden once the game is final"}
-    path = db or checkpoint_db()
-    if not path.is_file():
-        return {**base, "reason": "no checkpoint store"}
-    try:
-        import duckdb
-
-        con = duckdb.connect(str(path), read_only=True)
-        try:
-            rows = con.execute(
-                """
-                SELECT checkpoint, e_used, model_support, period, clock, known_at,
-                       player_name, stat, k, p_model, cur, minutes, fouls
-                FROM checkpoint_scored
-                WHERE event_id = ? AND mode = 'live'
-                  AND checkpoint = (SELECT max(checkpoint) FROM checkpoint_scored
-                                    WHERE event_id = ? AND mode = 'live')
-                ORDER BY player_name, stat, k
-                LIMIT 200
-                """,
-                [event_id, event_id],
-            ).fetchall()
-        finally:
-            con.close()
-    except Exception as exc:  # missing table, locked file, schema drift: say nothing, no 500
-        log.warning("checkpoint read failed: %s", exc)
-        return {**base, "reason": "checkpoint store not readable"}
-    if not rows:
+    snap = _load_snapshot(path or checkpoint_snapshot_path())
+    if snap is None:
+        return {**base, "reason": "no checkpoint snapshot"}
+    g = snap["games"].get(event_id)
+    if not isinstance(g, dict) or not g.get("rows"):
         return {**base, "reason": "no checkpoint rows for this game"}
-    r0 = rows[0]
-    return {
-        **base,
-        "available": True,
-        "checkpoint": int(r0[0]),
-        "e_used": float(r0[1]),
-        "support": str(r0[2]),
-        "period": int(r0[3]),
-        "clock": str(r0[4]),
-        "known_at": r0[5].isoformat() if hasattr(r0[5], "isoformat") else str(r0[5]),
-        "rows": [
+    try:
+        rows = [
             {
-                "player": str(r[6]),
-                "stat": str(r[7]),
-                "k": int(r[8]),
-                "p_model": float(r[9]),
-                "cur": int(r[10]),
-                "minutes": int(r[11]),
-                "fouls": int(r[12]),
+                "player": str(r["player"]),
+                "stat": str(r["stat"]),
+                "k": int(r["k"]),
+                "p_model": float(r["p_model"]),
+                "cur": int(r["cur"]),
+                "minutes": int(r["minutes"]),
+                "fouls": int(r["fouls"]),
             }
-            for r in rows
-        ],
-    }
+            for r in g["rows"][:200]
+        ]
+        return {
+            **base,
+            "available": True,
+            "checkpoint": int(g["checkpoint"]),
+            "e_used": float(g["e_used"]),
+            "support": str(g["support"]),
+            "period": int(g["period"]),
+            "clock": str(g["clock"]),
+            "known_at": str(g["known_at"]),
+            "rows": rows,
+        }
+    except (KeyError, TypeError, ValueError):
+        return {**base, "reason": "checkpoint snapshot not readable"}

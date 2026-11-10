@@ -20,7 +20,8 @@ import {
   normName,
   paceOf,
   previousDate,
-  trackersLocked,
+  chanceLocked,
+  treatAsFinal,
   type BoxRow,
   type Delta,
   type LiveGameSummary,
@@ -148,7 +149,7 @@ describe("prop trackers", () => {
         { name: "Trae Young", side: "home", props: { pts: prop("pts", 22.5, "line_cal", { line_source: "reference" }) } },
         { name: "Bench Guy", side: "home", props: { pts: prop("pts", 4.5, "line_cal") } },
       ],
-      live,
+      { ...live, date: "2026-10-01" }, // an unlocked night
     );
     expect(ts.map((t) => `${t.player}|${t.stat}`)).toEqual(["Luka Doncic|pts", "Luka Doncic|reb", "Bench Guy|pts"]);
     const luka = ts[0];
@@ -160,11 +161,35 @@ describe("prop trackers", () => {
     expect(ts[2]?.pace).toBe("no box");
     for (const t of ts) expect(Object.keys(t).join(" ")).not.toMatch(/price|odds|edge|market/i);
   });
-  it("give way to the lock note once the game is final on a locked night, not before", () => {
-    expect(trackersLocked("post", "2026-11-09")).toBe(true);
-    expect(trackersLocked("in", "2026-11-09")).toBe(false);
-    expect(trackersLocked("post", "2026-10-29")).toBe(false);
-    expect(trackersLocked("pre", "2026-11-09")).toBe(false);
+  it("on a locked night show progress and pace only: no chance, in progress or final", () => {
+    const players = [{ name: "Luka Doncic", side: "away" as const, props: { pts: prop("pts", 28.5, "line_cal") } }];
+    const locked = (state: "in" | "post", date: string) => buildTrackers(players, { ...live, state, date })[0];
+    for (const state of ["in", "post"] as const) {
+      const t = locked(state, "2026-11-09");
+      expect(t?.chance).toBeNull();
+      expect(t?.source).toBeNull();
+      expect(t?.cur).toBe(20); // progress and pace still show
+      expect(t?.pace).toBeDefined();
+    }
+    const open = locked("in", "2026-10-29");
+    expect(open?.chance).toBe(0.57); // unlocked nights are unchanged
+    expect(open?.source).toBe("line_cal");
+    expect(chanceLocked("2026-10-30")).toBe(true);
+    expect(chanceLocked("2026-10-29")).toBe(false);
+  });
+  it("carries the real calibration source, rung or line", () => {
+    const players = [{ name: "Luka Doncic", side: "away" as const, props: { pts: prop("pts", 28.5, "line_cal"), reb: { ...prop("reb", 8.5, "line_cal"), model_p_source: "rung_cal" as const } } }];
+    const ts = buildTrackers(players, { ...live, date: "2026-10-01" });
+    expect(ts.map((t) => t.source)).toEqual(["line_cal", "rung_cal"]);
+  });
+  it("treats a game as over once tip was more than 4 hours ago, final body or not", () => {
+    const tip = "2026-11-10T00:00:00Z";
+    const at = (h: number): number => Date.parse(tip) + h * 3600_000;
+    expect(treatAsFinal("post", tip, at(0))).toBe(true);
+    expect(treatAsFinal("in", tip, at(3.9))).toBe(false);
+    expect(treatAsFinal("in", tip, at(4.1))).toBe(true);
+    expect(treatAsFinal("pre", tip, at(9))).toBe(false);
+    expect(treatAsFinal("in", null, at(9))).toBe(false);
   });
 });
 
@@ -319,7 +344,8 @@ describe("the live view carries no prices and says where it comes from", () => {
     expect(parts).toContain("ATTRIBUTION");
     expect(parts).toContain("CHECKPOINT_LABEL");
     expect(parts).toContain("As of {ageText(age)} ago");
-    expect(parts).toContain("RESULT_HIDDEN"); // the lock note, final and locked
+    expect(parts).toContain("LOCK_NOTE"); // the lock note on locked nights
+    expect(parts).toContain("<CalTag source={t.source}"); // the label comes from the real source
   });
   it("does not render a raw chance (calibrated-only holds here too)", () => {
     for (const f of LIVE_FILES) expect(readFileSync(join(SRC, f), "utf8"), f).not.toMatch(/\bp_raw\b|p_over_raw|\.raw\b/);

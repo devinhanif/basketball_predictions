@@ -180,7 +180,8 @@ def create_app() -> FastAPI:
         resp = await call_next(request)
         resp.headers["X-Content-Type-Options"] = "nosniff"
         resp.headers["Referrer-Policy"] = "no-referrer"
-        resp.headers["Cache-Control"] = "no-cache"  # the service worker owns offline caching
+        if "cache-control" not in resp.headers:  # the stream keeps its own (no-transform)
+            resp.headers["Cache-Control"] = "no-cache"  # the service worker owns offline caching
         return resp
 
     @app.exception_handler(ExportRefused)

@@ -12,7 +12,8 @@ import {
   clockLabel,
   lagText,
   sortTrackers,
-  trackersLocked,
+  chanceLocked,
+  treatAsFinal,
   type BoxRow,
   type GameState,
   type LiveMeta,
@@ -20,7 +21,7 @@ import {
   type Play,
   type Tracker,
 } from "./live";
-import { RESULT_HIDDEN } from "./record";
+import { LOCK_NOTE } from "./record";
 import type { GameDetail } from "./types";
 import { STAT_SHORT } from "./types";
 import { liveHref } from "./router";
@@ -237,7 +238,7 @@ const PACE_WORD: Record<Tracker["pace"], string> = {
   "no box": "Not in the box yet",
 };
 
-function TrackerRow({ t }: { t: Tracker }) {
+function TrackerRow({ t, locked }: { t: Tracker; locked: boolean }) {
   const frac = t.cur === null || t.line <= 0 ? 0 : Math.min(1, t.cur / t.line);
   return (
     <li class={`tracker pace-${t.pace.replace(" ", "-")}`}>
@@ -261,9 +262,9 @@ function TrackerRow({ t }: { t: Tracker }) {
         {t.expected !== null ? ` · even pace ${t.expected.toFixed(1)}` : ""}
         {t.chance !== null ? (
           <>
-            {" · "}pre-game chance of the over <b>{pctBounded(t.chance, t.extrapolated)}</b> <CalTag source="line_cal" />
+            {" · "}pre-game chance of the over <b>{pctBounded(t.chance, t.extrapolated)}</b> {t.source !== null ? <CalTag source={t.source} /> : null}
           </>
-        ) : (
+        ) : locked ? null : (
           " · no calibrated pre-game number"
         )}
       </div>
@@ -275,14 +276,6 @@ export function Trackers(props: { live: LiveState; game: GameDetail | null; load
   const { live, game } = props;
   const ts = useMemo(() => (game ? sortTrackers(buildTrackers(game.players, live)) : []), [game, live]);
   const [stat, setStat] = useState<"all" | "pts" | "reb" | "ast" | "fg3m">("all");
-  if (trackersLocked(live.state, live.date)) {
-    return (
-      <section class="panel live-track">
-        <h2>Prop trackers</h2>
-        <p class="small muted">{RESULT_HIDDEN}</p>
-      </section>
-    );
-  }
   const shown = stat === "all" ? ts : ts.filter((t) => t.stat === stat);
   return (
     <section class="panel live-track" aria-labelledby="lt-h">
@@ -313,13 +306,13 @@ export function Trackers(props: { live: LiveState; game: GameDetail | null; load
       ) : (
         <ul class="trackers">
           {shown.map((t) => (
-            <TrackerRow key={t.key} t={t} />
+            <TrackerRow key={t.key} t={t} locked={chanceLocked(live.date)} />
           ))}
         </ul>
       )}
       <p class="small muted">
-        Needs counts what is left to go over the line. The tick on the bar is an even pace (half the line by the half). Chances are the
-        calibrated pre-game numbers; they do not update during the game.
+        Needs counts what is left to go over the line. The tick on the bar is an even pace (half the line by the half).{" "}
+        {chanceLocked(live.date) ? `Pre-game chances are not shown here. ${LOCK_NOTE}` : "Chances are the calibrated pre-game numbers; they do not update during the game."}
       </p>
     </section>
   );
@@ -449,7 +442,7 @@ export function GameLive({ g }: { g: GameDetail }) {
   const lv = useLiveFor(g);
   const [open, setOpen] = useState(false);
   if (lv === null || lv.state === "pre") return null;
-  const final = lv.state === "post";
+  const final = treatAsFinal(lv.state, lv.tip_utc, Date.now());
   return (
     <div class="stack live-embed">
       <div class="row between wrap">

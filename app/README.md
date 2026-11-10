@@ -288,7 +288,12 @@ the private build locally.
 ## Live play-by-play (Devin's override, DECISIONS 2026-11-10 03:10)
 
 Reads the live capture's ESPN summary bodies from disk (no network, no export store). `APP_LIVE_DIR` (default
-`<repo>/data/raw`), `APP_LIVE_POLL_S` (default 0.2), `APP_CHECKPOINT_DB` (default `<repo>/data/jarvis/ingame_checkpoints.duckdb`).
+`<repo>/data/raw`), `APP_LIVE_POLL_S` (default 0.2), `APP_CHECKPOINT_SNAPSHOT` (default `<repo>/data/jarvis/ingame_checkpoints_latest.json`; contract in `docs/contracts/ingame_checkpoint_snapshot_v1.md`; the app never opens the JARVIS DuckDB store).
 Routes: `GET /api/live/{date}`, `/api/live/{event_id}/stream` (SSE), `/snapshot`, `/plays?before=`, `/checkpoint`.
 Latency replay (own port, fixtures): `cd app/api && PYTHONPATH=src uv run python tests/live_harness.py`.
 Fixtures: `app/fixtures/live/` (trimmed 2026-11-09 capture bodies; `build_live_fixture.py` rebuilds them).
+
+Rate limiting (not in code): the live routes other than the stream share the API's thread pool with the store routes, so put a
+Cloudflare rate-limiting rule in front, for example: path starts with `/api/live/` and is not `/stream`, 60 requests per minute
+per IP, then block for 60 s; and for `/api/live/*/stream`, 10 new connections per minute per IP. The API itself caps the stream at
+150 viewers per game and 300 in all (503 beyond that) and refuses a decompressed capture body over 20 MB.
