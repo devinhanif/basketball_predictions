@@ -222,3 +222,50 @@ DECISIONS:
 
 PREDICTIONS_LEDGER (to score when a forward script rule runs): adversary prior P(grind passes a new frozen equivalence rule on >= 150
 grind games of 2026) 0.45, because the point estimates are near 1 in both folds but the 2026 scoring level differs.
+
+## Re-review: 766fe15..21067bc (diff only), 2026-11-10
+
+Classification for merge (research and display code; export wiring later): **SURVIVES**. B1, M1, M2, M3 and m1-m6 are fixed, and
+every changed golden value is explained by a fix. Season 2025 was not loaded.
+
+Verdict: APPROVED
+
+### Checks (scripts: `.../scratchpad/adv/rr_math.py`; code snapshot `git archive 21067bc nba tests ...` in `.../scratchpad/rr`)
+
+| check | command / evidence | result | pass/fail |
+|---|---|---|---|
+| Run-1 JSON is the real run 1 | `reports/parlay/combo_eval_2026-11-09_run1.json` vs the adversary's reproduction from fd81aaf (`scratchpad/run1/out.json`), `made` dropped | identical | pass |
+| k = 2 target search vs brute force, band [0.35, 0.75] (39 candidate legs) | `rr_math.py` | t 0.15: brute max lift 1.627928, search 1.627928; t 0.35: 1.29311 both; t 0.45: 1.235737 both; t 0.50: 1.18132 both (8 feasible pairs) | pass |
+| t = 0.55 feasibility | same | brute 0 feasible pairs, search `feasible: False` (best p 0.5474). The old 146 feasible pairs used legs with calibrated P > 0.75, which are now excluded from the candidates; with `p_max = 0.85` passed explicitly the result is the same (exclusion applies regardless of `p_max`) | pass (agreement both ways) |
+| k = 3 search vs brute force (players 1-3, 31 legs, brute on the screening budget) | same | t 0.08: 2.1231 brute vs 2.1222 search; t 0.15: 1.8706 vs 1.8700; t 0.25: 1.5143 vs 1.5138. Gaps of 0.0005-0.0009 are within QMC screening error (about 2e-4 on p); all answers carry the estimate label | pass |
+| Above the tested range | same | all 82 fixture legs with calibrated P > 0.75 flagged; 0 legs at 0.74-0.75 flagged; unders above 0.75 flagged; raw-at-main >= 0.80 path covered by `test_above_tested_range_is_labelled_and_excluded_not_capped`; number not capped | pass |
+| `p_joint_incl_dnp` with null `p_play` | same | single-game pair: `p_all_play None`, `p_joint_incl_dnp None`, `p_joint 0.284`; cross-game: both None | pass |
+| No script is called calibrated | `combo_params_v1.json` `script_status`: all four exploratory; contract section 2 "none is", section 7 grind row "exploratory (review override)", section 8 "Exploratory beside every script"; MODEL_PLAYBOOK "no script is calibrated"; PARLAY_ENGINE "all four are labelled exploratory". The remaining hits for "calibrated" refer to legs, marginals or the schema's allowed values | pass |
+| Golden vectors | diff 766fe15..21067bc of `combo_golden_v1.json` | (a) new `label` key on every case, ESTIMATE_LABEL exactly on the two 3-entity cases; (b) new `range_2se`, `above_tested_range` on lift-ranking rows (values unchanged); (c) `home_win_and_star_pts` (`gt` 0): marginal 0.587293 -> 0.572924 = sf((0.5 - 3.0) / 13.6), the half-point fix, joint and lift follow; (d) target search band 0.85 -> 0.75 and the top answer moves to lift 1.627928, exactly the brute-force optimum of the original review. No other numeric change | pass (no silent drift) |
+| Tests and lint at 21067bc (worktree) | `pytest -q tests/parlay/test_combo.py --no-cov` | 43 passed, exit 0, 11 s (was 124 s) | pass |
+| | `ruff check`, `ruff format --check`, `mypy` on the combo modules | exit 0, 0, 0 | pass |
+
+### New findings in the revision (none blocking)
+
+- r1 (minor): `nba/parlay/combo_eval.py` `main` still writes `prod["script_status"] = res["script_labels"]`, so re-running the
+  documented maintainer command with `--params-out` (PARLAY_ENGINE.md) puts `grind: calibrated` back into the params file.
+  `test_params_status_has_no_calibrated_script_and_run1_file_is_committed` would catch it, so it cannot ship silently. Fix: in `main`,
+  after `prod["script_status"] = ...`, apply the override (`status = "exploratory"` for every script while no forward rule has passed)
+  and keep the frozen rule's own output under `prod["script_status_frozen_rule"]`.
+- r2 (minor): framing 4 (build your own) returns no per-leg "above the tested range" flag; `ComboResult` has `label` and `range_2se`
+  only, so the app must call `leg_above_tested_range` itself. No golden vector has `above_tested_range: true`, so the TS port's version
+  of that function is untested. Fix: add `above_tested_range: tuple[bool, ...]` per merged entity to `ComboResult`, plus one golden case
+  with a true flag.
+- r3 (minor, wording): `docs/PARLAY_ENGINE.md` still says the [0.35, 0.75] band means target search "cannot degenerate to the lowest
+  lines", while the contract now says the optimum sits at the 0.35 floor. Add "the best answer usually has a leg at the 0.35 floor".
+  Contract section 3, the `scripts.status` bullet, says "the pre-stated check of section 6"; it is section 7.
+- r4 (note): the committed run-2 report `reports/parlay/combo_eval_2026-11-09.json` still has `grind: calibrated` in `script_labels`.
+  That is the frozen rule's historical output and the contract explains the override; the app reads the params file, not this report.
+- Screening risk, accepted: k >= 3 pruning uses the screening-budget joint (error about 2e-4), so a combo whose true joint lies within
+  about 2e-4 above the target can be pruned. That does not matter for a display mode.
+
+### Still open from the first review (not part of this diff)
+- The forward script rule is a DRAFT (`docs/contracts/combo_script_forward_rule_DRAFT.md`), not frozen. It must be frozen by a hand that
+  can commit, before any 2026 look. Its minimum-data gate (about 150 grind games) needs checking against the 2026 schedule first
+  (non-negotiable 8).
+- TEST_LEDGER, DECISIONS and PREDICTIONS rows from the first review are still drafted only.
