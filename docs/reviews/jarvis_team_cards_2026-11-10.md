@@ -235,3 +235,87 @@ then the main session runs the replay oracle (live path).
   caps (B2); card Enter ≠ top_overs on multi-row games (M1). Fix before merge. card_picks.jsonl is descriptive only: never an input
   to a frozen rule, the kill switch or model weights. Reverse: none; a re-review closes it."
 - PREDICTIONS_LEDGER: none. No prior was stated before the result.
+
+---
+
+## Re-review: e2037fc (diff-only, 6e9ee57..e2037fc), 2026-11-10
+
+Verdict: APPROVED
+
+Grade: **SURVIVES** for merge, with the minor items below. Install, the Discord setup and Devin's go remain separate steps.
+The main session still runs the replay oracle (live path: `runner.py` changed).
+
+I re-planted every attack against e2037fc. Script:
+`/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/3f9498c6-47e0-4634-a07a-43f2643fe309/scratchpad/cards_attack/t3/test_rereview.py`.
+Each plant now asserts the *fixed* behaviour. Command:
+`cd <worktree> && .venv/bin/python -m pytest -q -p no:cacheprovider --no-cov <script>`. Result: **11 passed, exit 0** (unpiped).
+
+| Finding | Plant | Result on e2037fc | Pass |
+|---|---|---|---|
+| B1 timeout storm | every request raises `ReadTimeout` after 0.3 s, 4 slots | 1 request, then the circuit opens (`stopped: broken`, 4 deferred); wall 0.46 s; no secret in the report or in logs captured at DEBUG | PASS |
+| B1 slow but successful | every request succeeds after 0.4 s, `tick_budget_s=1.0` | 3 posted, 1 deferred, `stopped: tick budget`; wall 1.42 s, which is the budget plus one request in flight | PASS |
+| B1 order | spy on `run_ingame` and `run_cards` inside `run_tick` | order `['ingame', 'cards']` | PASS |
+| B2 stale reference at T-120 | `single_candidate` patched to give `ref_age_min=238` and the cap note (the 11-08 case) | overs field "No fresh price to judge an over right now."; 0 picks logged | PASS |
+| B2 hold with no cap note | reference 100 min old (under the 120 cap); pulls gate patched to limit 30, not released | not shown, 0 picks | PASS |
+| M1 four-row Enter | 4 qualifying rows, pre-tip over 4th; and two strikes for one player | Enter set == `top_overs` set exactly (A/B/C); two strikes give Enter on 20+ only | PASS |
+| M2 age-out flip | post at NOW, refresh at NOW+35 (quotes > 30 min old) | the over stays, marked "(price now stale)"; no "no over" sentence | PASS |
+| M3 torn state line | torn first line, 2 ticks | 1 POST, `state_skipped: 1` | PASS |
+| M3 torn picks line | torn tail on `card_picks.jsonl`, refresh after 16 min | pick ids unique; no re-log at a later price | PASS |
+| M3 malformed record | JSON line without `message_id` | skipped and counted (`state_skipped: 1`); 4 cards unchanged; no error; no duplicate | PASS |
+| m1 200 with no id | 5 ticks | 1 request total (`lost` record; never re-posted) | PASS |
+
+Reading the diff for the remaining fixes:
+- **M4**: the CI and `cluster_ci` are gone. The season line reads "descriptive, not a tested claim", and the DECISIONS row
+  records that `card_picks.jsonl` is never an input to a frozen rule, the kill switch or the model weights.
+- **M5**: the text now says "N percentage points apart (close / some gap / far apart)" under "**Model vs sharp line** (agreement,
+  not a confidence interval)".
+- **M6**: `NO_OVER = "No over has positive EV after fees tonight."` That wording also goes to the main-channel overview, so it no
+  longer conflicts with TRADING_CONTEXT.
+- **M7**: each file is read once per `CardState`, which means once per pass.
+- **m2-m6, m8, m10**: fixed. The percentage divides by ask + fee, the "still" wording is gone, `row.pin` is labelled as Pinnacle
+  with "JARVIS fair" shown separately, the venue comes from `VENUE`, each slot has its own `try`, the `10008` code is removed, and
+  the setup doc's step order is fixed with `cards=off(no webhooks)` added to `tick_line`.
+- **m7 and m9**: not done, and documented as such. Acceptable.
+
+### New issues in the revision (all minor; none block)
+- r1. **The cap filter matches note text.** `facts.py` `CAP_NOTES` and `is_capped` rely on the exact wording of the notes in
+  `slate.py:178,205,208`. `test_a_play_capped_at_thin_for_a_weak_input_is_recognised` pins string literals, not
+  `single_candidate` output, so rewording a note in `slate.py` would silently re-open B2. Fix: add a structured `capped: bool`
+  (or a cap reason) to `Play`, or add a test that drives `single_candidate` into each cap and asserts `is_capped`.
+- r2. **The quote-age cap is not applied.** The cap for quotes older than `max_alert_quote_age_min` (5 min) is deliberately left
+  out (the same test asserts it). A card can therefore show an over priced on a Kalshi snapshot 5-30 min old without showing the
+  quote's age. Fix: append "price N min old" to the over line when `q_age > max_alert_quote_age_min`.
+- r3. **A slot with a lost id is frozen for the night.** It gets no halftime or final edit (`run.py:222`). This is the right
+  trade against duplicates and is counted as `lost_id` in `tick_line`; mention it in the setup doc.
+- r4. **Old waiting picks are dropped from the global settle.** The global pass skips picks older than 3 days
+  (`run.py`, `min_slate`). A void that waits for a box score loaded more than 3 days late stays "waiting" for good and quietly
+  leaves the season n. Fix: run one daily sweep with no `min_slate` (for example, only in the morning recap hour).
+- r5. **Remaining duplicate path.** A POST that Discord stored but whose response was lost (`ReadTimeout`) is still posted again
+  on the next tick. Webhooks have no idempotency key. This is unchanged, rare, and accepted.
+- r6. **Bookkeeping.** The new DECISIONS row is dated "2026-11-10" with no HH:MM, unlike its neighbours.
+
+### Worst-case tick time after the fix
+The card pass is bounded at `tick_budget_s` (25 s), plus at most one request in flight (5 s read, 3 s connect), plus local card
+building, giving about 35 s, at the END of the tick. The first network error or 5xx stops the pass. That is down from about
+470-490 s on a 15-game night, and alerts, check-ins and in-game posts no longer wait on it.
+
+### Verification (worktree `agent-ad54c5a5c4dd6e942`, e2037fc, all unpiped)
+- `ruff check nba/jarvis tests/jarvis`: exit 0
+- `ruff format --check`: exit 0
+- `mypy nba/jarvis`: exit 0
+- `pytest --no-cov tests/jarvis`: 411 passed, 1 skipped, exit 0
+- re-review plants: 11 passed, exit 0
+
+### Playbook check (re-review)
+- **Class:** delivery only. No model, fit or feature.
+- **Information:** the guards the original review found dropped (thin caps, the 11-08 hold, the `top_overs` rule) are now
+  inherited. The quote-age cap is the one guard still left out on purpose (r2).
+- **Test validity:** the M1 grid now has several rows (81 combinations plus both cases from the original review), and the B2 and
+  B1 tests drive the real pass. r1 is the remaining weak point.
+- **Scored against:** nothing. The season line is descriptive only.
+
+### Drafted row (not appended)
+- DECISIONS: "2026-11-10 HH:MM | Team cards re-review (docs/reviews/jarvis_team_cards_2026-11-10.md, Re-review) SURVIVES /
+  APPROVED for merge at e2037fc: all blockers and majors fixed and re-planted (11/11); r1-r6 minor (cap filter matches note text,
+  quote-age cap not applied, lost-id slot frozen, 3-day settle window, lost-response duplicate, row time). Merge after the replay
+  oracle; install and webhooks are Devin's."
