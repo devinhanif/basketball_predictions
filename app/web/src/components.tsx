@@ -85,14 +85,16 @@ export function ErrorPanel(props: { message: string; retry: () => void }) {
   if (/^404 /.test(props.message)) {
     return (
       <div class="panel error" role="alert">
-        <h1>Not in the loaded data</h1>
+        <h1>We could not find that page</h1>
         <p>
-          That page points to something this data does not hold (a game, player or stat that is not in the current export).
-          The server is fine.
+          The link points to a game, player or stat we do not have, perhaps from an older night.
+          Nothing is broken.
         </p>
-        <p class="muted small">
-          Technical detail: <span class="mono">{props.message}</span>
-        </p>
+        {import.meta.env.DEV ? (
+          <p class="muted small">
+            Technical detail: <span class="mono">{props.message}</span>
+          </p>
+        ) : null}
         <a class="btn" href="#/">
           Back to today
         </a>

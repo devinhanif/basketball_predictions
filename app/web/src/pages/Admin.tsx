@@ -279,11 +279,11 @@ export function Admin() {
           <h1>Admin studio</h1>
         </header>
         <section class="panel empty">
-          <h2>This area is for the page's owner and editors</h2>
+          <h2>These are the owner's tools</h2>
           <p class="muted">
             {IS_ARTIFACT
               ? "The platform decides who can edit this page; there is no password to enter here."
-              : "It is available only in the private build, which runs on your own machine."}
+              : "Photos, the activity log and data tools are for whoever runs this page, so visitors do not see them. Everything else in the app is open to you."}
           </p>
           <a class="btn" href="#/">
             Back to Discover

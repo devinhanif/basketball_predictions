@@ -2,6 +2,7 @@ import type { ComponentChildren } from "preact";
 import { CERTAINTY_LABEL, certaintyOf, type Desk, type DeskObservation } from "./desk";
 import { useDesk, deskOf } from "./deskStore";
 import { Loading } from "./components";
+import { ageNote, deskStamp } from "./format";
 
 /** Runs a desk screen once the desk has loaded; says plainly when there is none (a normal state, not an error). */
 export function DeskGate(props: { title: string; children: (desk: Desk) => ComponentChildren }) {
@@ -15,17 +16,27 @@ export function DeskGate(props: { title: string; children: (desk: Desk) => Compo
         <h1>{props.title}</h1>
       </header>
       <section class="panel empty" aria-label="Desk not available">
-        <h2>{h.kind === "refused" ? "The desk export did not pass its checks" : "No desk data in this build"}</h2>
+        <h2>{h.kind === "refused" ? "We are holding this screen back" : "Nothing to show here yet"}</h2>
         <p class="muted">
           {h.kind === "refused"
-            ? `We are not showing it. Reason: ${h.detail}`
-            : "The Jarvis Desk export is not part of this data: the public API does not serve one, or none has been written yet. Nothing is missing from the forecasts; this screen simply has no source."}
+            ? `Its data did not pass our safety checks, so we are not showing it. Reason: ${h.detail}`
+            : "The desk has not published its numbers yet. The game forecasts and your picks are not affected."}
         </p>
         <a class="btn" href="#/">
           Back to Discover
         </a>
       </section>
     </div>
+  );
+}
+
+/** Says when the desk file was built and, once it is old, how old. The desk data is no newer than the file. */
+export function DeskAge({ desk }: { desk: Desk }) {
+  const old = ageNote(desk.built_at);
+  return (
+    <span class="desk-age">
+      Desk as of {deskStamp(desk.built_at)}.{old ? ` ${old}` : ""}
+    </span>
   );
 }
 

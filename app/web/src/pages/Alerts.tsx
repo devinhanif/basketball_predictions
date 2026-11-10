@@ -1,6 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { buildNotices, filterNotices, newestNight, NOTICE_FILTERS, unreadCount, withOlderRead, type Notice, type NoticeFilter } from "../alerts";
-import { DeskGate } from "../DeskUI";
+import { DeskAge, DeskGate } from "../DeskUI";
 import { correctionLinks, type Desk } from "../desk";
 import { longDate, stamp } from "../format";
 import { Icon } from "../icons";
@@ -172,7 +172,7 @@ function Body({ desk }: { desk: Desk }) {
           </section>
           <section class="panel flat">
             <p class="small muted">
-              Notification switches are in <a href="#/prefs">Preferences</a>. Data through {longDate(desk.data_as_of.slice(0, 10))}.
+              Notification switches are in <a href="#/prefs">Preferences</a>. <DeskAge desk={desk} />
             </p>
           </section>
         </aside>

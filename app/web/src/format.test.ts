@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageNote, american, bookName, lineText, num, pct, pctBounded, tipTime } from "./format";
+import { ageNote, deskStamp, american, bookName, lineText, num, pct, pctBounded, tipTime } from "./format";
 import { parse } from "./router";
 
 describe("format", () => {
@@ -53,5 +53,11 @@ describe("F20: the banner shows its age", () => {
     expect(ageNote("2026-10-16T05:00:00Z", now)).toBe("This data is 1 day old.");
     expect(ageNote("2026-10-15T08:00:00Z", now)).toBe("This data is 2 days old.");
     expect(ageNote("not a time", now)).toBeNull();
+  });
+});
+
+describe("deskStamp", () => {
+  it("names the weekday in Eastern time, from the file's own built-at", () => {
+    expect(deskStamp("2026-11-09T00:45:12Z")).toBe("Sun, Nov 8, 7:45 PM ET");
   });
 });

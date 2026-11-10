@@ -311,7 +311,9 @@ def test_schema1_alt_lines_use_the_exact_stored_table(v1_client: TestClient) -> 
 
 def test_schema1_has_no_swipe_cards_and_no_settled_rows(v1_client: TestClient) -> None:
     deck = v1_client.get(f"/api/slates/{EXPORT_DAY}/swipe").json()
-    assert deck["cards"] == [] and "no sportsbook lines" in deck["note"]
+    assert deck["cards"] == [] and deck["reason"] == "all_started"
+    assert deck["games_total"] == deck["games_started"] > 0 and deck["games_with_lines"] == 0
+    assert "already started" in deck["note"] and "carries no player lines" in deck["note"]
     res = v1_client.get("/api/slates/2024-11-11/results").json()
     assert res["rows"] == []
 

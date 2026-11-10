@@ -1,6 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { Avatar } from "../Avatar";
-import { CertaintyChip, DeskGate, SectionNote } from "../DeskUI";
+import { CertaintyChip, DeskAge, DeskGate, SectionNote } from "../DeskUI";
 import { correctionLinks, newestFirst, type Desk, type DeskObservation } from "../desk";
 import { longDate } from "../format";
 import { cents, signedCents } from "../desk";
@@ -81,7 +81,7 @@ function Body({ desk }: { desk: Desk }) {
           <h1 class="answer">No observations are stored yet</h1>
         )}
         <p class="muted answer-src">
-          What the desk noticed in games, from its stored in-game flags. {games > 0 ? `${games.toString()} game${games === 1 ? "" : "s"} that night.` : ""}
+          What the desk noticed in games, from its stored in-game flags. {games > 0 ? `${games.toString()} game${games === 1 ? "" : "s"} that night.` : ""} <DeskAge desk={desk} />
         </p>
         <nav class="tabs" aria-label="Choose a night">
           {dates.slice(0, 8).map((d) => (

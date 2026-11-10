@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Avatar } from "../Avatar";
-import { DeskGate } from "../DeskUI";
+import { DeskAge, DeskGate } from "../DeskUI";
 import {
   barScale, calibration, cents, clusteredRate, labelText, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd,
   type DayBar, type Desk, type DeskPlay, type LedgerFilter,
@@ -404,7 +404,7 @@ function Body({ desk }: { desk: Desk }) {
           {desk.status.kill_switch.on ? " · kill switch on" : ""}
         </h1>
         <p class="muted answer-src">
-          A record of paper results, costs and discipline. As of {longDate(desk.data_as_of.slice(0, 10))}.
+          A record of paper results, costs and discipline. <DeskAge desk={desk} />
         </p>
       </header>
       <Tiles desk={desk} />

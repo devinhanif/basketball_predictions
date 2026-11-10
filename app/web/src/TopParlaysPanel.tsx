@@ -314,7 +314,7 @@ function PanelInner({ date, checkToday }: { date: string; checkToday: boolean })
           ) : r.kind === "missing" ? (
             <Message
               title="No tickets for this night yet"
-              text="We have no most-confident tickets stored for this night yet. That is normal before the pre-tip run, not an error."
+              text="We have not made most-confident tickets for this night yet. That is normal: they are made shortly before the games start, so check back closer to tip-off."
             />
           ) : (
             <Message

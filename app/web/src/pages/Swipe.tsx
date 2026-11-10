@@ -9,7 +9,7 @@ import { ShareNote } from "../SharedUI";
 import { useLoad } from "../useLoad";
 import { chronological, defaultNight } from "../nights";
 import { useSettled } from "../useSettled";
-import type { SwipeCardData } from "../types";
+import type { SwipeCardData, SwipeDeck } from "../types";
 import { STAT_LABEL } from "../types";
 import { didText, sideText } from "../words";
 import { swipeKeyChoice } from "../swipeKeys";
@@ -278,6 +278,13 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
   );
 }
 
+function emptyHeading(reason: SwipeDeck["reason"]): string {
+  if (reason === "all_started") return "Picks are closed for this night";
+  if (reason === "no_lines") return "Player lines are not up yet";
+  if (reason === "no_games") return "No games this night";
+  return "Nothing to swipe on for this night";
+}
+
 function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => void }) {
   const [seed, setSeed] = useState(newSeed);
   const [state, reload] = useLoad(() => api.swipe(date, seed, 60), [date, seed]);
@@ -286,8 +293,16 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
       {(deck) =>
         deck.cards.length === 0 ? (
           <div class="panel empty">
-            <h2>No cards for this night</h2>
+            <h2>{emptyHeading(deck.reason)}</h2>
             <p class="muted">{deck.note}</p>
+            {deck.reason === "all_started" || deck.reason === "no_lines" ? (
+              <>
+                <p class="muted">Pick another night below, or look at the games.</p>
+                <a class="btn" href={`#/?date=${deck.date}`}>
+                  See this night's games
+                </a>
+              </>
+            ) : null}
           </div>
         ) : (
         <Deck

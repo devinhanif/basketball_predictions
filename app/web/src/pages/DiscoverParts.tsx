@@ -3,7 +3,7 @@ import { api, getTopContracts } from "../api";
 import { Avatar } from "../Avatar";
 import { TeamTag, WinBars } from "../components";
 import { clvRate, newestFirst, signedCents, winRate, type Desk } from "../desk";
-import { CertaintyChip } from "../DeskUI";
+import { CertaintyChip, DeskAge } from "../DeskUI";
 import { deskOf, useDesk } from "../deskStore";
 import { edgeSentence, heroFootnote, radarRows, watchKey, type RadarRow } from "../discover";
 import { longDate, pct, tipTime } from "../format";
@@ -167,6 +167,7 @@ export function DeskTiles({ desk, date }: { desk: Desk; date: string }) {
   const rec = winRate(desk.record);
   const signals = desk.observations.filter((o) => o.slate_date === date).length;
   return (
+    <>
     <section class="tiles" aria-label="The desk in numbers">
       <div class="tile">
         <div class="tile-v num">{signals.toLocaleString("en-US")}</div>
@@ -189,6 +190,10 @@ export function DeskTiles({ desk, date }: { desk: Desk; date: string }) {
         <div class="tile-n muted num">{clv.n > 0 ? `n = ${clv.n.toLocaleString("en-US")}${clv.ci ? `, ${clv.ci[0].toFixed(2)}c to ${clv.ci[1].toFixed(2)}c` : ""}` : "none stored"}</div>
       </div>
     </section>
+    <p class="small muted tiles-age">
+      <DeskAge desk={desk} />
+    </p>
+    </>
   );
 }
 
