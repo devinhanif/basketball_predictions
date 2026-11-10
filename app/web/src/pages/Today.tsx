@@ -3,7 +3,10 @@ import { api, warmGames } from "../api";
 import { CalTag, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
 import { headline, learnHeadline } from "../headline";
-import { LensSwitch } from "../Lens";
+import { LENS_LABEL, LensSwitch } from "../Lens";
+import { liveHref } from "../router";
+import { clockLabel, type LiveGameSummary } from "../live";
+import { useLiveList } from "../useLiveData";
 import { chronological, defaultNight, engineSpeaksFor } from "../nights";
 import { useLens, useMode, type Mode } from "../prefs";
 import { useLoad } from "../useLoad";
@@ -11,7 +14,7 @@ import type { GameSummary, ParlayState, Slate } from "../types";
 import { STAT_LABEL, STAT_SHORT } from "../types";
 import { VerdictStrip } from "../VerdictStrip";
 import { pickHero } from "../discover";
-import { Court, DeskTiles, Discipline, Hero, Insight, LeagueTabs, Radar, useRadar } from "./DiscoverParts";
+import { Court, DeskTiles, Discipline, Hero, Insight, Radar, useRadar } from "./DiscoverParts";
 import { compareLine, doesText, rangeSentence } from "../words";
 import { hasTickets, type TpResult } from "../topParlays";
 
@@ -93,7 +96,42 @@ function KeyPropsOneLine({ game, market }: { game: GameSummary; market: boolean 
   );
 }
 
-function GameRow({ g, mode, market }: { g: GameSummary; mode: Mode; market: boolean }) {
+/** The live state of one game, when the live feed has it: a word and the clock, never a score (the score would sit next to chances). */
+function StateChip({ live }: { live: LiveGameSummary | null }) {
+  if (live === null || live.state === "pre") return null;
+  return (
+    <span class={`game-state ${live.state}`}>{live.state === "in" ? `Live ${clockLabel(live.status, live.state)}` : "Final"}</span>
+  );
+}
+
+/** Live made findable from Discover: one tap from tonight's games to the live view. */
+function LiveStrip({ date, games }: { date: string; games: LiveGameSummary[] }) {
+  if (games.length === 0) return null;
+  const inPlay = games.filter((g) => g.state === "in");
+  const pre = games.filter((g) => g.state === "pre").length;
+  const post = games.filter((g) => g.state === "post").length;
+  const only = inPlay.length === 1 ? inPlay[0] : undefined;
+  const href = only ? liveHref(only.game_id, date) : liveHref(null, date);
+  const rest = [post > 0 ? `${post.toString()} final` : "", pre > 0 ? `${pre.toString()} not started` : ""].filter(Boolean).join(", ");
+  return (
+    <a class={`live-strip${inPlay.length === 0 ? " quiet" : ""}`} href={href}>
+      <span class="ls-text">
+        <strong>
+          <i class="live-dot" aria-hidden="true" />
+          {inPlay.length > 0
+            ? `${inPlay.length.toString()} ${inPlay.length === 1 ? "game" : "games"} live now`
+            : post > 0 && pre === 0
+              ? "Tonight's games are over"
+              : "Live scores and play by play"}
+        </strong>
+        <span>{rest !== "" ? `${rest}. ` : ""}Plays and player stats.</span>
+      </span>
+      <span class="btn primary">{inPlay.length > 0 ? "Watch live" : "Plays"}</span>
+    </a>
+  );
+}
+
+function GameRow({ g, mode, market, live }: { g: GameSummary; mode: Mode; market: boolean; live: LiveGameSummary | null }) {
   return (
     <a class="game" href={`#/game/${g.game_id}`} aria-label={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}, open game`}>
       <div class="game-top">
@@ -102,7 +140,10 @@ function GameRow({ g, mode, market }: { g: GameSummary; mode: Mode; market: bool
           <span class="at">at</span>
           <TeamTag abbr={g.home.abbr} big />
         </div>
-        <span class="tip num">{tipTime(g.tip_utc)}</span>
+        <span class="game-side">
+          <span class="tip num">{tipTime(g.tip_utc)}</span>
+          <StateChip live={live} />
+        </span>
       </div>
       <div class="muted small">
         {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
@@ -127,7 +168,7 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
   const [list, reloadList] = useLoad(() => api.slates(), []);
   return (
     <div class="stack">
-      <View state={list} reload={reloadList} onStale={props.onStale}>
+      <View state={list} reload={reloadList} onStale={props.onStale} what="the list of nights">
         {(raw) => {
           const slates = chronological(raw);
           const date = props.date ?? defaultNight(slates);
@@ -152,6 +193,8 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
     slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === pickHero(radar.rows)?.gameId) ?? slate.data.games[0] ?? null) : null;
   const played = featured !== null && Date.parse(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const lens = useLens();
+  const liveSt = useLiveList([date], 20000);
+  const liveGames = liveSt.lists[0]?.games ?? [];
   const market = lens === "market";
   // Without the Market lens the card never claims "no parlay": it says only that a check exists, or that parlays live there.
   const engineHasPick = speaks && engine.headline_verdict !== "no_positive_ev_found";
@@ -180,36 +223,34 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
         ) : (
           <h1 class="answer pending">Reading the night&hellip;</h1>
         )}
-        <LeagueTabs />
-        <LensSwitch compact />
-        <div class="head-tools">
-          <nav class="tabs" aria-label="Choose a night">
-            {props.nights.map((d) => (
-              <a key={d} class="tab" href={`#/?date=${d}`} aria-current={d === date ? "true" : undefined}>
-                {longDate(d).replace(/, \d{4}$/, "")}
-              </a>
-            ))}
-          </nav>
+      </header>
+      <LiveStrip date={date} games={liveGames} />
+      <nav class="tabs" aria-label="Choose a night">
+        {props.nights.map((d) => (
+          <a key={d} class="tab" href={`#/?date=${d}`} aria-current={d === date ? "true" : undefined}>
+            {longDate(d).replace(/, \d{4}$/, "")}
+          </a>
+        ))}
+      </nav>
+      <details class="view-opts">
+        <summary>
+          View: {LENS_LABEL[lens]} lens, {mode === "analyst" ? "Analyst" : "Simple"} detail (change)
+        </summary>
+        <LensSwitch />
+        <div class="row wrap between">
+          <span class="small muted">Detail</span>
           <ModeToggle />
         </div>
-      </header>
+      </details>
       {market ? (
         <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
-      ) : (
-        <section class="panel verdict strip keep" aria-labelledby="strip-h">
-          <div class="kicker">Parlays for {longDate(date)}</div>
-          <h2 id="strip-h">{learnStrip.title}</h2>
-          <p class="small muted">{learnStrip.body}</p>
-        </section>
-      )}
+      ) : null}
       {market ? (
         <div class="two-col">
           <Hero row={pickHero(radar.rows)} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} desk={radar.desk} />
           <Court game={featured} final_={played} market />
         </div>
-      ) : (
-        <Court game={featured} final_={played} market={false} />
-      )}
+      ) : null}
       {market && radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}
       {market ? (
         <div class="two-col wide-left">
@@ -220,9 +261,17 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           </div>
         </div>
       ) : null}
-      <View state={slate} reload={reloadSlate} onStale={props.onStale}>
-        {(s) => <SlateBody s={s} engine={engine} speaks={speaks} mode={mode} market={market} />}
+      <View state={slate} reload={reloadSlate} onStale={props.onStale} what="tonight's games">
+        {(s) => <SlateBody s={s} engine={engine} speaks={speaks} mode={mode} market={market} liveGames={liveGames} />}
       </View>
+      {market ? null : (
+        <section class="panel verdict strip keep" aria-labelledby="strip-h">
+          <div class="kicker">Parlays for {longDate(date)}</div>
+          <h2 id="strip-h">{learnStrip.title}</h2>
+          <p class="small muted">{learnStrip.body}</p>
+        </section>
+      )}
+      <p class="small muted more-leagues">NBA only for now. Other leagues are not covered yet.</p>
     </>
   );
 }
@@ -235,13 +284,27 @@ function WarmCache({ ids }: { ids: string[] }) {
   return null;
 }
 
-function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolean; mode: Mode; market: boolean }) {
+function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolean; mode: Mode; market: boolean; liveGames: LiveGameSummary[] }) {
   const { s, engine, speaks, mode, market } = props;
+  const liveOf = (g: GameSummary): LiveGameSummary | null => props.liveGames.find((l) => l.home.abbr === g.home.abbr && l.away.abbr === g.away.abbr) ?? null;
+  const gamesList = (
+    <div class="games">
+      {s.games.map((g) => (
+        <GameRow key={g.game_id} g={g} mode={mode} market={market} live={liveOf(g)} />
+      ))}
+    </div>
+  );
   const gateClosed = engine?.gate != null ? !engine.gate.gate_open : null;
   const priced = market && speaks && engine ? engine.counts["n_contracts"] : undefined;
   const flagged = market && speaks && engine ? engine.counts["n_flagged_positive"] : undefined;
   return (
     <>
+      {market ? null : (
+        <>
+          {gamesList}
+          <WinLegend showBook={false} />
+        </>
+      )}
       <section class="tiles" aria-label="The night in numbers">
         <Tile value={s.counts.games.toLocaleString("en-US")} label={s.counts.games === 1 ? "game" : "games"} />
         <Tile value={s.counts.props.toLocaleString("en-US")} label={s.mode === "fixture_replay" ? "player lines" : "player forecasts"} />
@@ -259,12 +322,12 @@ function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolea
         ) : null}
         <ModelNote items={s.games.flatMap((g) => g.key_props.map((p) => ({ source: p.model_source, label: p.model_label })))} />
       </section>
-      <div class="games">
-        {s.games.map((g) => (
-          <GameRow key={g.game_id} g={g} mode={mode} market={market} />
-        ))}
-      </div>
-      <WinLegend showBook={market} />
+      {market ? (
+        <>
+          {gamesList}
+          <WinLegend showBook />
+        </>
+      ) : null}
       <WarmCache ids={s.games.map((g) => g.game_id)} />
     </>
   );

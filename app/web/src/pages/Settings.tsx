@@ -101,7 +101,7 @@ export function Settings() {
       <div class="two-col">
         <section class="panel settings" aria-label="Appearance and detail">
           <Choice legend="Appearance" help="Dark is the default. Match my device follows your system setting." value={p.theme} options={THEMES} onPick={(v) => { setPref("theme", v); }} />
-          <Choice legend="Default mode" help="Simple shows plain cards, one line per player. Analyst adds the line ladder, splits, calibration and the edge arithmetic." value={p.mode} options={MODES} onPick={(v) => { setPref("mode", v); }} />
+          <Choice legend="Detail level" help="Simple shows plain cards, one line per player. Analyst adds the line ladder, splits, calibration and the edge arithmetic." value={p.mode} options={MODES} onPick={(v) => { setPref("mode", v); }} />
           <Choice legend="Opens on" help="The screen you land on when you open the app without a link." value={p.screen} options={SCREENS} onPick={(v) => { setPref("screen", v); }} />
         </section>
         <section class="panel settings" aria-label="Notifications">

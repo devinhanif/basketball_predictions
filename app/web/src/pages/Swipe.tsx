@@ -295,7 +295,7 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
   const [seed, setSeed] = useState(newSeed);
   const [state, reload] = useLoad(() => api.swipe(date, seed, 60), [date, seed]);
   return (
-    <View state={state} reload={reload} onStale={onStale}>
+    <View state={state} reload={reload} onStale={onStale} what="the cards">
       {(deck) =>
         deck.cards.length === 0 ? (
           <div class="panel empty">
@@ -303,10 +303,15 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
             <p class="muted">{deck.note}</p>
             {deck.reason === "all_started" || deck.reason === "no_lines" ? (
               <>
-                <p class="muted">Pick another night below, or look at the games.</p>
-                <a class="btn" href={`#/?date=${deck.date}`}>
-                  See this night's games
-                </a>
+                <p class="muted">Picks open before tip-off. Meanwhile you can test your eye on games already played.</p>
+                <div class="row wrap center">
+                  <a class="btn primary" href="#/record?tab=guess">
+                    Guess the line on past games
+                  </a>
+                  <a class="btn" href={`#/?date=${deck.date}`}>
+                    See this night's games
+                  </a>
+                </div>
               </>
             ) : null}
           </div>

@@ -21,6 +21,44 @@ export function Welcome() {
   const [mode, setMode] = useState<Mode>(prefs.mode);
   if (hasWelcomed()) return null;
   const display = id.name || cleanName(name);
+  if (!IS_ARTIFACT) {
+    // One screen, one action: the name is optional and the Simple/Analyst choice lives on Discover and in Preferences.
+    return (
+      <div class="welcome" role="dialog" aria-modal="true" aria-label="Welcome">
+        <div class="welcome-in">
+          <div class="welcome-brand">
+            <Logo />
+            <strong>parlayhitters</strong>
+          </div>
+          <section class="welcome-card">
+            <h1>See how tonight's NBA games could go</h1>
+            <p class="muted">
+              Forecasts with their working shown. We do not sell picks or take bets. Until the record is long enough, the honest answer to
+              "what should I bet?" is keep your money.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (cleanName(name) !== "") setLocalName(name);
+                setPref("mode", mode);
+                markWelcomed();
+                if (!tourSeen()) openTour();
+              }}
+            >
+              <label class="field" for="w-name">
+                <span class="label">Your name (optional, stays on this phone)</span>
+                <input id="w-name" type="text" maxLength={40} value={name} onInput={(e) => { setName(e.currentTarget.value); }} placeholder="e.g. Sam" autoComplete="off" />
+              </label>
+              <button type="submit" class="btn primary wide">
+                See tonight's games <Icon name="arrow" />
+              </button>
+            </form>
+          </section>
+          <Footer />
+        </div>
+      </div>
+    );
+  }
   return (
     <div class="welcome" role="dialog" aria-modal="true" aria-label="Welcome">
       <div class="welcome-in">
@@ -32,7 +70,7 @@ export function Welcome() {
           <section class="welcome-card">
             <div class="label">Welcome</div>
             <h1>Who is looking?</h1>
-            {IS_ARTIFACT ? (
+            {(
               <>
                 <div class="acct">
                   <Avatar name={id.name || "You"} src={id.avatarUrl} size="lg" />
@@ -55,34 +93,6 @@ export function Welcome() {
                   Continue <Icon name="arrow" />
                 </button>
               </>
-            ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setLocalName(name);
-                  setStep("mode");
-                }}
-              >
-                <p class="muted">Type a display name. It is kept on this device only; there are no accounts and no passwords.</p>
-                <label class="field" for="w-name">
-                  <span class="label">Display name</span>
-                  <input id="w-name" type="text" maxLength={40} autoFocus value={name} onInput={(e) => { setName(e.currentTarget.value); }} placeholder="Your name" />
-                </label>
-                <div class="row wrap">
-                  <button type="submit" class="btn primary">
-                    Continue <Icon name="arrow" />
-                  </button>
-                  <button
-                    type="button"
-                    class="btn"
-                    onClick={() => {
-                      setStep("mode");
-                    }}
-                  >
-                    Skip
-                  </button>
-                </div>
-              </form>
             )}
           </section>
         ) : (

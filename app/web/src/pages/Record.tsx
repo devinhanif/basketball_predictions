@@ -164,7 +164,7 @@ function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
 function Replay(props: { date: string | null }) {
   const [list, reloadList] = useLoad(() => api.slates(), []);
   return (
-    <View state={list} reload={reloadList}>
+    <View state={list} reload={reloadList} what="the nights we have played">
       {(all: SlateListItem[]) => {
         const nights = all.filter((s) => (s.finished ?? 0) > 0).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
         if (nights.length === 0) {
@@ -193,8 +193,8 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
         <div class="tabs rp-nights" role="group" aria-label="Night">
           {props.nights.map((n) => (
             <a key={n.date} class="tab" href={recordHref("replay", n.date)} aria-current={n.date === props.date ? "true" : undefined}>
-              {longDate(n.date)}
-              <span class="muted small num"> · {S(n.finished ?? 0)} played</span>
+              {longDate(n.date).replace(/, \d{4}$/, "")}
+              <span class="muted small num">&nbsp;&nbsp;{S(n.finished ?? 0)} played</span>
             </a>
           ))}
         </div>
@@ -619,7 +619,7 @@ function Guess() {
           saveRounds([]);
         }}
       />
-      <View state={deck} reload={reload}>
+      <View state={deck} reload={reload} what="the cards">
         {(d) => (
           <GuessPlay
             key={seed}
@@ -643,14 +643,14 @@ function Guess() {
 }
 
 /* ------------------------------------------------------------------ the page */
-const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay a night", calibration: "Calibration", guess: "Guess the line" };
+const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay", calibration: "Calibration", guess: "Guess the line" };
 
 export function Record(props: { tab: RecordTab; date: string | null }) {
   return (
     <div class="stack record">
       <header class="page-head">
         <h1>Track record</h1>
-        <p class="muted">What we forecast, what happened, and how often the numbers held up. These three tabs stay with the forecasts and what happened.</p>
+        <p class="muted">How the forecasts did. Replay a finished night, check how often the chances held up, or guess a line yourself.</p>
       </header>
       <nav class="tabs" aria-label="Track record">
         {(Object.keys(TAB_LABEL) as RecordTab[]).map((t) => (

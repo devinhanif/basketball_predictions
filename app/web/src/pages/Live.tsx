@@ -3,6 +3,7 @@ import { Attribution, LiveGame } from "../LiveParts";
 import { ageNow, ageText, clockLabel, etDate, previousDate, type LiveGameSummary } from "../live";
 import { liveHref } from "../router";
 import { tipTime } from "../format";
+import { Loading } from "../components";
 import { useAppGame, useLiveList } from "../useLiveData";
 
 function GameCard({ g, date, receivedMs }: { g: LiveGameSummary; date: string; receivedMs: number }) {
@@ -31,7 +32,7 @@ function GameCard({ g, date, receivedMs }: { g: LiveGameSummary; date: string; r
         </span>
         <span class="lc-side">
           <span class={`ls-state ${g.state}`}>{g.state === "in" ? "LIVE" : g.state === "post" ? "FINAL" : "SOON"}</span>
-          <span class="small num">{g.state === "pre" && g.tip_utc ? tipTime(g.tip_utc) : clockLabel(g.status, g.state)}</span>
+          {g.state === "post" ? null : <span class="small num">{g.state === "pre" && g.tip_utc ? tipTime(g.tip_utc) : clockLabel(g.status, g.state)}</span>}
           {g.state === "in" ? <span class="small muted num">as of {ageText(age)} ago</span> : null}
         </span>
       </a>
@@ -59,9 +60,7 @@ function List({ date }: { date: string | null }) {
   const st = useLiveList(dates);
   if (st.loading) {
     return (
-      <div class="skeleton" aria-busy="true">
-        <span class="sr">Loading</span>
-      </div>
+      <Loading what="tonight's live games" />
     );
   }
   const all = st.lists.flatMap((l) => l.games.map((g) => ({ g, date: l.date })));
@@ -78,6 +77,9 @@ function List({ date }: { date: string | null }) {
           <p>
             Nothing was captured for {dates.join(" or ")}. Games appear here a few minutes before tip-off and stay after the final.
           </p>
+          <a class="btn primary" href="#/">
+            See tonight's games and forecasts
+          </a>
         </section>
       ) : null}
       <Section title="Live now" games={now} receivedMs={st.receivedMs} />
@@ -113,8 +115,7 @@ export function Live({ id, date }: { id: string | null; date: string | null }) {
       <section class="panel">
         <h1>Live</h1>
         <p class="small muted">
-          Games as they are played: score, play by play, box score and prop trackers. The numbers are a few moments behind the arena, and
-          every screen says exactly how old it is.
+          Pick a game to follow the score, plays, box score and player trackers. A few moments behind the arena; each screen says how old it is.
         </p>
       </section>
       <List date={date} />

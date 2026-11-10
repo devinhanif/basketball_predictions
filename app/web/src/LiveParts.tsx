@@ -44,11 +44,17 @@ export function AsOf(props: { meta: LiveMeta; receivedMs: number; state: GameSta
   const lag = lagText(props.meta.play_lag_s);
   return (
     <p class={`live-asof small${stale ? " stale" : ""}`} role="status">
-      <span class="num">
-        <b>As of {ageText(age)} ago.</b>
-      </span>{" "}
-      {stale ? "No new data for a while: the feed may be stuck. " : ""}
-      {lag ? <span class="muted">{lag}</span> : null}
+      {props.state === "post" ? (
+        <b>Game over. This is the last copy we captured; nothing more will change.</b>
+      ) : (
+        <>
+          <span class="num">
+            <b>As of {ageText(age)} ago.</b>
+          </span>{" "}
+          {stale ? "No new data for a while: the feed may be stuck. " : ""}
+          {lag ? <span class="muted">{lag}</span> : null}
+        </>
+      )}
     </p>
   );
 }

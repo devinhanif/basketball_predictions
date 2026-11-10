@@ -1,0 +1,131 @@
+/* UX pass (2026-11-10): tap targets of 44 px, the live strip on Discover, the loading note, the single-screen welcome.
+   Loaded last; it only adds or raises, never changes a colour. */
+
+/* ---- tap targets: every control is at least 44 px in its short side ---- */
+.seg-btn {
+  min-height: 44px;
+}
+.tab {
+  min-height: 44px;
+}
+.brand-small {
+  min-width: 44px;
+  min-height: 44px;
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
+}
+details > summary {
+  min-height: 44px;
+}
+.live-tabs .tab,
+.leg-tabs .tab {
+  min-height: 44px;
+}
+
+/* ---- Discover: live strip ---- */
+.live-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--ink);
+  text-decoration: none;
+  min-height: 56px;
+}
+.live-strip.quiet {
+  border-color: var(--line);
+  background: var(--surface);
+}
+.live-strip .ls-text {
+  display: grid;
+  gap: 2px;
+}
+.live-strip .ls-text span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.live-strip .live-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.4s infinite ease-in-out;
+}
+.live-strip.quiet .live-dot {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-strip .live-dot {
+    animation: none;
+  }
+}
+.game-state {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.game-state.in {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+.game-top .game-side {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+/* ---- view options (lens and detail) folded into one line on Discover ---- */
+.view-opts {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0 14px;
+}
+.view-opts > summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+.view-opts[open] {
+  padding-bottom: 14px;
+  display: grid;
+  gap: 10px;
+}
+.more-leagues {
+  margin: 0;
+  text-align: center;
+}
+
+/* ---- loading: say what is happening ---- */
+.loading-note {
+  margin: 0;
+}
+.loading-note.slow {
+  color: var(--ink);
+}
+
+ol.plain {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 8px;
+}
+.kn-first summary {
+  min-height: 44px;
+}

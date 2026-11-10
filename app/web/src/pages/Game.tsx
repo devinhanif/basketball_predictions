@@ -169,7 +169,7 @@ function Body({ g }: { g: GameDetail }) {
       <div class="row between wrap">
         <p class="back-row" style={{ margin: 0 }}>
           <a class="back-link" href={nightHref(g.date)}>
-            Back to the night
+            Back to all games
           </a>
         </p>
         <ModeToggle />
@@ -300,7 +300,7 @@ function Body({ g }: { g: GameDetail }) {
 export function Game({ id, onStale }: { id: string; onStale: (s: boolean) => void }) {
   const [state, reload] = useLoad(() => api.game(id), [id]);
   return (
-    <View state={state} reload={reload} onStale={onStale}>
+    <View state={state} reload={reload} onStale={onStale} what="this game">
       {(g) => <Body g={g} />}
     </View>
   );

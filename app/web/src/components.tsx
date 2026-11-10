@@ -80,12 +80,25 @@ export function Footer() {
 }
 
 /* ------------------------------------------------------------------ load states */
-export function Loading() {
+export function Loading(props: { what?: string }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setSlow(true);
+    }, 3000);
+    return () => {
+      window.clearTimeout(t);
+    };
+  }, []);
   return (
     <div class="stack" aria-busy="true" aria-live="polite">
+      <p class={`loading-note small${slow ? " slow" : " muted"}`} role="status">
+        {slow
+          ? "Still loading. The server was idle and is waking up; the first load after a pause can take up to 15 seconds. Nothing is wrong."
+          : `Loading ${props.what ?? "the forecasts"} from the nightly export...`}
+      </p>
       <div class="skeleton" />
       <div class="skeleton" />
-      <span class="sr">Loading</span>
     </div>
   );
 }
@@ -190,6 +203,8 @@ export function TeamTag(props: { abbr: string; big?: boolean }) {
 export function View<T>(props: {
   state: LoadState<T>;
   reload: () => void;
+  /** What is loading, for the skeleton note ("tonight's games"). */
+  what?: string;
   onStale?: (stale: boolean) => void;
   children: (data: T) => ComponentChildren;
 }) {
@@ -198,7 +213,7 @@ export function View<T>(props: {
   useEffect(() => {
     onStale?.(stale);
   }, [stale, onStale]);
-  if (state.status === "loading") return <Loading />;
+  if (state.status === "loading") return <Loading what={props.what} />;
   if (state.status === "error") return <ErrorPanel message={state.message} retry={props.reload} />;
   return <>{props.children(state.data)}</>;
 }
