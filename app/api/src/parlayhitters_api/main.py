@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import random
+import threading
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -76,6 +77,7 @@ from .trackrecord import (
 STATS = ("pts", "reb", "ast", "fg3m")
 LOCAL_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
 _cache: dict[str, Any] = {}
+_load_lock = threading.Lock()
 
 
 def get_store() -> AnyStore:
@@ -83,8 +85,12 @@ def get_store() -> AnyStore:
     Reloaded when a new export lands (the manifest is replaced last), without a restart."""
     key = store_key()
     if _cache.get("key") != key or "store" not in _cache:
-        _cache["store"] = load_store()  # raises ExportRefused for an export we cannot vouch for
-        _cache["key"] = key
+        # One load at a time: a cold start answers its first requests together, and without the
+        # lock each of them would load the whole export again (about 15 s of CPU apiece).
+        with _load_lock:
+            if _cache.get("key") != key or "store" not in _cache:
+                _cache["store"] = load_store()  # ExportRefused for an export we cannot vouch for
+                _cache["key"] = key
     store: AnyStore = _cache["store"]
     return store
 

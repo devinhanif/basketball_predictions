@@ -7,13 +7,17 @@ from __future__ import annotations
 
 import json
 import random
+import threading
+import time
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from parlayhitters_api.knows import news_items
 from parlayhitters_api.main import get_store
 from parlayhitters_api.minutes import moments
+from parlayhitters_api.store import load_store
 from parlayhitters_api.trackrecord import MIN_GAMES, MIN_N, Case, binned
 
 
@@ -383,3 +387,32 @@ def test_moments_of_a_known_count() -> None:
     assert abs(mean - 2.0) < 1e-12
     assert abs(sd - 1.0) < 1e-12
     assert json.dumps([mean, sd])
+
+
+# ------------------------------------------------------------------- a cold start
+
+
+def test_requests_that_arrive_together_on_a_cold_start_load_the_data_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from parlayhitters_api import main as m
+
+    calls: list[int] = []
+    real = load_store
+
+    def slow() -> Any:
+        calls.append(1)
+        time.sleep(0.2)
+        return real()
+
+    m.reset_store()
+    monkeypatch.setattr("parlayhitters_api.main.load_store", slow)
+    got: list[Any] = []
+    threads = [threading.Thread(target=lambda: got.append(m.get_store())) for _ in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(calls) == 1
+    assert len({id(s) for s in got}) == 1
+    m.reset_store()

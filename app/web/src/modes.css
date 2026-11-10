@@ -420,6 +420,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
 }
 .tour-body {
   display: grid;
