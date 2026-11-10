@@ -46,6 +46,11 @@ def _run(tmp: Path, plan: str, rc: int = 0) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _lstart(pid: int) -> str:
+    out = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True)
+    return out.stdout.strip()
+
+
 def _launched(tmp: Path) -> list[str]:
     p = tmp / "poll.log"
     return p.read_text().splitlines() if p.exists() else []
@@ -69,10 +74,31 @@ def test_start_runs_the_poller_once_and_releases_the_lock(tmp_path: Path) -> Non
 def test_a_live_lock_owner_is_never_stolen(tmp_path: Path) -> None:
     lock = tmp_path / "root/data/ops/kalshi_candles_lock"
     lock.mkdir(parents=True)
-    (lock / "pid").write_text(str(os.getpid()))  # a live pid: this test process
+    pid = os.getpid()  # a live pid: this test process, with its real start time
+    (lock / "pid").write_text(str(pid))
+    (lock / "start").write_text(_lstart(pid))
     assert _run(tmp_path, "start first tip").returncode == 0
     assert _launched(tmp_path) == []
     assert lock.exists()
+
+
+def test_a_recycled_pid_with_another_start_time_is_a_stale_lock(tmp_path: Path) -> None:
+    """Review F13: `kill -0` alone kept the lock forever when the pid belonged to someone else."""
+    lock = tmp_path / "root/data/ops/kalshi_candles_lock"
+    lock.mkdir(parents=True)
+    (lock / "pid").write_text(str(os.getpid()))  # alive, but not the process that took the lock
+    (lock / "start").write_text("Mon Jan  1 00:00:00 2001")
+    assert _run(tmp_path, "start first tip").returncode == 0
+    assert len(_launched(tmp_path)) == 1
+    assert not lock.exists()
+
+
+def test_slate_date_is_the_et_date_of_now_minus_six_hours() -> None:
+    """Review F7: a poller that crashed at 00:30 ET must be restarted for the day it belongs to."""
+    code = "\n".join(
+        ln for ln in SCRIPT.read_text().splitlines() if not ln.lstrip().startswith("#")
+    )
+    assert "TZ=America/New_York date -v-6H +%Y-%m-%d" in code
 
 
 def test_a_dead_lock_owner_is_cleared(tmp_path: Path) -> None:

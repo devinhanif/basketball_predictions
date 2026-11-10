@@ -69,13 +69,12 @@ class FakeClient:
         self.requests = 0
         self.last_server_date: str | None = "Tue, 10 Nov 2026 00:00:07 GMT"
         self.calls: list[tuple[str, str]] = []
-        self.volume_step = 0.0
         self.fail_with: int | None = None
         self.open_markets = True
-        self._vol = 0.0
+        self.per_call = 1  # HTTP requests one call costs (2 = the client retried)
 
     def _maybe_fail(self) -> None:
-        self.requests += 1
+        self.requests += self.per_call
         if self.fail_with is not None:
             raise _HTTPError(self.fail_with)
 
@@ -85,20 +84,6 @@ class FakeClient:
         page = copy.deepcopy(_json("live_game_poll.json"))
         if kw["series_ticker"] != "KXNBAGAME" or not self.open_markets:
             page["markets"] = []
-        else:
-            self._vol += self.volume_step
-            for m in page["markets"]:
-                m["volume_fp"] = f"{1000.0 + self._vol:.2f}"
-        return page
-
-    def fetch_trades_page(self, ticker: str, **kw: Any) -> dict[str, Any]:
-        self._maybe_fail()
-        self.calls.append(("trades", ticker))
-        page = copy.deepcopy(_json("live_trades.json"))
-        page["cursor"] = ""  # one page: the recorded cursor would make every pull look capped
-        for t in page["trades"]:
-            t["ticker"] = ticker
-            t["trade_id"] = f"{t['trade_id']}-{ticker}"  # ids are unique across tickers
         return page
 
 
@@ -110,6 +95,7 @@ def _cfg(**over: Any) -> PollConfig:
         "backoff_base_s": 15.0,
         "backoff_max_s": 60.0,
         "export_every_polls": 0,
+        "quiet_polls_to_finish": 3,
     }
     base.update(over)
     return PollConfig(**base)
@@ -127,6 +113,7 @@ def _poller(
         RawStore(tmp_path / "store", DAY),
         tmp_path / "hb.json",
         export_dir=tmp_path / "export",
+        capture_root=tmp_path / "capture",
         now_fn=clock.now,
         sleep_fn=clock.sleep,
         rng=random.Random(1),
@@ -328,47 +315,6 @@ def test_one_poll_writes_raw_quotes_and_a_heartbeat(tmp_path: Path) -> None:
     assert client.calls == [("markets", "KXNBAGAME")]  # no volume jump yet: no trade pull
 
 
-def test_trades_are_pulled_only_for_tickers_whose_volume_rose_and_deduped(tmp_path: Path) -> None:
-    clock = FakeClock(T0)
-    client = FakeClient(clock)
-    client.volume_step = 25.0
-    p = _poller(tmp_path, clock, client, _cfg(trades_max_tickers=2))
-    p.run(once=True)  # baseline volumes, no jump
-    clock.sleep(15)
-    p.run(once=True)  # volumes rose on all 4 tickers; the budget of 2 tickers per poll applies
-    pulled = [t for k, t in client.calls if k == "trades"]
-    assert len(pulled) == 2 and len(set(pulled)) == 2
-    n_rows = p.st.trade_rows
-    assert n_rows > 0 and p.store.load("trades", TRADE_SCHEMA).height == n_rows
-    clock.sleep(15)
-    p.run(once=True)  # the other two tickers; the first two were fully pulled and left the queue
-    pulled2 = [t for k, t in client.calls if k == "trades"][2:]
-    assert len(pulled2) <= 2  # never more than the per-poll ticker budget
-    # the same recorded page came back for every pull: a print is stored once per ticker
-    stored = p.store.load("trades", TRADE_SCHEMA)
-    assert stored.select(pl.struct("ticker", "trade_id").n_unique()).item() == stored.height
-    assert p.st.trade_rows == stored.height >= n_rows
-
-
-def test_a_restart_reloads_the_night_and_does_not_repull_trades(tmp_path: Path) -> None:
-    clock = FakeClock(T0)
-    client = FakeClient(clock)
-    client.volume_step = 10.0
-    p = _poller(tmp_path, clock, client)
-    p.run(once=True)
-    clock.sleep(15)
-    p.run(once=True)
-    rows_before = p.store.load("trades", TRADE_SCHEMA).height
-    assert rows_before > 0
-    clock.sleep(15)
-    p2 = _poller(tmp_path, clock, client)  # a new process on the same store
-    p2.restore()
-    assert p2.st.quote_rows == p.st.quote_rows and p2.st.trade_rows == rows_before
-    assert set(p2.st.seen_ids) == set(p.st.seen_ids)
-    p2.run(once=True)  # same recorded prints come back: all already seen
-    assert p2.store.load("trades", TRADE_SCHEMA).height == rows_before
-
-
 def test_429_opens_a_cooldown_with_no_requests_inside_it(tmp_path: Path) -> None:
     clock = FakeClock(T0)
     client = FakeClient(clock)
@@ -417,26 +363,6 @@ def test_request_budget_slides_and_a_poll_is_skipped_not_queued(tmp_path: Path) 
     p.budget = RequestBudget(0)
     p.run(once=True)
     assert client.requests == 0 and p.st.skipped_budget == 1 and p.st.errors == 0
-
-
-def test_the_poller_finishes_when_no_game_market_is_open_after_the_last_tip(tmp_path: Path) -> None:
-    clock = FakeClock(datetime(2026, 11, 10, 3, 5, tzinfo=UTC))  # after the last tip (03:00Z)
-    client = FakeClient(clock)
-    client.open_markets = False
-    p = _poller(tmp_path, clock, client)
-    seen: list[str] = []
-    orig = p.finalize
-
-    def spy(why: str) -> None:
-        seen.append(why)
-        orig(why)
-
-    p.finalize = spy  # type: ignore[method-assign]
-    assert p.run(start_now=True) == 0
-    assert seen == ["no open game market left"] and p.st.polls == 3
-    hb = json.loads((tmp_path / "hb.json").read_text())
-    assert hb["status"] == "done"
-    assert (tmp_path / "export" / "latest.json").exists()  # the final export is written
 
 
 def test_the_window_cap_ends_the_night(tmp_path: Path) -> None:
@@ -584,53 +510,249 @@ def test_no_order_credential_or_websocket_code_in_the_new_modules() -> None:
         assert not forbidden.search(code), (name, forbidden.search(code))
 
 
-def test_finalize_pulls_each_ticker_once_and_a_rerun_makes_no_request(tmp_path: Path) -> None:
+# ------------------------------------------------------------------ review fixes (2026-11-09)
+def _capture_tree(root: Path, n_files: int = 2, *, bad: bool = False) -> None:
+    """A live-capture trade store: ``live_<date>/kalshi_trades/<date>/<stamp>.json.gz``."""
+    d = root / "live_2026-11-09" / "kalshi_trades" / "2026-11-09"
+    d.mkdir(parents=True)
+    trades = _json("live_trades.json")["trades"]
+    for i in range(n_files):
+        body = {
+            "KXNBAGAME-26NOV09SASPHX-SAS": trades,  # the same prints in every file: deduped on id
+            "KXNBASPREAD-26NOV09SASPHX-SAS5": trades[:3],  # not a game winner: ignored
+        }
+        (d / f"20261110T00{i:02d}00Z.json.gz").write_bytes(gzip.compress(json.dumps(body).encode()))
+    if bad:
+        (d / "20261110T009999Z.json.gz").write_bytes(b"not gzip")
+
+
+def test_capture_trades_are_read_once_deduped_filtered_and_bad_files_skipped(
+    tmp_path: Path,
+) -> None:
+    _capture_tree(tmp_path, 2, bad=True)
+    cap = candles15.CaptureTrades(tmp_path, DAY)
+    n = len(_json("live_trades.json")["trades"])
+    assert cap.refresh() == 2 * n  # parsed from both files; the spread prints are not counted
+    assert cap.refresh() == 0  # incremental: nothing new
+    f = cap.frame()
+    assert f.height == n and set(f["ticker"]) == {"KXNBAGAME-26NOV09SASPHX-SAS"}
+    assert cap.bad == ["20261110T009999Z.json.gz"] and cap.files == 2
+    assert candles15.CaptureTrades(tmp_path / "missing", DAY).refresh() == 0  # no capture: no crash
+
+
+def test_poller_requests_no_trades_and_exports_game_winner_candles_from_the_capture(
+    tmp_path: Path,
+) -> None:
+    _capture_tree(tmp_path / "capture", 1)
+    clock = FakeClock(T0)
+    client = FakeClient(clock)
+    p = _poller(tmp_path, clock, client, _cfg(export_every_polls=1))
+    p.run(once=True)
+    assert client.calls == [("markets", "KXNBAGAME")]  # one request; no /markets/trades
+    out = json.loads((tmp_path / "export" / "latest.json").read_text())
+    assert out["status"] == "live" and out["part"] == "game"
+    sas = next(m for m in out["markets"] if m["ticker"] == "KXNBAGAME-26NOV09SASPHX-SAS")
+    assert sas["n_trades"] == len(_json("live_trades.json")["trades"]) and sas["n_candles"] > 0
+
+
+def test_finalize_reconciles_the_capture_compacts_and_beats_per_ticker(tmp_path: Path) -> None:
+    _capture_tree(tmp_path / "capture", 1)
     clock = FakeClock(T0)
     client = FakeClient(clock)
     p = _poller(tmp_path, clock, client)
     p.run(once=True)
+    clock.sleep(15)
+    p.run(once=True)
+    assert len(list((p.store.day_dir / "quotes").glob("*.parquet"))) == 2
     candles = _json("live_candles_1m.json")
     seen: list[str] = []
 
     def fetch_candlesticks(ticker: str, series: str, **kw: Any) -> dict[str, Any]:
         seen.append(ticker)
+        client.requests += 1
         assert kw["tier"] == "live" and kw["period_interval"] == 1
         return candles
 
     client.fetch_candlesticks = fetch_candlesticks  # type: ignore[attr-defined]
-    budget = RequestBudget(100)
-    args = (client, p.store, DAY, p.cfg, p.window_start, clock.now(), budget)
-    rec = candles15.finalize_day(*args, export_dir=tmp_path / "export")  # type: ignore[arg-type]
-    assert sorted(seen) == sorted(set(p.store.load("quotes", QUOTE_SCHEMA)["ticker"]))
-    assert rec["tickers"] == 4 and rec["errors"] == [] and rec["compared_minutes"] == 0
-    n = len(seen)
-    candles15.finalize_day(*args, export_dir=tmp_path / "export")  # type: ignore[arg-type]
-    assert len(seen) == n  # official raw is write-once and re-read, not re-fetched
-    raw = next((p.store.day_dir / "official_1m").glob("*.json.gz"))
-    assert json.loads(gzip.decompress(raw.read_bytes())) == candles
+    beats: list[str] = []
+    orig = p.beat
+
+    def spy(status: str | None = None) -> None:
+        beats.append(status or p.status)
+        orig(status)
+
+    p.beat = spy  # type: ignore[method-assign]
+    p.finalize("test")
+    assert sorted(seen) == sorted(set(p.store.load("quotes", QUOTE_SCHEMA)["ticker"].to_list()))
+    assert len(beats) >= len(seen) + 2  # a beat per ticker, plus finalizing and done
+    rec = json.loads((p.store.day_dir / "derived" / "reconciliation.json").read_text())
+    assert rec["trade_source"].startswith("live capture") and rec["capture_prints"] > 0
+    assert (
+        rec["capture_files"] == 1
+        and "volume_ratio_on_compared_minutes" in rec
+        and "volume_coverage" in rec
+        and rec["errors"] == []
+    )
+    # the per-poll files were compacted and pruned inside finalize; nothing is lost
+    assert not list((p.store.day_dir / "quotes").glob("*.parquet"))
+    assert p.store.load("quotes", QUOTE_SCHEMA).height == 8
     out = json.loads((tmp_path / "export" / "latest.json").read_text())
-    assert out["status"] == "final" and out["reconciliation"]["tickers"] == 4
-    assert (p.store.day_dir / "derived" / "reconciliation.json").exists()
+    assert out["status"] == "final" and out["reconciliation"]["tickers"] == len(seen)
+    n = len(seen)
+    p.finalize("again")
+    assert len(seen) == n  # official raw is write-once and re-read, not re-fetched
 
 
-def test_compact_is_verified_lossless_and_prune_only_after_the_check(tmp_path: Path) -> None:
+def test_a_truncated_raw_file_is_quarantined_not_fatal(tmp_path: Path) -> None:
     clock = FakeClock(T0)
     client = FakeClient(clock)
-    client.volume_step = 10.0
     p = _poller(tmp_path, clock, client)
-    for _ in range(3):
-        p.run(once=True)
-        clock.sleep(15)
-    before_q = p.store.load("quotes", QUOTE_SCHEMA)
-    before_t = p.store.load("trades", TRADE_SCHEMA)
-    assert before_q.height == 12 and before_t.height > 0
-    rep = p.store.compact("quotes", QUOTE_SCHEMA)
-    assert rep["verified"] and rep["rows"] == 12 and rep["files"] == 3 and rep["pruned_files"] == 0
-    assert p.store.load("quotes", QUOTE_SCHEMA).height == 12  # inputs kept: still no double count
-    rep_t = p.store.compact("trades", TRADE_SCHEMA, prune=True)
-    assert rep_t["pruned_files"] == rep_t["files"] and rep_t["verified"]
-    assert not list((p.store.day_dir / "trades").glob("*.parquet"))
-    after_t = p.store.load("trades", TRADE_SCHEMA)
-    assert after_t.sort("trade_id").equals(before_t.sort("trade_id"))
-    assert poll15.main(["compact", "--date", DAY.isoformat(), "--store", str(tmp_path / "store"),
-                        "--tip", "2026-11-10T00:30:00Z"]) == 0  # fmt: skip
+    p.run(once=True)
+    qdir = p.store.day_dir / "quotes"
+    bad = qdir / "20261110T000000_000000Z_KXNBAGAME.parquet"
+    bad.write_bytes(b"")  # zero-length: a power cut after the rename
+    p2 = _poller(tmp_path, clock, client)
+    assert p2.run(once=True) == 0  # the restart is not lost to one bad file
+    assert bad.with_name(bad.name + ".bad").exists() and not bad.exists()
+    assert "quarantined" in (p2.store.day_dir / "errors.log").read_text()
+    assert p2.st.quote_rows >= 4  # the good file and the new poll are kept
+    assert json.loads((tmp_path / "hb.json").read_text())["quarantined"] == 1
+
+
+def test_raw_writes_are_fsynced_before_the_rename(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    synced: list[int] = []
+    real = poll15.os.fsync
+
+    def spy(fd: int) -> None:
+        synced.append(fd)
+        real(fd)
+
+    monkeypatch.setattr(poll15.os, "fsync", spy)
+    rows = trade_rows(_json("live_trades.json")["trades"], T0)
+    path = RawStore(tmp_path, DAY).write("trades", T0, "x", rows, TRADE_SCHEMA)
+    assert path is not None and synced and pl.read_parquet(path).height == len(rows)
+
+
+def test_empty_200s_after_the_last_tip_do_not_end_the_night_early(tmp_path: Path) -> None:
+    """Review F2: three empty lists 5 minutes after the last tip used to finish the night."""
+    clock = FakeClock(datetime(2026, 11, 10, 3, 5, tzinfo=UTC))  # last tip 03:00Z + 5 min
+    client = FakeClient(clock)
+    client.open_markets = False
+    p = _poller(tmp_path, clock, client)
+    p.run(start_now=True, max_polls=20)  # 20 empty polls (about 5 minutes)
+    assert p.status != "done" and p.st.quiet == 0
+    assert p.finished(clock.now()) is None
+
+
+def test_the_night_ends_after_quiet_min_of_empty_lists_past_the_150_minute_mark(
+    tmp_path: Path,
+) -> None:
+    clock = FakeClock(datetime(2026, 11, 10, 5, 29, tzinfo=UTC))  # last tip + 149 min
+    client = FakeClient(clock)
+    client.open_markets = False
+    p = _poller(tmp_path, clock, client)
+    assert p.run(start_now=True) == 0
+    assert p.status == "done" and p.finalize_note == "no open game market left"
+    assert clock.now() >= datetime(2026, 11, 10, 5, 40, tzinfo=UTC)  # the 150 min mark + 10 min
+    assert (tmp_path / "export" / "latest.json").exists()
+
+
+def test_a_game_poll_with_rows_resets_the_quiet_clock(tmp_path: Path) -> None:
+    clock = FakeClock(datetime(2026, 11, 10, 6, 0, tzinfo=UTC))
+    client = FakeClient(clock)
+    p = _poller(tmp_path, clock, client)
+    client.open_markets = False
+    p.run(start_now=True, max_polls=3)
+    assert p.st.quiet == 3 and p.st.quiet_since is not None
+    client.open_markets = True
+    p.run(start_now=True, max_polls=5)
+    assert p.st.quiet == 0 and p.st.quiet_since is None and p.st.last_success is not None
+
+
+def test_problem_sees_a_poller_that_fails_every_request_or_gets_only_empty_lists(
+    tmp_path: Path,
+) -> None:
+    cfg = _cfg()
+    tips = [datetime(2026, 11, 10, 0, 30, tzinfo=UTC), datetime(2026, 11, 10, 3, 0, tzinfo=UTC)]
+    # perpetual 403: the process beats every poll, so only the failure counters can tell
+    clock = FakeClock(T0)
+    client = FakeClient(clock)
+    client.fail_with = 403
+    p = _poller(tmp_path, clock, client)
+    p.run(start_now=True, max_polls=40)
+    hb = json.loads((tmp_path / "hb.json").read_text())
+    assert hb["quote_rows"] == 0 and hb["errors"] >= 8 and hb["status"] in {"running", "backoff"}
+    now = clock.now()
+    msg = problem(now, tips, hb, now, DAY, cfg)
+    assert msg is not None and ("failed polls in a row" in msg or "no successful game poll" in msg)
+    # empty 200s while a game is on (a ticker-format change): fresh beat, no slate row
+    clock2 = FakeClock(datetime(2026, 11, 10, 0, 40, tzinfo=UTC))
+    c2 = FakeClient(clock2)
+    c2.open_markets = False
+    (tmp_path / "b").mkdir()
+    p2 = _poller(tmp_path / "b", clock2, c2)
+    p2.run(start_now=True, max_polls=60)  # 15 minutes of empty lists after the first tip
+    hb2 = json.loads((tmp_path / "b" / "hb.json").read_text())
+    assert hb2["last_success_ts"] is None and hb2["consecutive_failures"] == 0
+    now2 = clock2.now()
+    msg2 = problem(now2, tips, hb2, now2, DAY, cfg)
+    assert msg2 is not None and "no successful game poll" in msg2
+    # healthy: a recent slate row
+    good = {**hb2, "last_success_ts": (now2 - timedelta(seconds=30)).isoformat()}
+    assert problem(now2, tips, good, now2, DAY, cfg) is None
+    # after the games can no longer be on, empty lists are normal
+    late = datetime(2026, 11, 10, 6, 0, tzinfo=UTC)
+    stale = {**hb2, "last_success_ts": datetime(2026, 11, 10, 2, 0, tzinfo=UTC).isoformat()}
+    assert problem(late, tips, stale, late, DAY, cfg) is None
+
+
+def test_retries_inside_the_client_count_against_the_budget(tmp_path: Path) -> None:
+    clock = FakeClock(T0)
+    client = FakeClient(clock)
+    client.per_call = 2  # every call cost two HTTP requests (a retry)
+    p = _poller(tmp_path, clock, client)
+    p.budget = RequestBudget(5, clock=lambda: 0.0)
+    p.poll_series("KXNBAGAME")
+    p.poll_series("KXNBAGAME")
+    assert client.requests == 4  # two calls, each 1 reserved + 1 charged: 4 of 5 slots used
+    p.poll_series("KXNBAGAME")  # the fifth slot is free, so this call is sent, then 6 > 5
+    assert client.requests == 6
+    p.poll_series("KXNBAGAME")  # now refused: no request, one skipped poll
+    assert client.requests == 6 and p.st.skipped_budget == 1
+
+
+def test_a_full_disk_cannot_crash_the_error_log_or_the_heartbeat(tmp_path: Path) -> None:
+    clock = FakeClock(T0)
+    client = FakeClient(clock)
+    p = _poller(tmp_path, clock, client)
+    blocker = tmp_path / "blocked"
+    blocker.write_text("a file where a directory is needed")
+    p.store.day_dir = blocker / "day"  # mkdir and open both raise OSError
+    p.heartbeat = blocker / "hb.json"
+    p.log_error("boom")  # must not raise
+    p.beat("running")  # must not raise
+    assert p.st.errors == 1 and p.st.last_error == "boom"
+
+
+def test_the_export_is_game_winners_only_live_and_lines_go_to_a_final_file(tmp_path: Path) -> None:
+    q = candles15.quotes_frame([_q(1, 0.4, 0.44, 10), _q(31, 0.42, 0.46, 14)])
+    row = {**_q(1, 0.5, 0.55, 3, "KXNBASPREAD-26NOV09AAABBB-AAA5"), "series": "KXNBASPREAD"}
+    spread = candles15.quotes_frame([row])
+    t = candles15.trades_frame([_t(2.0, 0.43, 4, "a")])
+    out = tmp_path / "e"
+    kw: dict[str, Any] = {"bucket_s": 15, "built_at": T0, "lines_q": spread}
+    candles15.write_export(out, DAY, q, t, status="live", **kw)
+    assert sorted(f.name for f in out.iterdir()) == ["latest.json"]  # live: one file, no lines
+    candles15.write_export(out, DAY, q, t, status="final", **kw)
+    assert sorted(f.name for f in out.iterdir()) == [
+        "2026-11-09.json",
+        "2026-11-09_lines.json",
+        "latest.json",
+    ]
+    latest = json.loads((out / "latest.json").read_text())
+    lines = json.loads((out / "2026-11-09_lines.json").read_text())
+    assert [m["series"] for m in latest["markets"]] == ["KXNBAGAME"] and latest["part"] == "game"
+    assert [m["series"] for m in lines["markets"]] == ["KXNBASPREAD"] and lines["part"] == "lines"
+    assert lines["markets"][0]["candles"] == []

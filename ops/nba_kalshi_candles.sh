@@ -23,7 +23,9 @@ LOCK=$OPS/kalshi_candles_lock
 HB_DIR=$OPS/heartbeat
 HB_JOB=kalshi-candles-launch
 mkdir -p "$OPS" "$HB_DIR"
-TODAY_ET=${NBA_TEST_DATE_ET:-$(TZ=America/New_York date +%Y-%m-%d)}
+# slate date = the ET date of (now - 6 h): a late game still running after midnight ET belongs to the
+# day that started it, so a poller that crashed at 00:30 ET is restarted and its finalize still runs
+TODAY_ET=${NBA_TEST_DATE_ET:-$(TZ=America/New_York date -v-6H +%Y-%m-%d)}
 LOG=$OPS/kalshi_candles_$(date +%Y%m%d).log
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 alert() { log "ALERT: $*"; echo "- $(date '+%Y-%m-%d %H:%M') [kalshi-candles] $*" >> "$OPS/ALERTS.md"; }
@@ -36,15 +38,20 @@ hb_write() {  # hb_write <end_ts|null> <rc|null> <detail>
     && mv "$HB_DIR/$HB_JOB.json.tmp" "$HB_DIR/$HB_JOB.json"
 }
 
-# one poller at a time: mkdir is atomic, the owner pid is inside. A dead owner is cleared at once; the
-# lock of a live pid is never stolen.
+# one poller at a time: mkdir is atomic. The owner is its pid AND its process start time (ps lstart):
+# a recycled pid of some other live process has a different start time, so its lock is stale. The
+# lock of the real, live owner is never stolen.
+start_of() { ps -o lstart= -p "$1" 2>/dev/null | sed 's/^ *//; s/ *$//'; }
+write_owner() { echo $$ > "$LOCK/pid"; start_of $$ > "$LOCK/start"; }
 acquire_lock() {
-  if mkdir "$LOCK" 2>/dev/null; then echo $$ > "$LOCK/pid"; return 0; fi
+  if mkdir "$LOCK" 2>/dev/null; then write_owner; return 0; fi
   owner=$(cat "$LOCK/pid" 2>/dev/null || true)
-  if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then return 1; fi
-  rm -f "$LOCK/pid"
+  if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then
+    [ "$(start_of "$owner")" = "$(cat "$LOCK/start" 2>/dev/null || true)" ] && return 1
+  fi
+  rm -f "$LOCK/pid" "$LOCK/start"
   if rmdir "$LOCK" 2>/dev/null && mkdir "$LOCK" 2>/dev/null; then
-    echo $$ > "$LOCK/pid"; log "cleared stale lock (owner pid ${owner:-none} is dead)"; return 0
+    write_owner; log "cleared stale lock (owner pid ${owner:-none} is dead or was recycled)"; return 0
   fi
   return 1
 }
@@ -53,7 +60,7 @@ if ! acquire_lock; then
   hb_write "$(date +%Y-%m-%dT%H:%M:%S%z)" 0 "poller already running"
   exit 0
 fi
-trap 'rc=$?; rm -f "$LOCK/pid"; rmdir "$LOCK" 2>/dev/null; exit $rc' EXIT
+trap 'rc=$?; rm -f "$LOCK/pid" "$LOCK/start"; rmdir "$LOCK" 2>/dev/null; exit $rc' EXIT
 trap 'exit 143' INT TERM
 hb_write null null "deciding"
 

@@ -6,8 +6,9 @@ the first tip until every dated game market has closed (hard stop: last tip +
 
 * one ``GET /markets?series_ticker=S&status=open`` page per due series (game winners every 15 s,
   spreads/totals every 60 s): yes bid/ask, last, cumulative volume, open interest, slate date;
-* ``GET /markets/trades`` for the few game tickers whose cumulative volume rose since the last poll,
-  so the 15 s candles are built from real prints (a polled quote alone is one sample per bucket).
+* no trade requests: the 15 s candles are built from the prints the live capture already stores
+  (``data/raw/live_<date>/kalshi_trades``, read-only, deduplicated on trade id), so this job
+  only adds the 15 s book.
 
 Read-only by construction: it uses ``KalshiClient`` (plain unauthenticated GETs; no order,
 portfolio or credential path exists). Raw is write-once parquet, one file per poll and series
@@ -26,6 +27,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import os
 import random
 import re
 import sys
@@ -49,6 +51,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = ROOT / "configs" / "kalshi_candles.yaml"
 DEFAULT_STORE = KALSHI_DATA_DIR / "candles15"
 DEFAULT_EXPORT_DIR = ROOT / "data" / "export" / "kalshi_candles15"
+#: parent of the live capture's raw trees (``live_<ET date>/kalshi_trades``); read-only here
+DEFAULT_CAPTURE_ROOT = ROOT / "data" / "raw"
 JOB = "kalshi_candles15"
 HEARTBEAT = f"{JOB}.json"
 LAUNCH_HEARTBEAT = "kalshi-candles-launch.json"
@@ -100,21 +104,26 @@ TRADE_SCHEMA: dict[str, Any] = {
 class PollConfig:
     series: dict[str, int]
     bucket_s: int = 15
-    trades_enabled: bool = True
-    trades_series: tuple[str, ...] = ("KXNBAGAME",)
-    trades_max_tickers: int = 8
-    trades_max_pages: int = 2
     lead_min: float = 30.0
     tail_cap_h: float = 4.0
+    #: quiet polls count only this long after the last tip (no NBA game ends sooner) ...
+    quiet_after_tip_min: float = 150.0
+    #: ... and the night ends after this many minutes of them, and at least `quiet_polls_to_finish`
+    quiet_min: float = 10.0
     quiet_polls_to_finish: int = 3
     min_interval_s: float = 0.5
-    max_requests_per_minute: int = 40
+    max_requests_per_minute: int = 30
     jitter_s: float = 1.0
     backoff_base_s: float = 15.0
     backoff_max_s: float = 240.0
     export_every_polls: int = 4
+    export_series: tuple[str, ...] = ("KXNBAGAME",)
     reconcile_series: tuple[str, ...] = ("KXNBAGAME",)
     heartbeat_stale_s: float = 180.0
+    #: watchdog: no game-series poll with a slate row for this long (inside the live window) ...
+    last_success_max_s: float = 600.0
+    #: ... or this many failed polls in a row
+    max_consecutive_failures: int = 8
 
     @property
     def fast_s(self) -> int:
@@ -125,25 +134,25 @@ def load_config(path: Path = DEFAULT_CONFIG) -> PollConfig:
     raw = yaml.safe_load(path.read_text())
     if not isinstance(raw, dict) or not isinstance(raw.get("series"), dict) or not raw["series"]:
         raise ValueError(f"{path}: 'series' must be a non-empty mapping series -> seconds")
-    tr = raw.get("trades") or {}
     return PollConfig(
         series={str(k): int(v) for k, v in raw["series"].items()},
         bucket_s=int(raw.get("bucket_s", 15)),
-        trades_enabled=bool(tr.get("enabled", True)),
-        trades_series=tuple(tr.get("series", ["KXNBAGAME"])),
-        trades_max_tickers=int(tr.get("max_tickers_per_poll", 8)),
-        trades_max_pages=int(tr.get("max_pages", 2)),
         lead_min=float(raw.get("lead_min", 30)),
         tail_cap_h=float(raw.get("tail_cap_h", 4)),
+        quiet_after_tip_min=float(raw.get("quiet_after_tip_min", 150)),
+        quiet_min=float(raw.get("quiet_min", 10)),
         quiet_polls_to_finish=int(raw.get("quiet_polls_to_finish", 3)),
         min_interval_s=float(raw.get("min_interval_s", 0.5)),
-        max_requests_per_minute=int(raw.get("max_requests_per_minute", 40)),
+        max_requests_per_minute=int(raw.get("max_requests_per_minute", 30)),
         jitter_s=float(raw.get("jitter_s", 1.0)),
         backoff_base_s=float(raw.get("backoff_base_s", 15)),
         backoff_max_s=float(raw.get("backoff_max_s", 240)),
         export_every_polls=int(raw.get("export_every_polls", 4)),
+        export_series=tuple(raw.get("export_series", ["KXNBAGAME"])),
         reconcile_series=tuple((raw.get("reconcile") or {}).get("series", ["KXNBAGAME"])),
         heartbeat_stale_s=float(raw.get("heartbeat_stale_s", 180)),
+        last_success_max_s=float(raw.get("last_success_max_s", 600)),
+        max_consecutive_failures=int(raw.get("max_consecutive_failures", 8)),
     )
 
 
@@ -236,14 +245,26 @@ def trade_rows(trades: Sequence[Mapping[str, Any]], fetched_at: datetime) -> lis
 
 
 # ------------------------------------------------------------------ raw store (write-once)
+def write_parquet_durable(df: pl.DataFrame, path: Path) -> None:
+    """tmp name, fsync, rename: after a power cut a renamed file is whole or absent."""
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("wb") as fh:
+        df.write_parquet(fh, compression="zstd")
+        fh.flush()
+        os.fsync(fh.fileno())
+    tmp.rename(path)
+
+
 class RawStore:
-    """``<root>/<day>/<kind>/<stamp>_<tag>.parquet``; a file is written once (tmp + rename), never
-    replaced. Derived tables live under ``<root>/<day>/derived/`` and are rebuildable."""
+    """``<root>/<day>/<kind>/<stamp>_<tag>.parquet``; a file is written once (fsync, tmp + rename),
+    never replaced. A file that cannot be read back is renamed ``.bad`` and reported, never fatal.
+    Derived tables live under ``<root>/<day>/derived/`` and are rebuildable."""
 
     def __init__(self, root: Path, day: date) -> None:
         self.day_dir = root / day.isoformat()
         self.files = 0
         self.bytes = 0
+        self.quarantined: list[str] = []
 
     def write(
         self, kind: str, at: datetime, tag: str, rows: list[dict[str, Any]], schema: dict[str, Any]
@@ -258,23 +279,31 @@ class RawStore:
         while path.exists():  # write-once: never replace
             n += 1
             path = directory / f"{stamp}_{n}.parquet"
-        tmp = path.with_name(path.name + ".tmp")
-        pl.DataFrame(rows, schema=schema).write_parquet(tmp, compression="zstd")
-        tmp.rename(path)
+        write_parquet_durable(pl.DataFrame(rows, schema=schema), path)
         self.files += 1
         self.bytes += path.stat().st_size
         return path
 
+    def _read(self, f: Path) -> pl.DataFrame | None:
+        try:
+            return pl.read_parquet(f)
+        except Exception:  # truncated or zero-length (power cut, full disk): set it aside
+            with contextlib.suppress(OSError):
+                f.rename(f.with_name(f.name + ".bad"))
+            self.quarantined.append(f.name)
+            return None
+
     def load(self, kind: str, schema: dict[str, Any]) -> pl.DataFrame:
-        """Every row of a kind: the per-poll files plus the compacted file, de-duplicated on the
-        kind's key (so a compaction that has not pruned its inputs never double counts)."""
+        """Every readable row of a kind: the per-poll files plus the compacted file, de-duplicated
+        on the kind's key (a compaction that has not pruned its inputs never double counts)."""
         files = sorted((self.day_dir / kind).glob("*.parquet"))
         compacted = self.day_dir / "compacted" / f"{kind}.parquet"
         if compacted.exists():
             files.insert(0, compacted)
-        if not files:
+        frames = [df for df in (self._read(f) for f in files) if df is not None]
+        if not frames:
             return pl.DataFrame(schema=schema)
-        df = pl.concat([pl.read_parquet(f) for f in files], how="vertical_relaxed")
+        df = pl.concat(frames, how="vertical_relaxed")
         return df.unique(subset=ROW_KEYS[kind], keep="first", maintain_order=True)
 
     def compact(self, kind: str, schema: dict[str, Any], *, prune: bool = False) -> dict[str, Any]:
@@ -287,7 +316,10 @@ class RawStore:
         out = self.day_dir / "compacted" / f"{kind}.parquet"
         out.parent.mkdir(parents=True, exist_ok=True)
         tmp = out.with_name(out.name + ".tmp")
-        df.write_parquet(tmp, compression="zstd")
+        with tmp.open("wb") as fh:
+            df.write_parquet(fh, compression="zstd")
+            fh.flush()
+            os.fsync(fh.fileno())
         ok = pl.read_parquet(tmp).height == df.height
         if ok:
             tmp.replace(out)
@@ -296,8 +328,9 @@ class RawStore:
         pruned = 0
         if ok and prune:
             for f in files:
-                f.unlink()
-                pruned += 1
+                if f.exists():  # a quarantined file was renamed away by load()
+                    f.unlink()
+                    pruned += 1
         return {
             "kind": kind,
             "rows": df.height,
@@ -306,6 +339,7 @@ class RawStore:
             "bytes_after": out.stat().st_size if ok else None,
             "verified": ok,
             "pruned_files": pruned,
+            "quarantined": list(self.quarantined),
         }
 
 
@@ -318,21 +352,31 @@ def write_json_atomic(path: Path, payload: Mapping[str, Any]) -> None:
 
 # ------------------------------------------------------------------ request budget
 class RequestBudget:
-    """Sliding 60 s request cap. ``take`` is False when one more request would exceed it."""
+    """Sliding 60 s request cap over HTTP requests actually sent (client retries included)."""
 
     def __init__(self, per_minute: int, clock: Callable[[], float] = time.monotonic) -> None:
         self.per_minute = per_minute
         self.clock = clock
         self._stamps: deque[float] = deque()
 
-    def take(self) -> bool:
-        now = self.clock()
+    def _trim(self, now: float) -> None:
         while self._stamps and now - self._stamps[0] >= 60.0:
             self._stamps.popleft()
+
+    def take(self) -> bool:
+        """Reserve one request; False when it would exceed the budget."""
+        now = self.clock()
+        self._trim(now)
         if len(self._stamps) >= self.per_minute:
             return False
         self._stamps.append(now)
         return True
+
+    def charge(self, n: int) -> None:
+        """Account for requests already sent (a client retry); never refused."""
+        now = self.clock()
+        self._trim(now)
+        self._stamps.extend([now] * max(0, n))
 
 
 class BudgetExhausted(Exception):
@@ -348,15 +392,12 @@ class _State:
     consecutive_failures: int = 0
     cooldown_until: datetime | None = None
     quiet: int = 0
+    quiet_since: datetime | None = None
+    last_success: datetime | None = None
     last_error: str = ""
     quote_rows: int = 0
-    trade_rows: int = 0
     skipped_budget: int = 0
     last_poll: dict[str, datetime] = field(default_factory=dict)
-    volumes: dict[str, float] = field(default_factory=dict)
-    pending: dict[str, float] = field(default_factory=dict)  # ticker -> volume jump awaiting a pull
-    last_trade_ts: dict[str, int] = field(default_factory=dict)
-    seen_ids: dict[str, set[str]] = field(default_factory=dict)
 
 
 class Poller:
@@ -370,6 +411,7 @@ class Poller:
         heartbeat: Path,
         *,
         export_dir: Path | None = None,
+        capture_root: Path | None = None,
         now_fn: Callable[[], datetime] = lambda: datetime.now(UTC),
         sleep_fn: Callable[[float], None] = time.sleep,
         rng: random.Random | None = None,
@@ -383,8 +425,10 @@ class Poller:
         self.tips = sorted(tips)
         self.st = _State()
         self.start_ts = self.now()
-        self.quotes: list[dict[str, Any]] = []
-        self.trades: list[dict[str, Any]] = []
+        #: the night's quote rows as polars frames per series (columnar, not dicts)
+        self.qframes: dict[str, list[pl.DataFrame]] = {}
+        self.capture_root = capture_root
+        self.capture: Any = None  # candles15.CaptureTrades, created on first use
         self.status = "waiting"
         self.finalize_note = ""
         if self.tips:
@@ -398,44 +442,49 @@ class Poller:
         if status:
             self.status = status
         st = self.st
-        write_json_atomic(
-            self.heartbeat,
-            {
-                "job": JOB,
-                "date": self.day.isoformat(),
-                "status": self.status,
-                "start_ts": self.start_ts.isoformat(),
-                "last_tick_ts": self.now().isoformat(),
-                "polls": st.polls,
-                "requests": self.client.requests,
-                "errors": st.errors,
-                "n429": st.n429,
-                "consecutive_failures": st.consecutive_failures,
-                "cooldown_until": st.cooldown_until.isoformat() if st.cooldown_until else None,
-                "quote_rows": st.quote_rows,
-                "trade_rows": st.trade_rows,
-                "skipped_budget": st.skipped_budget,
-                "raw_files": self.store.files,
-                "raw_bytes": self.store.bytes,
-                "window_start": self.window_start.isoformat(),
-                "window_end": self.window_end.isoformat(),
-                "last_error": st.last_error,
-            },
-        )
+        payload = {
+            "job": JOB,
+            "date": self.day.isoformat(),
+            "status": self.status,
+            "start_ts": self.start_ts.isoformat(),
+            "last_tick_ts": self.now().isoformat(),
+            "last_success_ts": st.last_success.isoformat() if st.last_success else None,
+            "polls": st.polls,
+            "requests": self.client.requests,
+            "errors": st.errors,
+            "n429": st.n429,
+            "consecutive_failures": st.consecutive_failures,
+            "cooldown_until": st.cooldown_until.isoformat() if st.cooldown_until else None,
+            "quote_rows": st.quote_rows,
+            "skipped_budget": st.skipped_budget,
+            "raw_files": self.store.files,
+            "raw_bytes": self.store.bytes,
+            "quarantined": len(self.store.quarantined),
+            "window_start": self.window_start.isoformat(),
+            "window_end": self.window_end.isoformat(),
+            "last_error": st.last_error,
+        }
+        with contextlib.suppress(OSError):  # a full disk must not kill the poller
+            write_json_atomic(self.heartbeat, payload)
 
     def log_error(self, what: str) -> None:
         self.st.errors += 1
         self.st.last_error = what[:200]
-        self.store.day_dir.mkdir(parents=True, exist_ok=True)
-        with (self.store.day_dir / "errors.log").open("a") as fh:
-            fh.write(f"{self.now().isoformat()} {what}\n")
+        with contextlib.suppress(OSError):  # a full disk must not raise inside an except block
+            self.store.day_dir.mkdir(parents=True, exist_ok=True)
+            with (self.store.day_dir / "errors.log").open("a") as fh:
+                fh.write(f"{self.now().isoformat()} {what}\n")
 
     # -------------------------------------------------------------- requests
     def _call(self, fn: Callable[[], dict[str, Any]]) -> dict[str, Any]:
         if not self.budget.take():
             self.st.skipped_budget += 1
             raise BudgetExhausted
-        return fn()
+        before = self.client.requests
+        try:
+            return fn()
+        finally:  # the client may have retried: every request it sent counts against the budget
+            self.budget.charge(self.client.requests - before - 1)
 
     def _fail(self, exc: Exception) -> None:
         """Open a jittered exponential cool-down; no request is sent until it ends."""
@@ -484,91 +533,29 @@ class Poller:
         self.st.consecutive_failures = 0
         return rows
 
-    def pull_trades(self, rows: list[dict[str, Any]]) -> None:
-        """Real prints for the game tickers whose cumulative volume rose (largest jump first)."""
-        st = self.st
-        for r in rows:
-            vol = r["volume"]
-            if vol is None:
-                continue
-            prev = st.volumes.get(r["ticker"])
-            if prev is not None and vol > prev:
-                st.pending[r["ticker"]] = st.pending.get(r["ticker"], 0.0) + (vol - prev)
-            st.volumes[r["ticker"]] = max(vol, prev or 0.0)
-        order = sorted(st.pending, key=lambda t: (-st.pending[t], t))[: self.cfg.trades_max_tickers]
-        batch: list[dict[str, Any]] = []
-        done: list[str] = []
-        try:
-            for ticker in order:
-                if st.cooldown_until and self.now() < st.cooldown_until:
-                    break
-                got, complete = self._pull_ticker_trades(ticker)
-                batch += got
-                if complete:
-                    done.append(ticker)
-        finally:  # one file per poll; ids are remembered only after the write
-            if batch:
-                fetched_at = self.now()
-                self.store.write("trades", fetched_at, "poll", batch, TRADE_SCHEMA)
-                self.trades += batch
-                st.trade_rows += len(batch)
-                self._remember_trades(batch)
-            for ticker in done:
-                st.pending.pop(ticker, None)
-
-    def _pull_ticker_trades(self, ticker: str) -> tuple[list[dict[str, Any]], bool]:
-        """(new prints, complete). Incomplete = a page cap or a failed/denied request: the prints
-        older than the newest fetched one may be missing, which is logged, never papered over."""
-        st = self.st
-        min_ts = st.last_trade_ts.get(ticker, int(self.window_start.timestamp()))
-        seen = st.seen_ids.get(ticker, set())
-        new: list[Mapping[str, Any]] = []
-        cursor: str | None = None
-        complete = True
-        for page_n in range(self.cfg.trades_max_pages):
-            try:
-                page = self._call(
-                    lambda c=cursor: self.client.fetch_trades_page(  # type: ignore[misc]
-                        ticker, min_ts=min_ts, cursor=c
-                    )
-                )
-            except BudgetExhausted:
-                return [], False
-            except Exception as exc:
-                self._fail(exc)
-                return [], False
-            new += [t for t in page.get("trades", []) if t.get("trade_id") not in seen]
-            cursor = str(page.get("cursor") or "") or None
-            if not cursor:
-                break
-            if page_n == self.cfg.trades_max_pages - 1:
-                complete = False
-                self.log_error(
-                    f"trades {ticker}: page cap hit, older prints than the fetched ones are missing"
-                )
-        return trade_rows(new, self.now()), complete
-
-    def _remember_trades(self, rows: Sequence[Mapping[str, Any]]) -> None:
-        for r in rows:
-            t = r["ticker"]
-            self.st.seen_ids.setdefault(t, set()).add(r["trade_id"])
-            ts = int(r["created_time"].timestamp())
-            self.st.last_trade_ts[t] = max(self.st.last_trade_ts.get(t, 0), ts)
-
     # -------------------------------------------------------------- one tick
     def due(self, series: str, now: datetime) -> bool:
         last = self.st.last_poll.get(series)
         if last is None:
             return True
-        every = self.cfg.series[
-            series
-        ]  # a tick may start early by the jitter: never skip a slot for it
+        every = self.cfg.series[series]
+        # a tick may start early by the jitter: never skip a slot for it
         return (now - last).total_seconds() >= max(every * 0.5, every - self.cfg.jitter_s - 1.0)
+
+    def _note_quiet(self, now: datetime, rows: list[dict[str, Any]]) -> None:
+        """Empty game-series lists count as "quiet" only once no game can still be on."""
+        st = self.st
+        if rows:
+            st.last_success = now
+            st.quiet, st.quiet_since = 0, None
+            return
+        if now >= self.tips[-1] + timedelta(minutes=self.cfg.quiet_after_tip_min):
+            st.quiet += 1
+            st.quiet_since = st.quiet_since or now
 
     def tick(self) -> None:
         now = self.now()
         st = self.st
-        game_polled: list[dict[str, Any]] | None = None
         game_series = next(iter(self.cfg.series))
         for series in self.cfg.series:
             if not self.due(series, now):
@@ -580,18 +567,29 @@ class Poller:
             if rows is None:
                 continue
             if series == game_series:
-                game_polled = rows
+                self._note_quiet(now, rows)
             if rows:
                 self.store.write("quotes", self.now(), series, rows, QUOTE_SCHEMA)
-                self.quotes += rows
+                self.qframes.setdefault(series, []).append(pl.DataFrame(rows, schema=QUOTE_SCHEMA))
                 st.quote_rows += len(rows)
-            if self.cfg.trades_enabled and series in self.cfg.trades_series and rows:
-                self.pull_trades(rows)
         st.polls += 1
-        if game_polled is not None and now >= self.tips[-1]:
-            st.quiet = st.quiet + 1 if not game_polled else 0
         if self.cfg.export_every_polls and st.polls % self.cfg.export_every_polls == 0:
             self.export()
+
+    def _quotes(self, series: Sequence[str]) -> pl.DataFrame:
+        frames = [f for s in series for f in self.qframes.get(s, [])]
+        return pl.concat(frames) if frames else pl.DataFrame(schema=QUOTE_SCHEMA)
+
+    def capture_trades(self) -> pl.DataFrame:
+        """The live capture's KXNBAGAME prints for the slate date (read-only, incremental)."""
+        from nba.kalshi import candles15
+
+        if self.capture is None:
+            root = self.capture_root or DEFAULT_CAPTURE_ROOT
+            self.capture = candles15.CaptureTrades(root, self.day)
+        self.capture.refresh()
+        out: pl.DataFrame = self.capture.frame()
+        return out
 
     def export(self, final: bool = False) -> None:
         """Rebuild the display export from the night's rows. Display only: a failure here is logged
@@ -604,12 +602,15 @@ class Poller:
             candles15.write_export(
                 self.export_dir,
                 self.day,
-                candles15.quotes_frame(self.quotes),
-                candles15.trades_frame(self.trades),
+                self._quotes(self.cfg.export_series),
+                self.capture_trades(),
                 bucket_s=self.cfg.bucket_s,
                 built_at=self.now(),
                 status="final" if final else "live",
                 recon=self.read_reconciliation(),
+                lines_q=self._quotes([s for s in self.qframes if s not in self.cfg.export_series])
+                if final
+                else None,
             )
         except Exception as exc:
             self.log_error(f"export failed: {type(exc).__name__}: {str(exc)[:120]}")
@@ -624,24 +625,26 @@ class Poller:
 
     # -------------------------------------------------------------- resume
     def restore(self) -> None:
-        """Reload the night so a restart neither re-pulls trades nor rewrites a file."""
+        """Reload the night so a restart never rewrites a file. Unreadable files are quarantined
+        (renamed ``.bad``) and logged; the rest of the night is kept."""
         q = self.store.load("quotes", QUOTE_SCHEMA)
-        t = self.store.load("trades", TRADE_SCHEMA)
-        self.quotes = q.to_dicts()
-        self.trades = t.to_dicts()
-        self._remember_trades(self.trades)
-        for r in self.quotes:
-            if r["volume"] is not None:
-                self.st.volumes[r["ticker"]] = max(
-                    self.st.volumes.get(r["ticker"], 0.0), r["volume"]
-                )
-        self.st.quote_rows, self.st.trade_rows = len(self.quotes), len(self.trades)
+        self.qframes = {}
+        for (series,), part in q.partition_by("series", as_dict=True).items():
+            self.qframes[str(series)] = [part]
+        self.st.quote_rows = q.height
+        for name in self.store.quarantined:
+            self.log_error(f"quarantined unreadable raw file {name} (renamed .bad)")
 
     # -------------------------------------------------------------- main loop
     def finished(self, now: datetime) -> str | None:
         if now > self.window_end:
             return "window cap"
-        if self.st.quiet >= self.cfg.quiet_polls_to_finish:
+        qs = self.st.quiet_since
+        if (
+            qs is not None
+            and self.st.quiet >= self.cfg.quiet_polls_to_finish
+            and (now - qs).total_seconds() >= self.cfg.quiet_min * 60
+        ):
             return "no open game market left"
         return None
 
@@ -682,12 +685,13 @@ class Poller:
             self.sleep(max(0.0, wait))
 
     def finalize(self, why: str) -> None:
-        """End of night: final export, official 1-minute candles for reconciliation, final beat."""
+        """End of night: official 1-minute candles and reconciliation, final export, compaction
+        (about 3 files a night instead of about 2,300), final beat. Beats between steps."""
         self.beat("finalizing")
-        self.export(final=True)
         try:
             from nba.kalshi import candles15
 
+            trades = self.capture_trades()
             candles15.finalize_day(
                 self.client,
                 self.store,
@@ -696,10 +700,18 @@ class Poller:
                 self.window_start,
                 self.now(),
                 self.budget,
-                export_dir=self.export_dir,
+                trades=trades,
+                capture=self.capture,
+                export_dir=None,
+                beat=self.beat,
             )
         except Exception as exc:
             self.log_error(f"finalize failed: {type(exc).__name__}: {str(exc)[:160]}")
+        self.export(final=True)  # after the reconciliation so the file carries it
+        try:
+            self.store.compact("quotes", QUOTE_SCHEMA, prune=True)
+        except Exception as exc:
+            self.log_error(f"compaction failed: {type(exc).__name__}: {str(exc)[:160]}")
         self.finalize_note = why
         self.beat("done")
 
@@ -736,8 +748,9 @@ def problem(
     day: date,
     cfg: PollConfig,
 ) -> str | None:
-    """Why the poller is not running inside its window, or None. For the independent watchdog
-    (``nba.ops.watchdog``): "a job that cannot start cannot alert"."""
+    """Why the poller is not doing its job inside its window, or None. For the independent
+    watchdog (``nba.ops.watchdog``): "a job that cannot start cannot alert". A fresh heartbeat is
+    not enough: a poller in permanent backoff, or one getting empty 200s, beats too."""
     if not tips:
         return None
     first, last = min(tips), max(tips)
@@ -752,6 +765,17 @@ def problem(
         return None
     if hb_time is None or (now - hb_time).total_seconds() > cfg.heartbeat_stale_s:
         return f"heartbeat stale, status {hb.get('status')}"
+    fails = int(hb.get("consecutive_failures") or 0)
+    if fails >= cfg.max_consecutive_failures:
+        return f"{fails} failed polls in a row ({hb.get('last_error') or 'no error text'})"
+    # while a game can still be on, the game series must keep returning slate rows
+    if first <= now <= last + timedelta(minutes=cfg.quiet_after_tip_min):
+        ok = _ts(hb.get("last_success_ts"))
+        since = ok or _ts(hb.get("start_ts")) or now
+        if (now - since).total_seconds() > cfg.last_success_max_s:
+            what = "no slate row yet" if ok is None else f"last slate row {since:%H:%MZ}"
+            mins = int((now - since).total_seconds() // 60)
+            return f"no successful game poll for {mins} min ({what})"
     return None
 
 
@@ -780,6 +804,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--store", type=Path, default=DEFAULT_STORE, help="raw + derived root")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     ap.add_argument("--export-dir", type=Path, default=DEFAULT_EXPORT_DIR)
+    ap.add_argument(
+        "--capture-root",
+        type=Path,
+        default=DEFAULT_CAPTURE_ROOT,
+        help="parent of live_<date>/ (the live capture's raw trees; read-only)",
+    )
     ap.add_argument("--heartbeat", type=Path, default=None)
     ap.add_argument("--now", default=None, help="ISO time (plan tests)")
     ap.add_argument("--once", action="store_true", help="one tick now, no waiting (smoke test)")
@@ -819,10 +849,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     client = KalshiClient(rate_limiter=limiter, max_attempts=2, timeout_s=10.0)
     store = RawStore(a.store, day)
     if a.cmd == "compact":
-        for kind, schema in (("quotes", QUOTE_SCHEMA), ("trades", TRADE_SCHEMA)):
-            print(json.dumps(store.compact(kind, schema, prune=a.prune), sort_keys=True))
+        print(json.dumps(store.compact("quotes", QUOTE_SCHEMA, prune=a.prune), sort_keys=True))
         return 0
-    poller = Poller(cfg, client, day, tips, store, hb_path, export_dir=a.export_dir)
+    poller = Poller(
+        cfg,
+        client,
+        day,
+        tips,
+        store,
+        hb_path,
+        export_dir=a.export_dir,
+        capture_root=a.capture_root,
+    )
     if a.cmd == "run":
         return poller.run(once=a.once, start_now=a.start_now, max_polls=a.max_polls)
     poller.restore()

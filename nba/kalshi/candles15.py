@@ -22,7 +22,9 @@ from __future__ import annotations
 
 import gzip
 import json
-from collections.abc import Mapping, Sequence
+import os
+import time
+from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
@@ -37,6 +39,7 @@ from nba.kalshi.poll15 import (
     RawStore,
     RequestBudget,
     _f,
+    trade_rows,
     write_json_atomic,
 )
 
@@ -153,6 +156,14 @@ def _rows(df: pl.DataFrame, fields: list[str]) -> list[list[Any]]:
     return [list(r) for r in df.select(fields).iter_rows()]
 
 
+def _by_ticker(df: pl.DataFrame) -> dict[str, pl.DataFrame]:
+    """One pass over the frame (not one filter per ticker)."""
+    if df.is_empty():
+        return {}
+    parts = df.partition_by("ticker", as_dict=True)
+    return {str(k[0] if isinstance(k, tuple) else k): v for k, v in parts.items()}
+
+
 def build_export(
     q: pl.DataFrame,
     t: pl.DataFrame,
@@ -162,10 +173,12 @@ def build_export(
     built_at: datetime,
     status: str,
     recon: Mapping[str, Any] | None = None,
+    part: str = "game",
 ) -> dict[str, Any]:
-    """The ``kalshi_candles15`` v1 payload (docs/contracts/kalshi_candles15_v1.md)."""
-    pts = quote_points(q, bucket_s)
-    cds = trade_candles(t, bucket_s)
+    """The ``kalshi_candles15`` v1 payload (docs/contracts/kalshi_candles15_v1.md). ``part`` is
+    ``game`` (game winners: quotes and trade candles) or ``lines`` (spreads and totals: quotes)."""
+    pts_by = _by_ticker(quote_points(q, bucket_s))
+    cds_by = _by_ticker(trade_candles(t, bucket_s)) if part == "game" else {}
     meta = (
         q.sort("fetched_at")
         .group_by("ticker")
@@ -177,14 +190,17 @@ def build_export(
             pl.col("fetched_at").max().alias("last_poll"),
             pl.len().alias("n_polls"),
         )
+        .sort("ticker")
         if not q.is_empty()
         else pl.DataFrame()
     )
+    empty_p = quote_points(q.clear(), bucket_s)
+    empty_c = trade_candles(t.clear(), bucket_s)
     markets: list[dict[str, Any]] = []
-    for m in meta.sort("ticker").iter_rows(named=True) if not meta.is_empty() else []:
+    for m in meta.iter_rows(named=True) if not meta.is_empty() else []:
         tk = m["ticker"]
-        p = pts.filter(pl.col("ticker") == tk)
-        c = cds.filter(pl.col("ticker") == tk)
+        p = pts_by.get(tk, empty_p)
+        c = cds_by.get(tk, empty_c)
         gaps = p["t"].diff().drop_nulls()
         max_gap = gaps.max() if len(gaps) else None
         markets.append(
@@ -207,6 +223,7 @@ def build_export(
     return {
         "schema": SCHEMA_VERSION,
         "kind": "kalshi_candles15",
+        "part": part,
         "display_only": True,
         "built_at": built_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
         "status": status,
@@ -218,6 +235,7 @@ def build_export(
         "candle_fields": CANDLE_FIELDS,
         "notes": [
             "Candles are executed trades only; no trade in a bucket, no candle (hold last close).",
+            "Candles bucket on Kalshi's trade time, quotes on our receive time: two clocks.",
             "Quotes are the polled book (last poll in a bucket); mid is null on a one-sided book.",
             "Display data. Not an alert, EV or signal input, and not a forecast.",
         ],
@@ -236,18 +254,79 @@ def write_export(
     built_at: datetime,
     status: str,
     recon: Mapping[str, Any] | None = None,
+    lines_q: pl.DataFrame | None = None,
 ) -> Path:
-    """Atomic: ``latest.json`` always, ``<day>.json`` once final (a failed build keeps the old)."""
+    """Atomic. ``latest.json`` always (game winners only: quotes plus trade candles);
+    ``<day>.json`` and, from ``lines_q``, ``<day>_lines.json`` (spreads and totals) once final."""
     payload = build_export(
         q, t, day=day, bucket_s=bucket_s, built_at=built_at, status=status, recon=recon
     )
     path = export_dir / f"{day.isoformat()}.json"
-    if (
-        status != "live"
-    ):  # the dated file is the finished night; live builds only refresh latest.json
+    if status != "live":  # the dated file is the finished night; live builds refresh latest only
         write_json_atomic(path, payload)
+        if lines_q is not None and not lines_q.is_empty():
+            lines = build_export(
+                lines_q,
+                t.clear(),
+                day=day,
+                bucket_s=bucket_s,
+                built_at=built_at,
+                status=status,
+                part="lines",
+            )
+            write_json_atomic(export_dir / f"{day.isoformat()}_lines.json", lines)
     write_json_atomic(export_dir / "latest.json", payload)
     return path
+
+
+class CaptureTrades:
+    """Read-only, incremental reader of the live capture's raw trade store
+    (``<root>/live_<ET date>/kalshi_trades/*/*.json.gz``: ``{ticker: [trade, ...]}`` per file).
+    The capture is the single source of the prints; this job requests none of its own. Files that
+    cannot be read are listed in ``bad`` and skipped, never fatal."""
+
+    PREFIX = "KXNBAGAME-"
+
+    def __init__(self, raw_root: Path, day: date) -> None:
+        self.dir = raw_root / f"live_{day.isoformat()}" / "kalshi_trades"
+        self.seen: set[str] = set()
+        self.frames: list[pl.DataFrame] = []
+        self.bad: list[str] = []
+        self.files = 0
+
+    def refresh(self) -> int:
+        """Read files not read before; returns the number of new prints parsed."""
+        new = 0
+        for f in sorted(self.dir.glob("*/*.json.gz")):
+            if str(f) in self.seen:
+                continue
+            self.seen.add(str(f))
+            try:
+                payload = json.loads(gzip.decompress(f.read_bytes()))
+            except (OSError, EOFError, ValueError):
+                self.bad.append(f.name)
+                continue
+            if not isinstance(payload, dict):
+                self.bad.append(f.name)
+                continue
+            try:
+                stamp = datetime.strptime(f.name[:15], "%Y%m%dT%H%M%S").replace(tzinfo=UTC)
+            except ValueError:
+                stamp = datetime.fromtimestamp(f.stat().st_mtime, UTC)
+            rows: list[dict[str, Any]] = []
+            for ticker, trades in payload.items():
+                if str(ticker).startswith(self.PREFIX) and isinstance(trades, list):
+                    rows += trade_rows([t for t in trades if isinstance(t, dict)], stamp)
+            self.files += 1
+            if rows:
+                self.frames.append(trades_frame(rows))
+                new += len(rows)
+        return new
+
+    def frame(self) -> pl.DataFrame:
+        if not self.frames:
+            return pl.DataFrame(schema=TRADE_SCHEMA)
+        return pl.concat(self.frames).unique(subset=["trade_id"], keep="first", maintain_order=True)
 
 
 # ------------------------------------------------------------------ official 1-minute candles
@@ -341,6 +420,13 @@ def reconcile(official: pl.DataFrame, ours: pl.DataFrame, since_ts: int) -> dict
         "agree_close": agree("c") if n else 0,
         "volume_official": float(both["volume"].sum() or 0.0) if n else 0.0,
         "volume_ours": float(both["volume_ours"].sum() or 0.0) if n else 0.0,
+        "volume_official_all": float(off["volume"].sum() or 0.0),
+        "minute_coverage": (n / off.height) if off.height else None,
+        "volume_coverage": (
+            float(both["volume_ours"].sum() or 0.0) / float(off["volume"].sum())
+            if n and off["volume"].sum()
+            else (0.0 if off.height else None)
+        ),
         "note": "counts of ticker-minutes; official = GET .../candlesticks period_interval=1",
     }
 
@@ -354,27 +440,46 @@ def finalize_day(
     now: datetime,
     budget: RequestBudget,
     *,
-    export_dir: Path | None,
+    trades: pl.DataFrame,
+    capture: CaptureTrades | None = None,
+    export_dir: Path | None = None,
+    beat: Callable[[], object] | None = None,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
-    """Pull official 1-minute candles once per reconcile ticker (write-once raw; a re-run fetches
-    only what is missing), derive the 15 s tables, reconcile, and write the final export."""
+    """Pull official 1-minute candles once per reconcile ticker (write-once, fsynced raw; a re-run
+    fetches only what is missing; waits for the request budget rather than skipping), derive the
+    15 s tables, and reconcile the capture's prints against them. ``beat`` runs between tickers
+    so the heartbeat stays fresh through a slow network."""
     q = store.load("quotes", QUOTE_SCHEMA)
-    t = store.load("trades", TRADE_SCHEMA)
+    prefixes = tuple(f"{s}-" for s in cfg.reconcile_series)
     tickers = sorted(
-        set(q.filter(pl.col("series").is_in(list(cfg.reconcile_series)))["ticker"].to_list())
+        {
+            tk
+            for tk in [*q["ticker"].to_list(), *trades["ticker"].to_list()]
+            if tk.startswith(prefixes)
+        }
     )
     raw_dir = store.day_dir / "official_1m"
     raw_dir.mkdir(parents=True, exist_ok=True)
     errors: list[str] = []
     frames: list[pl.DataFrame] = []
     for tk in tickers:
+        if beat is not None:
+            beat()
         path = raw_dir / f"{tk}.json.gz"
         if path.exists():
             payload = json.loads(gzip.decompress(path.read_bytes()))
         else:
-            if not budget.take():
-                errors.append(f"{tk}: request budget spent; re-run finalize")
+            for _ in range(120):  # wait for the sliding budget (1 s steps), never exceed it
+                if budget.take():
+                    break
+                sleep(1.0)
+                if beat is not None:
+                    beat()
+            else:
+                errors.append(f"{tk}: request budget not freed in 2 min; re-run finalize")
                 continue
+            before = client.requests
             try:
                 payload = client.fetch_candlesticks(
                     tk,
@@ -387,21 +492,45 @@ def finalize_day(
             except Exception as exc:
                 errors.append(f"{tk}: {type(exc).__name__}: {str(exc)[:100]}")
                 continue
+            finally:
+                budget.charge(client.requests - before - 1)
             tmp = path.with_name(path.name + ".tmp")
-            tmp.write_bytes(gzip.compress(json.dumps(payload).encode()))
+            with tmp.open("wb") as fh:
+                fh.write(gzip.compress(json.dumps(payload).encode()))
+                fh.flush()
+                os.fsync(fh.fileno())
             tmp.rename(path)
         frames.append(parse_official(tk, payload))
     official = pl.concat(frames) if frames else pl.DataFrame(schema=OFFICIAL_SCHEMA)
     derived = store.day_dir / "derived"
     derived.mkdir(parents=True, exist_ok=True)
     official.write_parquet(derived / "official_1m.parquet")
-    trade_candles(t, cfg.bucket_s).write_parquet(derived / "trade_candles_15s.parquet")
+    trade_candles(trades, cfg.bucket_s).write_parquet(derived / "trade_candles_15s.parquet")
     quote_points(q, cfg.bucket_s).write_parquet(derived / "quote_points_15s.parquet")
-    recon = reconcile(official, minute_rollup(t), int(window_start.timestamp()))
-    recon.update({"tickers": len(tickers), "errors": errors, "built_at": now.isoformat()})
+    recon = reconcile(official, minute_rollup(trades), int(window_start.timestamp()))
+    ours_v, off_v = recon["volume_ours"], recon["volume_official"]
+    recon.update(
+        {
+            "tickers": len(tickers),
+            "errors": errors,
+            "built_at": now.isoformat(),
+            "trade_source": "live capture raw store (data/raw/live_<date>/kalshi_trades)",
+            "capture_files": capture.files if capture else None,
+            "capture_files_unreadable": list(capture.bad) if capture else [],
+            "capture_prints": trades.height,
+            "volume_ratio_on_compared_minutes": (ours_v / off_v) if off_v else None,
+        }
+    )
     write_json_atomic(derived / "reconciliation.json", recon)
     if export_dir is not None:
         write_export(
-            export_dir, day, q, t, bucket_s=cfg.bucket_s, built_at=now, status="final", recon=recon
+            export_dir,
+            day,
+            q,
+            trades,
+            bucket_s=cfg.bucket_s,
+            built_at=now,
+            status="final",
+            recon=recon,
         )
     return recon
