@@ -15,7 +15,19 @@ from nba.jarvis.cards.model import CardData, CkOver, HalfLeg, OverRow, Recap, Se
 from nba.jarvis.render import VENUE, cents
 
 STAT = {"pts": "pts", "reb": "reb", "ast": "ast", "fg3m": "3PM"}
-NO_OVER = "No over has positive EV after fees tonight."
+NO_OVER = "No over or under has positive EV after fees tonight."
+NO_OVER_ONLY = (
+    "No over has positive EV after fees tonight."  # the main-channel overview: overs only
+)
+UNDER_SHORT = (
+    "Unders are Kalshi's No, priced on the worst case (a player who does not play counts as a No "
+    "loss; Kalshi's rule is unverified). Positive EV here holds under either rule. Paper, no alert."
+)
+UNDER_VERIFIED_SHORT = (
+    "Unders are Kalshi's No. A player who sits before tip settles at Kalshi's last fair price "
+    "(contract terms); the EV shown prices the sharp no-vig under. Shown, never alerted; "
+    "paper, no stake."
+)
 DISCLAIMER = "Paper only. Not advice."
 
 QUOTE_AGE_NOTE_MIN = 5.0  # a price older than this (the alert cap) says how old it is
@@ -105,7 +117,37 @@ def ev_phrase(row: OverRow) -> str:
     )
 
 
+def side_label(row: OverRow) -> str:
+    """'25+ points' for an over; 'under 25 points (Kalshi No)' for an under."""
+    if row.side == "no":
+        return f"under {row.line:g} {STAT.get(row.stat, row.stat)} (Kalshi No)"
+    return line_label(row.line, row.stat)
+
+
+def why_line_under(row: OverRow) -> str:
+    venue = VENUE.get(row.venue, row.venue)
+    ask = f"{venue} asks {cents(row.ask)} for the No"
+    if row.quote_age_min is not None and row.quote_age_min > QUOTE_AGE_NOTE_MIN and not row.stale:
+        ask += f" (priced {row.quote_age_min:.0f} min ago)"
+    bits = [ask]
+    if row.fair is not None:
+        age = "" if row.ref_age_min is None else f", {row.ref_age_min:.0f} min old"
+        if row.includes_p_plays:
+            bits.append(
+                f"fair {cents(row.fair)} = sharp no-vig under x chance he plays{age}; "
+                "a no-show counts as a No loss (worst case)"
+            )
+        else:
+            bits.append(
+                f"the sharp line (Pinnacle, no vig{age}) puts the under at {cents(row.fair)}; "
+                "if he sits, it settles at Kalshi's last fair price"
+            )
+    return "; ".join(bits) + "."
+
+
 def why_line(row: OverRow, style: Style) -> str:
+    if row.side == "no":
+        return why_line_under(row)
     venue = VENUE.get(row.venue, row.venue)
     ask = f"{venue} asks {cents(row.ask)}"
     if row.quote_age_min is not None and row.quote_age_min > QUOTE_AGE_NOTE_MIN and not row.stale:
@@ -124,33 +166,40 @@ def why_line(row: OverRow, style: Style) -> str:
 def status_of_over(
     row: OverRow,
     legs: dict[tuple[str, str, int], HalfLeg],
-    rows: dict[tuple[str, str, float], SettledRow],
+    rows: dict[tuple[str, str, float, str], SettledRow],
     style: Style,
 ) -> str:
-    s = rows.get((row.player, row.stat, row.line))
+    s = rows.get((row.player, row.stat, row.line, row.side))
     if s is not None:
         return NEUTRAL if s.status == "void" else (HIT if s.won else MISS)
-    leg = legs.get((row.player, row.stat, int(row.line)))
+    leg = legs.get((row.player, row.stat, int(row.line))) if row.side == "yes" else None
     if leg is not None and leg.cur is not None:
         return ON_PACE if leg.cur >= row.line * style.pace_fraction else BEHIND
     return NEUTRAL
 
 
 def overs_field(card: CardData, style: Style) -> tuple[str, str]:
-    name = "Top overs by EV after fees" + (" (as shown pre-tip)" if card.overs_frozen else "")
+    has_under = any(o.side == "no" for o in card.overs)
+    name = ("Top overs and unders" if has_under else "Top overs") + " by EV after fees"
+    name += " (as shown pre-tip)" if card.overs_frozen else ""
     if not card.overs:
         return name, card.overs_note or NO_OVER
     legs = {(h.player, h.stat, h.line): h for h in card.half}
-    settled = {(r.player, r.stat, r.line): r for r in (card.recap.rows if card.recap else ())}
+    settled = {
+        (r.player, r.stat, r.line, r.side): r for r in (card.recap.rows if card.recap else ())
+    }
     lines: list[str] = []
     for i, o in enumerate(card.overs, 1):
         e = status_of_over(o, legs, settled, style)
         lines.append(
-            f"{e} **{i}. {o.player} {line_label(o.line, o.stat)}** — ask {cents(o.ask)}, "
+            f"{e} **{i}. {o.player} {side_label(o)}** — ask {cents(o.ask)}, "
             f"fair {'n/a' if o.fair is None else cents(o.fair)}, {ev_phrase(o)}"
             + (f" ({o.stale})" if o.stale else "")
         )
         lines.append(f"> {why_line(o, style)}")
+    if has_under:
+        worst = any(o.side == "no" and o.includes_p_plays for o in card.overs)
+        lines.append(f"_{UNDER_SHORT if worst else UNDER_VERIFIED_SHORT}_")
     return name, "\n".join(lines)
 
 
@@ -274,6 +323,7 @@ def knows_field(card: CardData, style: Style, channel_team: str | None = None) -
 
 def _sure_line(overs: tuple[OverRow, ...], style: Style) -> str:
     head = "**Model vs sharp line** (agreement, not a confidence interval):"
+    overs = tuple(o for o in overs if o.side == "yes")  # an under carries no model number
     gaps = [
         abs(o.model - o.pin) * 100.0 for o in overs if o.model is not None and o.pin is not None
     ]
@@ -293,7 +343,12 @@ def _sure_line(overs: tuple[OverRow, ...], style: Style) -> str:
 
 
 def settled_line(r: SettledRow) -> str:
-    base = f"{line_label(r.line, r.stat)} {r.player}: bought at {cents(r.ask)} + {r.fee_c:.0f}c fee"
+    what = (
+        f"under {r.line:g} {STAT.get(r.stat, r.stat)} (Kalshi No)"
+        if r.side == "no"
+        else line_label(r.line, r.stat)
+    )
+    base = f"{what} {r.player}: bought at {cents(r.ask)} + {r.fee_c:.0f}c fee"
     if r.status == "void":
         return f"{NEUTRAL} {base}; did not play, the venue's rule decides, not counted"
     out = f"{HIT if r.won else MISS} {base}: {r.units:+.2f} units"

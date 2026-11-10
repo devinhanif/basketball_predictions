@@ -248,6 +248,7 @@ class PRow:
     lines: dict[str, Line]
     has_forecast: bool
     unmeasured: tuple[str, ...] = ()  # stats Kalshi prices but with no usable sharp line (no EV)
+    unders: dict[str, Line] = field(default_factory=dict)  # best-EV Kalshi No per stat (worst case)
 
 
 @dataclass
@@ -260,6 +261,7 @@ class GameData:
     forecast_asof: datetime | None = None  # newest forecast row used (naive UTC)
     report_asof: datetime | None = None
     lineup_asof: datetime | None = None
+    under_worst_case: bool = False  # True while Kalshi's DNP rule is unverified (a DNP = No loss)
     lineup_note: dict[str, str] = field(default_factory=dict)
     unplaced: int = 0
 
@@ -341,6 +343,7 @@ def gather_game(
     """Build every known player of both teams for one game, as of ``now``."""
     fwd, status, asof = store
     gd = GameData(g)
+    gd.under_worst_case = not cfg.kalshi_prop_dnp_rule_verified
     gd.forecast_asof = max(
         (v["made"] for (gid, _p), v in fwd.items() if gid == g.game_id), default=None
     )
@@ -357,6 +360,8 @@ def gather_game(
     priced = F.priced_lines(
         cfg, replace(st, model=PPlayView(st.model, pplay)), g.game_id, shown_at, kb, hold, unmeas
     )
+    pv = replace(st, model=PPlayView(st.model, pplay))
+    under_rows = F.priced_unders(cfg, pv, g.game_id, shown_at, kb, hold)
     starters, notes, lu_asof = _lineup(kb, g, minute <= pc.starters_from_min, now)
     gd.lineup_asof, gd.lineup_note = lu_asof, notes
     for t_ab in (g.away_abbr, g.home_abbr):
@@ -376,10 +381,14 @@ def gather_game(
         name = _player_name(kb, pid)
         out = sv is not None and sv[0] == "out"
         lines = {}
+        unders: dict[str, Line] = {}
         for stat in STATS:
             o = priced.get((pid, stat))
             if o is not None and not out:
                 lines[stat] = Line(o.line, o.ask * 100.0, o.model, o.edge_c, o.fee_c)
+            u = under_rows.get((pid, stat))
+            if u is not None and not out:
+                unders[stat] = Line(u.line, u.ask * 100.0, None, u.edge_c, u.fee_c)
         starter: bool | None = None
         sset = starters.get(ab)
         if sset is not None:
@@ -392,7 +401,7 @@ def gather_game(
                 p_play=None if fv is None else fv["p_play"],
                 minutes=None if fv is None else fv["minutes"],
                 means={} if fv is None else dict(fv["means"]),
-                starter=starter, lines=lines, has_forecast=fv is not None,
+                starter=starter, lines=lines, unders=unders, has_forecast=fv is not None,
                 unmeasured=tuple(
                     s for s in STATS if (pid, s) in unmeas and s not in lines and not out
                 ),
@@ -546,7 +555,14 @@ def player_line(r: PRow, tags: list[str] | None) -> str:
             p = "model n/a" if ln.p_model is None else f"model {100 * ln.p_model:.0f}%"
             priced.append(f"{ln.line:g}+ {_stat_label(s)} @{ln.ask_c:.0f}c {p} EV {ln.ev_c:+.1f}c")
         bits.append("; ".join(priced))
-    elif r.status != "out" and not r.unmeasured:
+    if r.unders:
+        us = [
+            f"under {ln.line:g} {_stat_label(s)} (Kalshi No) @{ln.ask_c:.0f}c EV {ln.ev_c:+.1f}c"
+            for s in STATS
+            if (ln := r.unders.get(s)) is not None
+        ]
+        bits.append("; ".join(us))
+    if not r.lines and not r.unders and r.status != "out" and not r.unmeasured:
         bits.append("no Kalshi price")
     if r.unmeasured:
         names = "/".join(_stat_label(s) for s in r.unmeasured)
@@ -584,7 +600,13 @@ def build_message(
         ),
         "Per player: minutes, then projected pts / reb / ast / 3PM if he plays; status and the "
         "model's chance to play; best-EV line per stat (ask, model chance of the over, EV per $1 "
-        "contract in cents after fee and spread).",
+        "contract in cents after fee and spread). Unders are Kalshi's No; "
+        + (
+            "priced on the worst case (a no-show is a No loss; Kalshi's rule is unverified), "
+            "so a positive EV holds under either rule. Paper, no alert."
+            if gd.under_worst_case
+            else "a player who sits before tip settles at Kalshi's last fair price (terms)."
+        ),
     ]
     head_text = "\n".join(head)
     body: list[str] = []

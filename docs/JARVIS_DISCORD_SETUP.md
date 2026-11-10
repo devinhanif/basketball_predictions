@@ -244,3 +244,20 @@ cd /Users/devin/Downloads/nba-prediction
 * **Known limit.** The cards' own pricing path caps every prop at thin because the production model view has no
   `p_play` (so cards never list an over). The player checkpoints hand the same pricing function the stored P(plays) as of
   the checkpoint, so their EV is measured and includes the chance he does not play; the cards are unchanged.
+
+## 12. Unders and the verified DNP rule (Devin, 2026-11-10)
+
+* **Unders are shown, never alerted.** A card and a player checkpoint list a Kalshi prop No ("under 8 reb (Kalshi No)")
+  next to the overs, ranked by EV after fees. The No is priced on the sharp no-vig under, P(under | plays). It is held at
+  thin in `single_candidate` (note "prop No held at thin"), so it can never be strong, never alerts, and the card says
+  "shown, never alerted". Reason: on the 11-04..11-09 replay all 3 alert-eligible unders and 14 of 17 shown unders were the
+  sharp prop line lagging teammate news Kalshi had already priced (`docs/reviews/cards_unders_2026-11-10.md`). Lifting the
+  hold needs a pre-registered live-log rule (unders' Pinnacle CLV plus a same-team availability hold).
+* **`settlement.kalshi_prop_dnp_rule_verified: true`** (Kalshi NBAPTS/NBAAST contract terms, dated 2026-10-05: a player who
+  withdraws before the game resolves at Kalshi's last fair price; one who plays at least one second settles on stats).
+  This flag is global, and Devin accepted that (2026-11-10): besides the cards it re-prices the main-channel slate preview's
+  "best play per game" (it changed on 68 of 94 game-ticks in the 11-04..11-09 replay: prop plays replace game-winner plays)
+  and therefore the paper book's stakes, the manual pick verdict (no thin note) and the render note. Not affected: the
+  parlay engine and the halftime scorer.
+* The edge ignores how a pre-tip DNP actually settles (Kalshi's own last price, not Pinnacle's): the true EV is roughly
+  P(plays) x the shown edge. A player who is active but never enters is not covered by the quoted terms.
