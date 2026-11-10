@@ -56,6 +56,9 @@ LIVE_MAX_LAG_S = 180.0  # a live row must be written within this of known_at
 LIVE_WINDOW_S = (
     300.0  # live: only summaries received within this of now are read (+ one predecessor)
 )
+# a state the windowed live reader picks wrongly is older than now - LIVE_WINDOW_S, so its quote is
+# always refused as late; this holds only while the window exceeds the lag plus the quote window
+assert LIVE_WINDOW_S > LIVE_MAX_LAG_S + QUOTE_MAX_AFTER_S
 TRAINED_E = (6.0, 42.0)  # T508's pooled checkpoint range
 PRIMARY_MIN = 30  # the pre-declared late-game family: checkpoints >= 30 elapsed minutes
 #: the primary family H2 of the draft rule (s12): late-game checkpoints inside T508's trained range
@@ -240,11 +243,16 @@ class CheckpointReader:
             last = self.latest(eid)
             if last is None or last.away_espn is None or last.home_espn is None:
                 continue
+            over = False
             if self.as_of is not None and not last.live:
-                continue  # live: a game that is not in play at ``now`` scores nothing
+                if last.status not in OVER_STATUS:
+                    continue  # live: a game not in play at ``now`` scores nothing
+                over = True  # ended during a tick gap: its open checkpoints get a named skip
             sts = self.states(eid)
             for c, s in sorted(self.first_at_or_after(sts).items()):
-                yield from self._fires_for(eid, c, s, only_games, done)
+                if over and (s.elapsed_s or 0.0) - 60.0 * c > LATE_MAX_S:
+                    continue  # reached long before the gap: not this note's business
+                yield from self._fires_for(eid, c, s, only_games, done, over)
 
     def _fires_for(
         self,
@@ -253,6 +261,7 @@ class CheckpointReader:
         s: State,
         only_games: set[str] | None,
         done: Callable[[str, str, int], bool],
+        over: bool = False,
     ) -> Iterator[Fire]:
         assert s.away_espn is not None and s.home_espn is not None
         away = he.ESPN_TO_KALSHI.get(s.away_espn, s.away_espn)
@@ -265,7 +274,7 @@ class CheckpointReader:
             if done(eid, series, c):
                 continue
             f = Fire(eid, game, c, series, s)
-            f.reason = self._state_reason(s, c)
+            f.reason = "game_over_during_gap" if over else self._state_reason(s, c)
             if f.reason is None:
                 self._quote(f, s, away, home)
             yield f
@@ -293,6 +302,9 @@ class CheckpointReader:
             f.reason = "tick_not_closed"
             return
         f.known_at = first_ts
+        if self.as_of is not None and (self.as_of - first_ts).total_seconds() > LIVE_MAX_LAG_S:
+            f.reason = "refused_late_write"  # named first: a missed tick is never called stale
+            return
         if self._over_by(f.event_id, first_ts):
             f.reason = "game_over_before_quote"
             return
@@ -338,6 +350,13 @@ def _final(reason: str, as_of: datetime | None, f: Fire) -> bool:
     return reason == "series_no_page_in_window" and as_of > f.state.received_at + timedelta(
         seconds=QUOTE_MAX_AFTER_S + 30
     )
+
+
+def _note_tallies(store: CheckpointStore, made: datetime, f: Fire, sc: Counter[str]) -> None:
+    assert f.snap is not None
+    for reason, n in [*sc.items(), *f.snap.excluded.items()]:
+        if reason not in _TALLIES and not reason.startswith("unmatched_names:"):
+            store.note_skip(made, f.event_id, f.series, f.checkpoint, reason, n)
 
 
 def score_night_checkpoints(
@@ -397,12 +416,10 @@ def score_night_checkpoints(
         for k, v in f.snap.excluded.items():
             rep.counts["unmatched_names" if k.startswith("unmatched_names:") else k] += v
         rep.counts.update(sc)
-        for reason2, n in [*sc.items(), *f.snap.excluded.items()]:
-            if reason2 not in _TALLIES and not reason2.startswith("unmatched_names:"):
-                store.note_skip(made, f.event_id, f.series, f.checkpoint, reason2, n)
         if (
             not rows
         ):  # fired and complete, nothing scoreable: mark it done so a restart does not redo it
+            _note_tallies(store, made, f, sc)
             store.note_skip(made, f.event_id, f.series, f.checkpoint, "no_scoreable_candidates", 1)
             bc["no_rows"] += 1
             continue
@@ -422,6 +439,9 @@ def score_night_checkpoints(
         rep.stored += n
         bc["stored"] += n
         rep.rows.extend(out)
+        _note_tallies(
+            store, made, f, sc
+        )  # after the rows are stored: a failed append stays retryable
     return rep
 
 

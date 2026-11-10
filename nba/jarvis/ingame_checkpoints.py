@@ -8,7 +8,7 @@ sibling paper store, and builds a small per-game summary of the LATEST checkpoin
 
 This module defines no alert, sends nothing and has no stake: it never calls the delivery functions of
 ``nba.jarvis.runner`` (a test greps for them). UNPROVEN: the model has no live track record, the market
-usually knows more; any edge is expected at 30 game-minutes or later (T508 attack), earlier marks are
+usually knows more; if an edge exists the T508 attack points at 30+ game-minutes, none is shown; earlier marks are
 descriptive. Over / Yes only; no outcome is read.
 """
 

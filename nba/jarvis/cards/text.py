@@ -201,7 +201,7 @@ def _ck_line(o: CkOver) -> str:
     bid = "no bid" if o.bid_c is None else f"bid {o.bid_c}c"
     return (
         f"- {o.player} {line_label(o.line, o.stat)} (Yes): model {round(100 * o.p_model)}% "
-        f"(baseline glm_e {round(100 * o.p_glm_e)}%) vs ask {o.ask_c}c, {bid} + {o.fee_c}c fee"
+        f"vs ask {o.ask_c}c, {bid} + {o.fee_c}c fee"
     )
 
 
@@ -212,12 +212,13 @@ def checkpoint_field(card: CardData, style: Style) -> tuple[str, str] | None:
         return None
     when = f"{_period_label(v.period)} {v.clock}" if v.clock else _period_label(v.period)
     name = f"In-game model check, {v.checkpoint} game-min ({when})"
-    focus = (
-        "late-game mark (30+ game-min: where an edge is expected)"
-        if v.primary
-        else "early mark (descriptive only)"
+    if card.phase in ("halftime", "final"):  # the prices are old by now: no asks after the mark
+        return name, "Last in-game check; its prices are not current."
+    focus = "Late-game mark (30+ game-min)." if v.primary else "Early mark (descriptive only)."
+    head = (
+        "UNPROVEN: no live record; most nights the market already knows this. "
+        f"Paper, no stake. {focus}"
     )
-    head = f"UNPROVEN, paper, no stake: the market usually knows more. {focus.capitalize()}."
     if v.extrapolated:
         head += " The model is used outside the minutes it was trained on."
     if not v.top:
@@ -227,8 +228,7 @@ def checkpoint_field(card: CardData, style: Style) -> tuple[str, str] | None:
         )
         return name, f"{head}\n{body}"
     lines = [_ck_line(o) for o in v.top]
-    note = "Baseline glm_e is fitted at the half only." if v.checkpoint != 24 else ""
-    tail = f"{v.n_flagged} of {plural(v.n_units, 'player-stat')} clear the bar. {note}".strip()
+    tail = f"{v.n_flagged} of {plural(v.n_units, 'player-stat')} clear the bar."
     return name, "\n".join([head, *lines, tail])
 
 

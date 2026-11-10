@@ -103,21 +103,35 @@ def test_build_views_picks_the_newest_checkpoint_and_marks_the_late_family() -> 
     assert early["primary"] is False
 
 
-def test_the_block_says_unproven_paper_no_stake_and_names_the_family() -> None:
+def test_the_block_says_unproven_no_baseline_and_no_edge_promise() -> None:
     v = R.ck_views({"latest": {"LAL@LAC": view(35, datetime(2026, 11, 9, 1))}})["LAL@LAC"]
     assert v.primary and not v.extrapolated and isinstance(v.top[0], CkOver)
     card = CardData("g", "LAL", "LAC", None, "live", datetime(2026, 11, 9, 1), checkpoint=v)
     name, value = T.checkpoint_field(card, T.Style()) or ("", "")
     assert "35 game-min" in name and "Q3 8:12" in name
-    assert "UNPROVEN, paper, no stake" in value and "where an edge is expected" in value
-    assert "model 58% (baseline glm_e 52%) vs ask 51c, bid 49c + 2c fee" in value
-    assert "stake" in value.lower() and "bet" not in value.lower().replace("baseline", "")
+    assert "UNPROVEN: no live record; most nights the market already knows this." in value
+    assert "model 58% vs ask 51c, bid 49c + 2c fee" in value
+    assert "glm" not in value.lower() and "baseline" not in value.lower()
+    assert "edge is expected" not in value and "no stake" in value
     early = R.ck_views(
         {"latest": {"LAL@LAC": view(10, datetime(2026, 11, 9, 1), support="extrapolated")}}
     )["LAL@LAC"]
     c2 = CardData("g", "LAL", "LAC", None, "live", datetime(2026, 11, 9, 1), checkpoint=early)
     v2 = (T.checkpoint_field(c2, T.Style()) or ("", ""))[1]
     assert "descriptive only" in v2 and "outside the minutes it was trained on" in v2
+
+
+@pytest.mark.parametrize("phase", ["halftime", "final"])
+def test_halftime_and_final_show_no_old_prices(phase: str) -> None:
+    v = R.ck_views({"latest": {"LAL@LAC": view(35, datetime(2026, 11, 9, 1))}})["LAL@LAC"]
+    card = CardData("g", "LAL", "LAC", None, phase, datetime(2026, 11, 9, 1), checkpoint=v)
+    name, value = T.checkpoint_field(card, T.Style()) or ("", "")
+    assert (
+        "35 game-min" in name
+        and "not current" in value
+        and "ask" not in value
+        and "model 58%" not in value
+    )
 
 
 def test_no_pretip_block_and_no_block_without_a_checkpoint() -> None:
@@ -291,3 +305,19 @@ def test_a_failing_checkpoint_scorer_never_breaks_the_tick_line() -> None:
         {"at": "t", "plays": 0, "alerts": [], "ingame_checkpoints": {"ok": True, "stored": 40}}
     )
     assert "ck_scored=40rows" in ok
+
+
+def test_a_failed_live_checkpoint_edit_never_reposts(rt: Runtime, tmp_path: Path) -> None:
+    from tests.jarvis.cards.test_webhooks_and_client import Resp
+
+    http = Ids()
+    make_rt(rt, tmp_path, http)
+    run(rt)
+    n_post = len(http.of("POST"))
+    t1 = TIP1 + timedelta(minutes=50)
+    scoreboard(rt.cfg.root, "STATUS_IN_PROGRESS", 60, 58, t1)
+    rt.ck_scored = {"latest": {"LAL@LAC": view(30, t1 - timedelta(seconds=30))}}
+    http.script = [Resp(404, {"code": 10008}), Resp(404, {"code": 10008})]
+    rep = run(at(rt, t1))
+    assert len(http.of("POST")) == n_post  # no new (possibly notifying) message
+    assert rep["cards"].get("reposted", 0) == 0
