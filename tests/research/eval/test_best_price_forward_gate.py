@@ -102,7 +102,8 @@ def test_kalshi_entry_refuses_post_entry_and_stale_quotes() -> None:
     con = _kalshi_db(e)
     out = g.load_kalshi(con, {(7, date(2026, 11, 1)): ("G1", e)})
     assert set(out) == {("G1", 7, "pts")}
-    yb, ya, age = out[("G1", 7, "pts")][24.5]
+    yb, ya, age, wb, wa, tk = out[("G1", 7, "pts")][24.5]
+    assert (round(wb, 2), round(wa, 2), tk) == (0.40, 0.42, "T1")
     assert (round(yb, 2), round(ya, 2)) == (0.40, 0.42)
     assert age == pytest.approx(5.0)
 
@@ -187,3 +188,22 @@ def test_sort_picks_and_power_reproduce() -> None:
     a = g.synthetic_power(g.sort_picks(picks), games_grid=(6,), n_synth=20)
     b = g.synthetic_power(g.sort_picks(list(reversed(picks))), games_grid=(6,), n_synth=20)
     assert a == b
+
+
+def test_kalshi_tie_on_latest_ts_uses_worse_price() -> None:
+    """S13: two rows share the latest ts; the price is the worse for the bettor on either side."""
+    e = datetime(2026, 11, 1, 23, 0)
+    con = _kalshi_db(e)
+    con.execute(
+        "INSERT INTO kalshi_prices VALUES ('T1', ?, 0.38, 0.44, 'live')", [e - timedelta(minutes=5)]
+    )
+    out = g.load_kalshi(con, {(7, date(2026, 11, 1)): ("G1", e)})
+    yb, ya, _age, wb, wa, _tk = out[("G1", 7, "pts")][24.5]
+    assert (round(yb, 2), round(ya, 2)) == (0.38, 0.44)  # lowest row for consensus and maker
+    assert (round(wb, 2), round(wa, 2)) == (0.38, 0.44)
+    con.execute(
+        "INSERT INTO kalshi_prices VALUES ('T1', ?, 0.41, 0.45, 'live')", [e - timedelta(minutes=5)]
+    )
+    out = g.load_kalshi(con, {(7, date(2026, 11, 1)): ("G1", e)})
+    _yb, _ya, _age, wb, wa, _tk = out[("G1", 7, "pts")][24.5]
+    assert (round(wb, 2), round(wa, 2)) == (0.38, 0.45)  # min bid (under pays more), max ask

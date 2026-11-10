@@ -232,6 +232,13 @@ class Pick:
     venues: dict[str, float]  # venue -> net decimal on the pick side (after stale filter)
     kalshi_maker: float | None = None
     raw_side: str | None = None
+    # scorer fields (not read by the gate summary): the other side's net decimals at the same kept
+    # venues, each kept venue's de-vigged P(over), and the Kalshi ticker and consensus quote
+    venues_other: dict[str, float] = field(default_factory=dict)
+    venue_p_over: dict[str, float] = field(default_factory=dict)
+    kalshi_ticker: str | None = None
+    kalshi_quote: tuple[float, float] | None = None
+    kalshi_age: float | None = None
 
 
 @dataclass
@@ -265,6 +272,7 @@ def load_book_quotes(
     since: date,
     until: date,
     entries: dict[str, tuple[datetime, datetime]],
+    snapshot: str = SNAPSHOT,
 ) -> tuple[dict[tuple[str, int, str], list[tuple[Any, ...]]], int]:
     """``t60`` rows of the four main markets with ``received_at <= E`` of their game (rule 4.2, M2).
     Returns the rows grouped by (game, player, stat) and the count of refused post-entry rows."""
@@ -280,7 +288,7 @@ def load_book_quotes(
             WHERE o.snapshot_kind = ? AND o.slate_date BETWEEN ? AND ? AND o.market IN ({mm})
               AND o.player_id IS NOT NULL AND o.point IS NOT NULL AND o.price_american IS NOT NULL
               AND o.side IN ('over', 'under')""",  # noqa: S608
-        [SNAPSHOT, since, until, *MARKET_STAT],
+        [snapshot, since, until, *MARKET_STAT],
     ).fetchall()
     odds.unregister("bp_book_e")
     grp: dict[tuple[str, int, str], list[tuple[Any, ...]]] = defaultdict(list)
@@ -321,12 +329,18 @@ def _ticker_date(event_ticker: str) -> date | None:
         return None
 
 
+KalshiQuote = tuple[float, float, float, float, float, str]
+
+
 def load_kalshi(
     kal: duckdb.DuckDBPyConnection,
     entry_by_pd: dict[tuple[int, date], tuple[str, datetime]],
-) -> dict[tuple[str, int, str], dict[float, tuple[float, float, float]]]:
-    """(game, player, stat) -> point -> (yes_bid, yes_ask, age_min) at the latest live snapshot with
-    E - 20 min <= ts <= E. Reads ticker metadata and prices only (no result, no settlement)."""
+) -> dict[tuple[str, int, str], dict[float, KalshiQuote]]:
+    """(game, player, stat) -> point -> (yes_bid, yes_ask, age_min, worst_bid, worst_ask, ticker) at
+    the latest live snapshot with E - 20 min <= ts <= E. (yes_bid, yes_ask) is the lowest row among
+    rows sharing the latest ts (consensus mid, maker); (worst_bid, worst_ask) = (min bid, max ask)
+    over those rows, the worse price for the bettor on either side (rule 4.3, S13). Reads ticker
+    metadata and prices only (no result, no settlement)."""
     sm = ",".join("?" for _ in KALSHI_SERIES)
     mk = kal.execute(
         f"""SELECT ticker, series_ticker, event_ticker, player_id, threshold FROM kalshi_markets
@@ -358,18 +372,31 @@ def load_kalshi(
     kal.register("bp_entry", frame.to_arrow())
     px = kal.execute(
         """SELECT b.game_id, b.player_id, b.stat, b.point, p.yes_bid, p.yes_ask,
-                  date_diff('second', p.ts, b.e) / 60.0 AS age
+                  date_diff('second', p.ts, b.e) / 60.0 AS age, b.ticker
            FROM bp_entry b JOIN kalshi_prices p ON p.ticker = b.ticker
            WHERE p.source = 'live' AND p.ts >= b.lo AND p.ts <= b.e
-           QUALIFY row_number() OVER (PARTITION BY b.ticker ORDER BY p.ts DESC, p.yes_bid, p.yes_ask) = 1"""
+           QUALIFY rank() OVER (PARTITION BY b.ticker ORDER BY p.ts DESC) = 1
+           ORDER BY b.ticker, p.yes_bid, p.yes_ask"""
     ).fetchall()
     kal.unregister("bp_entry")
-    out: dict[tuple[str, int, str], dict[float, tuple[float, float, float]]] = defaultdict(dict)
-    for gid, pid, st, pt, yb, ya, age in px:
+    out: dict[tuple[str, int, str], dict[float, KalshiQuote]] = defaultdict(dict)
+    for gid, pid, st, pt, yb, ya, age, tk in px:
         if yb is None or ya is None:
             continue
-        out[(gid, int(pid), st)][float(pt)] = (float(yb), float(ya), float(age))
-    return out
+        key, fpt = (gid, int(pid), st), float(pt)
+        prev = out[key].get(fpt)
+        if prev is None:
+            out[key][fpt] = (float(yb), float(ya), float(age), float(yb), float(ya), str(tk))
+        else:  # a tie on the latest ts: keep the first (lowest) row, widen the worst prices
+            out[key][fpt] = (
+                prev[0],
+                prev[1],
+                prev[2],
+                min(prev[3], float(yb)),
+                max(prev[4], float(ya)),
+                prev[5],
+            )
+    return dict(out)
 
 
 def load_predictions(
@@ -412,7 +439,7 @@ def build_picks(
     gdate: dict[str, date],
     entries: dict[str, tuple[datetime, datetime]],
     books: dict[tuple[str, int, str], list[tuple[Any, ...]]],
-    kalshi: dict[tuple[str, int, str], dict[float, tuple[float, float, float]]],
+    kalshi: dict[tuple[str, int, str], dict[float, KalshiQuote]],
     cmap: lc.CalMap,
     st: GateState,
 ) -> tuple[list[Pick], list[Pick]]:
@@ -490,22 +517,31 @@ def build_picks(
             pside = pick_side(pm, p_cons)
             if pside is None:
                 continue
+            oside = "under" if pside == "over" else "over"
             net: dict[str, float] = {}
+            other: dict[str, float] = {}
             for v in kept:
                 if v == KALSHI:
                     assert k is not None
-                    net[v] = kalshi_decimal(pside, k[0], k[1])
+                    net[v] = kalshi_decimal(pside, k[3], k[4])
+                    other[v] = kalshi_decimal(oside, k[3], k[4])
                 else:
                     am = prices[v].get((pside, ref))
                     if am is not None:
                         net[v] = american_to_decimal(am)
+                    ao = prices[v].get((oside, ref))
+                    if ao is not None:
+                        other[v] = american_to_decimal(ao)
             if len(net) < MIN_VENUES:
                 st.why[f"{arm}_pick_side_lt2_venues"] += 1
                 continue
             mk = maker_price(pside, k[0], k[1]) if (k is not None and KALSHI in net) else None
             out.append(
                 Pick(gid, gdate[gid], stat, int(pid), ref, pside, p_raw, p_cal, p_cons, net, mk,
-                     raw_side=pick_side(p_raw, p_cons))
+                     raw_side=pick_side(p_raw, p_cons), venues_other=other, venue_p_over=dict(kept),
+                     kalshi_ticker=k[5] if (k is not None and KALSHI in kept) else None,
+                     kalshi_quote=(k[0], k[1]) if (k is not None and KALSHI in kept) else None,
+                     kalshi_age=k[2] if (k is not None and KALSHI in kept) else None)
             )  # fmt: skip
     return cal_picks, raw_picks
 

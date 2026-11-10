@@ -78,7 +78,8 @@ data; a forward-only window keeps it that way until the rule is frozen.
    (`book_last_update`; on the gate capture this filter never fires: median age 0.5 min, p95 1.6 min, n 41,133, so it is inert and the
    stale protection is items 4 and section 10.3).
 3. **Kalshi quote**: per ticker, the latest `source = 'live'` row with `E - 20 min <= ts <= E` (15-minute capture); none: Kalshi does not
-   quote that pick. Quotable iff `bid_c >= 1`, `ask_c <= 99`, `ask_c > bid_c`. Never a row after E (planted-future unit test).
+   quote that pick. Quotable iff `bid_c >= 1`, `ask_c <= 99`, `ask_c > bid_c`. Never a row after E (planted-future unit test). If two rows share the latest `ts`, the worse price for the bettor on the pick
+   side is used (as 4.2).
 4. **Stale filter**: at the reference point (section 5.3) each U1 venue's de-vigged P(over) (books: proportional two-way; Kalshi: mid)
    is compared with the median over all quoting U1 venues; a venue more than 0.07 away is dropped for that row (`consensus_dev`). With
    exactly two venues more than 0.07 apart both are dropped.
@@ -139,7 +140,8 @@ data; a forward-only window keeps it that way until the rule is frozen.
 ## 8. Metric, CI, floor, words
 - **Stake**: flat 1 unit per pick. Profit per pick: book win `d - 1`, loss `-1`, void 0 (not staked); Kalshi `(payoff - P - fee)/(P + fee)`.
 - **Metric**: `ROI = sum(profit) / sum(stake)` over the non-void picks of the look.
-- **CI**: percentile bootstrap of the ratio, B = 10,000, `numpy.random.default_rng(2026)` re-seeded at each look; clusters = whole games,
+- **CI**: percentile bootstrap of the ratio, B = 10,000, `numpy.random.default_rng(2026)` re-seeded at each look (one generator, consumed in the order
+  game, date, player); clusters = whole games,
   separately whole ET dates, and separately players (all of a player's picks in the look); the **decision CI is the widest** of the
   three. All three printed, with the share of total profit carried by the top five players (BEST_PRACTICES 2026-10-20: picks repeat
   the same player on the same side, 80% of a player's picks on the gate capture). Before any random draw, picks are sorted by
@@ -180,7 +182,8 @@ data; a forward-only window keeps it that way until the rule is frozen.
 1. **Capture**: if fewer than 80% of in-window scheduled games have a `t60` stamp, or fewer than 60% of picks' games have any Kalshi
    snapshot within 20 min of E, the look reports the gap by date; below 70% `t60` coverage the look is INSUFFICIENT_SAMPLE (capture).
 2. **Shuffled picks**: 1,000 relabelings flipping each pick's side with probability 0.5 (same rows, same venues, best price on the
-   flipped side). PASS needs the observed ROI above the 95th percentile of the shuffled ROIs.
+   flipped side). PASS needs the observed ROI above the 95th percentile of the shuffled ROIs. `numpy.random.default_rng(2028)`, re-seeded at each look,
+   one draw per pick in the section 8 sort order; every kept venue quotes both sides at L, so a flipped pick keeps its venues.
 3. **Winner's curse / stale quotes**: (a) ROI at the second-best price must be >= 0 (point); (b) ROI excluding picks whose best net
    decimal exceeds the second-best by more than 0.10 must be >= 0 (point); (c) executability: ROI restricted to picks whose best venue
    quotes the same side and point at an equal or better price at its next snapshot before tip (books: the game's `t45`; Kalshi: the next
@@ -201,7 +204,7 @@ data; a forward-only window keeps it that way until the rule is frozen.
    known true ROI of a set being its expectation under the shifted probabilities. The decision-CI one-sided lower bound exceeds the
    known true ROI in at most 1.5% of sets at Read 1 (nominal 0.5%) and at most 3.5% at Read 2 (nominal 2%), and the one-sided upper
    bound falls below it in at most the same shares. A CI that is too wide is not a failure. `numpy.random.default_rng(2027)`.
-   (b) planted edge: outcomes drawn from `p_cons + 0.5 (p_cal - p_cons)`, with the same within-(game, player) correlation: the point
+   (b) planted edge: outcomes drawn from `p_cons + 0.5 (p_cal - p_cons)`, with the same within-(game, player) correlation (`numpy.random.default_rng(2029)`): the point
    estimate lands within 0.005 of the known true ROI on average over the 1,000 sets and the CI covers it in >= 90% of sets.
 10. **Concentration**: no game > 2% and no date > 6% of picks unless ROI without it is reported; PASS also needs ROI > 0 (point) leaving
     out each stat in turn, and ROI > 0 (point) leaving out the five players with the most picks.
@@ -307,9 +310,8 @@ the siblings do; a column is a small `nba/kalshi` change); (d) no alternate-line
 1. **Model arm: CAL primary, RAW descriptive.** Alternative: RAW primary (the registry model's own number; it leans under 80% and
    overstates its side, so its picks are more numerous, 3,407 vs 2,129, and expected worse).
 2. **Venues: six US-licensed books + Kalshi.** SETTLED 2026-11-09 (Devin delegated: proceed without the morning review): U1 as
-   written, Polymarket out (the vendor label cannot be tied to Polymarket US). Overs-only slice D_OVER declared (section 6). Which venues can you actually use? If only Kalshi and Polymarket (your stated accounts),
-   S2 is the arm that matters for money and the primary is an upper bound on what you could get. Adding Novig / ProphetX / Polymarket
-   needs their fee pages verified and a new rule id.
+   written, Polymarket out (the vendor label cannot be tied to Polymarket US). Overs-only slice D_OVER declared (section 6). If Devin later says he can use only Kalshi and Polymarket, S2 is the arm that matters for money and
+   the primary is an upper bound; adding Novig / ProphetX / Polymarket needs their fee pages verified and a new rule id.
 3. **Pick threshold delta 0.03** against the consensus no-vig. 0.0 is "every lean"; 0.05 gives fewer picks (count not measured).
 4. **p_play >= 0.90** (the panel's rule). Dropping it adds about 45% more rows, mostly questionable players, and more voids.
 5. **Entry at T-60** (the `t60` snapshot). T-30 would use more information (lineups) but production's prop rows are not re-stamped then
