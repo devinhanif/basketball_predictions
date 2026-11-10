@@ -19,6 +19,7 @@ import nba.daily.predict as predict_mod
 import nba.props.context_residual as ctx_mod
 import nba.props.forward as forward_mod
 from nba.daily.predict import load_elo_params
+from nba.export import sits_schema as SS
 from nba.export import teammate_sits as T
 from nba.export.build import TABLES
 from nba.props.context_residual import (
@@ -94,15 +95,17 @@ class World:
         cfg = ContextResidualConfig(n_estimators=20, min_child_samples=30, min_cal_rows=300)
         models = fit_for_date(feats, self.day, cfg)
         hist = feats.filter(pl.col("game_date") < self.day)
+        self.hist = hist
         self.n_hist = hist.height
         d = self.root / self.day.isoformat()
         d.mkdir(parents=True)
         (d / "models.pkl").write_bytes(pickle.dumps(models))
         self.write_meta(self.n_hist)
 
-    def write_meta(self, n_rows: int) -> None:
+    def write_meta(self, n_rows: int, **cfg_change: Any) -> None:
         d = self.root / self.day.isoformat()
-        fp = {"n_rows": n_rows, "max_date": str(self.h_games["game_date"].max())}
+        fp = T.expected_fingerprint(ContextResidualConfig(**cfg_change), self.hist)
+        fp["n_rows"] = n_rows
         (d / "meta.json").write_text(json.dumps({"fingerprint": fp, "info": {}}))
 
 
@@ -146,7 +149,7 @@ def test_rows_follow_the_contract(world: World) -> None:
     r = _run(world)
     assert r.info["status"] == "ok", r.info
     assert r.rows and r.info["n_rows"] == len(r.rows)
-    assert [c for c, _ in T.COLUMNS] == list(r.rows[0])
+    assert [c for c, _ in SS.COLUMNS] == list(r.rows[0])
     assert {x["stat"] for x in r.rows} == {"pts", "reb"}  # ast / fg3m have no word to show
     assert {x["rule_word"] for x in r.rows} == {"HELPS"}
     assert all(x["made_at"] == MADE_AT and x["schema_version"] == 1 for x in r.rows)
@@ -200,13 +203,15 @@ def test_sitter_status_from_the_report_and_out_players_are_not_sitters(world: Wo
     assert {x["sitter_status"] for x in r.rows if x["sitter_id"] == s and x["game_id"] == g} == {
         "questionable"
     }  # the latest line wins
-    world.report_out[g] = {s}  # now he is really OUT: no scenario for him
+    world.report_out[g] = {s}  # now he is really OUT: no scenario for him, and he receives none
     try:
         out = _run(world)
     finally:
         world.report_out[g] = set()
     assert s not in {x["sitter_id"] for x in out.rows if x["game_id"] == g}
+    assert s not in {x["player_id"] for x in out.rows if x["game_id"] == g}  # adversary M1
     assert out.info["null_reasons"]["sitter_already_out"] == 1
+    assert out.info["null_reasons"]["receiver_out"] > 0
 
 
 def test_game_without_a_report_gets_no_scenario(
@@ -268,8 +273,28 @@ def test_failure_is_isolated_and_reported(world: World, monkeypatch: pytest.Monk
 
 
 def test_table_is_in_the_export_schema_and_sizes_are_bounded(world: World) -> None:
-    assert [c for c, _ in TABLES["teammate_sits"]] == [c for c, _ in T.COLUMNS]
+    assert [c for c, _ in TABLES["teammate_sits"]] == [c for c, _ in SS.COLUMNS]
     r = _run(world)
     assert len(r.rows) <= T.MAX_ROWS
     per_game = len(r.rows) / len(world.slate_ids)
     assert per_game < 400  # two stats, one sitter at a time (contract: ~336/game for four)
+
+
+def test_cache_fingerprint_includes_the_config(world: World) -> None:
+    world.write_meta(world.n_hist, n_estimators=21)  # heads fitted under another config
+    try:
+        r = _run(world)
+    finally:
+        world.write_meta(world.n_hist)
+    assert r.info["reason"] == "model_cache_stale" and r.info["config_differs"] is True
+
+
+def test_time_budget_is_checked_after_each_stage(world: World) -> None:
+    calls = {"n": 0}
+
+    def clock() -> float:
+        calls["n"] += 1
+        return 0.0 if calls["n"] < 4 else 1000.0  # healthy until the heavy stages are under way
+
+    r = _run(world, clock=clock, budget_s=500.0)
+    assert r.info["reason"] == "over_time_budget"

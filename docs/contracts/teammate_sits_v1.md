@@ -10,9 +10,10 @@ the draft below, all chosen from the attack:
   usable at export time, production's roster), never from a mix of runs. The manifest's `teammate_sits.base_vs_production` counts how many
   rows differ from the newest stored `props_context_residual` row (a newer report between runs explains a difference).
 - The table is `teammate_sits` in `export.duckdb` (always present, empty when absent); `manifest.teammate_sits` = `{status: ok|absent, reason,
-  n_rows, n_scenarios, n_games, null_reasons, rule_sha8, stats, rule_words, base_vs_production, seconds}`. Reasons: disabled, no_unfinished_games,
+  n_rows, n_scenarios, n_games, null_reasons, rule_sha8, stats, rule_words, base_vs_production, seconds}`. null_reasons also counts receiver_out (a teammate OUT on the report used is never a receiver). The cache fingerprint is compared in full (rows, newest date, config) like production's. Reasons: disabled, no_unfinished_games,
   no_model_cache, model_cache_stale (never refits), no_roster_rows, no_candidate_sitters, no_forecast_rows, over_row_budget (12,000 rows),
   over_time_budget (150 s, checked between stages), error:<ExceptionType>. The export never fails because of this step.
+- Measured on a scratch copy of nba.duckdb, slate 2026-11-09 (8 games, nothing refitted): scenario step 2.78 s (full build 71.3 s without vs 76.2 s with; the difference is inside run noise), 2,024 rows, 79 scenarios, about 253 rows a game. base_vs_production against the stored 12:00 UTC run's props_context_residual rows: 190 compared, max abs diff 0.0049 (rounding), none over 0.05; the 15:20 run's 24 rows likewise. Against later runs the means differ by up to 3.8 because later reports changed (expected; the manifest counts it nightly).
 - App: `/api/games/{id}/scenarios` sends only what the display rule allows (pts direction per teammate + one team-level number; reb direction
   only, "uncertain size"; nothing else) and sends nothing for a finished game on a LINE_CAL_LIVE-locked night.
 
@@ -20,7 +21,7 @@ the draft below, all chosen from the attack:
 For each regular starter P on tonight's slate who is not OUT on the latest official report, and each teammate T with a production props
 row: the production forecast of T recomputed with P added to the report's OUT set (the same code that handles a real OUT player:
 `vacated_features` on the OUT set, the same fitted heads, nothing refitted). It answers "if P sits, how does the model's forecast for T
-move?". The baseline is production's own row; the export carries both so the app never mixes runs.
+move?". The baseline is the SAME recompute with nobody added (cached morning heads, the report usable at export time), not the stored row; the export carries both so the app never mixes runs.
 
 What moves on T's row: `n_out_rot` (+1), `vac_min` (+P's as-of 10-game minutes), `vac_<stat>` (+P's as-of 10-game mean). Nothing else.
 
@@ -31,7 +32,7 @@ run (same `made_at`, same model cache) as the production props rows it pairs wit
 | column | type | meaning |
 |---|---|---|
 | `schema_version` | INT | 1 |
-| `made_at` | TIMESTAMP (UTC) | the production run's made_at (must equal the paired props rows') |
+| `made_at` | TIMESTAMP (UTC) | the export's made_at (the build's clock; rows are a same-run recompute) |
 | `game_id` | VARCHAR | |
 | `team_id` | BIGINT | P's and T's team |
 | `sitter_id` | BIGINT | P |

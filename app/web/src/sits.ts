@@ -78,7 +78,7 @@ export function rebSentence(s: ScenarioSitter): string | null {
   if (s.reb === null) return null;
   const d = s.reb.direction;
   const what = d === "up" ? "tend to rise" : d === "down" ? "tend to fall" : "barely move";
-  return `Rebounds: teammates' forecasts ${what} (uncertain size).`;
+  return `Rebounds: teammates' forecasts ${what} (uncertain size, mostly from a few players).`;
 }
 
 /** For the card's own player: direction only, no per-player size. */
@@ -90,4 +90,4 @@ export function playerSentence(s: ScenarioSitter, playerId: number, name: string
 }
 
 /** The evidence label shown with every scenario, in plain words. */
-export const EVIDENCE_HEADLINE = "Tested on 2023-25 history: helps for points; rebounds direction only.";
+export const EVIDENCE_HEADLINE = "Tested on the 2023-24 and 2024-25 seasons: helps for points; rebounds direction only.";

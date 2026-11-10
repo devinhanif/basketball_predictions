@@ -112,7 +112,7 @@ def test_points_direction_and_one_team_number_reb_direction_only(
     # rebounds: direction and "uncertain size", no number
     assert s["reb"] == {"direction": "up", "uncertain_size": True}
     # evidence in plain words, and what the scenario does not model
-    assert any("2023-25 history" in e and "points" in e for e in v["evidence"])
+    assert any("2023-24 and 2024-25 seasons" in e and "points" in e for e in v["evidence"])
     assert any("rebounds direction only" in e for e in v["evidence"])
     assert v["not_modelled"]
 
@@ -225,3 +225,15 @@ def test_flat_threshold_and_empty_points_rows() -> None:
     only_reb = [r for r in _rows() if r["stat"] == "reb"]
     v2 = S.game_scenarios(_Store(only_reb), _game("2026-11-10", False))
     assert not v2.available  # a scenario with no points rows is not shown at all
+
+
+def test_not_modelled_names_questionable_players_and_late_scratches() -> None:
+    v = S.game_scenarios(_Store(_rows()), _game("2026-11-10", False))
+    text = " ".join(v.not_modelled).lower()
+    assert "questionable" in text and "late scratch" in text and "an hour before tip" in text
+    assert any("mostly from a few players" in e for e in v.evidence)
+
+
+def test_per_player_size_needs_three_likely_teammates() -> None:
+    v = S.game_scenarios(_Store(_rows()), _game("2026-11-10", False))  # one likely teammate
+    assert v.sitters[0].pts.n_likely == 1 and v.sitters[0].pts.per_player is None

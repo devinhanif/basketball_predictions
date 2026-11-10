@@ -34,15 +34,16 @@ FLAT_BELOW = 0.05
 LIKELY = 0.5
 
 EVIDENCE = [
-    "Tested on 2023-25 history: helps for points. The model's points forecasts for the other players "
+    "Tested on the 2023-24 and 2024-25 seasons: helps for points. The model's points forecasts for the other players "
     "rise as a group when a starter is out. Only the direction for each player and the size for the "
     "team are claimed; how the extra points split between teammates is not.",
-    "Tested on 2023-25 history: rebounds direction only. The size is uncertain.",
+    "Tested on the 2023-24 and 2024-25 seasons: rebounds direction only; the size is uncertain and came mostly from a few players.",
     "Assists and threes are not shown: the test did not settle them.",
 ]
 NOT_MODELLED = [
     "Who specifically picks up his role. The model spreads it by each player's own role, learned across the league.",
     "A teammate moving into the starting five, or his own chance to play.",
+    "Tested only on starters ruled out on the official report at least an hour before tip; a questionable or doubtful player, or a late scratch, was not part of the test.",
     "The opponent, the pace, the final score, or two or more players sitting at once.",
     "Team totals are not forced to add up.",
 ]
@@ -200,7 +201,7 @@ def game_scenarios(store: Any, g: Json) -> ScenariosView:
                 pts=TeamBump(
                     direction=_dir(total) if abs(total) >= 0.1 else "flat",
                     total=round(total, 1),
-                    per_player=round(sum(likely) / len(likely), 1) if likely else None,
+                    per_player=round(sum(likely) / len(likely), 1) if len(likely) >= 3 else None,
                     n_likely=len(likely),
                 ),
                 reb=RebBump(direction=_dir(reb_total) if abs(reb_total) >= 0.1 else "flat")

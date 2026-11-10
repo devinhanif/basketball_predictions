@@ -762,3 +762,40 @@ def test_a_crashing_scenario_step_never_fails_the_export(
     assert m["teammate_sits"]["status"] == "absent"
     assert m["teammate_sits"]["reason"] == "error:MemoryError"
     assert m["row_counts"]["prop_grids"] > 0  # everything else is intact
+
+
+def test_a_broken_scenario_import_never_fails_the_export(
+    src: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The scenario code (lightgbm stack) is imported inside the guard: an ImportError there leaves
+    every other table intact and the manifest says why."""
+    import sys
+
+    import nba.export as pkg
+
+    monkeypatch.delitem(sys.modules, "nba.export.teammate_sits", raising=False)
+    monkeypatch.delattr(pkg, "teammate_sits", raising=False)
+    monkeypatch.delattr(pkg, "sits_core", raising=False)
+    monkeypatch.setitem(sys.modules, "nba.export.sits_core", None)  # forces ImportError
+    m = _build(src, tmp_path / "out", sits_model_root=tmp_path)
+    assert m["teammate_sits"]["status"] == "absent"
+    assert m["teammate_sits"]["reason"] in ("error:ImportError", "error:ModuleNotFoundError")
+    assert m["row_counts"]["teammate_sits"] == 0 and m["row_counts"]["prop_grids"] > 0
+
+
+def test_importing_the_export_does_not_load_the_model_stack() -> None:
+    import subprocess
+    import sys
+
+    code = (
+        "import nba.export.build, sys; "
+        "print('lightgbm' in sys.modules, 'nba.props.context_residual' in sys.modules)"
+    )
+    out = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=build_mod.REPO_ROOT,
+    ).stdout.strip()
+    assert out == "False False"

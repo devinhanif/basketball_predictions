@@ -34,48 +34,17 @@ import duckdb
 import polars as pl
 
 from nba.export import sits_core
+from nba.export.sits_schema import (
+    DEFAULT_BUDGET_S,
+    EXPORT_STATS,
+    MAX_ROWS,
+    RULE_SHA8,
+    RULE_WORDS,
+    SCHEMA_VERSION,
+    absent_info,
+)
 
 log = logging.getLogger(__name__)
-
-SCHEMA_VERSION = 1
-#: TEAMMATE_SITS frozen rule (docs/prereg/TEAMMATE_SITS.md), body sha256 first 8.
-RULE_SHA8 = "c23f7b36"
-#: The stat words recorded in T526 / T526-a. Only stats whose word allows a display are exported.
-RULE_WORDS: dict[str, str] = {
-    "pts": "HELPS",
-    "reb": "HELPS",
-    "ast": "INCONCLUSIVE",
-    "fg3m": "UNRESOLVED",
-}
-EXPORT_STATS: tuple[str, ...] = ("pts", "reb")
-#: Hard ceiling on rows per night (contract: median ~2,000 with four stats, ~5,000 at the largest slate;
-#: two stats carry about half). Past it the table is withheld rather than truncated silently.
-MAX_ROWS = 12_000
-#: Wall-clock allowance for the whole scenario step; checked between stages (a stage is not interrupted).
-DEFAULT_BUDGET_S = 150.0
-DEFAULT_MODEL_ROOT = Path("data/models/context_residual")
-
-COLUMNS: list[tuple[str, str]] = [
-    ("schema_version", "INTEGER"),
-    ("made_at", "TIMESTAMP"),
-    ("game_id", "VARCHAR"),
-    ("team_id", "BIGINT"),
-    ("sitter_id", "BIGINT"),
-    ("sitter_status", "VARCHAR"),
-    ("player_id", "BIGINT"),
-    ("stat", "VARCHAR"),
-    ("base_mean", "DOUBLE"),
-    ("scn_mean", "DOUBLE"),
-    ("delta_mean", "DOUBLE"),
-    ("base_q10", "DOUBLE"),
-    ("base_q50", "DOUBLE"),
-    ("base_q90", "DOUBLE"),
-    ("scn_q10", "DOUBLE"),
-    ("scn_q50", "DOUBLE"),
-    ("scn_q90", "DOUBLE"),
-    ("p_play", "DOUBLE"),
-    ("rule_word", "VARCHAR"),
-]
 
 
 @dataclass
@@ -85,20 +54,30 @@ class SitsResult:
 
 
 def _absent(reason: str, t0: float, clock: Callable[[], float], **extra: Any) -> SitsResult:
-    return SitsResult(
-        [],
-        {
-            "status": "absent",
-            "reason": reason,
-            "n_rows": 0,
-            "n_scenarios": 0,
-            "n_games": 0,
-            "rule_sha8": RULE_SHA8,
-            "stats": list(EXPORT_STATS),
-            "seconds": round(clock() - t0, 2),
-            **extra,
-        },
-    )
+    return SitsResult([], absent_info(reason, clock() - t0, **extra))
+
+
+def expected_fingerprint(cfg: Any, hist: pl.DataFrame) -> dict[str, Any]:
+    """What production's ``forward._load_or_fit_models`` writes as the cache fingerprint for the default
+    (T-60, ``lineups_known`` False, all four stats) heads. Mirrors its pops exactly; if production's rule
+    changes, this must follow (a mismatch only ever withholds scenarios, it never mis-serves them)."""
+    from dataclasses import asdict
+
+    fp: dict[str, Any] = {
+        "n_rows": hist.height,
+        "max_date": str(hist["game_date"].max()),
+        "cfg": asdict(cfg),
+    }
+    fp["cfg"].pop("report", None)
+    fp["tip_source"] = cfg.report.tip_source
+    for k in ("integer_support", "integer_support_stats", "lower_tail_stats"):
+        fp["cfg"].pop(k, None)
+    if fp["cfg"].get("lower_tail") == "off":
+        fp["cfg"].pop("lower_tail", None)
+    if fp["cfg"].get("young_pick") == "off":
+        fp["cfg"].pop("young_pick", None)
+    out: dict[str, Any] = json.loads(json.dumps(fp, sort_keys=True))
+    return out  # the cache stores JSON: tuples become lists
 
 
 def load_cached_models(model_root: Path, day: date) -> tuple[dict[str, Any], dict[str, Any]] | None:
@@ -242,13 +221,15 @@ def _compute(
     feats = build_features(a_games, a_pgs, static, flagged, load_elo_params())
     hist = feats.filter(pl.col("game_date") < day)
     fp = meta.get("fingerprint", {})
-    if fp.get("n_rows") != hist.height or fp.get("max_date") != str(hist["game_date"].max()):
+    want = expected_fingerprint(cfg, hist)
+    if fp != want:
         return _absent(
             "model_cache_stale",
             t0,
             clock,
             cache_n_rows=fp.get("n_rows"),
             rebuilt_n_rows=hist.height,
+            config_differs=fp.get("cfg") != want["cfg"],
         )
     if clock() - t0 > budget_s:
         return _absent("over_time_budget", t0, clock)
@@ -276,9 +257,13 @@ def _compute(
     vac = sits_core.scenario_vacancy(
         played, states, flagged, info, sitters.select("game_id", "sitter_id").rows()
     )
+    if clock() - t0 > budget_s:
+        return _absent("over_time_budget", t0, clock, null_reasons=null_reasons)
     base = feats.filter(pl.col("game_id").is_in(ids))
     scn = sits_core.scenario_features(base, vac, sitters)
     long = sits_core.scenario_forecasts(models, base, scn, EXPORT_STATS)
+    if clock() - t0 > budget_s:
+        return _absent("over_time_budget", t0, clock, null_reasons=null_reasons)
     if long.is_empty():
         return _absent("no_forecast_rows", t0, clock, null_reasons=null_reasons)
     long = long.filter(
@@ -286,8 +271,21 @@ def _compute(
             [pl.col(c).is_finite() for c in ("base_mean", "scn_mean", "base_q10", "scn_q10")]
         )
     )
+    # a teammate ruled OUT on the report used is not a receiver (his old forecast row may still exist)
+    out_pairs = [(g, int(p)) for g in ids for p in flagged.get(g, set())]
+    out_df = pl.DataFrame(
+        out_pairs, schema={"game_id": pl.Utf8, "player_id": pl.Int64}, orient="row"
+    )
+    roster_ok = roster.join(out_df, on=["game_id", "player_id"], how="anti")
+    n_before = long.select("game_id", "sitter_id", "player_id").unique().height
+    long = long.join(out_df, on=["game_id", "player_id"], how="anti")
+    null_reasons["receiver_out"] = (
+        n_before - long.select("game_id", "sitter_id", "player_id").unique().height
+    )
+    if long.is_empty():
+        return _absent("no_forecast_rows", t0, clock, null_reasons=null_reasons)
     n_pairs_expected = int(
-        sitters.join(roster, on=["game_id", "team_id"])
+        sitters.join(roster_ok, on=["game_id", "team_id"])
         .filter(pl.col("player_id") != pl.col("sitter_id"))
         .height
     )

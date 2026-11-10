@@ -39,7 +39,7 @@ const VIEW: ScenariosView = {
   available: true,
   reason: null,
   made_at: "2026-11-10T15:00:00Z",
-  evidence: ["Tested on 2023-25 history: helps for points."],
+  evidence: ["Tested on the 2023-24 and 2024-25 seasons: helps for points."],
   not_modelled: ["The opponent."],
   sitters: [SITTER, { ...SITTER, player_id: 2, name: "Wing One", teammates: [mate(1, "Star Guard", "up", null)] }],
 };
@@ -67,7 +67,7 @@ describe("the sentences", () => {
   });
   it("rebounds: direction only, always 'uncertain size', never a number", () => {
     const s = rebSentence(SITTER);
-    expect(s).toBe("Rebounds: teammates' forecasts tend to rise (uncertain size).");
+    expect(s).toBe("Rebounds: teammates' forecasts tend to rise (uncertain size, mostly from a few players).");
     expect(s).not.toMatch(/\d/);
     expect(rebSentence({ ...SITTER, reb: null })).toBeNull();
   });
@@ -84,7 +84,7 @@ describe("the sentences", () => {
     expect(statusWord("unlisted")).toBe("not on the injury report");
   });
   it("the evidence label says what was tested and for which stats", () => {
-    expect(EVIDENCE_HEADLINE).toBe("Tested on 2023-25 history: helps for points; rebounds direction only.");
+    expect(EVIDENCE_HEADLINE).toBe("Tested on the 2023-24 and 2024-25 seasons: helps for points; rebounds direction only.");
   });
 });
 
