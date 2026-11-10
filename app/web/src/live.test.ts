@@ -29,6 +29,7 @@ import {
   type Play,
   type Snapshot,
 } from "./live";
+import { gameLiveMode } from "./LiveParts";
 import { BACKOFF_MS, CLOSED, connectLive, type LiveConn, type SourceLike, type StreamEnv } from "./useLive";
 import type { PropView } from "./types";
 
@@ -352,5 +353,19 @@ describe("the live view carries no prices and says where it comes from", () => {
   });
   it("the service worker leaves /api/live alone", () => {
     expect(readFileSync(join(SRC, "../public/sw.js"), "utf8")).toContain('url.pathname.startsWith("/api/live")) return;');
+  });
+});
+
+describe("the game page on a locked night", () => {
+  it("shows status and score only, and mounts no live box, trackers or feed", () => {
+    expect(gameLiveMode("2026-11-09")).toBe("summary");
+    expect(gameLiveMode("2026-10-30")).toBe("summary");
+    expect(gameLiveMode("2026-10-29")).toBe("full");
+    const text = readFileSync(join(SRC, "LiveParts.tsx"), "utf8");
+    const g = text.slice(text.indexOf("export function GameLive"));
+    const summary = g.slice(g.indexOf('gameLiveMode(g.date) === "summary"'), g.indexOf("const final = treatAsFinal"));
+    expect(summary).toContain("return (");
+    expect(summary).not.toMatch(/<LiveGame|<PlayFeed|<BoxScore|<Trackers|useLiveGame/);
+    expect(g.indexOf('gameLiveMode(g.date) === "summary"')).toBeLessThan(g.indexOf("<LiveGame"));
   });
 });

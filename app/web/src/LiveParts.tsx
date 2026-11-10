@@ -21,7 +21,7 @@ import {
   type Play,
   type Tracker,
 } from "./live";
-import { LOCK_NOTE } from "./record";
+import { LOCK_NOTE, isLockedNight } from "./record";
 import type { GameDetail } from "./types";
 import { STAT_SHORT } from "./types";
 import { liveHref } from "./router";
@@ -438,10 +438,35 @@ export function LiveGame(props: { eventId: string; game: GameDetail | null; game
 
 /** The live panel on a game page: appears once the game has started on the capture. A finished game stays behind a
  *  spoiler button, like the final score on the same page. */
+/** What a game page mounts for its live game. On a night under the LINE_CAL_LIVE lock the page shows status and score
+ *  only (the box, trackers and play feed are never mounted next to the page's chances); the Live screen has the rest. */
+export function gameLiveMode(date: string): "summary" | "full" {
+  return isLockedNight(date) ? "summary" : "full";
+}
+
 export function GameLive({ g }: { g: GameDetail }) {
   const lv = useLiveFor(g);
   const [open, setOpen] = useState(false);
   if (lv === null || lv.state === "pre") return null;
+  if (gameLiveMode(g.date) === "summary") {
+    return (
+      <div class="stack live-embed">
+        <section class="panel live-head">
+          <div class="row between wrap">
+            <span class="num">
+              <b>
+                {lv.away.abbr} {lv.away.score}, {lv.home.abbr} {lv.home.score}
+              </b>{" "}
+              <span class="muted">{clockLabel(lv.status, lv.state)}</span>
+            </span>
+            <a class="btn" href={liveHref(lv.game_id, g.date)}>
+              Open the full live view
+            </a>
+          </div>
+        </section>
+      </div>
+    );
+  }
   const final = treatAsFinal(lv.state, lv.tip_utc, Date.now());
   return (
     <div class="stack live-embed">
