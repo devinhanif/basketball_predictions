@@ -386,6 +386,10 @@ class ExportStore:
         self.has_lines = any(main_line(q) is not None for q in self.quotes.values())
         self.has_stl_blk = any(b.get("stl") is not None or b.get("blk") is not None for b in played)
         self.history = self._history(games, played, tables["injury_report"])
+        self.snapshots: dict[tuple[str, int, str], list[Json]] = self._snapshots(
+            tables["prop_grids"], props
+        )
+        self.injury: dict[str, list[Json]] = self._injury(tables["injury_report"])
 
         self.slates: dict[str, Json] = {}
         self.games: dict[str, Json] = {}
@@ -505,6 +509,63 @@ class ExportStore:
             lambda r: (r["game_id"], int(r["player_id"]), r["stat"]),
             lambda r: self.best_model or r["model_name"] == PREFERRED_PROP_MODEL,
         )
+
+    @staticmethod
+    def _snapshots(
+        rows: list[Json], props: dict[tuple[str, int, str], Json]
+    ) -> dict[tuple[str, int, str], list[Json]]:
+        """Every stored forecast of the shown model for each shown prop, oldest first: the same
+        model and version as the row on screen, so a change between two of them is news, not a
+        different model. Read-only; used by the tip-off timeline."""
+        shown = {k: (r["model_name"], r["version"]) for k, r in props.items()}
+        out: dict[tuple[str, int, str], dict[Any, Json]] = defaultdict(dict)
+        for r in rows:
+            key = (r["game_id"], int(r["player_id"]), r["stat"])
+            if shown.get(key) != (r["model_name"], r["version"]):
+                continue
+            q = r["q_grid"]
+            if not (isinstance(q, list) and len(q) == 19 and all(v is not None for v in q)):
+                continue
+            if r["lead_minutes"] is None:
+                continue
+            pp = r.get("p_play_primary")
+            if pp is None:
+                pp = r.get("p_play")
+            made = _utc_iso(r["made_at"])
+            out[key][made] = {
+                "made_at": made,
+                "lead_minutes": float(r["lead_minutes"]),
+                "mean": None if r["mean"] is None else float(r["mean"]),
+                "q": [float(v) for v in q],
+                "proj_minutes": None if r["proj_minutes"] is None else float(r["proj_minutes"]),
+                "p_play": None if pp is None else float(pp),
+                "surv": None
+                if not r["p_ge_full_counts"] or not r["p_ge_full_n"]
+                else {"n": int(r["p_ge_full_n"]), "c": [int(c) for c in r["p_ge_full_counts"]]},
+                "run_id": r["run_id"],
+                "shown": r["run_id"] == props[key]["run_id"],
+            }
+        return {k: sorted(v.values(), key=lambda x: str(x["made_at"])) for k, v in out.items()}
+
+    @staticmethod
+    def _injury(rows: list[Json]) -> dict[str, list[Json]]:
+        """The official injury report lines by game, oldest report first, times in UTC."""
+        out: dict[str, list[Json]] = defaultdict(list)
+        for r in rows:
+            if r["report_as_of_et"] is None or r["player_id"] is None:
+                continue
+            out[r["game_id"]].append(
+                {
+                    "at_utc": _et_to_utc_iso(r["report_as_of_et"]),
+                    "player_id": int(r["player_id"]),
+                    "team_id": None if r["team_id"] is None else int(r["team_id"]),
+                    "status": str(r["status"]).lower(),
+                    "reason": None if r["reason"] is None else str(r["reason"]),
+                }
+            )
+        for v in out.values():
+            v.sort(key=lambda x: (x["at_utc"], x["player_id"]))
+        return dict(out)
 
     def _pplay(
         self, rows: list[Json], props: dict[tuple[str, int, str], Json]

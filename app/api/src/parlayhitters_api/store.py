@@ -39,6 +39,9 @@ class Store:
         self.games: dict[str, Json] = {}
         self.game_slate: dict[str, str] = {}
         self.history: History | None = None
+        # One stored forecast per fixture prop and no injury report: the timeline says so.
+        self.snapshots: dict[tuple[str, int, str], list[Json]] = {}
+        self.injury: dict[str, list[Json]] = {}
         if (self.root / "breakdown.json").exists():
             data = self._load("breakdown.json")
             if (self.root / "onoff.json").exists():  # play-by-play on/off, same game window
