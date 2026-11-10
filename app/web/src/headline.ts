@@ -8,6 +8,13 @@ export interface HeadlineInput {
   engine: ParlayState | null;
   speaks: boolean;
   tickets: TpResult | null;
+  /** Counts from the live list only (state words, never scores). */
+  live?: LiveCounts;
+}
+
+export interface LiveCounts {
+  live: number;
+  final: number;
 }
 
 export interface Headline {
@@ -28,17 +35,26 @@ export function gamesPhrase(games: number): string {
   return `${games.toLocaleString("en-US")} ${games === 1 ? "game" : "games"}`;
 }
 
+/** "2 live · 1 final", or "" when none of tonight's games has started. Counts only; never a score. */
+export function stateSuffix(c?: LiveCounts): string {
+  if (!c) return "";
+  return [c.live > 0 ? `${c.live.toString()} live` : "", c.final > 0 ? `${c.final.toString()} final` : ""]
+    .filter(Boolean)
+    .map((x) => ` · ${x}`)
+    .join("");
+}
+
 /** The Learn and Explore lens: no contract counts, no edge, no price. Still says keep your money. */
-export function learnHeadline(games: number): Headline {
+export function learnHeadline(games: number, live?: LiveCounts): Headline {
   return {
-    text: `${gamesPhrase(games)} tonight · forecasts only · keep your money`,
+    text: `${gamesPhrase(games)} tonight${stateSuffix(live)} · forecasts only · keep your money`,
     verdict: "keep",
     source: "Our model has no live track record yet, so nothing here is a pick. Switch to the Market lens for the market side.",
   };
 }
 
 export function headline(i: HeadlineInput): Headline {
-  const g = gamesPhrase(i.games);
+  const g = gamesPhrase(i.games) + stateSuffix(i.live);
   const p = i.engine;
   if (p === null) {
     return { text: `${g} · pricing check unavailable · keep your money`, verdict: "keep", source: "Source: the parlay engine. Its check could not be read, which is not a verdict." };

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { groupNews, leadText } from "./Knows";
-import { learnHeadline } from "./headline";
+import { headline, learnHeadline, stateSuffix } from "./headline";
 import { hideBook } from "./slider";
 import { MARKET_ONLY } from "./Shell";
-import { DEFAULTS, KEYS, getPrefs, parseLens, resetPrefsCache, setPref, writeKey } from "./prefs";
+import { DEFAULTS, KEYS, getPrefs, parseLens, resetPrefsCache, screenAllowed, setPref, writeKey } from "./prefs";
 import { GUESS_KEY, loadRounds, makeRound, saveRounds, scoreOf } from "./record";
 import { parse, plainName, recordHref } from "./router";
 import { TOUR_KEY, closeTour, isTourOpen, openTour, resetTour, tourSeen } from "./tourState";
@@ -137,6 +137,19 @@ describe("the Learn lens, app-wide", () => {
     expect(h.verdict).toBe("keep");
     expect(h.text).toBe("8 games tonight · forecasts only · keep your money");
     expect(`${h.text} ${h.source}`).not.toMatch(/priced|edge after|fee|\bask\b|\bEV\b/i);
+  });
+  it("states live and final counts only when there are some, never a score", () => {
+    expect(learnHeadline(8, { live: 2, final: 1 }).text).toBe("8 games tonight · 2 live · 1 final · forecasts only · keep your money");
+    expect(learnHeadline(8, { live: 0, final: 3 }).text).toBe("8 games tonight · 3 final · forecasts only · keep your money");
+    expect(learnHeadline(8, { live: 0, final: 0 }).text).toBe("8 games tonight · forecasts only · keep your money");
+    expect(stateSuffix(undefined)).toBe("");
+    expect(headline({ games: 7, engine: null, speaks: false, tickets: null, live: { live: 1, final: 0 } }).text).toContain("7 games · 1 live · pricing");
+  });
+  it("Opens on offers Signals only in the Market lens", () => {
+    expect(screenAllowed("signals", "learn")).toBe(false);
+    expect(screenAllowed("signals", "explore")).toBe(false);
+    expect(screenAllowed("signals", "market")).toBe(true);
+    expect(screenAllowed("swipe", "learn")).toBe(true);
   });
   it("the market-only screens are the ones whose subject is prices and edges", () => {
     expect([...MARKET_ONLY].sort()).toEqual(["hedge", "history", "signals"]);

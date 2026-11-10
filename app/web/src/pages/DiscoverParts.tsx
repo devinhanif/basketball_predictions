@@ -15,24 +15,6 @@ import { STAT_LABEL, type Stat } from "../types";
 import { engineSpeaksFor } from "../nights";
 import { plainCents } from "../hedge";
 
-const LEAGUES = ["NFL", "MLB", "NHL"] as const;
-
-/** NBA is covered; the other leagues are shown disabled and say so. */
-export function LeagueTabs() {
-  return (
-    <div class="leagues" role="group" aria-label="League">
-      <span class="league on" aria-current="true">
-        NBA
-      </span>
-      {LEAGUES.map((l) => (
-        <button key={l} type="button" class="league" disabled aria-disabled="true" title="Not covered yet">
-          {l} <span class="small">not covered yet</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function useRadar(date: string, engine: ParlayState | null): { rows: RadarRow[]; loading: boolean; desk: Desk | null; nPriced: number | null } {
   const dh = useDesk();
   const desk = deskOf(dh);
