@@ -241,6 +241,12 @@
   height: 72px;
   font-size: 1.4rem;
 }
+.avatar.headshot {
+  object-position: 50% 18%;
+  background: var(--surface-3);
+  border: 2px solid var(--line);
+  box-sizing: border-box;
+}
 .avatar.initials {
   background: var(--surface-3);
   color: var(--ink);

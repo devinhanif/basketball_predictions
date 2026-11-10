@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { api } from "./api";
+import { Avatar } from "./Avatar";
 import { Explain, View } from "./components";
 import { american, lineText, pct } from "./format";
 import type { Lens } from "./prefs";
@@ -397,7 +398,15 @@ export function ExplorePanel(props: { gameId: string; playerId: number; stat: st
       <h2>{props.lens === "market" ? "Price and what-ifs" : "What if?"}</h2>
       <p class="small muted">Everything below is worked out in your browser from the stored forecast. Nothing is saved or scored.</p>
       <View state={state} reload={reload}>
-        {(card) => <Lab key={card.prop_id} card={card} lens={props.lens} />}
+        {(card) => (
+          <>
+            <p class="who explore-who">
+              <Avatar name={card.player} team={card.team} playerId={props.playerId} size="md" remote />
+              <strong>{card.player}</strong>
+            </p>
+            <Lab key={card.prop_id} card={card} lens={props.lens} />
+          </>
+        )}
       </View>
     </section>
   );

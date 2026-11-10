@@ -263,15 +263,32 @@ export function matchRow(name: string, rows: BoxRow[]): BoxRow | null {
   return loose.length === 1 ? (loose[0] as BoxRow) : null;
 }
 
+/** The NBA player id for each live box row (by row id), found by matching the game's players by name within a team. */
+export function boxPlayerIds(players: { player_id: number; name: string; side: "home" | "away" }[], live: LiveState): Record<string, number> {
+  const rows = Object.values(live.box);
+  const out: Record<string, number> = {};
+  for (const p of players) {
+    const abbr = p.side === "home" ? live.home.abbr : live.away.abbr;
+    const row = matchRow(
+      p.name,
+      rows.filter((r) => r.team === abbr),
+    );
+    if (row) out[row.id] = p.player_id;
+  }
+  return out;
+}
+
 export const TRACK_STATS: readonly Stat[] = ["pts", "reb", "ast", "fg3m"];
 
 export interface TrackerInput {
+  player_id?: number;
   name: string;
   side: "home" | "away";
   props: Partial<Record<Stat, PropView>>;
 }
 export interface Tracker {
   key: string;
+  playerId: number | null;
   player: string;
   team: string;
   stat: Stat;
@@ -307,6 +324,7 @@ export function buildTrackers(players: TrackerInput[], live: LiveState): Tracker
       const cur = row ? row[stat] : null;
       out.push({
         key: `${p.name}|${stat}`,
+        playerId: p.player_id ?? null,
         player: p.name,
         team: abbr,
         stat,

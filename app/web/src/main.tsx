@@ -9,6 +9,7 @@ import "./styles.css";
 import "./leg.css";
 import "./ui.css";
 import "./desk.css";
+import "./picks.css";
 import "./modes.css";
 import "./live.css";
 import "./ux.css";
