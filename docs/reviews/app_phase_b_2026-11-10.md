@@ -130,3 +130,46 @@ file and sees book prices and "+$0.05 per $1". Only the Market lens is meant to 
 - DECISIONS (draft): "App lenses: anything showing a price, fee, EV or book quote renders only under `lens === market`
   or behind an explicit opt-in; enforced by a DOM-grep test over every route in Learn. Reverse if the Learn lens is
   dropped."
+
+---
+
+## Re-review (fix commit 6c75813, diff f265af4..6c75813)
+
+The fixes hold. I found one new nit, which does not block the merge. Overall the branch is now **SURVIVES**: the Learn
+price-free claim holds on every route I could render, and planted post-tip rows are dropped.
+
+Verdict: APPROVED
+
+How I tested: worktree at HEAD 6c75813. I ran my own servers only: API :8765 on `data/export/latest`, API :8766 on the
+committed fixtures (2024 dates), vite :5291/:5292, Chrome :9671. All were stopped at the end. I did not touch
+5173/8000/cloudflared. No season 2025 data.
+
+| Fix | Command / method | n | Result | Pass |
+|---|---|---|---|---|
+| F1 Parlay tickets | `crawl3.mjs` (my regex, plus every aria-label/title/alt; every `<details>` opened), Learn, `#/parlay?date=2024-01-01`, on both the export and fixture APIs | 2 runs | No American price, `$`, "cents per", EV or book name. Only the generic glossary copy remains ("after the sportsbook's cut"). Before the fix the same route showed "DraftKings -140" and "+$0.05" | PASS |
+| F2 Swipe card detail | fixture API (its slate clock keeps the 2024-11-20 deck open), Learn, `#/swipe?date=2024-11-20`, "Stats and line slider" opened | 1 deck | Shows "The line on this card is 4.5." with no posted price. The calibration note reads "sportsbook line" (`hideBook`). The export deck for 11-09 is closed by the server clock, so I could not open it there. FriendsPicks is gated in code (`SharedUI.tsx`) but not rendered (artifact-only) | PASS |
+| F1/F2 sweep | `crawl3.mjs` Learn over 17 export routes; the branch's `node scripts/learn-dom.mjs http://127.0.0.1:5292/ 9671` (13 Learn routes, seeded ledger, card detail, guess reveal) | 30 routes | Mine: 0 numeric prices, 0 book names; the only hits are boilerplate. Branch script: "Learn lens: no price words on any route.", exit 0. Explore game and leg pages: no price legend, no book name, no American odds | PASS |
+| F3 planted future | `plant.py`: in-memory store, game 0022600208 / Durant pts. Planted a snapshot at T+5 min (mean 99), a report at T+5, a report exactly at tip, and a report with an unreadable time | 4 planted rows | 0 shown in snapshots, news (player and game) or uncertainty text. `post_tip_dropped` = 4 for both the player and the game | PASS |
+| F4 report timing | same script. The real report (16:15Z) comes after the shown forecast (15:20Z). I also planted a report at 14:00Z | 2 cases | The real case says "The injury report stored for this game was published after this forecast was made, so it is not counted here." The early report is cited as "On the latest report before this forecast, 1 teammate listed out". The note now states "holds 1 injury report ... earlier reports ... are not shown" | PASS |
+| F5 zero minutes | diff read: `minutes.py:68` treats `proj <= 0` as missing; `Explore.tsx` disables the what-if with a note when `!(base > 0)` | n/a | Correct, with an API test added (381 tests now, up from 377) | PASS |
+| F6 copy | crawl text | n/a | Lens copy, MarketOnly copy and the Learn strip ("Parlays live in the Market lens." / "A parlay check exists for this night.") no longer make a factual claim about the engine | PASS |
+| F7 375 px | `guess375.mjs`: Learn/Market x dark/light at 375 px. Measured element bounds and scrollWidth, saved screenshots | 4 variants | No document overflow. Both guess buttons fit (33-183, 193-342). Every bottom-nav label is unclipped, including the five-tab Market nav ("My picks" right edge at 359). The branch's `record-guess_375_light.png` agrees | PASS |
+| Gates (unpiped) | `uv run --frozen pytest -q`; `ruff check`; `ruff format --check`; `mypy src`; `npm run lint`; `npm run typecheck`; `npm test` | 381+1 skipped; 248 | All exit 0 | PASS |
+
+**New finding R1 (nit, not blocking).** In `knows.py` `_uncertainty`, when a prop has no snapshot marked `shown`, the
+cutoff is `None`. Every pre-tip report is then cited under the label "On the latest report before this forecast", which
+can be untrue. My plant reproduced this by removing the shown snapshot: it cited 4 teammates, all from a report made
+after the forecast.
+- Real exposure today is 0 of 8236 props: every prop with snapshots has a shown one.
+- Fix: fall back to the shown forecast's own `made_at` from `pr["forecast"]` (or its stamp). If no time is known, use
+  the old wording, "On the latest stored report".
+
+**Still not verified:**
+- The artifact build: no `artifact-data` exists.
+- The export-side Swipe card detail with a live deck: the server clock had closed it, so I covered it with the fixture
+  deck instead.
+- Whether the stored grid assumes the player plays: unchanged from the first review.
+
+Drafted rows: none new. The DECISIONS draft above still stands. The branch's `learn-dom.mjs` is the enforcement it
+proposes, but it is not part of `npm run check` because it needs Chrome and two servers. Run it before any Learn-lens
+change.
