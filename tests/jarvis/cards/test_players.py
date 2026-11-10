@@ -67,7 +67,12 @@ def seed(root: Path, *, later: bool = True) -> None:
             )  # fmt: skip
         con.execute(  # the LAC player is newly ruled OUT at 23:00Z (a status change)
             "INSERT INTO player_availability VALUES (?,?,?,'out','Injury/Illness-Ankle','nba_official_report',?)",
-            [PL, datetime(2026, 10, 28, 23, 0), G1, datetime(2026, 10, 28, 23, 0)],
+            [
+                PL,
+                datetime(2026, 10, 28, 19, 0),
+                G1,
+                datetime(2026, 10, 28, 19, 0),
+            ],  # 23:00Z as US-Eastern wall clock
         )
     con.close()
 
@@ -489,3 +494,35 @@ def test_the_tick_line_counts_posted_and_late_checkpoints() -> None:
 def test_the_module_never_edits_a_message() -> None:
     src = Path(P.__file__).read_text()
     assert ".edit(" not in src and "PATCH" not in src and "edit_message" not in src
+
+
+def test_a_stale_tick_clock_never_posts_after_tip(rt: Runtime, tmp_path: Path) -> None:
+    """Review M1: the tick read its clock at T-2.5 but the card pass runs after tip; re-checked."""
+    seed(rt.cfg.root)
+    http = Ids()
+    mk(rt, tmp_path, http)
+    stale = TIP1 - timedelta(minutes=4)
+    at(rt, stale)
+    st = build_state(rt, SLATE)
+    at(rt, TIP1 + timedelta(minutes=1))  # the real clock has moved past tip
+    rep = R.run_cards(rt, st, SLATE, stale, None)["player_checkpoints"]
+    assert rep.get("posted", 0) == 0 and not posted(http)
+    assert rep.get("skipped_late", 0) >= 1
+
+
+def test_report_as_of_is_eastern_wall_clock() -> None:
+    """Review M2: player_availability.as_of is naive US-Eastern; the bound and display are UTC."""
+    assert P.to_report_dt(datetime(2026, 11, 10, 17, 15)) == datetime(2026, 11, 10, 12, 15)
+    assert P._et_to_utc(datetime(2026, 11, 10, 12, 15)) == datetime(2026, 11, 10, 17, 15)
+
+
+def test_maybe_delivered_only_after_the_request_could_have_left() -> None:
+    from nba.jarvis.cards.discord import CardResult
+
+    assert P._maybe_delivered(CardResult(False, "deferred", note="transport ReadTimeout"))
+    assert P._maybe_delivered(CardResult(False, "deferred", code=502, note="discord HTTP 502"))
+    assert not P._maybe_delivered(CardResult(False, "deferred", note="transport ConnectError"))
+    assert not P._maybe_delivered(CardResult(False, "deferred", code=429, note="rate limited"))
+    assert not P._maybe_delivered(
+        CardResult(False, "deferred", note="card pass stopped for this tick")
+    )

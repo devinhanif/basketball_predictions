@@ -237,7 +237,7 @@ team_cards:                     # per-team Discord live cards (nba/jarvis/cards;
     enabled: true
     minutes: [180, 30, 5]
     min_p_play: 0.5             # list a player whose model P(plays) is at least this; anyone whose status changed is always listed
-    lateness_tolerance_min: {180: 10, 30: 6, 5: 3}   # a tick inside [T-k, T-k + tolerance] posts; later than that the checkpoint is skipped and logged, never posted late
+    lateness_tolerance_min: {180: 10, 30: 6, 5: 2}   # T-5 closes at T-3 (prices are withheld inside T-3); a tick inside [T-k, T-k + tolerance] posts; later than that the checkpoint is skipped and logged, never posted late
     after_tip_guard_min: 1      # the window also closes this many minutes before tip
     state: data/jarvis/player_checkpoints_state.jsonl   # append-only: one record per (game, team, checkpoint), with the snapshot the next one diffs against
     proj_move: {pts: 0.5, reb: 0.3, ast: 0.3, fg3m: 0.2, minutes: 1.0}   # "projection up/down" shows at or above these moves

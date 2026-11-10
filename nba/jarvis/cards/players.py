@@ -22,7 +22,8 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,42 @@ from nba.jarvis.ingame import norm_name
 from nba.jarvis.models import Game
 from nba.jarvis.slate import SlateState
 from nba.jarvis.sources import open_ro
+
+log_names = logging.getLogger(__name__)
+
+
+def _et_to_utc(ts: datetime) -> datetime:
+    """Naive US-Eastern wall clock -> naive UTC."""
+    from zoneinfo import ZoneInfo
+
+    return ts.replace(tzinfo=ZoneInfo("America/New_York")).astimezone(UTC).replace(tzinfo=None)
+
+
+def to_report_dt(ts_utc: datetime) -> datetime:
+    """Naive UTC -> naive US-Eastern wall clock (the player_availability.as_of clock)."""
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    return ts_utc.replace(tzinfo=UTC).astimezone(et).replace(tzinfo=None)
+
+
+@lru_cache(maxsize=1)
+def _local_names() -> dict[int, str]:
+    try:
+        from nba.explain import local_names
+
+        return dict(local_names.load_local_names().names)
+    except Exception as exc:  # noqa: BLE001 - names are cosmetic
+        log_names.warning("local player names unavailable (%s)", type(exc).__name__)
+        return {}
+
+
+def _player_name(kb: Any, pid: int) -> str:
+    name = str(kb.name(pid))
+    if name.lower().startswith("player "):
+        return _local_names().get(int(pid), name)
+    return name
+
 
 log = logging.getLogger("nba.jarvis.cards.players")
 
@@ -69,7 +106,7 @@ DEFAULTS: dict[str, Any] = {
     "enabled": False,
     "minutes": [180, 30, 5],
     "min_p_play": 0.5,
-    "lateness_tolerance_min": {180: 10, 30: 6, 5: 3},
+    "lateness_tolerance_min": {180: 10, 30: 6, 5: 2},
     "after_tip_guard_min": 1,
     "state": "data/jarvis/player_checkpoints_state.jsonl",
     "proj_move": {"pts": 0.5, "reb": 0.3, "ast": 0.3, "fg3m": 0.2, "minutes": 1.0},
@@ -255,7 +292,7 @@ def read_store(cfg: JarvisConfig, gids: list[str], now: datetime) -> Store:
     if not gids:
         return {}, {}, {}
     ph = ",".join("?" for _ in gids)
-    con = open_ro(path, retries=10, wait_s=3.0)
+    con = open_ro(path)
     try:
         f_rows = con.execute(
             "SELECT game_id, player_id, target, arg_max(prediction, made_at), max(made_at) "
@@ -267,7 +304,10 @@ def read_store(cfg: JarvisConfig, gids: list[str], now: datetime) -> Store:
             "SELECT game_id, player_id, arg_max(status, as_of), arg_max(reason, as_of), max(as_of) "
             f"FROM player_availability WHERE as_of <= ? AND game_id IN ({ph}) "
             "GROUP BY game_id, player_id",
-            [now, *gids],
+            [
+                to_report_dt(now),
+                *gids,
+            ],  # as_of is naive US-Eastern wall clock (nba/explain/data.py)
         ).fetchall()
     finally:
         con.close()
@@ -285,8 +325,9 @@ def read_store(cfg: JarvisConfig, gids: list[str], now: datetime) -> Store:
         cur["minutes"] = _f(d.get("proj_minutes")) if cur["minutes"] is None else cur["minutes"]
     status: dict[tuple[str, int], tuple[str, str]] = {}
     asof: dict[str, datetime] = {}
-    for gid, pid, st_, reason, as_of in a_rows:
+    for gid, pid, st_, reason, as_of_et in a_rows:
         status[(str(gid), int(pid))] = (str(st_), str(reason or ""))
+        as_of = _et_to_utc(as_of_et)
         if str(gid) not in asof or as_of > asof[str(gid)]:
             asof[str(gid)] = as_of
     return fwd, status, asof
@@ -348,7 +389,7 @@ def gather_game(
         sv = status.get((g.game_id, pid))
         if sv is not None:
             gd.report[ab][pid] = sv[0]
-        name = str(kb.name(pid))
+        name = _player_name(kb, pid)
         out = sv is not None and sv[0] == "out"
         lines = {}
         for stat in STATS:
@@ -716,6 +757,16 @@ def _post_checkpoint(
             if not write:
                 counts["would_post"] = counts.get("would_post", 0) + 1
                 continue
+            real = _real_now(rt, now)
+            if g.tipoff is None or (
+                window_state(
+                    real, g.tipoff, minute, pc.tolerance[minute], pc.after_tip_guard_min, False
+                )
+                != "due"
+            ):  # the tick clock is stale by the time the card pass runs: re-check
+                _safe_write(state, _rec(slate, g, t, minute, "skipped_late", real), counts)
+                counts["skipped_late"] += 1
+                continue
             res = client.post(wh.urls[t], {"embeds": [embed]})
         except Exception as exc:  # noqa: BLE001
             log.warning("player checkpoint %s %s failed (%s)", g.matchup, t, type(exc).__name__)
@@ -733,12 +784,47 @@ def _post_checkpoint(
                 },
                 snap=snap,
             )
-            state.write(rec)
+            _safe_write(state, rec, counts)
             counts["posted" if res.message_id else "lost_id"] += 1
+        elif res.status == "deferred" and _maybe_delivered(res):
+            # Discord may have accepted it (response lost): at most once for an informational post
+            rec = _rec(slate, g, t, minute, "posted", now)
+            rec.update(message_id="", snap=snap, note=str(res.note or res.code))
+            _safe_write(state, rec, counts)
+            counts["lost_id"] += 1
         elif res.status == "deferred":
             counts["deferred"] += 1
         else:
             counts["failed"] += 1
+
+
+def _real_now(rt: Any, fallback: datetime) -> datetime:
+    clock = getattr(rt, "clock", None)
+    try:
+        return clock() if callable(clock) else fallback
+    except Exception:  # noqa: BLE001
+        return fallback
+
+
+_NOT_SENT = ("ConnectError", "ConnectTimeout", "PoolTimeout", "UnsupportedProtocol", "InvalidURL")
+
+
+def _maybe_delivered(res: Any) -> bool:
+    """A 5xx or a transport error after the request may have left (read timeout, dropped
+    connection) can hide an accepted post; a connect failure or a budget/429 deferral cannot."""
+    note = str(getattr(res, "note", "") or "")
+    code = getattr(res, "code", None)
+    if code is not None and int(code) >= 500:
+        return True
+    return note.startswith("transport ") and not any(x in note for x in _NOT_SENT)
+
+
+def _safe_write(state: PcpState, rec: dict[str, Any], counts: dict[str, int]) -> None:
+    try:
+        state.write(rec)
+    except Exception as exc:  # noqa: BLE001 - a state write never costs the tick
+        log.warning("player checkpoint state write failed (%s)", type(exc).__name__)
+        counts["state_write_failed"] = counts.get("state_write_failed", 0) + 1
 
 
 def _iso(ts: datetime | None) -> str | None:
