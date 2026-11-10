@@ -165,6 +165,7 @@ class State:
     trade_skip_ticks: int = 0
     trade_unproven: dict[str, int] = field(default_factory=dict)  # walks that never saw the mark
     trade_state_written: str = ""
+    unproven_accepted: int = 0  # walks accepted as complete without mark evidence (night total)
 
 
 @dataclass
@@ -244,6 +245,8 @@ class Capture:
             "ticks": self.st.ticks,
             "files": self.store.files,
             "errors": self.st.errors,
+            "trade_unproven_accepted": self.st.unproven_accepted,
+            "trade_backlog": len(self.st.trade_pending),
             "gz_bytes": self.store.bytes_gz,
             "requests": self.fetcher.requests,
             **(self.fresh.heartbeat_fields() if self.fresh is not None else {}),
@@ -628,8 +631,14 @@ class Capture:
                 reached = True
                 nxt = ""  # the page is below the mark: caught up
             if not nxt:
-                if reached or st.trade_unproven.get(ticker, 0) >= 1:
+                if reached:
                     st.trade_unproven.pop(ticker, None)
+                    return TradePull(out, True, None, pages)
+                if st.trade_unproven.get(ticker, 0) >= 1:
+                    st.trade_unproven.pop(ticker, None)
+                    with self._page_lock:
+                        st.unproven_accepted += 1  # a possible loss: counted, never silent
+                    self.log_error(f"trades {ticker} accepted without mark evidence (2nd walk)")
                     return TradePull(out, True, None, pages)
                 st.trade_unproven[ticker] = st.trade_unproven.get(ticker, 0) + 1
                 self.log_error(f"trades {ticker} walk ended without reaching the mark; kept open")
@@ -667,6 +676,7 @@ class Capture:
         write-once raw file per tick; counts and skips go to ``ticks.jsonl``."""
         st = self.st
         backlog_before = len(st.trade_pending)
+        unproven_before = st.unproven_accepted
         targets = self.trade_targets()
         cap = self.budget.trades_max_tickers
         skipped = list(targets[cap:])  # stay queued; pulled on the next ticks
@@ -739,6 +749,8 @@ class Capture:
             info["trades"]["carried_cursors"] = len(st.trade_cursor)
         if limited:
             info["trades"]["rate_limited"] = True
+        if st.unproven_accepted > unproven_before:
+            info["trades"]["unproven_accepted"] = st.unproven_accepted - unproven_before
         if backlog_before > 0 and not st.trade_pending:
             info["trades"]["backlog_cleared"] = True
         if skipped:
@@ -764,6 +776,7 @@ class Capture:
             self.kalshi_trades(info)
             with (self.out / "ticks.jsonl").open("a") as f:
                 f.write(json.dumps(info, sort_keys=True) + "\n")
+            self.beat("draining", drain_round=rounds, drain_backlog=len(st.trade_pending))
             tr = info["trades"]
             if tr.get("rate_limited"):
                 self.sleep(15.0 * min(st.trade_429_streak, 4))
@@ -774,6 +787,7 @@ class Capture:
             "drain_start": start,
             "drain_rounds": rounds,
             "drain_remaining": len(st.trade_pending),
+            "unproven_accepted_total": st.unproven_accepted,
         }
         with (self.out / "ticks.jsonl").open("a") as f:
             f.write(json.dumps({"at": self.now().isoformat(), **summary}, sort_keys=True) + "\n")

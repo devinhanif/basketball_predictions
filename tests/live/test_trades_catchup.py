@@ -392,3 +392,30 @@ def test_drain_after_the_loop_empties_the_queue_and_reports(tmp_path: Path) -> N
         assert len(set(stored(tmp_path, t))) == 1_200
     lines = (tmp_path / "raw" / "ticks.jsonl").read_text().splitlines()
     assert json.loads(lines[-1])["drain_remaining"] == 0
+
+
+def test_unproven_accept_is_counted_in_tick_summary_and_heartbeat(tmp_path: Path) -> None:
+    srv = Server()
+    srv.add(GAME, 500)
+    cap = make_cap(tmp_path, srv)
+    tick(cap, {GAME: 500.0})
+    cap.st.trade_ids[GAME] = {"not-a-real-id"}
+    cap.st.trade_pending[GAME] = None
+    first = tick(cap, {GAME: 500.0})
+    assert "unproven_accepted" not in first["trades"] and cap.st.unproven_accepted == 0
+    second = tick(cap, {GAME: 500.0})  # second unproven walk: accepted, and counted
+    assert second["trades"]["unproven_accepted"] == 1 and cap.st.unproven_accepted == 1
+    cap.beat("running")
+    hb = json.loads((tmp_path / "hb.json").read_text())
+    assert hb["trade_unproven_accepted"] == 1 and "trade_backlog" in hb
+    assert cap.drain_trades()["unproven_accepted_total"] == 1
+
+
+def test_drain_writes_a_heartbeat_each_round(tmp_path: Path) -> None:
+    srv = Server()
+    srv.add(GAME, 5_000)
+    cap = make_cap(tmp_path, srv, trades_page_budget=1)
+    tick(cap, {GAME: 5_000.0})
+    cap.drain_trades()
+    hb = json.loads((tmp_path / "hb.json").read_text())
+    assert hb["status"] == "draining" and hb["drain_round"] >= 1
