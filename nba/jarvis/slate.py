@@ -107,7 +107,8 @@ def gather(
     quotes = newest_per_ticker(quotes)
     # A player ruled OUT on a report known now is not offered: the forward store writes no row for
     # a newly-OUT player, so his old forecast is stale (2026-11-02 Brown/George). Refused, not
-    # repriced: Kalshi's DNP settlement is unread. OUT only; doubtful is not treated as out.
+    # repriced (a stale forecast is not used even though a pre-tip DNP now settles at Kalshi's last
+    # fair price). OUT only; doubtful is not treated as out.
     out, out_err = load_out_players(cfg, games, n)
     if out_err is not None:
         notes.append(f"injury report unreadable ({out_err}): OUT-player filter is OFF")
@@ -187,9 +188,17 @@ def single_candidate(cfg: JarvisConfig, st: SlateState, q: Quote, side: str) -> 
                 notes.append("prop No while Kalshi's DNP rule is unverified: label capped at thin")
         else:
             fair = p_over if side == "yes" else 1.0 - p_over
+            if q.kind == "prop" and side == "no":
+                # display yes, alert no: the sharp prop line lags teammate news, so a prop No is
+                # held at thin (cards_unders_2026-11-10 M1; Devin 2026-11-10). The note does not
+                # match facts.CAP_NOTES: the No still shows on cards, priced on P(under | plays).
+                capped = True
+                notes.append(
+                    "prop No held at thin: the sharp prop line often lags news Kalshi has priced"
+                )
         pin_fair = fair
         w = st.weights.get(stat_key(q.kind, q.stat), 0.0)
-        mdl = _model_side(st, q, side)
+        mdl = _model_side(st, q, side, cfg.kalshi_prop_dnp_rule_verified)
         if w > 0.0 and mdl is not None:
             fair = blend(
                 pin_fair, mdl, w
@@ -250,11 +259,20 @@ def single_candidate(cfg: JarvisConfig, st: SlateState, q: Quote, side: str) -> 
     )
 
 
-def _model_side(st: SlateState, q: Quote, side: str) -> float | None:
+def _model_side(st: SlateState, q: Quote, side: str, cfg_verified: bool = False) -> float | None:
     if st.model is None:
         return None
     m = st.model.p_yes(q)
-    return None if m is None else (m if side == "yes" else 1.0 - m)
+    if m is None:
+        return None
+    if q.kind == "prop" and cfg_verified:
+        # p_yes counts a DNP as a miss; a verified rule prices on playing, so the model side is
+        # P(over | plays) (and its complement), never 1 - P(plays) x P(over) (cards_unders m1)
+        pp = _p_play(st, q)
+        if pp is None or pp <= 0.0:
+            return None
+        m = min(1.0, m / pp)
+    return m if side == "yes" else 1.0 - m
 
 
 def _p_play(st: SlateState, q: Quote) -> float | None:

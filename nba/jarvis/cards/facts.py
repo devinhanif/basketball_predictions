@@ -89,21 +89,17 @@ def under_from_play(
     return _row_from_play(p, slate, shown_at, display_name, now, "no")
 
 
-UNDER_NOTE = (
-    "Unders are Kalshi's No, priced on the worst case: a player who does not play counts as a "
-    "No loss, because Kalshi's DNP rule is unverified. Positive here holds under either rule."
-)
-
-
 def under_display_ok(cfg: JarvisConfig, p: Play) -> bool:
-    """May this prop No be SHOWN (never alerted)? ``single_candidate`` always caps a prop No at
-    thin while the DNP rule is unverified; that cap exists because a No might be priced too
+    """May this prop No be SHOWN? Under both settings ``single_candidate`` holds a prop No at thin
+    (no alert), so the label is never read here. While the DNP rule is unverified the cap is
+    DNP-related; that cap exists because a No might be priced too
     generously. Here the No is priced on its worst case, (1 - P(over)) x P(plays), i.e. a DNP is a
     No loss, so its EV is a lower bound under any settlement rule and the cap is not needed to
     DISPLAY it. Required: no stale / newer-reference cap, a real P(plays) in the price, and a fair
     price no higher than that worst case (a model blend priced as 1 - P(over incl. DNP) would count
     a DNP as a No win, so a blend above the Pinnacle-based price is refused). Thresholds, fees and
-    the alert gate are untouched; the label is not read."""
+    the alert gate are untouched. When the rule is verified, the No's own thin-hold note (the sharp
+    line lags news) does not match ``CAP_NOTES``, so only the ordinary stale-input gates apply."""
     if is_capped(p):
         return False
     if cfg.kalshi_prop_dnp_rule_verified:

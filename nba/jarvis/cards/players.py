@@ -605,7 +605,7 @@ def build_message(
             "priced on the worst case (a no-show is a No loss; Kalshi's rule is unverified), "
             "so a positive EV holds under either rule. Paper, no alert."
             if gd.under_worst_case
-            else "a player who sits before tip settles at the fair price (Kalshi contract terms)."
+            else "a player who sits before tip settles at Kalshi's last fair price (terms)."
         ),
     ]
     head_text = "\n".join(head)

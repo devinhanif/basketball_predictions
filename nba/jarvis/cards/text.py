@@ -24,8 +24,9 @@ UNDER_SHORT = (
     "loss; Kalshi's rule is unverified). Positive EV here holds under either rule. Paper, no alert."
 )
 UNDER_VERIFIED_SHORT = (
-    "Unders are Kalshi's No. A player who sits before tip settles at the fair price (Kalshi "
-    "contract terms), so the price is the sharp no-vig under. Paper, no stake."
+    "Unders are Kalshi's No. A player who sits before tip settles at Kalshi's last fair price "
+    "(contract terms); the EV shown prices the sharp no-vig under. Shown, never alerted; "
+    "paper, no stake."
 )
 DISCLAIMER = "Paper only. Not advice."
 
@@ -139,7 +140,7 @@ def why_line_under(row: OverRow) -> str:
         else:
             bits.append(
                 f"the sharp line (Pinnacle, no vig{age}) puts the under at {cents(row.fair)}; "
-                "if he sits, it settles at the fair price"
+                "if he sits, it settles at Kalshi's last fair price"
             )
     return "; ".join(bits) + "."
 
