@@ -11,6 +11,11 @@
 5. **Your calls**: in-game checkpoints flag; ESPN poller flag (needs a real core-API fixture); data-source terms before any revenue.
 6. **In flight at handoff**: app calibrated-only branch (final re-review); TEAMMATE_SITS pre-freeze review.
 
+**Update ~04:00 CST:** also merged since the first handoff: calibrated-only app with the LINE_CAL_LIVE display lock; live play-by-play view
+(public, your override; ESPN credited); poller switch (ships off; flip = one config line after the real ESPN fixture, see docs/KALSHI_CANDLES_15S.md
+neighbours and configs/live_capture.yaml); TEAMMATE_SITS frozen and run: T526 pts HELPS (survives attack, direction + team-level bump only),
+reb HELPS but wounded (uncertain size), ast inconclusive, fg3m no word (ledger T526, T526-a). In flight: end-to-end usability pass on the app.
+
 Loose ends (recorded, not chased): 3 pre-existing full-suite failures; checkpoint R1; export-pairing r3 copy; per-run coverage
 record in nba.daily; combo export wiring; LINE_CAL_LIVE look about Dec 1. Retro: docs/reviews/retro_2026-11-10.md.
 
