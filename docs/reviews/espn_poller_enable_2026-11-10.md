@@ -116,3 +116,67 @@ If merged as is: a false ALERT in ALERTS.md at every game-night capture start. T
 3. F3 and F4 (cheap; do them together with F1).
 
 No ledger, DECISIONS or holdout rows drafted (ops change, no claim).
+
+---
+
+# Re-review (2bb2ca45, diff-only)
+
+**Result for merge with the value at 0: SURVIVES.** With the config at 0, the capture starts with
+`--fresh-interval-s 0` and writes no ALERT. Two new or residual findings matter only before anyone sets a non-zero
+value (R1, R2).
+
+Verdict: APPROVED
+
+## Harness rerun on the real script (2bb2ca45)
+
+Scratch harness `.../scratchpad/poller/run2.sh`: `env -i PATH=/usr/bin:/bin`, stub `NBA_UV`, committed
+`ops/nba_live_capture.sh`. Exit 1 is only the harness's last `ls | grep` finding nothing; every launcher run returned 0.
+
+| mode | launcher rc | wall s | capture invoked with | ALERT |
+|---|---|---|---|---|
+| fail (exit 1) | 0 | 0 | 0 | yes, "check failed" |
+| empty | 0 | 0 | 0 | no |
+| garbage stdout | 0 | 1 | 0 | no |
+| `15 on` | 0 | 0 | 15 | no |
+| nan / -5 | 0 | 0-1 | 0 | no |
+| `1.2.3 on` | 0 | 0 | **1.2.3** | no (R2) |
+| `5 on` | 0 | 0 | **5** | no (R2) |
+| refused | 0 | 1 | 0 | yes |
+| stub SIGKILLed | 0 | 0 | 0 | yes, "check failed" |
+| hang 60 s (new) | 0 | **21** | 0 | yes, "check timed out" |
+| **real module, default config 0** | 0 | 1 | **0** | **no** (F1 fixed) |
+| real module, config 15, junk fixtures (`{}`, `not json at all`) | 0 | 0 | 0 | yes, "fixture plays_limit1.json does not parse to a play" (F2 fixed) |
+| real module, config 15, no fixtures | 0 | 0 | 0 | yes, "real core fixture missing" |
+
+Tests in the branch worktree at 2bb2ca45:
+`.venv/bin/python -m pytest -q -p no:cacheprovider --no-cov tests/ops/test_fresh_enable.py tests/ops/test_fresh_launcher.py tests/live/test_espn_core_real.py tests/ops/test_live_capture.py tests/live/test_espn_fresh.py tests/ops/test_watchdog.py`
+gave 64 passed, 3 skipped (the real-fixture tests), exit 0. The new launcher tests run `/bin/sh` on the real script with a
+stub uv. They have a 90 s subprocess timeout and no network.
+
+## Fix status
+
+| Original | Status |
+|---|---|
+| F1 `--date` | **fixed**. `fresh-interval` works with no date, `plan` still requires one, and CLI and launcher tests were added. |
+| F2 content gate | **fixed**. Each fixture must parse through `last_play_core` and have a `play_id` and `wallclock`. |
+| F3 shell sanitiser | **not effective**. The `*" on"` guard does not catch `5 on` or `1.2.3 on` (rows above). My own suggested fix was too weak. Still unreachable from current Python output. See R2. |
+| F4 own alert | **fixed**, with a new contradiction (R1). |
+| F5 | not addressed (accepted, minor). |
+| F6 timeout | **fixed**. A 20 s ceiling was measured at 21 s wall. |
+
+## New findings
+
+| # | Sev | Finding | Exact line | Exact fix |
+|---|---|---|---|---|
+| R1 | major before a non-zero flip; not reachable at 0 | A dead capture with a stale heartbeat whose last beat had the poller on raises **both** alerts. `livecap` says "heartbeat 30 min old … kickstart it", and `livefresh` says "fresh poller: no success for 30 min … the capture itself is running and unaffected (do not kickstart it)". These are contradictory remediations in the same half hour. Reproduced with `.../scratchpad/poller/wd_attack.py`. With the poller off, `livefresh` is None (also checked). | nba/ops/watchdog.py `live_fresh_problem`: the `if hb is None or hb.get("date") != ... or status in lc.FINISHED` guard does not check staleness | Add `if lc.problem(now, tips, hb, lc.beat_time(path, hb), day) is not None: return None` before `return lc.fresh_problem(hb, now)`, so the poller is judged only while the capture is healthy. Add a test for a stale heartbeat with the poller on that expects `live_fresh_problem` to return None. |
+| R2 | minor (defence in depth) | The shell still passes any `[0-9.]` token that ends in " on" (for example `5 on` or `1.2.3 on`). The capture then exits 2 on every tick. | ops/nba_live_capture.sh, the `case "$FRESH_S"` block | Accept only an integer >= 15, e.g. `case "$FRESH_S" in 1[5-9]\|[2-9][0-9]\|[1-9][0-9][0-9]) ;; *) FRESH_S=0 ;; esac` (also fold 15.0 to an integer on the Python side by printing `{interval:.0f}`), or check `awk "BEGIN{exit !($FRESH_S>=15)}"`. |
+| R3 | minor | On timeout, `kill "$FRESH_PID"` signals only the `uv` process. With the stub, the grandchild `sleep 60` survived as an orphan. Real `uv run` forwards SIGTERM to its child in my understanding (not verified), and an orphaned check only writes to a removed tmp file. Harmless. | ops/nba_live_capture.sh, the timeout branch | Optional: `kill -- -"$FRESH_PID"` would need its own process group. Leave it. |
+
+## Not verified
+
+Real `uv` signal forwarding (R3). Real launchd. Full ruff/mypy/pytest suite (only the 6 relevant test files).
+
+## Biggest risk now
+
+R1, if someone turns the poller on before it is fixed: on a night the capture dies, the reader gets "do not kickstart"
+next to "kickstart". At value 0 there is no risk to the capture start.
