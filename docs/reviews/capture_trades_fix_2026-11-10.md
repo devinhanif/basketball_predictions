@@ -124,3 +124,54 @@ field for the backlog at end. F4 to F8 when convenient.
 ## Drafted DECISIONS row (not appended)
 
 | 2026-11-10 | Live capture trade catch-up (23d477b) held for F1 (completion requires evidence of reaching the mark; an empty resumed page restarts) and F2 (absorb only after the raw write); end-of-window trade drain queued as the next live-path task (F3). | Adversary WOUNDED (docs/reviews/capture_trades_fix_2026-11-10.md). | A documented Kalshi cursor contract that excludes 200-empty expiry, or a night showing zero `walk ended without reaching the mark` lines over a week. |
+
+## Re-review (agent/market-capture-trades-fix 406ed39, diff 23d477b..406ed39)
+
+Diff only: `nba/live/capture.py` (+137/-26) and `tests/live/test_trades_catchup.py` (+131). No live
+request, no replay, no 2025. The attacks reuse the fake server.
+
+**Grade: SURVIVES.**
+
+Verdict: APPROVED
+
+That approval covers merging, after the replay oracle is unchanged (main session) and Devin gives the
+go-ahead for the live path.
+
+**Correction to the first pass.** F3 said "71 at window end". That was wrong. 04:42Z was simply the
+newest tick when I read the file, and the 11-09 capture was still running: its heartbeat at 04:56Z
+says `status: running`, `window_end: 07:00Z`. The 2.5 h of zero trade pages during live games stands.
+The window-end backlog does not: it was not observed. F3 is still valid as a safety net, but its
+evidence was weaker than I stated.
+
+| # | Check | Command / evidence | n | Result |
+|---|---|---|---|---|
+| R1 | Expired cursor (200 empty), offset cursor, first sight | `scratchpad/ctf/attack3.py` A1 (exit 0). The old-generation cursor answers 200 empty; new cursors are valid. | 3,000 | PASS: 3,000/3,000, 0 duplicates, queue empty, `empty end` logged |
+| R2 | Same, keyset cursor | attack3 A2 | 3,000 | PASS: 3,000/3,000 |
+| R3 | Expired cursor with a mark (evidence path) | attack3 A3 (offset) and A4 (keyset) | 3,500 each | PASS: 3,500/3,500, 0 duplicates |
+| R4 | Earlier attacks rerun: offset arrivals > offset, keyset arrivals, mark-second late prints | `attack1.py` C, D, E | 6,500 / 7,000 / 290 | PASS, all complete, 0 duplicates |
+| R5 | Raw write fails | attack1 B (1 failure), attack3 W (2 failures in a row) | 1,510 / 2,500 | PASS: 1,510/1,510 and 2,500/2,500. Nothing is absorbed when the save fails (`saved` flag). |
+| R6 | Walk with no evidence (mark ids lost, e.g. the 20k open-id cap after a restart) | attack3 U | 700 | PASS: 700/700, queue empty. 200 duplicate rows were written, and both readers dedupe them. The second walk without evidence is accepted (`trade_unproven >= 1`), so it cannot loop forever. |
+| R7 | Drain capacity (11-09-style starvation, scaled to 15 games) | `scratchpad/ctf/drain.py` (exit 0) | 3 backlogs | Small (150 tickers + 30 game tickers × 2 pages, 210 pages): emptied in 2 rounds. Medium (730 tickers, 850 pages): emptied in 6 rounds. Worst case (9,030 tickers, 10,800 pages, the 11-09 peak doubled and all still queued at window end): **888 pages, 9,019 left, reported in `drain_remaining`**. The drain is a tail sweep and cannot by itself clear a full in-game starvation backlog. That needs the post-game ticks (about 90 between the last final and the window end at 4 h after the last tip); on 11-09 those cut 4,672 to about 72 in about 60 ticks. Accepted by the main session (completeness by end of night). |
+| R8 | Can the drain starve the end sweep? | `drain_trades` calls `begin_tick(sweep_budget, sweep_deadline_s)`; `sweep("end")` calls `begin_tick` again. drain.py: `sweep_room_after=900`. | n/a | PASS on requests. Wall time: the drain is capped by its own 420 s deadline plus at most one 429 sleep (≤ 60 s), then the sweep gets its own 420 s. The watchdog cannot raise a false stale alert: `nba/ops/live_capture.py` `closes = last tip + WINDOW_TAIL (4 h)`, the same as the capture's end, so the drain and sweep run after the watchdog window closes. |
+| R9 | F4 to F8 | code: cursor pop when there is no cursor; open-id cap 20,000 plus write-only-if-changed; `_take_page` checks requests live against `tick_budget - reserve`; keyset and expiry tests added; `KXNBA2D`/`KXNBA3D` in `PROP_PREFIXES` | n/a | PASS |
+| R10 | Scope | diff limited to capture.py and its tests; new `Budget` fields `trades_state_open_cap` and `drain_max_rounds` | n/a | PASS: nothing outside the review findings |
+| V | Tests and lint | `PYTHONPATH=$PWD .venv-1/bin/python -m pytest -q -p no:cacheprovider --no-cov tests/live tests/kalshi`; `ruff check`, `ruff format --check`, `mypy nba/live nba/kalshi` | 191 tests | 191 passed, exit 0. ruff 0, format 0, mypy 0. |
+
+**Remaining minor items (not blocking):**
+- **RR1:** `drain_trades` writes no heartbeat. Add `self.beat("draining")` per round, so a hung drain
+  is visible to anyone reading the heartbeat after the window.
+- **RR2:** the accept-after-one-unproven rule (`_pull_trades`,
+  `if reached or st.trade_unproven.get(ticker, 0) >= 1`) is the one path that can still advance the
+  mark without evidence. It needs two walks in a row that end without the mark's prints. That is
+  legitimate only after lost mark ids (R6). Leave it, but count it in `info["trades"]` (`unproven_accepted`)
+  so a night with many is visible.
+
+**Single most likely failure mode now:** a 15-game night whose late games end close to the window
+end, so the post-game ticks cannot work through a starvation backlog of thousands of tickers. The
+remainder is lost, but now visibly, in `drain_remaining`.
+
+**Playbook check:** unchanged from the first pass. This is infrastructure, not a model. Test validity
+is improved: keyset and expired-cursor fakes now exist.
+
+**Drafted DECISIONS row (not appended):**
+| 2026-11-10 | Live capture trade catch-up 406ed39 approved by the adversary (F1-F8 applied; completion needs evidence of reaching the mark; raw written before state; end-of-night drain under the sweep budget; no per-tick trade floor during live games, accepted: the store needs completeness by end of night). F3 evidence corrected (11-09 window had not ended). | Adversary re-review SURVIVES (docs/reviews/capture_trades_fix_2026-11-10.md). | A night with drain_remaining > 0, or unproven_accepted lines on most nights. |

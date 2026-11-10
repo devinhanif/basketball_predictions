@@ -112,3 +112,53 @@ way, and share a test.
 ## Drafted DECISIONS row (not appended)
 
 | 2026-11-10 | Candles poller trade catch-up (369fdc8) held for C1 (completion requires evidence of reaching the mark), C2 (state fallback re-walks from window start and logs, never trusts the newest stored print) and C3 (mark applied only after the raw write). | Adversary WOUNDED (docs/reviews/candles_trades_carry_2026-11-10.md). | Kalshi documents its cursor contract, or a week of nights shows no fallback and no unreached-mark walk. |
+
+## Re-review (agent/market-candles-trades-carry c4c7979, diff 369fdc8..c4c7979)
+
+Diff only:
+- `nba/kalshi/poll15.py` (+228/-88)
+- `nba/kalshi/candles15.py` (+2: `trade_state_fallback` in the reconciliation)
+- `docs/KALSHI_CANDLES_15S.md`
+- `docs/DECISIONS.md` (one row)
+- `tests/kalshi/test_trades_carry.py` (8 new tests)
+
+No live requests.
+
+**Grade: SURVIVES.**
+
+Verdict: APPROVED
+
+| # | Check | Command / evidence | n | Result |
+|---|---|---|---|---|
+| R1 | Expired cursor (200 empty), first sight | `scratchpad/ctf/attack4.py` A1 (exit 0). Only the old-generation cursor expires. | 900 | PASS: 900/900, `empty page after a resume` logged |
+| R2 | Expired cursor with a mark | attack4 A2 | 1,050 | PASS: 1,050/1,050 |
+| R3 | `attack2.py` A rerun (every cursor answers empty, so the server never paginates) | attack2 A | 900 | 300/900. This is the same degenerate server as in the capture review. When no cursor ever works and there is no mark (first sight), nothing can show the walk is short. It is not a realistic expiry model, and R1/R2 cover real expiry. Recorded, not a finding. |
+| R4 | State file deleted mid catch-up | attack2 C | 1,000 | PASS: 1,000/1,000, and `trade_state missing or unreadable: re-walking N tickers` is logged |
+| R5 | Is the fallback visible? | code: `trade_state_fallback` in the heartbeat (`beat` payload) and in the reconciliation JSON (`candles15.finalize_day` `recon.update`); test `test_c2_the_fallback_is_named_in_the_reconciliation` | n/a | PASS: the cause is now named, not just a coverage drop |
+| R6 | Raw write fails | attack2 D | 255 | PASS: 255/255. `_Walk` changes no state; `_apply_walk` runs only after `store.write` succeeds. |
+| R7 | Offset-cursor duplicates inside one walk | `attack2b.py` (exit 0) | 1,250 rows | PASS: 1,250 raw rows for 1,250 unique ids (was 1,750 for 1,250). attack2 B: 1,350/1,350 once the feed settles. |
+| R8 | Quote polls during trade 429s | attack4 Q: every trade page returns 429 for 8 polls | 8 polls | PASS: 8/8 quote polls went out, the quote `cooldown_until` stayed None, `consecutive_failures` stayed 0, and only `trades_cooldown_until` was set |
+| R9 | Docs | `docs/KALSHI_CANDLES_15S.md` diff | n/a | PASS: the fallback is now described as a re-walk |
+| V | Tests and lint | `PYTHONPATH=$PWD .venv-1/bin/python -m pytest -q -p no:cacheprovider --no-cov tests/live tests/kalshi`; `ruff check`, `ruff format --check`, `mypy nba/live nba/kalshi` | 185 tests | 185 passed, exit 0. ruff 0, format 0, mypy 0. |
+
+**Remaining minor item (not blocking):**
+
+**RC1 minor: a walk that can never show it reached the mark keeps its ticker open all night.**
+`attack4u.py`: the prints of the mark's second disappear on the server (for example a busted trade).
+Over 10 polls the ticker stayed queued, made 10 trade calls, logged 10 `walk ended without reaching
+the mark` lines, and never moved its mark. No print is lost (110/110), so the cost is budget, not
+data. Each later walk re-reads everything since the stuck mark, so the stuck ticker can take up to 6
+of the 12 trade pages a poll as the night goes on.
+
+The code is `_walk_ticker`, the `else:  # the walk ended without reaching the mark` branch. Fix: copy
+the capture's rule. Accept after the second walk in a row that ends without evidence, keep a
+per-ticker count, and report `unproven_accepted` in the heartbeat.
+
+**Single most likely failure mode now:** RC1's budget drain on a night with busted trades. It costs
+pages, not prints.
+
+**Playbook check:** unchanged. This is infrastructure. Test validity is improved: there are now
+expired-cursor and offset-cursor tests.
+
+**Drafted DECISIONS row (not appended):**
+| 2026-11-10 | Candles poller trade catch-up c4c7979 approved by the adversary (C1-C6 applied; evidence-based completion; lost state re-walks from window start and is named as trade_state_fallback in the heartbeat and reconciliation; trade-only cool-down). RC1 (accept after two walks without evidence) queued as minor. | Adversary re-review SURVIVES (docs/reviews/candles_trades_carry_2026-11-10.md). | A night with trade_state_fallback true and coverage below the 0.9 floor, or repeated unreached-mark lines for one ticker. |
