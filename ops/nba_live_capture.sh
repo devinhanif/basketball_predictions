@@ -87,10 +87,10 @@ fi
 rm -f "$FRESH_TMP"
 FRESH_S=${FRESH_OUT%% *}
 case "$FRESH_S" in
-  ''|*[!0-9.]*) FRESH_S=0 ;;
+  ''|*[!0-9]*) FRESH_S=0 ;;                      # integers only
 esac
-case "$FRESH_OUT" in  # a non-zero value only when the python side said it is on
-  *" on") ;;
+case "$FRESH_OUT" in  # a non-zero value only when python said it is on, and it is >= 15
+  *" on") [ "$FRESH_S" -ge 15 ] || FRESH_S=0 ;;
   *) FRESH_S=0 ;;
 esac
 case "$FRESH_OUT" in

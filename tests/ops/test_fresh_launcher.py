@@ -121,6 +121,9 @@ def _launch_again(tmp: Path) -> tuple[subprocess.CompletedProcess[str], list[str
     [
         ("15 on", 0, "15"),
         ("5 on", 0, "0"),
+        ("1.2.3 on", 0, "0"),
+        ("14 on", 0, "0"),
+        ("30 on", 0, "30"),
         ("1.2.3 refused", 0, "0"),
         ("15", 0, "0"),
         ("15 on", 1, "0"),
@@ -131,8 +134,7 @@ def test_launcher_passes_value_only_when_output_says_on(
 ) -> None:
     _, calls, _ = _launch(tmp_path, FAKE_FRESH_OUT=out, FAKE_FRESH_RC=str(rc))
     got = _capture_call(calls).split("--fresh-interval-s ")[1].split()[0]
-    # "5 on" is passed through by the shell (python never emits it); nba.live refuses it itself
-    assert got == ("5" if out == "5 on" else want)
+    assert got == want
 
 
 def test_fresh_trouble_has_its_own_watchdog_text(tmp_path: Path) -> None:
@@ -143,9 +145,15 @@ def test_fresh_trouble_has_its_own_watchdog_text(tmp_path: Path) -> None:
         '{"date": "2026-11-10", "status": "running", "fresh_alive": true, "fresh_live_games": 1,'
         ' "fresh_last_game_success_ts": "2026-11-10T00:40:00+00:00"}'
     )
-    (hb_dir / lc.HEARTBEAT).write_text(hb)
+    path = hb_dir / lc.HEARTBEAT
+    path.write_text(hb)
     tips = [datetime(2026, 11, 10, 0, 0, tzinfo=UTC)]
-    assert "fresh poller" in (live_fresh_problem(tmp_path, now, tips, date(2026, 11, 10)) or "")
-    assert (
-        lc.problem(now, tips, lc.read_json(hb_dir / lc.HEARTBEAT), now, date(2026, 11, 10)) is None
-    )
+    day = date(2026, 11, 10)
+    os.utime(path, (now.timestamp(), now.timestamp()))  # capture beat is fresh
+    assert "fresh poller" in (live_fresh_problem(tmp_path, now, tips, day) or "")
+    assert lc.problem(now, tips, lc.read_json(path), lc.beat_time(path, None), day) is None
+    # R1: stale capture heartbeat + poller on -> the livecap alert owns it, no livefresh alert
+    stale = now.timestamp() - 3600
+    os.utime(path, (stale, stale))
+    assert lc.problem(now, tips, lc.read_json(path), lc.beat_time(path, None), day) is not None
+    assert live_fresh_problem(tmp_path, now, tips, day) is None

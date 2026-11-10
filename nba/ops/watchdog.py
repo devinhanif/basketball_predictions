@@ -770,6 +770,8 @@ def live_fresh_problem(
     hb = lc.read_json(ops_dir / "heartbeat" / lc.HEARTBEAT)
     if hb is None or hb.get("date") != day.isoformat() or hb.get("status") in lc.FINISHED:
         return None
+    if lc.problem(now, tips, hb, lc.beat_time(ops_dir / "heartbeat" / lc.HEARTBEAT, hb), day):
+        return None  # the capture itself is down: the livecap alert owns that, no contradiction
     return lc.fresh_problem(hb, now)
 
 
