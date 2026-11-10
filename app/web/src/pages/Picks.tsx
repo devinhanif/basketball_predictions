@@ -7,6 +7,7 @@ import { FriendsPicks, ShareNote, useLedger } from "../SharedUI";
 import { MIN_LEGS } from "../stats";
 import { useSettled } from "../useSettled";
 import { didText } from "../words";
+import { useLens } from "../prefs";
 
 function download(picks: Pick[]): void {
   const blob = new Blob([JSON.stringify(picks, null, 1)], { type: "application/json" });
@@ -21,6 +22,7 @@ function download(picks: Pick[]): void {
 const BADGE = { win: "Hit", loss: "Miss", push: "Push" } as const;
 
 function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: boolean }) {
+  const market = useLens() === "market";
   const skipped = p.side === "skip";
   const cls = skipped ? "skip" : s ? s.outcome : "open";
   const badge = skipped ? "Skip" : s ? BADGE[s.outcome] : "Open";
@@ -39,7 +41,7 @@ function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: bo
           {viewTag(p) ? <span class={`tag view-${viewTag(p) === "blind" ? "blind" : "saw"}`}>{viewTag(p)}</span> : null}
         </div>
         <div class="pick-sub num">
-          {skipped ? "" : `You took ${p.side} ${lineText(p.line)} (${american(p.side === "over" ? p.over_price : p.under_price)}). `}
+          {skipped ? "" : `You took ${p.side} ${lineText(p.line)}${market ? ` (${american(p.side === "over" ? p.over_price : p.under_price)})` : ""}. `}
           {p.team} vs {p.opponent}, {longDate(p.slate_date)}
         </div>
       </div>
@@ -48,6 +50,7 @@ function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: bo
 }
 
 export function Picks() {
+  const market = useLens() === "market";
   const picks = useLedger();
   const { results, settled, open } = useSettled(picks);
   const sum = useMemo(() => summarize(picks, settled), [picks, settled]);
@@ -95,10 +98,10 @@ export function Picks() {
 
       {sum.decided > 0 ? (
         <section class="panel" aria-labelledby="sum-h">
-          <h2 id="sum-h">You vs the odds</h2>
+          <h2 id="sum-h">{market ? "You vs the odds" : "You vs the model"}</h2>
           <p>
             Your picks won <b class="num">{pct(sum.wins / sum.decided)}</b> ({sum.wins} of {sum.decided}).{" "}
-            {sum.mean_market !== null ? (
+            {market && sum.mean_market !== null ? (
               <>
                 The sportsbook's prices said the sides you took would win about <b class="num">{pct(sum.mean_market)}</b> of the
                 time
@@ -106,7 +109,7 @@ export function Picks() {
             ) : null}
             {sum.mean_model !== null ? (
               <>
-                {sum.mean_market !== null ? ", and our model said " : "Our model said "}
+                {market && sum.mean_market !== null ? ", and our model said " : "Our model said "}
                 <b class="num">{pct(sum.mean_model)}</b>
               </>
             ) : null}

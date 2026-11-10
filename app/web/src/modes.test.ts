@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { groupNews, leadText } from "./Knows";
+import { learnHeadline } from "./headline";
+import { MARKET_ONLY } from "./Shell";
 import { DEFAULTS, KEYS, getPrefs, parseLens, resetPrefsCache, setPref, writeKey } from "./prefs";
 import { GUESS_KEY, loadRounds, makeRound, saveRounds, scoreOf } from "./record";
 import { parse, plainName, recordHref } from "./router";
@@ -123,5 +125,17 @@ describe("the timeline words", () => {
     expect(g[0]?.first.length).toBe(2);
     expect(g[0]?.changes.length).toBe(0);
     expect(g[1]?.changes.length).toBe(1);
+  });
+});
+
+describe("the Learn lens, app-wide", () => {
+  it("the night's headline carries no contract count, edge, price or fee", () => {
+    const h = learnHeadline(8);
+    expect(h.verdict).toBe("keep");
+    expect(h.text).toBe("8 games tonight · forecasts only · keep your money");
+    expect(`${h.text} ${h.source}`).not.toMatch(/priced|edge after|fee|\bask\b|\bEV\b/i);
+  });
+  it("the market-only screens are the ones whose subject is prices and edges", () => {
+    expect([...MARKET_ONLY].sort()).toEqual(["hedge", "history", "signals"]);
   });
 });

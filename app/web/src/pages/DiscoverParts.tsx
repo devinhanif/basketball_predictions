@@ -116,7 +116,7 @@ export function Hero({ row, nPriced, fixture, desk }: { row: RadarRow | null; nP
 }
 
 /** "Around the court": one game. A final score only when the export stores one; else tip time and the win bar. */
-export function Court({ game, final_ }: { game: GameSummary | null; final_: boolean }) {
+export function Court({ game, final_, market }: { game: GameSummary | null; final_: boolean; market: boolean }) {
   const [res] = useLoad(() => (game && final_ ? api.gameResult(game.game_id) : Promise.resolve({ data: null, fromCache: false })), [game?.game_id, final_]);
   if (!game) {
     return (
@@ -152,7 +152,7 @@ export function Court({ game, final_ }: { game: GameSummary | null; final_: bool
         </div>
       </div>
       <p class="muted small center num">{r ? "Final" : `Tip-off ${tipTime(game.tip_utc)}`}</p>
-      <WinBars wp={game.win_probability} home={game.home} away={game.away} />
+      <WinBars wp={game.win_probability} home={game.home} away={game.away} showBook={market} />
       <a class="btn" href={`#/game/${game.game_id}`}>
         Open the game <Icon name="arrow" />
       </a>

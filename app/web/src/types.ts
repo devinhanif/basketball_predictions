@@ -377,6 +377,7 @@ export interface CalSeries {
   n_games: number;
   bins: CalBin[];
   overall: CalBin;
+  sources: { source: string; label: string; n: number; overall: CalBin }[];
   excluded: Record<string, number>;
   interval: string;
 }

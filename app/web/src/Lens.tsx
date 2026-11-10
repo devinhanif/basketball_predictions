@@ -37,3 +37,25 @@ export function LensSwitch(props: { compact?: boolean }) {
     </div>
   );
 }
+
+/** Shown in place of a screen that is all prices and edges when the lens is Learn or Explore. */
+export function MarketOnly(props: { name: string; what: string }) {
+  return (
+    <section class="panel empty" aria-labelledby="mo-h">
+      <h1 id="mo-h">{props.name} is a Market screen</h1>
+      <p>
+        {props.what} The Learn and Explore lenses leave prices, edges and fees out, so this screen is hidden while you are in them.
+      </p>
+      <button
+        type="button"
+        class="btn primary"
+        onClick={() => {
+          setPref("lens", "market");
+        }}
+      >
+        Switch to Market
+      </button>
+      <p class="small muted">Nothing is lost by switching. You can switch back from any game or player page, or from the top of Discover.</p>
+    </section>
+  );
+}

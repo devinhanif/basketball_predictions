@@ -17,6 +17,8 @@ import { Admin } from "./pages/Admin";
 import { Welcome } from "./Welcome";
 import { Record } from "./pages/Record";
 import { Tour } from "./Tour";
+import { MarketOnly } from "./Lens";
+import { useLens } from "./prefs";
 import { openTour, tourSeen } from "./tourState";
 import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
@@ -24,6 +26,7 @@ import { IS_ARTIFACT } from "./env";
 
 export function App() {
   const route = useRoute();
+  const market = useLens() === "market";
   const [stale, setStale] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -79,13 +82,17 @@ export function App() {
       page = <Settings />;
       break;
     case "signals":
-      page = <Signals />;
+      page = market ? <Signals /> : <MarketOnly name="Signals" what="Signals lists stored contracts by their edge after fees." />;
       break;
     case "hedge":
-      page = <Hedge game={route.game} player={route.player} stat={route.stat} />;
+      page = market ? (
+        <Hedge game={route.game} player={route.player} stat={route.stat} />
+      ) : (
+        <MarketOnly name="Hedge Finder" what="The Hedge Finder works out positions from stored prices." />
+      );
       break;
     case "history":
-      page = <History />;
+      page = market ? <History /> : <MarketOnly name="Model History" what="Model History is the paper book: entry prices, closing-line value and edges." />;
       break;
     case "record":
       page = <Record tab={route.tab} date={route.date} />;

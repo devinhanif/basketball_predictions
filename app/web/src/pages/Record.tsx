@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
-import { Explain, View } from "../components";
+import { Explain, ModelNote, View } from "../components";
+import { plainModel } from "../plain";
 import { longDate, lineText, num, pct, tipTime } from "../format";
 import { TeamTag } from "../components";
 import { legHref, recordHref, type RecordTab } from "../router";
@@ -12,7 +13,7 @@ import { didText, sideText } from "../words";
 const S = (n: number): string => n.toString();
 
 /* ------------------------------------------------------------------ replay a night */
-function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null | undefined; open: boolean; onOpen: () => void; ready: boolean }) {
+function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null | undefined; open: boolean; onOpen: () => void; ready: boolean; showSource: boolean }) {
   const prop: PropView | undefined = props.p.props[props.stat];
   if (!prop) return null;
   const q = prop.q;
@@ -25,6 +26,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
         <strong>{props.p.name}</strong>
         <span class="small muted num">
           typical {num(q[9] ?? 0)}, middle half {num(q[4] ?? 0)} to {num(q[14] ?? 0)}
+          {props.showSource ? `, from ${plainModel(prop.model_source)}` : ""}
         </span>
       </div>
       <div class="rp-call num">
@@ -89,7 +91,8 @@ function ReplayGame({ g }: { g: GameSummary }) {
       <p class="num">
         {fav && favP !== null ? (
           <>
-            Before tip our model favoured the <b>{fav.name}</b> at <b>{pct(favP)}</b>.
+            Before tip our model favoured the <b>{fav.name}</b> at <b>{pct(favP)}</b>
+            <span class="small muted"> (game-winner model {g.win_probability.model_name})</span>.
           </>
         ) : (
           "No win forecast was stored for this game."
@@ -127,6 +130,7 @@ function ReplayGame({ g }: { g: GameSummary }) {
                 Each forecast is the latest one stored before tip. Showing {S(players.length)} players, biggest forecast first.{" "}
                 <a href={legHref(g.game_id, d.players[0]?.player_id ?? 0, stat)}>Open a full breakdown</a> from the game page.
               </p>
+              <ModelNote items={d.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
               <ul class="plain rp-players">
                 {players.map((p) => (
                   <PlayerReplay
@@ -136,6 +140,7 @@ function ReplayGame({ g }: { g: GameSummary }) {
                     actual={r ? (r.players.find((x) => x.player_id === p.player_id)?.actual[stat] ?? null) : undefined}
                     open={open.has(p.player_id)}
                     ready={r !== null}
+                    showSource={new Set(players.map((x) => x.props[stat]?.model_source)).size > 1}
                     onOpen={() => {
                       setWant(true);
                       setOpen((o) => new Set(o).add(p.player_id));
@@ -241,6 +246,32 @@ function BinRow({ b, series }: { b: CalBin; series: CalSeries }) {
   );
 }
 
+/** Which model made the chances in a series, in plain words; split by model when more than one is mixed in. */
+function SourceNote({ s }: { s: CalSeries }) {
+  const name = (r: CalSeries["sources"][number]): string => (s.name === "Game winners" ? `our game-winner model (${r.source})` : plainModel(r.source));
+  if (s.sources.length === 0) return null;
+  if (s.sources.length === 1) {
+    const r = s.sources[0];
+    return r ? <p class="small muted">All {S(r.n)} chances here come from {name(r)}.</p> : null;
+  }
+  return (
+    <div class="small">
+      <p class="muted">These chances come from more than one model, so the bins above mix them. Split by model:</p>
+      <ul class="plain num">
+        {s.sources.map((r) => (
+          <li key={r.source}>
+            {name(r)}: n = {S(r.n)}
+            {r.overall.said !== null && r.overall.happened !== null
+              ? `; we said ${pc(r.overall.said)} on average, it happened ${pc(r.overall.happened)}${r.overall.enough && r.overall.lo95 !== null && r.overall.hi95 !== null ? ` (95% range ${pc(r.overall.lo95)} to ${pc(r.overall.hi95)})` : " (not enough to give a range)"}`
+              : ""}
+            .
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function SeriesView({ s }: { s: CalSeries }) {
   const o = s.overall;
   return (
@@ -258,6 +289,7 @@ function SeriesView({ s }: { s: CalSeries }) {
             {o.enough && o.lo95 !== null && o.hi95 !== null ? ` (95% range ${pc(o.lo95)} to ${pc(o.hi95)})` : " (not enough to give a range)"}.
           </p>
         )}
+        <SourceNote s={s} />
         <p class="small muted num">
           Left out:{" "}
           {Object.entries(s.excluded)

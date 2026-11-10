@@ -389,6 +389,31 @@ def test_moments_of_a_known_count() -> None:
     assert json.dumps([mean, sd])
 
 
+# ------------------------------------------------------------------- model source
+
+
+def _check_sources(d: dict[str, Any]) -> None:
+    for name in ("props", "winners"):
+        s = d[name]
+        assert s["sources"], name
+        assert sum(r["n"] for r in s["sources"]) == s["n"]
+        assert all(r["label"] and r["overall"]["n"] == r["n"] for r in s["sources"])
+
+
+def test_calibration_says_the_model_source_on_the_fixtures(client: TestClient) -> None:
+    d = client.get("/api/track-record/calibration").json()
+    _check_sources(d)
+    assert [r["source"] for r in d["props"]["sources"]] == ["fixture"]
+
+
+def test_calibration_says_the_model_source_on_an_export(export_client: TestClient) -> None:
+    d = export_client.get("/api/track-record/calibration").json()
+    _check_sources(d)
+    assert {r["source"] for r in d["props"]["sources"]} <= {
+        "avg", "fallback_missing", "fallback_stale", "postseason", "legacy",
+    }  # fmt: skip
+
+
 # ------------------------------------------------------------------- a cold start
 
 

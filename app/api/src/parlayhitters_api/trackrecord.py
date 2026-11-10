@@ -30,6 +30,7 @@ from pydantic import BaseModel
 from .breakdown import Context
 from .forecast import dist_grid, forecast_probs
 from .minutes import moments
+from .model_source import model_label
 
 Json = dict[str, Any]
 
@@ -52,6 +53,13 @@ class Bin(BaseModel):
     enough: bool
 
 
+class SourceRow(BaseModel):
+    source: str
+    label: str
+    n: int
+    overall: Bin
+
+
 class Series(BaseModel):
     name: str
     what_said: str
@@ -61,6 +69,8 @@ class Series(BaseModel):
     bins: list[Bin]
     #: All cases in one bin: the plain overall rate with its interval.
     overall: Bin
+    #: Where the chances came from. More than one row means the bins above mix models.
+    sources: list[SourceRow]
     excluded: dict[str, int]
     interval: str
 
@@ -80,6 +90,8 @@ class Case:
     game_id: str
     p: float  # the chance the model gave
     hit: bool  # whether it happened
+    source: str = ""  # which model made the chance (model_source key, or a win model's name)
+    label: str = ""  # the stored sentence for that source
 
 
 def finished_games(store: Any) -> list[Json]:
@@ -105,7 +117,9 @@ def prop_cases(games: list[Json]) -> tuple[list[Case], dict[str, int]]:
                     ex["did_not_play"] += 1
                 else:
                     p = forecast_probs(pr["forecast"], float(pr["line"])).p_over
-                    out.append(Case(g["game_id"], p, float(pr["actual"]) > float(pr["line"])))
+                    src, label = model_label(pr["forecast"].get("model"))
+                    hit = float(pr["actual"]) > float(pr["line"])
+                    out.append(Case(g["game_id"], p, hit, src, label))
     return out, ex
 
 
@@ -119,7 +133,16 @@ def winner_cases(games: list[Json]) -> tuple[list[Case], dict[str, int]]:
             continue
         home_won = bool(g["result"]["home_won"])
         fav_home = ph >= 0.5
-        out.append(Case(g["game_id"], ph if fav_home else 1 - ph, home_won == fav_home))
+        name = str(g["win_probability"].get("model_name"))
+        out.append(
+            Case(
+                g["game_id"],
+                ph if fav_home else 1 - ph,
+                home_won == fav_home,
+                name,
+                f"Win forecast model: {name}.",
+            )
+        )
     return out, {"no_forecast": missing}
 
 
@@ -166,6 +189,21 @@ def binned(cases: list[Case], edges: list[float], rng: random.Random) -> list[Bi
     return out
 
 
+def by_source(cases: list[Case], edges: list[float], rng: random.Random) -> list[SourceRow]:
+    rows: list[SourceRow] = []
+    for src in sorted({c.source for c in cases}):
+        mine = [c for c in cases if c.source == src]
+        rows.append(
+            SourceRow(
+                source=src,
+                label=mine[0].label,
+                n=len(mine),
+                overall=binned(mine, edges, rng)[0],
+            )
+        )
+    return rows
+
+
 def calibration(store: Any) -> Calibration:
     games = finished_games(store)
     rng = random.Random(SEED)  # noqa: S311 - a reproducible bootstrap, not security
@@ -187,6 +225,7 @@ def calibration(store: Any) -> Calibration:
             n_games=len({c.game_id for c in pcases}),
             bins=binned(pcases, tenth, rng),
             overall=binned(pcases, [0.0, 1.0], rng)[0],
+            sources=by_source(pcases, [0.0, 1.0], rng),
             excluded=pex,
             interval=interval,
         ),
@@ -198,6 +237,7 @@ def calibration(store: Any) -> Calibration:
             n_games=len({c.game_id for c in wcases}),
             bins=binned(wcases, fav, rng),
             overall=binned(wcases, [0.5, 1.0], rng)[0],
+            sources=by_source(wcases, [0.5, 1.0], rng),
             excluded=wex,
             interval=interval,
         ),

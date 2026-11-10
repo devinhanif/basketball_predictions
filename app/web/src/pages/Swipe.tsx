@@ -12,6 +12,7 @@ import { useSettled } from "../useSettled";
 import type { SwipeCardData, SwipeDeck } from "../types";
 import { STAT_LABEL } from "../types";
 import { didText, sideText } from "../words";
+import { useLens } from "../prefs";
 import { swipeKeyChoice } from "../swipeKeys";
 
 function newSeed(): number {
@@ -37,12 +38,15 @@ function Arrow({ up }: { up: boolean }) {
 function Card(props: {
   card: SwipeCardData;
   onChoose: (side: Pick["side"]) => void;
+  market: boolean;
 }) {
-  const { card } = props;
+  const { card, market } = props;
   const [dx, setDx] = useState(0);
   const [drag, setDrag] = useState(false);
   const start = useRef<number | null>(null);
-  const label = `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}. Over pays ${american(card.over_price)}, under pays ${american(card.under_price)}.`;
+  const label = market
+    ? `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}. Over pays ${american(card.over_price)}, under pays ${american(card.under_price)}.`
+    : `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}.`;
   const lean = dx > 40 ? "over" : dx < -40 ? "under" : null;
   return (
     <div
@@ -81,7 +85,7 @@ function Card(props: {
       </div>
       <div class="stat">{STAT_LABEL[card.stat]}</div>
       <div class="line num">{lineText(card.line)}</div>
-      {card.book ? <div class="muted small">Price from {bookName(card.book)}</div> : null}
+      {market && card.book ? <div class="muted small">Price from {bookName(card.book)}</div> : null}
       <div class="muted small">
         Over means {sideText(card.stat, card.line, "over")}. Under means {sideText(card.stat, card.line, "under")}.
       </div>
@@ -90,6 +94,7 @@ function Card(props: {
 }
 
 function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; reroll: () => void }) {
+  const market = useLens() === "market";
   const [ledger, setLedger] = useState<Pick[]>(loadLedger);
   const answered = useMemo(() => new Set(ledger.map((p) => p.prop_id)), [ledger]);
   const [initial] = useState(() => props.cards.filter((c) => !answered.has(c.prop_id)));
@@ -172,19 +177,19 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
           aria-label="Card deck. With this focused: left arrow for under, right arrow for over, space or S to skip."
           onKeyDown={onDeckKey}
         >
-          <Card key={card.prop_id} card={card} onChoose={choose} />
+          <Card key={card.prop_id} card={card} onChoose={choose} market={market} />
           <div class="swipe-actions">
             <button type="button" class="btn big under" onClick={() => { choose("under"); }}>
               <span class="btn-top">
                 <Arrow up={false} /> Under
               </span>
-              <span class="btn-sub num">{american(card.under_price)}</span>
+              <span class="btn-sub num">{market ? american(card.under_price) : sideText(card.stat, card.line, "under")}</span>
             </button>
             <button type="button" class="btn big over" onClick={() => { choose("over"); }}>
               <span class="btn-top">
                 <Arrow up /> Over
               </span>
-              <span class="btn-sub num">{american(card.over_price)}</span>
+              <span class="btn-sub num">{market ? american(card.over_price) : sideText(card.stat, card.line, "over")}</span>
             </button>
           </div>
           <button type="button" class="btn skip" onClick={() => { choose("skip"); }}>
@@ -237,6 +242,7 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
 }
 
 export function Swipe(props: { date: string | null; onStale: (s: boolean) => void }) {
+  const market = useLens() === "market";
   const [list, reloadList] = useLoad(() => api.slates(), []);
   return (
     <div class="stack">
@@ -244,7 +250,7 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
         <h1>Over or under?</h1>
         <Explain label="How does this work?">
           <p>
-            These are real player lines. By default you see the number and the price, nothing else: no forecast, no
+            These are real player lines. By default you see the number{market ? " and the price" : ""}, nothing else: no forecast, no
             stats. If you open "Stats and line slider" you see recent games and our forecast, and that pick is saved
             as not blind. Your answer is locked in before tip-off, then graded against what actually happened. They are
             pretend picks, so no money is involved, and your record is saved {IS_ARTIFACT ? "on this device and shared with the people who open this link" : "only on this device"}.

@@ -8,6 +8,7 @@ import { clearLocalIdentity, useIdentity } from "./identity";
 import { Icon, Logo, type IconName } from "./icons";
 import { moveSelection, search, KIND_LABEL, type SearchItem } from "./search";
 import { useIsAdmin, useNotices, useSearchIndex } from "./shellData";
+import { useLens } from "./prefs";
 import { topHref, type Route, type TopName } from "./router";
 import { dismissToast, useToasts } from "./toast";
 import { openTour } from "./tourState";
@@ -30,7 +31,9 @@ const ALL_WORKSPACE: NavDef[] = [
 ];
 // The track record reads the live API, which the single-file snapshot does not have.
 const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && n.name === "record"));
-const TABS: TopName[] = (["today", "record", "signals", "swipe", "picks"] as const).filter((t) => WORKSPACE.some((w) => w.name === t));
+const TABS: TopName[] = ["today", "record", "signals", "swipe", "picks"];
+/** Screens whose whole subject is prices and edges: they leave the nav outside the Market lens. */
+export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
 
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
@@ -298,6 +301,9 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const index = useSearchIndex(searchOpen, isAdmin);
+  const lens = useLens();
+  const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
+  const tabs = TABS.filter((t) => visible.some((w) => w.name === t));
   const here = ROUTE_TOP[props.route.name];
   const ready = deskOf(desk);
   const workspace = ready?.privacy === "private" ? "Jarvis Desk (private)" : "Public";
@@ -366,7 +372,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
         </button>
         <div class="side-label">Workspace</div>
         <nav class="side-nav" aria-label="Main">
-          {WORKSPACE.map((n) => link(n, "side-link"))}
+          {visible.map((n) => link(n, "side-link"))}
         </nav>
         <div class="side-label">Management</div>
         <nav class="side-nav" aria-label="Management">
@@ -460,7 +466,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
           {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} /> : null}
           {menuOpen ? (
             <nav class="nav-sheet" aria-label="All screens">
-              {[...WORKSPACE, ...mgmt].map((n) => link(n, "side-link"))}
+              {[...visible, ...mgmt].map((n) => link(n, "side-link"))}
             </nav>
           ) : null}
         </header>
@@ -479,8 +485,8 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
         <Footer />
       </div>
       <nav class="nav-bottom" aria-label="Main">
-        {TABS.map((t) => {
-          const n = WORKSPACE.find((w) => w.name === t) as NavDef;
+        {tabs.map((t) => {
+          const n = visible.find((w) => w.name === t) as NavDef;
           return (
             <a key={t} href={topHref(t)} aria-current={here === t ? "page" : undefined}>
               <Icon name={n.icon} />
