@@ -1,0 +1,225 @@
+{
+  "by_season": {
+    "2023": {
+      "ast": {
+        "crps_g2": "PASS",
+        "delta_mean": {
+          "abs_p50": 0.11934550607587269,
+          "abs_p90": 0.42195287873184173,
+          "mean": 0.17152943791061254
+        },
+        "halfwidth95_shared": 0.005718701996954823,
+        "n": 5872,
+        "n_sitter_seasons": 159,
+        "null_expected_gain": 0.010380718993485909,
+        "oracle_expected_gain": -0.010380718993485907,
+        "pass_line": -0.005718701996954823,
+        "power_shared": 0.9449603646693128,
+        "se_bind": 0.002408750006224184,
+        "se_by_cluster": {
+          "game": 0.0020997570872134516,
+          "player_season": 0.0021768114131651664,
+          "sitter_season": 0.002408750006224184
+        },
+        "se_shared": 0.0029177051004871547,
+        "slope_g2": "PASS",
+        "slope_se": 0.16703334336948192,
+        "slope_se_shared": 0.18490388306708944,
+        "span": 0.020761437986971817,
+        "w_at_floor": 0.7408311025054042
+      },
+      "fg3m": {
+        "crps_g2": "FLOOR_UNREACHABLE",
+        "delta_mean": {
+          "abs_p50": 0.05512762906241225,
+          "abs_p90": 0.192488428509298,
+          "mean": 0.07163117665424304
+        },
+        "halfwidth95_shared": 0.002160463671855707,
+        "n": 5872,
+        "n_sitter_seasons": 159,
+        "null_expected_gain": 0.0032997319240348918,
+        "oracle_expected_gain": -0.0032997319240348905,
+        "pass_line": -0.005,
+        "power_shared": 0.06147549492903065,
+        "se_bind": 0.0009701018890627691,
+        "se_by_cluster": {
+          "game": 0.0008897123142403976,
+          "player_season": 0.0008797667848052538,
+          "sitter_season": 0.0009701018890627691
+        },
+        "se_shared": 0.0011022773835998505,
+        "slope_g2": "PASS",
+        "slope_se": 0.22921368700689754,
+        "slope_se_shared": 0.2425452998666365,
+        "span": 0.006599463848069783,
+        "w_at_floor": 1.2576373043489593
+      },
+      "pts": {
+        "crps_g2": "PASS",
+        "delta_mean": {
+          "abs_p50": 0.5701194667182503,
+          "abs_p90": 1.446861916044745,
+          "mean": 0.6669886272689185
+        },
+        "halfwidth95_shared": 0.01899707593188207,
+        "n": 5872,
+        "n_sitter_seasons": 159,
+        "null_expected_gain": 0.038863355946960575,
+        "oracle_expected_gain": -0.038863355946960575,
+        "pass_line": -0.01899707593188207,
+        "power_shared": 0.9798021203648732,
+        "se_bind": 0.007479695930878254,
+        "se_by_cluster": {
+          "game": 0.006821591500224556,
+          "player_season": 0.006822787089534116,
+          "sitter_season": 0.007479695930878254
+        },
+        "se_shared": 0.009692385679531668,
+        "slope_g2": "PASS",
+        "slope_se": 0.16785579648175594,
+        "slope_se_shared": 0.18564718308831216,
+        "span": 0.07772671189392115,
+        "w_at_floor": 0.564327949531994
+      },
+      "reb": {
+        "crps_g2": "PASS",
+        "delta_mean": {
+          "abs_p50": 0.1528840787792176,
+          "abs_p90": 0.4563819962095411,
+          "mean": 0.2031672739763495
+        },
+        "halfwidth95_shared": 0.005924918143696877,
+        "n": 5872,
+        "n_sitter_seasons": 159,
+        "null_expected_gain": 0.01019895012697158,
+        "oracle_expected_gain": -0.01019895012697158,
+        "pass_line": -0.005924918143696877,
+        "power_shared": 0.9213009204630166,
+        "se_bind": 0.002553665995023371,
+        "se_by_cluster": {
+          "game": 0.0022946826316363016,
+          "player_season": 0.0023895285875956923,
+          "sitter_season": 0.002553665995023371
+        },
+        "se_shared": 0.0030229174202535086,
+        "slope_g2": "PASS",
+        "slope_se": 0.19362864365309013,
+        "slope_se_shared": 0.2092399575105959,
+        "span": 0.02039790025394316,
+        "w_at_floor": 0.745123269442081
+      }
+    },
+    "2024": {
+      "ast": {
+        "crps_g2": "PASS",
+        "delta_mean": {
+          "abs_p50": 0.09383742872995315,
+          "abs_p90": 0.3396829017306638,
+          "mean": 0.1391580007103159
+        },
+        "halfwidth95_shared": 0.0038925562696158038,
+        "n": 6544,
+        "n_sitter_seasons": 168,
+        "null_expected_gain": 0.007218339272877764,
+        "oracle_expected_gain": -0.007218339272877761,
+        "pass_line": -0.005,
+        "power_shared": 0.8680006197523327,
+        "se_bind": 0.0016442648714387635,
+        "se_by_cluster": {
+          "game": 0.0015713949675048003,
+          "player_season": 0.0015664169141709748,
+          "sitter_season": 0.0016442648714387635
+        },
+        "se_shared": 0.001985998096742757,
+        "slope_g2": "PASS",
+        "slope_se": 0.1791924939918091,
+        "slope_se_shared": 0.19509569666034535,
+        "span": 0.014436678545755526,
+        "w_at_floor": 0.8463400521216171
+      },
+      "fg3m": {
+        "crps_g2": "FLOOR_UNREACHABLE",
+        "delta_mean": {
+          "abs_p50": 0.05186972537902862,
+          "abs_p90": 0.15960397664033868,
+          "mean": 0.06696461170254375
+        },
+        "halfwidth95_shared": 0.0015858739527622632,
+        "n": 6544,
+        "n_sitter_seasons": 168,
+        "null_expected_gain": 0.002284751737209472,
+        "oracle_expected_gain": -0.0022847517372094703,
+        "pass_line": -0.005,
+        "power_shared": 0.0003956691466519863,
+        "se_bind": 0.0007282762357624705,
+        "se_by_cluster": {
+          "game": 0.0007230666144665085,
+          "player_season": 0.000710318527770516,
+          "sitter_season": 0.0007282762357624705
+        },
+        "se_shared": 0.000809119363654216,
+        "slope_g2": "SLOPE_UNRESOLVED",
+        "slope_se": 0.2746383263857582,
+        "slope_se_shared": 0.2852693311107088,
+        "span": 0.004569503474418942,
+        "w_at_floor": 1.5942107885443288
+      },
+      "pts": {
+        "crps_g2": "PASS",
+        "delta_mean": {
+          "abs_p50": 0.5549880474450393,
+          "abs_p90": 1.1995839630425358,
+          "mean": 0.6025559599508782
+        },
+        "halfwidth95_shared": 0.01473493139321364,
+        "n": 6544,
+        "n_sitter_seasons": 168,
+        "null_expected_gain": 0.029342832282581093,
+        "oracle_expected_gain": -0.029342832282581093,
+        "pass_line": -0.01473493139321364,
+        "power_shared": 0.9739981277140594,
+        "se_bind": 0.006001467046557383,
+        "se_by_cluster": {
+          "game": 0.0056106915448704735,
+          "player_season": 0.005247151022861084,
+          "sitter_season": 0.006001467046557383
+        },
+        "se_shared": 0.007517822139394715,
+        "slope_g2": "PASS",
+        "slope_se": 0.18378482926260978,
+        "slope_se_shared": 0.19932196170885833,
+        "span": 0.058685664565162186,
+        "w_at_floor": 0.5851996827001628
+      },
+      "reb": {
+        "crps_g2": "PASS",
+        "delta_mean": {
+          "abs_p50": 0.13497112333968708,
+          "abs_p90": 0.41621147183222573,
+          "mean": 0.18322708257473336
+        },
+        "halfwidth95_shared": 0.004526679701513859,
+        "n": 6544,
+        "n_sitter_seasons": 168,
+        "null_expected_gain": 0.007883968070500801,
+        "oracle_expected_gain": -0.007883968070500801,
+        "pass_line": -0.005,
+        "power_shared": 0.8941171351694608,
+        "se_bind": 0.0019631616092709676,
+        "se_by_cluster": {
+          "game": 0.0018472025903487905,
+          "player_season": 0.001945086444948212,
+          "sitter_season": 0.0019631616092709676
+        },
+        "se_shared": 0.0023095304599560504,
+        "slope_g2": "PASS",
+        "slope_se": 0.22277673878629026,
+        "slope_se_shared": 0.23575804609097853,
+        "span": 0.015767936141001603,
+        "w_at_floor": 0.8170992040612357
+      }
+    }
+  },
+  "changed": []
+}
