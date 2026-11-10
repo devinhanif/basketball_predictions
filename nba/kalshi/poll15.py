@@ -412,6 +412,9 @@ class _State:
     #: trade pulls back off on their own (a 429 on a trade page must not silence the quote polls)
     trades_cooldown_until: datetime | None = None
     trade_failures: int = 0
+    #: consecutive walks without evidence of the mark per ticker, and how many were accepted anyway
+    no_evidence: dict[str, int] = field(default_factory=dict)
+    unproven_accepted: int = 0
     quiet: int = 0
     quiet_since: datetime | None = None
     last_success: datetime | None = None
@@ -443,6 +446,7 @@ class _Walk:
     cursor: str | None = None  # where the next poll resumes; None = start from the newest page
     pages: int = 0
     top: int | None = None  # newest print second seen: the next mark if the walk completes
+    unproven: bool = False  # the cursor ended but no stored print of the mark's second came back
 
 
 class Poller:
@@ -510,6 +514,7 @@ class Poller:
                 st.trades_cooldown_until.isoformat() if st.trades_cooldown_until else None
             ),
             "trade_state_fallback": self.trade_state_fallback,
+            "unproven_accepted": st.unproven_accepted,
             "quote_rows": st.quote_rows,
             "skipped_budget": st.skipped_budget,
             "raw_files": self.store.files,
@@ -659,6 +664,8 @@ class Poller:
             "day": self.day.isoformat(),
             "pending": list(st.pending),
             "verify": sorted(st.verify),
+            "no_evidence": dict(st.no_evidence),
+            "unproven_accepted": st.unproven_accepted,
             "tickers": {
                 t: {
                     "hwm": st.last_trade_ts.get(t),
@@ -687,6 +694,8 @@ class Poller:
                     st.cursor[t] = str(d["cursor"])
             st.pending = {str(t): 0.0 for t in body.get("pending") or []}
             st.verify = {str(t) for t in body.get("verify") or []}
+            st.no_evidence = {str(k): int(v) for k, v in (body.get("no_evidence") or {}).items()}
+            st.unproven_accepted = int(body.get("unproven_accepted") or 0)
             return True
         except OSError:
             return False
@@ -747,6 +756,21 @@ class Poller:
         st = self.st
         if walk.top is not None:
             st.open_max[ticker] = max(st.open_max.get(ticker, 0), walk.top)
+        if walk.unproven:
+            n = st.no_evidence.get(ticker, 0) + 1
+            if n < 2:
+                st.no_evidence[ticker] = (
+                    n  # first miss: stay open, try once more from the newest page
+                )
+            else:  # second in a row: accept (a busted trade must not hold a ticker open all night)
+                st.no_evidence.pop(ticker, None)
+                st.unproven_accepted += 1
+                self.log_error(
+                    f"trades {ticker}: second walk without the mark accepted as complete"
+                )
+                walk.complete = True
+        elif walk.complete:
+            st.no_evidence.pop(ticker, None)
         if not walk.complete:
             if walk.cursor:
                 st.cursor[ticker] = walk.cursor
@@ -834,6 +858,7 @@ class Poller:
                 else:  # the walk ended without reaching the mark: keep the ticker open
                     self.log_error(f"trades {ticker}: walk ended without reaching the mark")
                     w.cursor = None
+                    w.unproven = True
                 break
             cursor = nxt
             w.cursor = nxt
@@ -1010,6 +1035,7 @@ class Poller:
                 trades=trades,
                 sources={"own": own, "capture": cap},
                 trade_state_fallback=self.trade_state_fallback,
+                unproven_accepted=self.st.unproven_accepted,
                 capture=self.capture,
                 export_dir=None,
                 beat=self.beat,

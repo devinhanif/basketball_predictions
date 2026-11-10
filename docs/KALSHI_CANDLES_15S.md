@@ -37,7 +37,7 @@ after the games, for reconciliation only.
   mark per ticker) moves only when a walk reaches the previous mark; a walk cut short by the page budget (12 pages a poll in all, 6 per ticker, 8 tickers) or by the budget reserve (10 slots stay free for the quote polls) or by an
   error keeps its **cursor** and the next poll resumes there, so no older print of a burst is skipped (the old cap of 2 pages dropped them for good). A catch-up that spanned polls gets one **verify pass** from the new mark. A stale
   cursor (400/404) restarts the walk, deduplicated on `trade_id`. **A walk is complete only on evidence it reached the mark**: the cursor ended and a stored print of the mark's second
-  was seen again; a resumed cursor that answers an empty last page is treated as expired (restart), and a walk that ends without the mark stays open and is logged.
+  was seen again; a resumed cursor that answers an empty last page is treated as expired (restart), and a walk that ends without the mark stays open and is logged. A **second consecutive** such walk is accepted as complete (a busted trade must not hold a ticker open all night) and counted as `unproven_accepted` in the heartbeat, the state file and the reconciliation.
   A 429 or 5xx on a trade page opens a **trade-only cool-down** (15 s doubling to 240 s); the quote polls and the watchdog's failure counters are not affected.
   Order of effects per poll: walk (no state changed), raw file, then marks and cursors, then `trade_state.json`; a failed raw write applies nothing and the next poll walks again.
   **Restart.** Marks, cursors, open maxima and the queue persist in `<store>/<date>/trade_state.json`; with that file a restart resumes mid catch-up. **Without a readable state file**

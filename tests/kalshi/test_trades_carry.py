@@ -366,11 +366,51 @@ def test_c1_a_walk_that_ends_without_the_marks_second_keeps_the_ticker_open(
     assert p.st.last_trade_ts[TICKER] == mark  # not advanced
     assert TICKER in p.st.pending
     assert "walk ended without reaching the mark" in (p.store.day_dir / "errors.log").read_text()
+    assert p.st.no_evidence[TICKER] == 1 and p.st.unproven_accepted == 0
     feed.drop_mark_second = False
     _run_to_done(p, clock)
     assert p.st.last_trade_ts[TICKER] == BASE_TS + 99 // 5 and TICKER not in p.st.pending
     ids = _stored(p)["trade_id"]
     assert ids.n_unique() == ids.len() == 100
+    assert not p.st.no_evidence and p.st.unproven_accepted == 0  # proof clears the counter
+
+
+def test_rc1_a_second_walk_without_the_mark_is_accepted_and_counted(tmp_path: Path) -> None:
+    feed = Feed(60)
+    clock, client = Clock(), FakeClient(feed)
+    p = _poller(tmp_path, clock, client)
+    _tick(p, clock, 3)
+    mark = p.st.last_trade_ts[TICKER]
+    feed.add(40)
+    feed.drop_mark_second = True  # a busted feed: the mark's second never comes back
+    _tick(p, clock)
+    assert p.st.last_trade_ts[TICKER] == mark and TICKER in p.st.pending  # first miss: open
+    assert p.st.unproven_accepted == 0
+    _tick(p, clock)  # second consecutive walk without the mark: accepted, not held open all night
+    assert p.st.unproven_accepted == 1 and not p.st.no_evidence
+    assert TICKER not in p.st.pending
+    assert p.st.last_trade_ts[TICKER] == BASE_TS + 99 // 5  # the mark moved on
+    ids = _stored(p)["trade_id"]
+    assert ids.n_unique() == ids.len() == 100  # the prints were stored regardless
+    assert "second walk without the mark accepted" in (p.store.day_dir / "errors.log").read_text()
+    p.beat("running")
+    assert json.loads((tmp_path / "hb.json").read_text())["unproven_accepted"] == 1
+    state = json.loads(p.trade_state_path.read_text())
+    assert state["unproven_accepted"] == 1  # survives a restart
+    p2 = _poller(tmp_path, clock, client)
+    p2.restore()
+    assert p2.st.unproven_accepted == 1
+    candles = json.loads((FIX / "live_candles_1m.json").read_text())
+
+    def fetch_candlesticks(ticker: str, series: str, **kw: Any) -> dict[str, Any]:
+        client.requests += 1
+        out: dict[str, Any] = candles
+        return out
+
+    client.fetch_candlesticks = fetch_candlesticks  # type: ignore[attr-defined]
+    p2.finalize("test")
+    rec = json.loads((p2.store.day_dir / "derived" / "reconciliation.json").read_text())
+    assert rec["unproven_accepted"] == 1
 
 
 def test_c2_a_lost_state_file_mid_catch_up_still_captures_every_print(tmp_path: Path) -> None:
