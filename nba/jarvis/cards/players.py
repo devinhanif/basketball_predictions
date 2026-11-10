@@ -788,7 +788,7 @@ def _post_checkpoint(
             counts["posted" if res.message_id else "lost_id"] += 1
         elif res.status == "deferred" and _maybe_delivered(res):
             # Discord may have accepted it (response lost): at most once for an informational post
-            rec = _rec(slate, g, t, minute, "posted", now)
+            rec = _rec(slate, g, t, minute, "posted", _real_now(rt, now))
             rec.update(message_id="", snap=snap, note=str(res.note or res.code))
             _safe_write(state, rec, counts)
             counts["lost_id"] += 1

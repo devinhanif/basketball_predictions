@@ -145,3 +145,40 @@ LightGBM context residual plus P(play)) and the existing Pinnacle-reference pric
 ## Drafted DECISIONS row (not appended)
 
 | 2026-11-10 | Production prop overs never price: `ModelView` has no `p_play`, and with `kalshi_prop_dnp_rule_verified: false`, `single_candidate` caps every prop with a Pinnacle reference at thin (71/71 today). Cards list 0 overs in all 6 games and no prop over can alert. Found by the player-checkpoint builder; confirmed on main by the adversary (docs/reviews/player_checkpoints_2026-11-10.md). Options: add `ModelView.p_play` from the stored forecast (live path, replay oracle, Devin's go), or keep it and say so on the cards. | Adversary finding. | Kalshi's DNP rule verified (the cap then no longer depends on P(plays)). |
+
+## Re-review of aa5fd8ba (diff f8dcd5a3..aa5fd8ba only), 2026-11-10
+
+Verdict: APPROVED
+
+I checked out aa5fd8ba detached in the adversary worktree. The branch worktree was not edited.
+
+| Item | What changed | Check | Result |
+|---|---|---|---|
+| M1 | `_post_checkpoint` reads `_real_now(rt, now)` immediately before `client.post` and re-runs `window_state(...)`. If the window is no longer `due`, or `tipoff` is None, it records `skipped_late` (via `_safe_write`) and does not post. This runs per team and inside the existing try. | Original scratch attack `test_pcp_attack.py` (tick at T-2, real clock T+1): `{'skipped_late': 6, 'posted': 0}`, 0 posts. New variant `test_pcp_attack_v2.py` (tick at T-3.5, which is still `due` under the new T-5 tolerance of 2; real clock T+1): `{'skipped_late': 6, 'posted': 0}`, 0 posts. Both exit 0. The branch test `test_a_stale_tick_clock_never_posts_after_tip` covers the same case. `rt.clock` is `runner.Runtime.clock`, which returns naive UTC, the same clock as `tipoff`. | PASS |
+| M2 | The query binds `to_report_dt(now)` (UTC to ET), and `as_of` is converted ET to UTC before it is stored or displayed. The seed is now stamped in ET (19:00 ET = 23:00Z). | Unit test of the round trip: 17:15Z = 12:15 ET. The known-at test now runs on the production convention. | PASS |
+| S1 | `_maybe_delivered` returns true for a 5xx or for `transport X` unless X is ConnectError, ConnectTimeout, PoolTimeout, UnsupportedProtocol or InvalidURL. When true, the attempt is recorded as `posted` with `message_id=""` plus the snapshot. A 429, a gate stop or a budget wait stays deferred. | The scratch attack `accepted_then_timeout` now passes (1 POST per webhook). The notes match `discord.py:141-176`. | PASS |
+| S2 | `_safe_write` wraps every state write and counts `state_write_failed`. | Read. | PASS |
+| S3 | `open_ro(path)` now uses the defaults, 4 x 1.5 s. | Read. | PASS |
+| S4 | The T-5 tolerance is 2 in both `configs/jarvis.yaml` and `DEFAULTS`. | Read. | PASS |
+| S6 | `_player_name` falls back to `nba.explain.local_names` for "player N" only. It is lru_cached, and any exception gives `{}`. Lookups use `DEFAULT_DATA_DIR` relative to the module, so they resolve from the main checkout's data/ under launchd. The read is DuckDB `read_only=True` and does not wait on a lock. | Timed from the main checkout cwd: first load 0.764 s (5,269 names), warm reload 0.132 s, exit 0. This is paid at most once per process (launchd starts a fresh process each tick), and only when a placeholder name appears. | PASS |
+
+Can anything new raise out of the pass? No. `_real_now` swallows clock errors. The re-check runs inside the per-team
+try. `_maybe_delivered` calls `int(code)` only on `CardResult.code`, which is an int or None. `_local_names` catches
+everything. `_safe_write` catches everything. Can anything new slow the tick? Only the name load, at most about 0.8 s
+cold, once per process.
+
+Minor findings, none blocking:
+- m1. players.py, the `_maybe_delivered` branch: the `posted` record is stamped with the stale tick `now` and has no
+  `as_of` block, while the skipped path uses `real`. This is cosmetic. Fix: in that branch, pass `_real_now(rt, now)` to `_rec` instead of `now`.
+- m2. players.py `_local_names`: `lru_cache` also caches the `{}` returned after a transient failure. This is harmless
+  because each launchd tick is a fresh process. Fix if JARVIS ever becomes long-running: cache only a non-empty result.
+- m3. `load_local_names` prints a "player-name conflicts" line to stderr on every cold load. That is noise in the
+  launchd log.
+
+Verification at aa5fd8ba, unpiped:
+- `pytest -q tests/jarvis`: 470 passed, 1 skipped. Exit 1 comes only from the repo-wide coverage gate (`fail-under 70`)
+  on a subset run, as at f8dcd5a3. No test failed.
+- `ruff check` and `ruff format --check` on players.py and test_players.py: exit 0 and 0. `mypy nba/jarvis/cards/players.py`: exit 0.
+
+Not verified: the real Discord behaviour on ReadTimeout or WriteTimeout. WriteTimeout and WriteError are treated as
+"maybe delivered", which is at-most-once by design. Live webhooks were not exercised end to end.
