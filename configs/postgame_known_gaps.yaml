@@ -5,6 +5,11 @@
 # them. Add a key only with evidence; re-check the list at the start of each season.
 # Evidence (2026-10-24): every morning log from 2026-10-15 to 2026-10-24 shows each key failing
 # (officials: AttributeError on a null body; matchups: IndexError on an empty result set).
+# Evidence (2026-11-10): 0022600189 (DEN @ IND, 2026-11-07) NotPublishedError for tracking AND matchups on
+# every morning since (11-08, 11-09, 11-10); turned stale on 11-10 and held the app export all day. Thinner
+# evidence than the 10-24 keys (3 mornings, not 10): drop it from the list if stats.nba.com publishes it.
+# No production model or the daily pipeline reads player_game_tracking / player_game_matchups.
 known_gaps:
   officials: ["0022500259", "0022500260", "0022500261"]
-  matchups: ["0022300383", "0022301230"]
+  matchups: ["0022300383", "0022301230", "0022600189"]
+  tracking: ["0022600189"]

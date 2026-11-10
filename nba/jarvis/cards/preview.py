@@ -102,7 +102,10 @@ def render_all(
                 overs, _ = F.pregame_overs(
                     cfg, d0.st, g.game_id, int(cfg.team_cards["top_overs"]), shown, rt.kb
                 )
-                for o in overs:
+                unders, _ = F.pregame_unders(
+                    cfg, d0.st, g.game_id, int(cfg.team_cards["top_overs"]), shown, rt.kb
+                )
+                for o in F.merge_ranked(overs, unders, int(cfg.team_cards["top_overs"])):
                     state.add_pick(F.pick_record(o, slate, g))
                 if ph == "final":
                     settle_pending(cfg, state, now, game_ids={g.game_id})

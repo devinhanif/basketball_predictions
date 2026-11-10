@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
+import { Avatar } from "../Avatar";
 import { CalTag, ErrorPanel, Explain, Loading, ModeToggle } from "../components";
 import { IS_ARTIFACT } from "../env";
 import { edgeLine, nearestFirst, contractSide } from "../edges";
@@ -798,7 +799,10 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
           Back to the game
         </a>
       </p>
-      <h1>{data.player}</h1>
+      <h1 class="who">
+        <Avatar name={data.player} team={data.team} playerId={data.player_id} size="lg" remote />
+        {data.player}
+      </h1>
       <p class="muted num" style={{ margin: 0 }}>
         {data.team} {data.home ? "vs" : "at"} {data.opponent} · tip-off {tipTime(data.tip_utc)} · {data.label} {lineText(line)}
       </p>

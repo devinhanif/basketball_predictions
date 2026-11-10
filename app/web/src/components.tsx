@@ -74,6 +74,7 @@ export function Footer() {
         </p>
         <p>Our forecasts can be wrong. A forecast is a chance, not a promise. Past results do not predict what comes next.</p>
         <p>{FOOTER_DISCLOSURE}</p>
+        <p class="small muted">Player photos: NBA</p>
       </div>
     </footer>
   );

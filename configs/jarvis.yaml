@@ -31,7 +31,8 @@ sides:                          # Devin 2026-10-27: Kalshi sells the No on playe
                                 #  quoted: bare yes is a YAML boolean)
   props_by_venue: {kalshi: ["yes", "no"], polymarket: ["yes"]}   # per-venue override; Polymarket No only when Devin says so
   # A prop No is a plain candidate on Kalshi: same Pinnacle fair, fee and spread, label computed from data. While
-  # settlement.kalshi_prop_dnp_rule_verified is false a prop No is capped at thin (a DNP may settle the No either way).
+  # settlement.kalshi_prop_dnp_rule_verified is false a prop No is capped at thin (a DNP may settle the No either way);
+  # it is true since 2026-11-10 (Kalshi contract terms: a pre-tip withdrawal resolves at the last fair price).
   # Polymarket US quotes only full-game winners today; its No skip (slate.py, edge.py) stays as the fallback.
   # The halftime scorer / HALFTIME_OVERS_VS_PRICE is Yes-only regardless of this key (frozen scope).
   # game markets (moneyline, spread, totals, team totals) keep both sides; this key never touches them.
@@ -57,9 +58,17 @@ freshness:
 
 settlement:                     # unverified rules are said out loud on every cross-venue play
   settlement_rules_verified: false      # postponement / overtime / void rules equal on both venues
-  kalshi_prop_dnp_rule_verified: false  # how Kalshi settles a player prop when the player does not play
-  # while the DNP rule is unverified, a prop's fair price is Pinnacle's P(over | plays) x P(plays) (our model),
-  # and without a model P(plays) the prop label is capped at thin.
+  # Kalshi BASKETBALLENTITYSTAT contract terms (NBAPTS / NBAAST, PDFs dated 2026-10-05,
+  # https://kalshi-public-docs.s3.amazonaws.com/contract_terms/NBAPTS.pdf), read by Devin 2026-11-10:
+  # "If a given <entity> or <player> withdraws prior to the commencement of <basketball game>, the markets on
+  # <entity> or <player> performance in <basketball game> will resolve to the last fair price as determined by the
+  # Exchange in its sole discretion." and "If a given <entity> or <player> retires or is injured during <basketball
+  # game>, the markets ... will settle based on the end-of-game statistics if <entity> or <player> have played for at
+  # least one (1) second." So a pre-tip DNP is about EV-neutral for BOTH sides: Yes and No price on P(over | plays).
+  kalshi_prop_dnp_rule_verified: true   # how Kalshi settles a player prop when the player does not play
+  # rule verified: a prop's fair price is Pinnacle's P(over | plays) (Yes) or P(under | plays) (No), no thin cap.
+  # If it is ever set false again: fair = Pinnacle x P(plays) (our model), without P(plays) the label is capped at
+  # thin, and a prop No is capped at thin (worst case: a DNP counts as a No loss).
 
 fees:
   # Kalshi: configs/parlay.yaml fee_model (verified, Devin 2026-10-08). Polymarket US: the verified object

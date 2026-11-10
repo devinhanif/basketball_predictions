@@ -191,7 +191,18 @@ def root(tmp_path: Path) -> Path:
 @pytest.fixture
 def cfg(root: Path) -> JarvisConfig:
     # the halftime scorer needs an artifact on disk; its own tests (test_halftime_overs.py) turn it on
-    return replace(load_config(root=root), halftime_overs={"enabled": False})
+    # the DNP rule is verified in the real config (2026-11-10); most tests here pin the older, stricter
+    # unverified path, so the fixture says so explicitly. ``cfg_verified`` / test_unders cover the real one.
+    return replace(
+        load_config(root=root),
+        halftime_overs={"enabled": False},
+        kalshi_prop_dnp_rule_verified=False,
+    )
+
+
+@pytest.fixture
+def cfg_verified(cfg: JarvisConfig) -> JarvisConfig:
+    return replace(cfg, kalshi_prop_dnp_rule_verified=True)
 
 
 @pytest.fixture

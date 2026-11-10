@@ -1,0 +1,71 @@
+/* ---- today's picks and headshots ---- */
+.todays-picks h2 {
+  margin: 2px 0 8px;
+}
+.tp-head {
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.tp-head.positive {
+  color: var(--win);
+}
+.tp-list {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.tp-pick {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 4px 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.tp-rank {
+  font-weight: 800;
+  min-width: 1ch;
+  padding-top: 8px;
+}
+.tp-why {
+  margin: 4px 0 0;
+}
+.tp-nums {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 4px 0 0;
+}
+.tp-nums > div {
+  display: flex;
+  flex-direction: column;
+}
+.tp-nums dt {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.tp-nums dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.tp-open {
+  grid-column: 1 / -1;
+}
+.player-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.leg-title h1.who {
+  display: flex;
+}
+.explore-who {
+  margin: 0 0 8px;
+}

@@ -358,9 +358,10 @@ def test_prop_no_label_is_capped_at_thin_while_the_dnp_rule_is_unverified(
     capped = single_candidate(cfg, st, cheap_no, "no")
     assert capped is not None and capped.edge_cents > cfg.strong_cents
     assert capped.label == "thin"  # held at thin: a DNP may settle the No either way
-    # the cap is the only thing holding it: with the rule verified the same bet is strong
+    # verified: still held at thin (display yes, alert no: the sharp prop line lags teammate news)
     free = single_candidate(replace(cfg, kalshi_prop_dnp_rule_verified=True), st, cheap_no, "no")
-    assert free is not None and free.label == "strong"
+    assert free is not None and free.label == "thin"
+    assert any("prop No held at thin" in n for n in free.notes)
     # and the game-market No is not touched by it
     g = next(q for q in st.quotes if q.kind == "game_win" and q.venue == "kalshi" and q.ask("no"))
     assert single_candidate(cfg, st, g, "no") is not None
@@ -385,9 +386,9 @@ def test_prop_no_under_a_model_without_p_play_is_unmultiplied_and_thin(
     assert no.label == "thin"
     assert any("no P(plays)" in n for n in no.notes)
     assert any("prop No" in n for n in no.notes)
-    # the verified rule lifts the cap only when Devin flips it
+    # a verified rule does not lift it: the No is still held at thin (cards_unders M1)
     free = single_candidate(replace(cfg, kalshi_prop_dnp_rule_verified=True), st, cheap_no, "no")
-    assert free is not None and free.label == "strong"
+    assert free is not None and free.label == "thin"
     # the Yes is capped too without P(plays), as before this branch
     cheap_yes = replace(prop, yes_ask=0.30, yes_bid=0.28)
     yes = single_candidate(cfg, st, cheap_yes, "yes")

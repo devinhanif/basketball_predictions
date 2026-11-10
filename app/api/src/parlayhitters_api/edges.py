@@ -54,6 +54,31 @@ def _row(rec: Json, leg: Json) -> Json | None:
     }
 
 
+def _context(rec: Json) -> Json:
+    """The stored fields a plain-words reason is built from.
+
+    Each is None when the record does not carry it. Older exports carry none of the
+    ``drivers`` fields: the page then says only what the price and the weight show.
+    """
+    drivers = rec.get("drivers")
+    d = drivers if isinstance(drivers, dict) else {}
+    out_raw = d.get("teammates_out")
+    out_names: list[str] = []
+    if isinstance(out_raw, list):
+        out_names = [
+            str(m.get("name"))[:60] for m in out_raw if isinstance(m, dict) and m.get("name")
+        ][:3]
+    return {
+        "model_weight": _num(rec.get("model_weight")),
+        "n_settled_track": _num(rec.get("n_settled_track")),
+        "spread": _num(rec.get("spread")),
+        "p_play": _num(rec.get("p_play")),
+        "proj_minutes": _num(d.get("proj_minutes")),
+        "mean_cond": _num(d.get("mean_cond")),
+        "teammates_out": out_names,
+    }
+
+
 def leg_edges(records: list[Json], game_id: str, player_id: int, stat: str) -> list[Json]:
     """Stored contract rows for one player and stat, sorted by threshold then side."""
     out: list[Json] = []
@@ -119,6 +144,7 @@ def top_contracts(
                 "stat": leg.get("stat"),
                 "matchup": f"{g['away'].get('abbr')} @ {g['home'].get('abbr')}",
                 "tip_utc": g.get("tip_utc"),
+                "context": _context(rec),
             }
         )
     rows.sort(key=lambda r: (-r["ev"], -r["model_prob"], r["ticker"]))
