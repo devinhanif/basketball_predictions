@@ -11,14 +11,18 @@ Once the morning job has finished cleanly it runs ``python -m nba.export build -
   from a different run than the heartbeat (fail closed). A missing, still-running, stale or failing run SKIPS the run with a recorded reason: the reason goes into this job's own heartbeat (``status: skipped``), the log, and
   ``app-export.skip.json`` (consecutive count), which the watchdog turns into an alert after two skips in a row. A skip never exits non-zero.
 * **Atomic.** The export is built into a staging directory next to ``latest`` and swapped in only after the build exited 0; a failed build
-  leaves yesterday's ``latest`` untouched. (A directory cannot be swapped in one syscall, so there is a window of two renames; the app reads
-  ``manifest.json`` last.)
+  leaves yesterday's ``latest`` untouched. The swap is ONE syscall where the OS has one (``renamex_np`` RENAME_SWAP on macOS, ``renameat2``
+  RENAME_EXCHANGE on Linux): ``latest`` is never absent. Elsewhere it falls back to two renames.
 * **Locked database.** nba.duckdb is single-writer; the build opens it read-only and exits 2 while a pretip run holds it. The job retries a few
   times a minute apart (the pretip runs are short between games), then fails with rc 2 for the watchdog.
 * **Heartbeat.** ``data/ops/heartbeat/app-export.json`` is written at START and at END (flat keys of the other wrappers plus ``status`` and
   ``reason``), so a job that never starts, or dies, is visible from the independent watchdog (``nba.ops.watchdog``, JobSpec ``app-export``).
-* Two launchd slots a day (12:35 and 14:35 on the schedule clock): a second slot that finds today's export already built after the morning job's
-  end does nothing and says so. No credentials, no orders, nothing outward: the export is a local directory.
+* **Re-export (2026-11-09).** launchd fires two slots an hour (:05 and :35 on the schedule clock, 12-22), between the pretip runs. After today's first
+  export a slot rebuilds only when a pretip run has ENDED since the last build started (that run's forecasts and market capture are new) and the
+  last tip of the slate is still ahead; anything else is a one-second no-op that says why. The newest pre-tip lines and forecasts therefore reach
+  ``latest`` after every pretip run until the last tip. The known-at rules live in the build (post-tip lines and forecasts are excluded there).
+  A failed re-export keeps the last good export, exits non-zero for the watchdog and appends a line to ``data/ops/ALERTS.md``.
+  No credentials, no orders, nothing outward: the export is a local directory.
 """
 
 from __future__ import annotations
@@ -36,11 +40,13 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from nba.ops.watchdog import read_heartbeat
+from nba.ops.watchdog import read_heartbeat, todays_tips
 
 JOB = "app-export"
 MORNING = "daily-morning"
 STEPS_FILE = f"{MORNING}.steps"
+PRETIP = "daily-pretip"
+STATE_FILE = f"{JOB}.state.json"
 
 
 #: steps whose failure does not stop the export: the Drive copies only (they never feed it); any other backup_* step blocks
@@ -70,6 +76,8 @@ BUILD_TIMEOUT_S = 900
 
 #: ``build(day, out_dir) -> rc``: injectable for tests
 Builder = Callable[[date, Path], int]
+#: ``tips(data_dir, day) -> {game_id: tip_utc}``: injectable for tests (the watchdog's reader by default)
+TipsFn = Callable[[Path, date], dict[str, datetime]]
 
 
 def _ts(value: object) -> datetime | None:
@@ -132,19 +140,34 @@ def morning_gate(hb_dir: Path, today: date) -> tuple[bool, str, datetime | None]
     return True, "ok", end
 
 
-def already_built(out: Path, today: date, morning_end: datetime) -> bool:
-    """True when ``out`` holds today's export built after the morning job ended (the second daily slot has nothing to do)."""
+def _exchange(a: Path, b: Path) -> bool:
+    """Atomically exchange two existing paths (one syscall). False when the OS or filesystem has no such call."""
+    import ctypes
+    import ctypes.util
+
     try:
-        m = json.loads((out / "manifest.json").read_text())
-        made = datetime.fromisoformat(str(m["made_at"]))
-    except (OSError, ValueError, KeyError):
+        libc = ctypes.CDLL(ctypes.util.find_library("c") or None, use_errno=True)
+        if sys.platform == "darwin":
+            return bool(libc.renamex_np(os.fsencode(a), os.fsencode(b), 2) == 0)  # RENAME_SWAP
+        if sys.platform.startswith("linux"):
+            at_fdcwd = -100
+            rc = libc.renameat2(
+                at_fdcwd, os.fsencode(a), at_fdcwd, os.fsencode(b), 2
+            )  # RENAME_EXCHANGE
+            return bool(rc == 0)
+    except (OSError, AttributeError):
         return False
-    made = made.replace(tzinfo=UTC) if made.tzinfo is None else made  # the export stamps naive UTC
-    return str(m.get("export_date")) == today.isoformat() and made >= morning_end
+    return False
 
 
 def swap_dir(stage: Path, final: Path) -> None:
-    """Put ``stage`` in place of ``final``: ``final`` is moved aside, ``stage`` renamed into its place, the old copy removed."""
+    """Put ``stage`` in place of ``final``. With an atomic exchange ``final`` is never absent and ``stage`` ends up holding the old
+    export (removed); otherwise ``final`` is moved aside, ``stage`` renamed into its place, the old copy removed."""
+    if not stage.is_dir():
+        raise FileNotFoundError(f"stage {stage} is not a directory")
+    if final.is_dir() and not final.is_symlink() and _exchange(stage, final):
+        shutil.rmtree(stage, ignore_errors=True)
+        return
     old = final.with_name(f".{final.name}.old.{os.getpid()}")
     if final.exists():
         os.replace(final, old)
@@ -157,11 +180,61 @@ def swap_dir(stage: Path, final: Path) -> None:
     shutil.rmtree(old, ignore_errors=True)
 
 
+def _utc(t: datetime) -> datetime:
+    return t.replace(tzinfo=UTC) if t.tzinfo is None else t
+
+
+def rebuild_reason(
+    root: Path,
+    out: Path,
+    hb_dir: Path,
+    today: date,
+    morning_end: datetime,
+    now: datetime,
+    tips_fn: TipsFn = todays_tips,
+) -> tuple[bool, str]:
+    """``(build?, why)``. Build when today's export does not exist yet (or predates the morning job's end); after that only when a pretip run
+    has ended since the last build started (its forecasts and capture are new) and a game of the slate has not tipped yet."""
+    try:
+        m = json.loads((out / "manifest.json").read_text())
+        made = _utc(datetime.fromisoformat(str(m["made_at"])))
+    except (OSError, ValueError, KeyError):
+        return True, "no export on disk"
+    if str(m.get("export_date")) != today.isoformat() or made < morning_end:
+        return True, "first export of the day"
+    ref = made
+    try:
+        st = json.loads((hb_dir / STATE_FILE).read_text())
+        if st.get("export_date") == today.isoformat():
+            started = _ts(st.get("build_start_ts"))
+            if started is not None:
+                ref = started  # written after a successful swap, so it is never later than the export's own build
+    except (OSError, ValueError, AttributeError):
+        pass
+    hb = read_heartbeat(hb_dir, PRETIP)
+    end = _ts(hb.get("end_ts")) if hb else None
+    if end is None or end <= ref:
+        return False, "nothing newer than the last export (no pretip run has ended since)"
+    try:
+        tips = tips_fn(root / "data", today)
+    except (OSError, ValueError, KeyError):
+        tips = {}  # unknown tips: the pretip trigger above stands
+    if tips and now >= max(tips.values()):
+        return False, "every game of the slate has tipped; the last export stands"
+    return True, f"pretip run ended {end:%H:%M} after the last build"
+
+
 def _write_json(path: Path, rec: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(rec))
     tmp.replace(path)
+
+
+def _alert(ops: Path, msg: str) -> None:
+    """One line in ``data/ops/ALERTS.md`` (the file the other wrappers and the watchdog write); never raises."""
+    with contextlib.suppress(OSError), (ops / "ALERTS.md").open("a") as fh:
+        fh.write(f"- {datetime.now():%Y-%m-%d %H:%M} [app-export] {msg}\n")
 
 
 def _build_subprocess(root: Path) -> Builder:
@@ -198,6 +271,7 @@ def run(
     sleep: Callable[[float], None] = time.sleep,
     retries: int = LOCK_RETRIES,
     wait_s: float = LOCK_WAIT_S,
+    tips_fn: TipsFn = todays_tips,
 ) -> int:
     """One run of the job. Returns the process exit code: 0 for ok and for a recorded skip, otherwise the build's rc."""
     now = now or datetime.now().astimezone()
@@ -247,11 +321,13 @@ def run(
         beat(True, 0, "skipped", why)
         return 0
     assert m_end is not None
-    if already_built(out, today, m_end):
+    go, why_build = rebuild_reason(root, out, hb_dir, today, m_end, now, tips_fn)
+    if not go:
         (hb_dir / f"{JOB}.skip.json").unlink(missing_ok=True)
-        say("today's export is already built after the morning job; nothing to do")
-        beat(True, 0, "ok", "already built")
+        say(f"nothing to do: {why_build}")
+        beat(True, 0, "ok", why_build)
         return 0
+    say(f"building: {why_build}")
     builder = build or _build_subprocess(root)
     stage = out.with_name(f".{out.name}.stage.{os.getpid()}")
     rc = 1
@@ -275,6 +351,11 @@ def run(
         except OSError as exc:
             say(f"swap failed: {exc}")
             rc = 1
+        else:  # only a swapped-in export moves the reference: a failed build must not hide a pretip run
+            _write_json(
+                hb_dir / STATE_FILE,
+                {"export_date": today.isoformat(), "build_start_ts": now.astimezone().isoformat()},
+            )
     shutil.rmtree(stage, ignore_errors=True)
     if rc == 0:
         (hb_dir / f"{JOB}.skip.json").unlink(missing_ok=True)
@@ -282,6 +363,7 @@ def run(
         beat(True, 0, "ok", "")
     else:
         say(f"FAILED rc={rc}; the previous export stays in place")
+        _alert(ops, f"build rc={rc}; the previous export stays in place, see {log}")
         beat(True, rc, "failed", f"build rc={rc}")
     return rc
 

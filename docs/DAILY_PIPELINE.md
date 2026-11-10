@@ -752,8 +752,12 @@ Rule: `docs/prereg/COMBO_STOCKS_SHADOW.md` (FROZEN 2026-10-14 15:08 CDT, sha256 
 `python -m nba.ops.app_export` runs `python -m nba.export build --date <today ET> --out data/export/latest` after the morning job. It is NOT a step of `ops/nba_daily.sh`: an export failure
 can never change a morning or pretip exit code, and a slow Drive upload in the morning job (today: 98 minutes, rc 1) cannot delay it past its own slots.
 
-* **Schedule**: `ops/launchd/local.nba.app-export.plist`, two slots a day at 12:35 and 14:35 on the schedule clock (the same clock as the other jobs, `data/ops/schedule_tz`), at :35 so they fall
-  between the pretip runs. **Not installed by anything in the repo.** Install: `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist && launchctl kickstart -k gui/$(id -u)/local.nba.app-export`
+* **Schedule** (re-export, 2026-11-09): `ops/launchd/local.nba.app-export.plist`, two slots an hour, :05 and :35, hours 12-22 on the schedule clock (the same clock as the other jobs, `data/ops/schedule_tz`),
+  so they fall between the pretip runs (:20, :50). Before 2026-11-09 it was two slots a day (12:35, 14:35), and the app showed the lines of one early snapshot all evening.
+  **Re-export rule**: the first slot after the morning job builds; every later slot rebuilds only when the `daily-pretip` heartbeat has an END newer than the last build's start
+  (`data/ops/heartbeat/app-export.state.json`, written only after a successful swap) AND the last tip of today's slate (`nba.ops.watchdog.todays_tips`) is still ahead (unknown tips: the pretip trigger alone). Otherwise
+  the slot is a one-second no-op that records why in its heartbeat (`reason`) and log. A pretip run still in progress is not a trigger. Known-at rules are unchanged: they live in `nba.export` (a prop line must
+  have `received_at <= made_at` of the forecast row and be before the tip; post-tip lines and forecasts are excluded and counted in the manifest). **Not installed by anything in the repo.** Install: `cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist && launchctl kickstart -k gui/$(id -u)/local.nba.app-export`
   (the kickstart writes the first heartbeat at once, otherwise the watchdog alerts `app-export:stale` until the first slot has run; it runs the gate, so it may record a skip);
   remove: `launchctl bootout gui/$(id -u)/local.nba.app-export`.
 * **Gate** (DECISIONS 2026-10-14 20:31, A1): the `daily-morning` heartbeat must have an END written today (Eastern date) AND every DATA step of that run must have succeeded. `ops/nba_daily.sh`
@@ -767,8 +771,8 @@ can never change a morning or pretip exit code, and a slow Drive upload in the m
   exits 0 clean, **3** when only diff-only flags fire (COVERAGE_DROP, NULL_SHIFT, STALE_SCHEDULED) and 1 on any other flag (POSSIBLE_LEAK, LABEL_NULL_GAP, schema, PK, ROW_DROP, unknown kinds).
   `data_check_step` in `ops/nba_daily.sh` records rc 3 as `data_check 0 ok` plus `data_check_advisory 3 failed` (alert, heartbeat rc unchanged); any other non-zero rc records `data_check <rc> failed` and blocks.
   The manifest coverage ratio counts completed games only (a season with none is null, not 0).
-* **Atomic**: built in `data/export/.latest.stage.<pid>` and swapped into `data/export/latest` only after the build exited 0; a failed build leaves the previous export in place. A locked
-  `nba.duckdb` (exit 2) is retried 4 times a minute apart. A second slot that finds today's export already built after the morning job's end does nothing.
+* **Atomic**: built in `data/export/.latest.stage.<pid>` and swapped into `data/export/latest` only after the build exited 0, with one exchange syscall where the OS has one (`renamex_np` RENAME_SWAP on macOS, so `latest` is never absent; two renames elsewhere); a failed build leaves the previous export in place, exits non-zero (watchdog `app-export:rc`) and appends a `[app-export]` line to `data/ops/ALERTS.md`. A locked
+  `nba.duckdb` (exit 2) is retried 4 times a minute apart. A slot with nothing newer does nothing (see Re-export rule).
 * **Heartbeat / watchdog**: `data/ops/heartbeat/app-export.json` at START and END (`status`, `reason`, `rc`). `JOBS["app-export"]` in `nba.ops.watchdog` is `optional`: silent until the job has left a
   heartbeat or its label is loaded, so merging before the maintainer installs it raises no false alert; once loaded, a missed slot, a non-zero rc or two skips alert like any job.
 

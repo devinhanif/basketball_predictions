@@ -271,7 +271,29 @@ def test_a_build_that_raises_is_a_failed_run_with_a_heartbeat(tmp_path: Path) ->
     assert _hb(tmp_path)["status"] == "failed"
 
 
-def test_the_second_slot_does_nothing_when_todays_export_is_built(tmp_path: Path) -> None:
+def _pretip(root: Path, *, start: datetime, end: datetime | None, rc: int | None = 0) -> None:
+    hb = root / "data/ops/heartbeat"
+    hb.mkdir(parents=True, exist_ok=True)
+    fmt = "%Y-%m-%dT%H:%M:%S%z"
+    (hb / "daily-pretip.json").write_text(
+        json.dumps(
+            {
+                "job": "daily-pretip",
+                "mode": "pretip",
+                "host": "h",
+                "start_ts": start.strftime(fmt),
+                "end_ts": end.strftime(fmt) if end else None,
+                "rc": rc,
+            }
+        )  # fmt: skip
+    )
+
+
+def _tips(*when: datetime):  # type: ignore[no-untyped-def]
+    return lambda data_dir, day: {f"002260{i:04d}": t for i, t in enumerate(when)}
+
+
+def test_no_pretip_run_since_the_build_is_a_noop(tmp_path: Path) -> None:
     _good_morning(tmp_path)
     assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
     b = FakeBuild([0])
@@ -279,9 +301,103 @@ def test_the_second_slot_does_nothing_when_todays_export_is_built(tmp_path: Path
     assert A.run(tmp_path, now=later, build=b) == 0
     assert (
         b.calls == 0
-        and _hb(tmp_path)["reason"] == "already built"
+        and "nothing newer" in str(_hb(tmp_path)["reason"])
         and _hb(tmp_path)["status"] == "ok"
     )
+
+
+def test_a_pretip_run_that_ended_after_the_build_triggers_a_reexport(
+    tmp_path: Path,
+) -> None:
+    _good_morning(tmp_path)
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    tip = NOW.replace(hour=19)
+    _pretip(tmp_path, start=NOW.replace(minute=50), end=NOW.replace(minute=55))
+    b = FakeBuild([0])
+    t1 = NOW.replace(hour=13, minute=5)
+    assert A.run(tmp_path, now=t1, build=b, tips_fn=_tips(tip)) == 0
+    assert b.calls == 1 and _hb(tmp_path)["status"] == "ok"
+
+
+def test_reexport_is_idempotent_against_the_state_file(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    tip = NOW.replace(hour=19)
+    _pretip(tmp_path, start=NOW.replace(minute=50), end=NOW.replace(minute=55))
+    assert (
+        A.run(
+            tmp_path, now=NOW.replace(hour=13, minute=5), build=FakeBuild([0]), tips_fn=_tips(tip)
+        )
+        == 0
+    )
+    b = FakeBuild([0])  # build started 13:05 (state), pretip ended 12:55: nothing newer
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=b, tips_fn=_tips(tip)) == 0
+    assert b.calls == 0
+    _pretip(tmp_path, start=NOW.replace(hour=13, minute=20), end=NOW.replace(hour=13, minute=25))
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=b, tips_fn=_tips(tip)) == 0
+    assert b.calls == 1
+
+
+def test_no_reexport_once_every_game_has_tipped(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    _pretip(tmp_path, start=NOW.replace(hour=20, minute=20), end=NOW.replace(hour=20, minute=25))
+    b = FakeBuild([0])
+    late = NOW.replace(hour=22, minute=5)
+    assert (
+        A.run(
+            tmp_path,
+            now=late,
+            build=b,
+            tips_fn=_tips(NOW.replace(hour=19), NOW.replace(hour=21, minute=30)),
+        )
+        == 0
+    )
+    assert b.calls == 0 and "tipped" in str(_hb(tmp_path)["reason"])
+
+
+def test_pretip_still_running_is_not_a_trigger(tmp_path: Path) -> None:
+    _good_morning(tmp_path)
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    _pretip(tmp_path, start=NOW.replace(hour=13, minute=20), end=None, rc=None)
+    b = FakeBuild([0])
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=b) == 0
+    assert b.calls == 0
+
+
+def test_failed_reexport_keeps_the_last_good_export_alerts_and_exits_nonzero(
+    tmp_path: Path,
+) -> None:
+    _good_morning(tmp_path)
+    assert A.run(tmp_path, now=NOW, build=FakeBuild([0])) == 0
+    latest = tmp_path / "data/export/latest"
+    before = (latest / "manifest.json").read_text()
+    _pretip(tmp_path, start=NOW.replace(hour=13, minute=20), end=NOW.replace(hour=13, minute=25))
+    assert A.run(tmp_path, now=NOW.replace(hour=13, minute=35), build=FakeBuild([1])) == 1
+    assert (latest / "manifest.json").read_text() == before
+    assert (latest / "export.duckdb").exists()
+    assert sorted(p.name for p in latest.parent.iterdir()) == ["latest"]
+    assert _hb(tmp_path)["status"] == "failed" and _hb(tmp_path)["rc"] == 1
+    assert "[app-export] build rc=1" in (tmp_path / "data/ops/ALERTS.md").read_text()
+
+
+def test_swap_dir_exchanges_atomically_and_leaves_nothing_behind(tmp_path: Path) -> None:
+    final, stage = tmp_path / "latest", tmp_path / ".latest.stage.1"
+    final.mkdir()
+    (final / "a").write_text("old")
+    stage.mkdir()
+    (stage / "a").write_text("new")
+    A.swap_dir(stage, final)
+    assert (final / "a").read_text() == "new"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["latest"]
+
+
+def test_swap_dir_works_when_final_is_absent(tmp_path: Path) -> None:
+    final, stage = tmp_path / "latest", tmp_path / "stage"
+    stage.mkdir()
+    (stage / "a").write_text("new")
+    A.swap_dir(stage, final)
+    assert (final / "a").read_text() == "new" and not stage.exists()
 
 
 def test_swap_dir_restores_the_old_export_if_the_rename_fails(tmp_path: Path) -> None:
@@ -315,7 +431,7 @@ def test_plist_is_in_step_with_the_watchdog_spec() -> None:
 def test_watchdog_is_silent_before_install_and_alerts_once_loaded_or_started(
     tmp_path: Path,
 ) -> None:
-    now = datetime(2026, 10, 14, 13, 30, tzinfo=ET)
+    now = datetime(2026, 10, 14, 13, 32, tzinfo=ET)
     hb = tmp_path / "hb"
     hb.mkdir()
     kw = {"tz": ET}
@@ -360,7 +476,7 @@ def test_watchdog_is_silent_before_install_and_alerts_once_loaded_or_started(
 
 
 def test_two_consecutive_skips_alert_with_the_recorded_reason(tmp_path: Path) -> None:
-    now = datetime(2026, 10, 14, 13, 30, tzinfo=ET)
+    now = datetime(2026, 10, 14, 13, 32, tzinfo=ET)
     hb = tmp_path / "hb"
     hb.mkdir()
     due = last_due(next(j for j in JOBS if j.name == "app-export"), now, ET)
