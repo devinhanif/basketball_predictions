@@ -4,13 +4,14 @@ import { american, bookName, lineText, num, pct } from "./format";
 import { Explain, View } from "./components";
 import { plainModel } from "./plain";
 import { gameHref } from "./router";
-import { calibrationFooter, percentAlong, modelLine, pairLines, quantile, read, sliderRange, snapHalf } from "./slider";
+import { calibrationFooter, hideBook, percentAlong, modelLine, pairLines, quantile, read, sliderRange, snapHalf } from "./slider";
 import { Chips, DistStrip, ProbBar } from "./Viz";
 import { wilson } from "./stats";
 import { useLoad } from "./useLoad";
 import type { CardStats, CardView } from "./types";
 import { STAT_LABEL } from "./types";
 import { sideText } from "./words";
+import { useLens } from "./prefs";
 
 /** The last ten games, oldest to newest, against tonight's line. Filled dot = went over. */
 export function Sparkline(props: {
@@ -133,6 +134,7 @@ function Facts(props: { s: CardStats; card: CardView }) {
 }
 
 export function LineSlider({ card }: { card: CardView }) {
+  const market = useLens() === "market";
   const posted = card.line_source === "posted" ? card.line : null;
   const bookMain = card.book_main_line ?? card.line_cal?.main_line ?? card.rung_cal?.main_line ?? null;
   const input = {
@@ -235,19 +237,21 @@ export function LineSlider({ card }: { card: CardView }) {
       <ProbBar over={r.p_over} label={`At line ${lineText(line)}`} />
       <div class="ls-pair small num" aria-live="polite">
         <div class="ls-raw">{pair.raw}</div>
-        {pair.cal !== null ? <div class="ls-cal">{pair.cal}</div> : <div class="ls-cal none muted">{r.cal_note}</div>}
+        {pair.cal !== null ? <div class="ls-cal">{market ? pair.cal : hideBook(pair.cal)}</div> : <div class="ls-cal none muted">{market ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
       </div>
       <p class="small ls-say">
         Over {lineText(line)} means {sideText(stat, line, "over")}. Under means {sideText(stat, line, "under")}.
       </p>
       <p class={`small ls-label ${r.source}`}>{r.plain}</p>
       <Explain label="Show the exact details">
-        <p class="small">{r.label}</p>
+        <p class="small">{market ? r.label : hideBook(r.label)}</p>
         {card.dist.method === "exact" && card.dist.n !== null ? <p class="small">Forecast table resolution: 1 in {card.dist.n}.</p> : null}
       </Explain>
       {r.tail_note ? <p class="small ls-tail">{r.tail_note}</p> : null}
       <p class="small muted num">
-        {posted !== null && card.over_price !== null && card.under_price !== null
+        {!market
+          ? `The line on this card is ${lineText(card.line)}.`
+          : posted !== null && card.over_price !== null && card.under_price !== null
           ? `Posted line ${lineText(posted)}${card.price_book ? ` at ${bookName(card.price_book)}` : ""}: over ${american(card.over_price)}, under ${american(card.under_price)}. Prices exist only at the posted line.`
           : "No posted price is stored for this prop."}
       </p>
@@ -274,6 +278,7 @@ export function CardDetail(props: { card: { game_id: string; player_id: number; 
 }
 
 function Body(props: { game_id: string; player_id: number; stat: string }) {
+  const market = useLens() === "market";
   const [state, reload] = useLoad(() => api.card(props.game_id, props.player_id, props.stat), [props.game_id, props.player_id, props.stat]);
   return (
     <View state={state} reload={reload}>
@@ -289,7 +294,7 @@ function Body(props: { game_id: string; player_id: number; stat: string }) {
               <li>{card.model_label}</li>
               <li>Forecast stamp: <span class="mono">{card.forecast_stamp}</span></li>
               <li>{card.dist.method === "exact" ? "Read from the exact count table." : "Read off a 19-point quantile grid."}</li>
-              {calibrationFooter(card.line_cal, card.rung_cal) ? <li>{calibrationFooter(card.line_cal, card.rung_cal)}</li> : null}
+              {calibrationFooter(card.line_cal, card.rung_cal) ? <li>{market ? calibrationFooter(card.line_cal, card.rung_cal) : hideBook(calibrationFooter(card.line_cal, card.rung_cal) ?? "")}</li> : null}
             </ul>
           </Explain>
           {card.stats ? <Facts s={card.stats} card={card} /> : <p class="small">No game history is loaded for this prop.</p>}

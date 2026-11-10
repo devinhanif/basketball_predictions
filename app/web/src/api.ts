@@ -1,6 +1,11 @@
 import type {
+  Calibration,
   CardView,
   GameDetail,
+  GameKnows,
+  GuessDeck,
+  GuessReveal,
+  PlayerKnows,
   GameResult,
   Meta,
   ProbAtLine,
@@ -68,6 +73,13 @@ export const api = {
   parlay: () => getJson<ParlayState>("/api/parlay-of-the-day"),
   edges: (gameId: string, playerId: number, stat: string) =>
     getJson<LegEdges>(`/api/edges/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}`),
+  calibration: () => getJson<Calibration>("/api/track-record/calibration"),
+  guessDeck: (seed: number, n = 12) => getJson<GuessDeck>(`/api/track-record/guess?seed=${seed.toString()}&n=${n.toString()}`),
+  guessReveal: (gameId: string, playerId: number, stat: string) =>
+    getJson<GuessReveal>(`/api/track-record/guess/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}`),
+  knowsGame: (gameId: string) => getJson<GameKnows>(`/api/knows/${encodeURIComponent(gameId)}`),
+  knowsPlayer: (gameId: string, playerId: number, stat: string) =>
+    getJson<PlayerKnows>(`/api/knows/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}`),
   propAtLine: (gameId: string, playerId: number, stat: string, line: number) =>
     getJson<ProbAtLine>(
       `/api/props/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}?line=${line.toString()}`,

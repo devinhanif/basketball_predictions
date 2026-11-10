@@ -25,6 +25,14 @@ export const CAL_OUT_OF_FIT =
 export const CAL_OUT_OF_RANGE = "No calibrated number at this line: it is beyond the lines the adjustment covers.";
 export const CAL_NOT_EXPORTED = "No calibrated number was exported for this prop.";
 
+/** Outside the Market lens a book's name is not shown: "DraftKings line" reads "sportsbook line". */
+export function hideBook(text: string): string {
+  return text.replace(
+    /\b(DraftKings|FanDuel|BetMGM|Caesars|ESPN ?BET|Fanatics|Kalshi|Polymarket|Novig)( line)?\b/gi,
+    (_m, _b, line: string | undefined) => (line ? "sportsbook line" : "the sportsbook"),
+  );
+}
+
 /** Why there is no line-calibrated number, in plain words, by the export's line_cal_null_reason code. */
 export const LINE_CAL_REASONS: Record<string, string> = {
   no_book_line: "No calibrated number: no DraftKings line was posted before tip.",

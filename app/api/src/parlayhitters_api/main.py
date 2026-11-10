@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import random
+import threading
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -14,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from .breakdown import Breakdown, Side
+from .breakdown import Breakdown, Context, Side
 from .breakdown import build as build_breakdown
 from .desk import DeskMissing, DeskRefused, load_desk
 from .desk_shared import load_shared_desk
@@ -33,6 +34,8 @@ from .forecast import (
     forecast_method,
     forecast_probs,
 )
+from .knows import GameKnows, PlayerKnows, game_knows, player_knows
+from .minutes import minutes_info
 from .model_source import model_detail, model_label, p_play_label
 from .models import (
     CardStats,
@@ -62,10 +65,19 @@ from .top_parlays import (
     TopParlaysUnavailable,
     load_top_parlays,
 )
+from .trackrecord import (
+    Calibration,
+    GuessDeck,
+    GuessReveal,
+    calibration,
+    guess_deck,
+    guess_reveal,
+)
 
 STATS = ("pts", "reb", "ast", "fg3m")
 LOCAL_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
 _cache: dict[str, Any] = {}
+_load_lock = threading.Lock()
 
 
 def get_store() -> AnyStore:
@@ -73,8 +85,12 @@ def get_store() -> AnyStore:
     Reloaded when a new export lands (the manifest is replaced last), without a restart."""
     key = store_key()
     if _cache.get("key") != key or "store" not in _cache:
-        _cache["store"] = load_store()  # raises ExportRefused for an export we cannot vouch for
-        _cache["key"] = key
+        # One load at a time: a cold start answers its first requests together, and without the
+        # lock each of them would load the whole export again (about 15 s of CPU apiece).
+        with _load_lock:
+            if _cache.get("key") != key or "store" not in _cache:
+                _cache["store"] = load_store()  # ExportRefused for an export we cannot vouch for
+                _cache["key"] = key
     store: AnyStore = _cache["store"]
     return store
 
@@ -312,6 +328,7 @@ def register(app: FastAPI) -> None:
                 "label": s["label"],
                 "games": s["counts"]["games"],
                 "props": s["counts"]["props"],
+                "finished": sum(1 for g in s["games"] if g.get("result") is not None),
             }
             for s in store.slates.values()
         ]
@@ -501,7 +518,56 @@ def register(app: FastAPI) -> None:
             model_label=view.model_label,
             model_source=view.model_source,
             tip_utc=str(g["tip_utc"]),
+            minutes=minutes_info(
+                pr["forecast"],
+                None if store.history is None else Context(store.history, g, pl, stat),
+            ),
         )
+
+    @app.get("/api/knows/{game_id}", response_model=GameKnows)
+    def knows_game(game_id: str, store: StoreDep) -> GameKnows:
+        """The game's tip-off timeline: news on the injury report and the biggest forecast moves."""
+        return game_knows(store, _need_game(store, game_id))
+
+    @app.get("/api/knows/{game_id}/{player_id}/{stat}", response_model=PlayerKnows)
+    def knows_player(game_id: str, player_id: int, stat: str, store: StoreDep) -> PlayerKnows:
+        """One prop's forecast snapshots before tip, the news beside them, and why the range is
+        as wide as it is, in words built from fields the data holds."""
+        g = _need_game(store, game_id)
+        if stat not in STATS:
+            raise HTTPException(404, "unknown stat")
+        pl = next((p for p in g["players"] if p["player_id"] == player_id), None)
+        if pl is None or stat not in pl["props"]:
+            raise HTTPException(404, "no forecast for that player and stat")
+        return player_knows(store, g, pl, stat)
+
+    @app.get("/api/track-record/calibration", response_model=Calibration)
+    def track_calibration(store: StoreDep) -> Calibration:
+        """When the model said X%, how often it happened, from the settled games loaded here."""
+        hit = _cache.get("calibration")
+        if hit is not None and hit[0] is store:
+            cached: Calibration = hit[1]
+            return cached
+        result = calibration(store)
+        _cache["calibration"] = (store, result)
+        return result
+
+    @app.get("/api/track-record/guess", response_model=GuessDeck)
+    def track_guess(
+        store: StoreDep,
+        seed: Annotated[int, Query(ge=0, le=2**31 - 1)] = 1,
+        n: Annotated[int, Query(ge=1, le=50)] = 12,
+    ) -> GuessDeck:
+        """Finished props with a posted line, drawn at random. No outcome and no forecast."""
+        return guess_deck(store, seed, n)
+
+    @app.get("/api/track-record/guess/{game_id}/{player_id}/{stat}", response_model=GuessReveal)
+    def track_guess_reveal(game_id: str, player_id: int, stat: str, store: StoreDep) -> GuessReveal:
+        """What happened and what the model said, for one finished prop."""
+        out = guess_reveal(store, f"{game_id}:{player_id}:{stat}")
+        if out is None:
+            raise HTTPException(404, "no finished prop with a posted line for that player and stat")
+        return out
 
     @app.get("/api/breakdown/{game_id}/{player_id}/{stat}", response_model=Breakdown)
     def breakdown(

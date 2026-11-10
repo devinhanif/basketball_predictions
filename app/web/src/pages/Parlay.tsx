@@ -4,6 +4,8 @@ import { longDate, stamp } from "../format";
 import { engineSpeaksFor } from "../nights";
 import { LatestTopParlays } from "../TopParlaysPanel";
 import { useLoad } from "../useLoad";
+import { useLens } from "../prefs";
+import { MarketOnly } from "../Lens";
 import type { ParlayState } from "../types";
 
 /** Plain-language headline for the verdict. The engine's own label is kept in the details. */
@@ -35,6 +37,7 @@ export function gateSentence(g: ParlayState["gate"]): string {
 }
 
 export function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
+  const market = useLens() === "market";
   const g = p.gate;
   return (
     <section class="panel verdict" aria-labelledby="parlay-h">
@@ -76,13 +79,13 @@ export function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
                 Track record: {g.describe}; gate open: {g.gate_open ? "yes" : "no"}.
               </li>
             ) : null}
-            {p.fee_model !== null ? (
+            {market && p.fee_model !== null ? (
               <li>
                 Fee schedule used: {p.fee_model.name} (formula {p.fee_model.formula}, coefficient {p.fee_model.coefficient}),
                 verified: {p.fee_model.verified ? "yes" : "no"}. Source: {p.fee_model.source}.
               </li>
             ) : null}
-            {p.price_basis ? (
+            {market && p.price_basis ? (
               <li>
                 How a ticket would be priced: {p.price_basis}. {p.historical_note}
               </li>
@@ -128,11 +131,16 @@ export function ParlayCard({ compact, date }: { compact: boolean; date?: string 
 }
 
 export function ParlayPage(props: { date: string | null }) {
+  const market = useLens() === "market";
   return (
     <div class="stack">
       <h1>Parlay of the day</h1>
       <ParlayCard compact={false} date={props.date} />
-      <LatestTopParlays date={props.date} />
+      {market ? (
+        <LatestTopParlays date={props.date} />
+      ) : (
+        <MarketOnly name="The ticket list" what="The ticket list is the market side of a night's tickets." />
+      )}
       <section class="panel flat">
         <h3>The three ways a day can go</h3>
         <ul class="plain">
@@ -145,7 +153,7 @@ export function ParlayPage(props: { date: string | null }) {
             idea, clearly marked as unproven. Keep your money.
           </li>
           <li>
-            <strong>Nothing today.</strong> No ticket was worth it, or there was nothing we could price. This is a normal
+            <strong>Nothing today.</strong> No ticket was worth it, or there was nothing we could check. This is a normal
             day, not an error.
           </li>
         </ul>

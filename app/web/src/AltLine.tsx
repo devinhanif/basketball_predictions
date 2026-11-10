@@ -29,7 +29,7 @@ function Side(props: { player: string; stat: Stat; line: number; side: "over" | 
 }
 
 /** Pick any line and see what the stored forecast says at it. Display only: nothing is saved or scored. */
-export function AltLine(props: { gameId: string; playerId: number; player: string; prop: PropView }) {
+export function AltLine(props: { gameId: string; playerId: number; player: string; prop: PropView; showPrices?: boolean }) {
   const { prop, gameId, playerId, player } = props;
   const main = prop.line;
   const { min, max } = altRange(prop.stat, main);
@@ -115,11 +115,13 @@ export function AltLine(props: { gameId: string; playerId: number; player: strin
             {Number.isInteger(line) && p.push > 0.005 ? (
               <p class="small muted num">Exactly {lineText(line)} is a push: {Math.round(p.push * 100)}%.</p>
             ) : null}
-            <p class="small num">
-              {onMain && ready && prop.over_price !== null && prop.under_price !== null
-                ? `Posted prices: over ${american(prop.over_price)}, under ${american(prop.under_price)}.`
-                : "No price for this line."}
-            </p>
+            {props.showPrices === false ? null : (
+              <p class="small num">
+                {onMain && ready && prop.over_price !== null && prop.under_price !== null
+                  ? `Posted prices: over ${american(prop.over_price)}, under ${american(prop.under_price)}.`
+                  : "No price for this line."}
+              </p>
+            )}
           </div>
         ) : failed ? null : (
           <p class="muted small">Working it out...</p>

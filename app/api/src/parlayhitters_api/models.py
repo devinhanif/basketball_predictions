@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from .minutes import MinutesInfo
 from .role import PlayerRole
 
 Stat = str
@@ -262,3 +263,5 @@ class CardView(BaseModel):
     model_label: str
     model_source: str = ""
     tip_utc: str
+    #: Projected and recent minutes and the rough share of the spread they explain.
+    minutes: MinutesInfo | None = None

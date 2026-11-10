@@ -15,13 +15,25 @@ import { History } from "./pages/History";
 import { Alerts } from "./pages/Alerts";
 import { Admin } from "./pages/Admin";
 import { Welcome } from "./Welcome";
+import { Record } from "./pages/Record";
+import { Tour } from "./Tour";
+import { MarketOnly } from "./Lens";
+import { useLens } from "./prefs";
+import { openTour, tourSeen } from "./tourState";
+import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
 import { IS_ARTIFACT } from "./env";
 
 export function App() {
   const route = useRoute();
+  const market = useLens() === "market";
   const [stale, setStale] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    // First visit: the tour opens once (after the welcome, which opens it itself when it finishes).
+    if (!IS_ARTIFACT && hasWelcomed() && !tourSeen()) openTour();
+  }, []);
 
   useEffect(() => {
     api.meta().then(
@@ -70,13 +82,20 @@ export function App() {
       page = <Settings />;
       break;
     case "signals":
-      page = <Signals />;
+      page = market ? <Signals /> : <MarketOnly name="Signals" what="Signals ranks stored contracts on the market side." />;
       break;
     case "hedge":
-      page = <Hedge game={route.game} player={route.player} stat={route.stat} />;
+      page = market ? (
+        <Hedge game={route.game} player={route.player} stat={route.stat} />
+      ) : (
+        <MarketOnly name="Hedge Finder" what="The Hedge Finder works on the market side." />
+      );
       break;
     case "history":
-      page = <History />;
+      page = market ? <History /> : <MarketOnly name="Model History" what="Model History is the paper book of market plays." />;
+      break;
+    case "record":
+      page = <Record tab={route.tab} date={route.date} />;
       break;
     case "alerts":
       page = <Alerts />;
@@ -93,6 +112,7 @@ export function App() {
         {page}
       </Shell>
       <Welcome />
+      {IS_ARTIFACT ? null : <Tour />}
     </>
   );
 }

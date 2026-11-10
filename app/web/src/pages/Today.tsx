@@ -2,9 +2,10 @@ import { useEffect } from "preact/hooks";
 import { api, warmGames } from "../api";
 import { ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
-import { headline } from "../headline";
+import { headline, learnHeadline } from "../headline";
+import { LensSwitch } from "../Lens";
 import { chronological, defaultNight, engineSpeaksFor } from "../nights";
-import { useMode, type Mode } from "../prefs";
+import { useLens, useMode, type Mode } from "../prefs";
 import { useLoad } from "../useLoad";
 import type { GameSummary, ParlayState, Slate } from "../types";
 import { STAT_LABEL, STAT_SHORT } from "../types";
@@ -12,16 +13,16 @@ import { VerdictStrip } from "../VerdictStrip";
 import { pickHero } from "../discover";
 import { Court, DeskTiles, Discipline, Hero, Insight, LeagueTabs, Radar, useRadar } from "./DiscoverParts";
 import { compareLine, doesText, rangeSentence } from "../words";
-import type { TpResult } from "../topParlays";
+import { hasTickets, type TpResult } from "../topParlays";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
-function KeyPropsFull({ game }: { game: GameSummary }) {
+function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) {
   return (
     <div class="props">
       <div class="label">Top scorers, by our forecast</div>
       {game.key_props.map((p) => {
         const reference = p.line_source === "reference";
-        const compare = reference ? null : compareLine(p.model_p_over, p.market_p_over);
+        const compare = reference || !market ? null : compareLine(p.model_p_over, p.market_p_over);
         return (
           <div class="prop-line" key={p.player_id}>
             <div class="prop-main">
@@ -62,7 +63,7 @@ function KeyPropsFull({ game }: { game: GameSummary }) {
 }
 
 /** Simple: one line per player. */
-function KeyPropsOneLine({ game }: { game: GameSummary }) {
+function KeyPropsOneLine({ game, market }: { game: GameSummary; market: boolean }) {
   if (game.key_props.length === 0) return null;
   return (
     <ul class="props one-line" aria-label="Top scorers, by our forecast">
@@ -81,7 +82,7 @@ function KeyPropsOneLine({ game }: { game: GameSummary }) {
               ) : (
                 <>
                   over {lineText(p.line)} {STAT_SHORT[p.stat]} <b>{pctBounded(p.model_p_over, p.extrapolated)}</b>
-                  {p.market_p_over !== null ? <span class="muted"> (book {pct(p.market_p_over)})</span> : null}
+                  {market && p.market_p_over !== null ? <span class="muted"> (book {pct(p.market_p_over)})</span> : null}
                 </>
               )}
             </span>
@@ -92,7 +93,7 @@ function KeyPropsOneLine({ game }: { game: GameSummary }) {
   );
 }
 
-function GameRow({ g, mode }: { g: GameSummary; mode: Mode }) {
+function GameRow({ g, mode, market }: { g: GameSummary; mode: Mode; market: boolean }) {
   return (
     <a class="game" href={`#/game/${g.game_id}`} aria-label={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}, open game`}>
       <div class="game-top">
@@ -106,8 +107,8 @@ function GameRow({ g, mode }: { g: GameSummary; mode: Mode }) {
       <div class="muted small">
         {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
       </div>
-      <WinBars wp={g.win_probability} home={g.home} away={g.away} />
-      {mode === "analyst" ? <KeyPropsFull game={g} /> : <KeyPropsOneLine game={g} />}
+      <WinBars wp={g.win_probability} home={g.home} away={g.away} showBook={market} />
+      {mode === "analyst" ? <KeyPropsFull game={g} market={market} /> : <KeyPropsOneLine game={g} market={market} />}
     </a>
   );
 }
@@ -150,9 +151,19 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const featured =
     slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === pickHero(radar.rows)?.gameId) ?? slate.data.games[0] ?? null) : null;
   const played = featured !== null && Date.parse(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
+  const lens = useLens();
+  const market = lens === "market";
+  // Without the Market lens the card never claims "no parlay": it says only that a check exists, or that parlays live there.
+  const engineHasPick = speaks && engine.headline_verdict !== "no_positive_ev_found";
+  const checkExists = engineHasPick || (tickets !== null && tickets.kind === "ok" && hasTickets(tickets.data));
+  const learnStrip = checkExists
+    ? { title: "A parlay check exists for this night. Keep your money.", body: "See it in the Market lens. Our model has no live track record yet, so nothing here is a pick." }
+    : { title: "Parlays live in the Market lens. Keep your money.", body: "Our model has no live track record yet, so nothing here is a pick." };
   const head =
-    slate.status === "ready" && eng.status !== "loading" && tp.status !== "loading"
-      ? headline({ games: slate.data.counts.games, engine, speaks, tickets })
+    slate.status === "ready" && (!market || (eng.status !== "loading" && tp.status !== "loading"))
+      ? market
+        ? headline({ games: slate.data.counts.games, engine, speaks, tickets })
+        : learnHeadline(slate.data.counts.games)
       : null;
   return (
     <>
@@ -170,6 +181,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           <h1 class="answer pending">Reading the night&hellip;</h1>
         )}
         <LeagueTabs />
+        <LensSwitch compact />
         <div class="head-tools">
           <nav class="tabs" aria-label="Choose a night">
             {props.nights.map((d) => (
@@ -181,21 +193,35 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           <ModeToggle />
         </div>
       </header>
-      <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
-      <div class="two-col">
-        <Hero row={pickHero(radar.rows)} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} desk={radar.desk} />
-        <Court game={featured} final_={played} />
-      </div>
-      {radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}
-      <div class="two-col wide-left">
-        <Radar rows={radar.rows} loading={radar.loading} />
-        <div class="stack side-col">
-          <Insight desk={radar.desk} />
-          <Discipline desk={radar.desk} engine={engine} />
+      {market ? (
+        <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
+      ) : (
+        <section class="panel verdict strip keep" aria-labelledby="strip-h">
+          <div class="kicker">Parlays for {longDate(date)}</div>
+          <h2 id="strip-h">{learnStrip.title}</h2>
+          <p class="small muted">{learnStrip.body}</p>
+        </section>
+      )}
+      {market ? (
+        <div class="two-col">
+          <Hero row={pickHero(radar.rows)} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} desk={radar.desk} />
+          <Court game={featured} final_={played} market />
         </div>
-      </div>
+      ) : (
+        <Court game={featured} final_={played} market={false} />
+      )}
+      {market && radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}
+      {market ? (
+        <div class="two-col wide-left">
+          <Radar rows={radar.rows} loading={radar.loading} />
+          <div class="stack side-col">
+            <Insight desk={radar.desk} />
+            <Discipline desk={radar.desk} engine={engine} />
+          </div>
+        </div>
+      ) : null}
       <View state={slate} reload={reloadSlate} onStale={props.onStale}>
-        {(s) => <SlateBody s={s} engine={engine} speaks={speaks} mode={mode} />}
+        {(s) => <SlateBody s={s} engine={engine} speaks={speaks} mode={mode} market={market} />}
       </View>
     </>
   );
@@ -209,11 +235,11 @@ function WarmCache({ ids }: { ids: string[] }) {
   return null;
 }
 
-function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolean; mode: Mode }) {
-  const { s, engine, speaks, mode } = props;
+function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolean; mode: Mode; market: boolean }) {
+  const { s, engine, speaks, mode, market } = props;
   const gateClosed = engine?.gate != null ? !engine.gate.gate_open : null;
-  const priced = speaks && engine ? engine.counts["n_contracts"] : undefined;
-  const flagged = speaks && engine ? engine.counts["n_flagged_positive"] : undefined;
+  const priced = market && speaks && engine ? engine.counts["n_contracts"] : undefined;
+  const flagged = market && speaks && engine ? engine.counts["n_flagged_positive"] : undefined;
   return (
     <>
       <section class="tiles" aria-label="The night in numbers">
@@ -235,10 +261,10 @@ function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolea
       </section>
       <div class="games">
         {s.games.map((g) => (
-          <GameRow key={g.game_id} g={g} mode={mode} />
+          <GameRow key={g.game_id} g={g} mode={mode} market={market} />
         ))}
       </div>
-      <WinLegend />
+      <WinLegend showBook={market} />
       <WarmCache ids={s.games.map((g) => g.game_id)} />
     </>
   );

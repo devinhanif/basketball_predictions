@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import { american, lineText, longDate } from "./format";
 import { loadLedger, onLedgerChange, settle, type Pick } from "./ledger";
 import { getShared, onIt, subscribeShared, toPick, type SharedState } from "./sharedPicks";
+import { useLens } from "./prefs";
 import { useResults } from "./useSettled";
 import { didText } from "./words";
 
@@ -68,6 +69,7 @@ export function ShareNote() {
 
 /** Friends' picks with their own record where graded. Names come from the platform at render and are never stored. */
 export function FriendsPicks() {
+  const market = useLens() === "market";
   const s = useShared();
   const ids = Object.keys(s.others);
   const all = useMemo(() => ids.flatMap((id) => (s.others[id] ?? []).map((p) => ({ id, p }))), [s.others]);
@@ -106,7 +108,7 @@ export function FriendsPicks() {
                     <div class="pick-body">
                       <div class="pick-title">{g ? `${p.player} ${didText(p.stat, g.row.actual)}` : p.player}</div>
                       <div class="pick-sub num">
-                        Took {p.side} {lineText(p.line)} ({american(p.side === "over" ? p.over_price : p.under_price)}). {p.team} vs {p.opponent}, {longDate(p.slate_date)}
+                        Took {p.side} {lineText(p.line)}{market ? ` (${american(p.side === "over" ? p.over_price : p.under_price)})` : ""}. {p.team} vs {p.opponent}, {longDate(p.slate_date)}
                       </div>
                     </div>
                   </li>

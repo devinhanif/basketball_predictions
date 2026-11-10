@@ -76,6 +76,8 @@ export interface SlateListItem {
   props: number;
   /** Set only by the single-file snapshot: false when the night has no swipe deck to grade picks against. */
   deck?: boolean;
+  /** Games with a final score in the data (absent in the single-file snapshot). */
+  finished?: number;
 }
 
 export interface PropView {
@@ -335,4 +337,152 @@ export interface CardView {
   model_label: string;
   model_source: string;
   tip_utc: string;
+  /** Projected and recent minutes and the rough share of the spread they explain (absent in older servers). */
+  minutes?: MinutesInfo | null;
+}
+
+export interface MinutesInfo {
+  baseline: number | null;
+  baseline_source: "model" | "recent" | null;
+  proj_minutes: number | null;
+  p_play: number | null;
+  recent_avg: number | null;
+  recent_sd: number | null;
+  recent_n: number;
+  stat_mean: number | null;
+  stat_sd: number | null;
+  minutes_share: number | null;
+  range_now: [number, number];
+  range_minutes_known: [number, number] | null;
+  method: string;
+}
+
+/* ------------------------------------------------------------------ track record */
+export interface CalBin {
+  lo: number;
+  hi: number;
+  n: number;
+  n_games: number;
+  said: number | null;
+  happened: number | null;
+  lo95: number | null;
+  hi95: number | null;
+  enough: boolean;
+}
+export interface CalSeries {
+  name: string;
+  what_said: string;
+  what_happened: string;
+  n: number;
+  n_games: number;
+  bins: CalBin[];
+  overall: CalBin;
+  sources: { source: string; label: string; n: number; overall: CalBin }[];
+  excluded: Record<string, number>;
+  interval: string;
+}
+export interface Calibration {
+  mode: string;
+  date_from: string | null;
+  date_to: string | null;
+  n_games_finished: number;
+  props: CalSeries;
+  winners: CalSeries;
+  note: string;
+}
+export interface GuessCard {
+  prop_id: string;
+  game_id: string;
+  date: string;
+  player: string;
+  team: string;
+  opponent: string;
+  home: boolean;
+  stat: Stat;
+  line: number;
+  form: { last5: number[]; avg_minutes5: number | null; n_prior: number } | null;
+}
+export interface GuessDeck {
+  seed: number;
+  cards: GuessCard[];
+  n_available: number;
+  reason: string;
+  note: string;
+}
+export interface GuessReveal {
+  prop_id: string;
+  actual: number;
+  line: number;
+  went_over: boolean;
+  model_p_over: number;
+  model_call: "over" | "under";
+  model_right: boolean;
+  minutes: number | null;
+  stat_mean: number;
+  forecast_stamp: string;
+}
+
+/* ------------------------------------------------------------------ what the game knows */
+export interface KnowsSnap {
+  made_at: string;
+  lead_minutes: number;
+  mean: number | null;
+  p10: number;
+  p50: number;
+  p90: number;
+  p_over: number;
+  proj_minutes: number | null;
+  p_play: number | null;
+  shown: boolean;
+}
+export interface KnowsNews {
+  at_utc: string;
+  lead_minutes: number | null;
+  player_id: number;
+  name: string;
+  team: string | null;
+  status: string;
+  previous: string | null;
+  reason: string | null;
+  himself: boolean;
+  first_report: boolean;
+}
+export interface UncItem {
+  key: string;
+  text: string;
+}
+export interface PlayerKnows {
+  game_id: string;
+  player_id: number;
+  player: string;
+  team: string;
+  stat: Stat;
+  line: number;
+  line_source: string;
+  tip_utc: string;
+  final: boolean;
+  snapshots: KnowsSnap[];
+  news: KnowsNews[];
+  uncertainty: { p10: number; p90: number; mean: number | null; items: UncItem[]; minutes: MinutesInfo };
+  note: string;
+}
+export interface KnowsMover {
+  player_id: number;
+  name: string;
+  team: string;
+  stat: Stat;
+  first_mean: number;
+  last_mean: number;
+  delta: number;
+  first_at: string;
+  last_at: string;
+  n_snapshots: number;
+}
+export interface GameKnows {
+  game_id: string;
+  tip_utc: string;
+  news: KnowsNews[];
+  movers: KnowsMover[];
+  n_reports: number;
+  note: string;
 }

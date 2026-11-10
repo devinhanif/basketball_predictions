@@ -1,0 +1,480 @@
+/* Phase B: the lens switch, the Explore what-ifs, the track record, "what the game knew" and the tour.
+   Loads last; uses only the tokens in theme.css so light and dark both read. Text is never under 12px. */
+
+/* ---- lens switch ---- */
+.lens {
+  display: grid;
+  gap: 4px;
+}
+.lens-seg {
+  width: 100%;
+}
+.lens-seg .seg-btn {
+  flex: 1 1 0;
+  padding: 0 8px;
+}
+.lens-say {
+  margin: 0;
+}
+
+/* ---- Explore ---- */
+.explore h2 {
+  margin-bottom: 4px;
+}
+.xp-block {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.xp-block:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.xp-block h3,
+.xp-share h4 {
+  margin: 0;
+}
+.xp-share {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.xp-share h4 {
+  font-family: var(--display);
+  font-size: 0.95rem;
+}
+.xp-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.xp-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.xp-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-height: 44px;
+  font-size: 0.9rem;
+}
+.xp-check input {
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+.xp-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.xp-fields .field input,
+.xp-fee .field input {
+  width: 100%;
+  min-height: 44px;
+  font-size: 1rem;
+}
+.xp-fee {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.xp-read {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.xp-soon-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 760px) {
+  .xp-soon-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.xp-soon {
+  padding: 12px;
+  border: 1px dashed var(--muted);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+.xp-soon p {
+  margin: 6px 0 0;
+}
+
+/* ---- what the game knew ---- */
+.kn-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 18px;
+  border-left: 2px solid var(--line);
+  display: grid;
+  gap: 14px;
+}
+.kn-item {
+  position: relative;
+  display: grid;
+  gap: 4px;
+}
+.kn-item::before {
+  content: "";
+  position: absolute;
+  left: -25px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--muted);
+}
+.kn-item.forecast::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.kn-item.news::before {
+  border-color: var(--tonight);
+}
+.kn-item.tip::before {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+.kn-when {
+  font-size: 0.85rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+.kn-what {
+  display: grid;
+  gap: 4px;
+}
+.kn-what p {
+  margin: 0;
+}
+.kn-change {
+  padding-left: 8px;
+  border-left: 3px solid var(--tonight);
+}
+.kn-first summary {
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.kn-range {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.kn-range.big {
+  height: 20px;
+  border-radius: 10px;
+}
+.kn-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+.kn-mid {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  margin-left: -1px;
+  background: var(--accent-ink);
+}
+.kn-line {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 0;
+  border-left: 2px dashed var(--ink);
+}
+.kn-why {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.kn-why-list {
+  display: grid;
+  gap: 8px;
+}
+.kn-movers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.kn-movers a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  min-height: 44px;
+}
+.kn-movers a:hover {
+  border-color: var(--accent);
+}
+.kn-move {
+  justify-self: end;
+}
+
+/* ---- track record ---- */
+.record .tabs {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rp-nights {
+  flex-wrap: wrap;
+}
+.rp-game {
+  display: grid;
+  gap: 10px;
+}
+.rp-players {
+  display: grid;
+  gap: 10px;
+}
+.rp-player {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.rp-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+}
+.rp-result {
+  margin: 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--accent);
+}
+.rp-reveal,
+.rp-toggle {
+  justify-self: start;
+}
+.cal-list {
+  display: grid;
+  gap: 14px;
+}
+.cal-row {
+  display: grid;
+  gap: 6px;
+}
+.cal-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+}
+.cal-track {
+  position: relative;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.cal-int {
+  position: absolute;
+  top: 6px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.55;
+}
+.cal-said {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  border-left: 2px dashed var(--ink);
+}
+.cal-dot {
+  position: absolute;
+  top: 1px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+}
+.gs-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  text-align: center;
+}
+.gs-score {
+  display: grid;
+  gap: 8px;
+}
+.gs-card {
+  display: grid;
+  gap: 8px;
+}
+.gs-q {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+.gs-q .line-out {
+  display: inline;
+  font-size: 2.4rem;
+}
+.gs-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.gs-actions .btn.big {
+  min-width: 0;
+  padding: 8px 6px;
+  height: auto;
+}
+.gs-actions .btn-sub {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  text-transform: none;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.gs-reveal {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.gs-reveal p {
+  margin: 0;
+}
+.gs-right {
+  color: var(--win);
+  font-weight: 700;
+}
+.gs-wrong {
+  color: var(--loss);
+  font-weight: 700;
+}
+
+/* ---- the tour ---- */
+.tour-back {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: #080a1099;
+}
+.tour {
+  width: min(520px, 100%);
+  max-height: 92dvh;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow);
+}
+@media (min-width: 760px) {
+  .tour-back {
+    align-items: center;
+  }
+  .tour {
+    border-radius: var(--radius);
+  }
+}
+.tour-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.tour-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.tour-body {
+  display: grid;
+  gap: 8px;
+}
+.tour-body p {
+  margin: 0;
+}
+.tour-lenses {
+  display: grid;
+  gap: 6px;
+}
+.tour-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.tour-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-3);
+}
+.tour-dots i.on {
+  background: var(--accent);
+}
+.tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.tour-actions .btn {
+  min-height: 44px;
+}
+
+/* ---- bottom tabs: labels may wrap but are never cut ---- */
+.nav-bottom a {
+  min-width: 0;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
