@@ -68,7 +68,7 @@ MIN_P_PLAY = 0.90
 FEE_COEF = 0.07  # Kalshi taker, configs/parlay.yaml fee_model (verified); pinned in the rule text
 MAKER_FEE_COEF = 0.0175  # applied to the paper maker arm even where Kalshi charges no maker fee
 MIN_VENUES = 2
-GAMES_GRID = (150, 300, 500, 700)
+GAMES_GRID = (250, 331, 414, 500, 832, 1040)
 N_SYNTH = 200
 SEED = 0
 READ1_LAST_TIP = date(2027, 1, 13)
@@ -261,21 +261,57 @@ def load_entry_stamps(
 
 
 def load_book_quotes(
-    odds: duckdb.DuckDBPyConnection, since: date, until: date
-) -> dict[tuple[str, int, str], list[tuple[Any, ...]]]:
+    odds: duckdb.DuckDBPyConnection,
+    since: date,
+    until: date,
+    entries: dict[str, tuple[datetime, datetime]],
+) -> tuple[dict[tuple[str, int, str], list[tuple[Any, ...]]], int]:
+    """``t60`` rows of the four main markets with ``received_at <= E`` of their game (rule 4.2, M2).
+    Returns the rows grouped by (game, player, stat) and the count of refused post-entry rows."""
     mm = ",".join("?" for _ in MARKET_STAT)
+    frame = pl.DataFrame(
+        [(g, e) for g, (e, _) in entries.items()], schema=["game_id", "e"], orient="row"
+    )
+    odds.register("bp_book_e", frame.to_arrow())
     raw = odds.execute(
-        f"""SELECT game_id, player_id, market, book, side, point, price_american, received_at, last_update
-            FROM live_book_odds
-            WHERE snapshot_kind = ? AND slate_date BETWEEN ? AND ? AND market IN ({mm})
-              AND player_id IS NOT NULL AND point IS NOT NULL AND price_american IS NOT NULL
-              AND side IN ('over', 'under')""",  # noqa: S608
+        f"""SELECT o.game_id, o.player_id, o.market, o.book, o.side, o.point, o.price_american,
+                   o.received_at, o.last_update, o.received_at <= b.e AS admissible
+            FROM live_book_odds o JOIN bp_book_e b ON b.game_id = o.game_id
+            WHERE o.snapshot_kind = ? AND o.slate_date BETWEEN ? AND ? AND o.market IN ({mm})
+              AND o.player_id IS NOT NULL AND o.point IS NOT NULL AND o.price_american IS NOT NULL
+              AND o.side IN ('over', 'under')""",  # noqa: S608
         [SNAPSHOT, since, until, *MARKET_STAT],
     ).fetchall()
+    odds.unregister("bp_book_e")
     grp: dict[tuple[str, int, str], list[tuple[Any, ...]]] = defaultdict(list)
+    refused = 0
     for r in raw:
-        grp[(r[0], int(r[1]), MARKET_STAT[r[2]])].append(r)
-    return grp
+        if not r[9]:
+            refused += 1
+            continue
+        grp[(r[0], int(r[1]), MARKET_STAT[r[2]])].append(r[:9])
+    return grp, refused
+
+
+def choose_quotes(
+    rows: list[tuple[Any, ...]],
+) -> dict[str, dict[tuple[str, float], tuple[Any, ...]]]:
+    """One admissible row per (book, side, point): latest ``received_at``, then latest ``last_update``,
+    then the worse price for the bettor (lower decimal odds). Deterministic regardless of fetch order."""
+    best: dict[tuple[str, str, float], tuple[Any, ...]] = {}
+
+    def key(r: tuple[Any, ...]) -> tuple[datetime, datetime, float]:
+        lu = r[8] if r[8] is not None else datetime.min
+        return (r[7], lu, -american_to_decimal(int(r[6])))
+
+    for r in rows:
+        k = (r[3], r[4], float(r[5]))
+        if k not in best or key(r) > key(best[k]):
+            best[k] = r
+    out: dict[str, dict[tuple[str, float], tuple[Any, ...]]] = defaultdict(dict)
+    for (book, side, pt), r in best.items():
+        out[book][(side, pt)] = r
+    return dict(out)
 
 
 def _ticker_date(event_ticker: str) -> date | None:
@@ -325,7 +361,7 @@ def load_kalshi(
                   date_diff('second', p.ts, b.e) / 60.0 AS age
            FROM bp_entry b JOIN kalshi_prices p ON p.ticker = b.ticker
            WHERE p.source = 'live' AND p.ts >= b.lo AND p.ts <= b.e
-           QUALIFY row_number() OVER (PARTITION BY b.ticker ORDER BY p.ts DESC) = 1"""
+           QUALIFY row_number() OVER (PARTITION BY b.ticker ORDER BY p.ts DESC, p.yes_bid, p.yes_ask) = 1"""
     ).fetchall()
     kal.unregister("bp_entry")
     out: dict[tuple[str, int, str], dict[float, tuple[float, float, float]]] = defaultdict(dict)
@@ -361,7 +397,7 @@ def load_predictions(
            JOIN games g ON g.game_id = p.game_id
            WHERE p.model_name = ? AND g.season = ? AND p.target IN ('pts','reb','ast','fg3m')
              AND p.made_at <= e.e
-           QUALIFY row_number() OVER (PARTITION BY p.game_id, p.target, p.player_id ORDER BY p.made_at DESC) = 1""",
+           QUALIFY row_number() OVER (PARTITION BY p.game_id, p.target, p.player_id ORDER BY p.made_at DESC, CAST(p.prediction AS VARCHAR)) = 1""",
         [PROD, SEASON],
     ).fetchall()
     nba.unregister("bp_e")
@@ -395,16 +431,16 @@ def build_picks(
         qs = books.get(key, [])
         pairs: dict[str, dict[float, tuple[float, float]]] = defaultdict(dict)
         prices: dict[str, dict[tuple[str, float], int]] = defaultdict(dict)
-        for r in qs:
-            book = r[3]
-            if r[8] is not None:
-                age = (e - r[8]).total_seconds() / 60.0
-                if book in US_BOOKS:
-                    st.book_lu_age.append(age)
-                if age > BOOK_MAX_LAST_UPDATE_MIN:
-                    st.stale_dropped[f"{book}_last_update"] += 1
-                    continue
-            prices[book][(r[4], float(r[5]))] = int(r[6])
+        for book, chosen in choose_quotes(qs).items():
+            for (side, pt), r in chosen.items():
+                if r[8] is not None:
+                    age = (e - r[8]).total_seconds() / 60.0
+                    if book in US_BOOKS:
+                        st.book_lu_age.append(age)
+                    if age > BOOK_MAX_LAST_UPDATE_MIN:
+                        st.stale_dropped[f"{book}_last_update"] += 1
+                        continue
+                prices[book][(side, pt)] = int(r[6])
         for book, pr in prices.items():
             for (side, pt), a in pr.items():
                 if side == "over" and ("under", pt) in pr and abs(pt - math.floor(pt) - 0.5) < 1e-9:
@@ -487,53 +523,168 @@ def implied_roi(picks: list[Pick], truth: str) -> tuple[float, np.ndarray]:
     return float(a.mean()), a
 
 
-def synthetic_power(picks: list[Pick], seed: int = SEED) -> dict[str, Any]:
-    """Game- and date-clustered SE of best-price ROI under synthetic outcomes, scaled to game counts."""
+def _ids(keys: list[Any]) -> tuple[np.ndarray, int]:
+    _, inv = np.unique(np.asarray(keys, dtype=object).astype(str), return_inverse=True)
+    return inv.astype(np.int64), int(inv.max()) + 1
+
+
+def season_structure(picks: list[Pick], target_games: int, seed: int) -> dict[str, Any]:
+    """A synthetic season built from the gate's real nights: whole dates are drawn with replacement
+    (seeded) until ``target_games`` games; each draw is a new date and new games, players keep their
+    identity, so a player's picks accumulate as they would over a season. Picks must be sorted (M6)."""
     rng = np.random.default_rng(seed)
-    games = np.array([x.game_id for x in picks])
-    dates = np.array([str(x.game_date) for x in picks])
-    _, gi = np.unique(games, return_inverse=True)
-    _, di = np.unique(dates, return_inverse=True)
-    n_g, n_d = int(gi.max()) + 1, int(di.max()) + 1
-    dec = np.array([best_venue(x.venues)[1] for x in picks])
-    out: dict[str, Any] = {}
-    for truth in ("consensus", "cal"):
-        po = np.array([x.p_cons if truth == "consensus" else x.p_cal for x in picks])
-        p = np.where(np.array([x.side == "over" for x in picks]), po, 1 - po)
-        sg, sd = [], []
-        means = []
-        for _ in range(N_SYNTH):
-            y = rng.random(len(p)) < p
-            r = np.where(y, dec - 1.0, -1.0)
-            means.append(float(r.mean()))
-            sg.append(clustered_se(r, gi, n_g) * math.sqrt(n_g))
-            sd.append(clustered_se(r, di, n_d) * math.sqrt(n_d))
-        per_game_sd = float(np.mean(sg))
-        per_date_sd = float(np.mean(sd))
-        exp = float(np.mean(means))
-        by_g: dict[str, Any] = {}
-        picks_per_game = len(picks) / n_g
-        games_per_date = n_g / n_d
-        for gg in GAMES_GRID:
-            se_g = per_game_sd / math.sqrt(gg)
-            se_d = per_date_sd / math.sqrt(gg / games_per_date)
-            se = max(se_g, se_d)
-            by_g[str(gg)] = {
-                "picks": round(gg * picks_per_game),
-                "se_game": round(se_g, 4),
-                "se_date": round(se_d, 4),
-                "half_width_96": round(2.054 * se, 4),
-                "half_width_99": round(2.576 * se, 4),
-                "p_lower96_gt_0": round(_phi((exp - 2.054 * se) / se), 3),
-                "p_upper96_lt_floor": round(_phi((0.01 - exp - 2.054 * se) / se), 3),
+    by_date: dict[str, list[int]] = defaultdict(list)
+    for i, x in enumerate(picks):
+        by_date[str(x.game_date)].append(i)
+    dates = sorted(by_date)
+    ngames = {d: len({picks[i].game_id for i in by_date[d]}) for d in dates}
+    idx: list[int] = []
+    gkey: list[str] = []
+    dkey: list[int] = []
+    rep, total = 0, 0
+    while total < target_games:
+        d = dates[int(rng.integers(len(dates)))]
+        for i in by_date[d]:
+            idx.append(i)
+            gkey.append(f"{rep}:{picks[i].game_id}")
+            dkey.append(rep)
+        total += ngames[d]
+        rep += 1
+    pkey = [picks[i].player_id for i in idx]
+    gi, n_g = _ids(gkey)
+    di, n_d = _ids(dkey)
+    pi, n_p = _ids(pkey)
+    gpi, n_gp = _ids([f"{g}|{q}" for g, q in zip(gkey, pkey, strict=True)])
+    return {
+        "idx": np.asarray(idx, dtype=np.int64), "gi": gi, "n_g": n_g, "di": di, "n_d": n_d,
+        "pi": pi, "n_p": n_p, "gpi": gpi, "n_gp": n_gp,
+    }  # fmt: skip
+
+
+def synthetic_power(
+    picks: list[Pick],
+    games_grid: tuple[int, ...] = GAMES_GRID,
+    n_synth: int = N_SYNTH,
+    seed: int = SEED,
+) -> dict[str, Any]:
+    """Power of the best-price ROI under synthetic outcomes on the real pick structure, with the
+    rule's correlation model (10.9(a), M1): latent z = sqrt(0.3) u_(game,player) + sqrt(0.7) e,
+    over iff Phi(z) < p_over, and a player-persistent shift N(0, 0.03) on every p_over of that player
+    (clipped to [0.01, 0.99]). SEs clustered by game, by date and by player; the widest decides (M4).
+    Truths: 'consensus' (market right) and 'half' (p_cons + 0.5 (p_cal - p_cons)). Picks must be
+    sorted (M6) so the draws reproduce."""
+    from scipy.special import ndtr
+
+    side_over = np.array([x.side == "over" for x in picks])
+    dec_all = np.array([best_venue(x.venues)[1] for x in picks])
+    base = {
+        "consensus": np.array([x.p_cons for x in picks]),
+        "half": np.array([x.p_cons + 0.5 * (x.p_cal - x.p_cons) for x in picks]),
+    }
+    z1, z2 = 2.5758, 2.0537  # one-sided 0.005 (Read 1) and 0.02 (Read 2)
+    out: dict[str, Any] = {
+        "model": "corr 0.3 within (game, player); player shift sd 0.03; widest of game/date/player",
+        "n_synth": n_synth,
+        "seed": seed,
+    }
+    for gg in games_grid:
+        sk = season_structure(picks, gg, seed + gg)
+        idx = sk["idx"]
+        so, dec = side_over[idx], dec_all[idx]
+        cell: dict[str, Any] = {
+            "picks": len(idx), "games": sk["n_g"], "dates": sk["n_d"], "players": sk["n_p"],
+            "picks_per_player_median": float(np.median(np.bincount(sk["pi"]))),
+        }  # fmt: skip
+        for truth, b in base.items():
+            rng = np.random.default_rng(seed + 7 * gg + (0 if truth == "consensus" else 1))
+            bo = b[idx]
+            rows = []
+            for _ in range(n_synth):
+                shift = rng.normal(0.0, 0.03, sk["n_p"])[sk["pi"]]
+                po = np.clip(bo + shift, 0.01, 0.99)
+                u = rng.standard_normal(sk["n_gp"])[sk["gpi"]]
+                z = math.sqrt(0.3) * u + math.sqrt(0.7) * rng.standard_normal(len(idx))
+                over = ndtr(z) < po
+                win = over == so
+                r = np.where(win, dec - 1.0, -1.0)
+                truth_roi = float(np.mean(np.where(so, po, 1 - po) * dec - 1.0))
+                se = [
+                    clustered_se(r, sk["gi"], sk["n_g"]),
+                    clustered_se(r, sk["di"], sk["n_d"]),
+                    clustered_se(r, sk["pi"], sk["n_p"]),
+                ]
+                rows.append((float(r.mean()), truth_roi, *se))
+            a = np.asarray(rows)
+            m, t, w = a[:, 0], a[:, 1], a[:, 2:].max(axis=1)
+            cell[truth] = {
+                "expected_roi": round(float(t.mean()), 4),
+                "se_game": round(float(a[:, 2].mean()), 4),
+                "se_date": round(float(a[:, 3].mean()), 4),
+                "se_player": round(float(a[:, 4].mean()), 4),
+                "se_widest": round(float(w.mean()), 4),
+                "widest_is_player_share": round(
+                    float(np.mean(a[:, 4] >= a[:, 2:4].max(axis=1))), 3
+                ),
+                "half_width_99": round(float(z1 * w.mean()), 4),
+                "half_width_96": round(float(z2 * w.mean()), 4),
+                "p_npef_read1_level": round(float(np.mean(m + z1 * w < 0.01)), 3),
+                "p_npef_read2_level": round(float(np.mean(m + z2 * w < 0.01)), 3),
+                "p_pass_read1_level": round(float(np.mean((m >= 0.01) & (m - z1 * w > 0))), 3),
+                "p_pass_read2_level": round(float(np.mean((m >= 0.01) & (m - z2 * w > 0))), 3),
+                "normal_lower_above_truth_read1": round(float(np.mean(m - z1 * w > t)), 3),
+                "normal_lower_above_truth_read2": round(float(np.mean(m - z2 * w > t)), 3),
             }
-        out[truth] = {
-            "expected_roi": round(exp, 4),
-            "per_game_sd": round(per_game_sd, 4),
-            "per_date_sd": round(per_date_sd, 4),
-            "by_games": by_g,
-        }
+        out[str(gg)] = cell
     return out
+
+
+def structure_counts(picks: list[Pick]) -> dict[str, Any]:
+    """Label-free structure the review asked for: player persistence (M4), the overs-only slice
+    (D_OVER), the best-vs-second-best gap and the expected ROI at the second-best price under the
+    consensus truth (S7), and counts by the best venue's deviation from consensus (S11)."""
+    by_player: dict[int, list[Pick]] = defaultdict(list)
+    for x in picks:
+        by_player[x.player_id].append(x)
+    sizes = sorted((len(v) for v in by_player.values()), reverse=True)
+    same_side = [
+        max(sum(y.side == "over" for y in v), sum(y.side == "under" for y in v)) / len(v)
+        for v in by_player.values()
+        if len(v) >= 5
+    ]
+    gp = Counter((x.game_id, x.player_id) for x in picks)
+    gaps: list[float] = []
+    roi2: list[float] = []
+    dev_bins: Counter[str] = Counter()
+    for x in picks:
+        ds = sorted(x.venues.values(), reverse=True)
+        gaps.append(ds[0] - ds[1])
+        p_side = x.p_cons if x.side == "over" else 1 - x.p_cons
+        roi2.append(p_side * ds[1] - 1.0)
+    overs = [x for x in picks if x.side == "over"]
+    for x in picks:
+        bv, _ = best_venue(x.venues)
+        dev_bins["best_is_kalshi" if bv == KALSHI else "best_is_book"] += 1
+    return {
+        "players": len(by_player),
+        "picks_per_player_median": float(np.median(sizes)),
+        "top5_players_pick_share": round(sum(sizes[:5]) / len(picks), 4),
+        "same_side_share_players_ge5_picks_mean": round(float(np.mean(same_side)), 4)
+        if same_side
+        else None,
+        "share_picks_on_game_player_with_ge2_picks": round(
+            sum(c for c in gp.values() if c >= 2) / len(picks), 4
+        ),
+        "best_minus_second_net_decimal": _q(gaps, 4),
+        "share_gap_gt_0.10": round(float(np.mean(np.asarray(gaps) > 0.10)), 4),
+        "expected_roi_second_best_if_consensus_true": round(float(np.mean(roi2)), 4),
+        "d_over": {"picks": len(overs), "games": len({x.game_id for x in overs})},
+        "best_venue_kind": dict(dev_bins),
+    }
+
+
+def sort_picks(picks: list[Pick]) -> list[Pick]:
+    """M6: the one order used before any seeded draw."""
+    return sorted(picks, key=lambda x: (x.game_date, x.game_id, x.player_id, x.stat))
 
 
 def projection(root: Path, start: date, picks_per_game: float) -> dict[str, Any]:
@@ -629,11 +780,11 @@ def summarise(picks: list[Pick], arm: str) -> dict[str, Any]:
     }
 
 
-def _q(xs: list[float]) -> dict[str, float] | None:
+def _q(xs: list[float], nd: int = 1) -> dict[str, float] | None:
     if not xs:
         return None
     a = np.asarray(xs, dtype=float)
-    return {f"p{p}": round(float(np.percentile(a, p)), 1) for p in (5, 25, 50, 75, 95)} | {
+    return {f"p{p}": round(float(np.percentile(a, p)), nd) for p in (5, 25, 50, 75, 95)} | {
         "n": float(len(a))
     }
 
@@ -655,7 +806,7 @@ def run(root: Path, since: date, until: date, window_start: date) -> dict[str, A
     print("[gate] opening market_asof (read-only)", flush=True)
     odds = connect_ro(root / "data/markets/market_asof.duckdb")
     entries = load_entry_stamps(odds, since, until)
-    books = load_book_quotes(odds, since, until)
+    books, post_entry_refused = load_book_quotes(odds, since, until, entries)
     cap_max = odds.execute(
         "SELECT max(received_at) FROM live_book_odds WHERE slate_date <= ?", [until]
     ).fetchone()
@@ -676,7 +827,10 @@ def run(root: Path, since: date, until: date, window_start: date) -> dict[str, A
         entry_by_pd[(int(pid), gdate[gid])] = (gid, entries[gid][0])
     kal = connect_ro(root / "data/kalshi/kalshi.duckdb")
     kalshi = load_kalshi(kal, entry_by_pd)
-    kmax = kal.execute("SELECT max(ts) FROM kalshi_prices WHERE source = 'live'").fetchone()
+    kmax = kal.execute(
+        "SELECT max(ts) FROM kalshi_prices WHERE source = 'live' AND ts < ?",
+        [datetime(until.year, until.month, until.day) + timedelta(days=2)],
+    ).fetchone()
     kal.close()
     print(
         f"[gate] {len(kalshi)} (game, player, stat) Kalshi keys at E; {time.time() - t0:.0f}s",
@@ -686,6 +840,8 @@ def run(root: Path, since: date, until: date, window_start: date) -> dict[str, A
     if cmap.meta["map_sha256"] != MAP_SHA:
         raise ValueError("served LINE_CALIBRATION map differs from the frozen one")
     cal_picks, raw_picks = build_picks(preds, gdate, entries, books, kalshi, cmap, st)
+    cal_picks, raw_picks = sort_picks(cal_picks), sort_picks(raw_picks)
+    st.why["post_entry_quote"] = post_entry_refused
     print(
         f"[gate] picks: cal {len(cal_picks)}, raw {len(raw_picks)}; {time.time() - t0:.0f}s",
         flush=True,
@@ -697,7 +853,6 @@ def run(root: Path, since: date, until: date, window_start: date) -> dict[str, A
     out: dict[str, Any] = {
         "rule": RULE,
         "status": "DRAFT gate; counts and label-free expectations only; no outcome read",
-        "generated_utc": datetime.utcnow().isoformat(timespec="seconds"),
         "data_version": data_version(),
         "capture_versions": {
             "live_book_odds_max_received_at": str(cap_max[0]) if cap_max else None,
@@ -736,8 +891,9 @@ def run(root: Path, since: date, until: date, window_start: date) -> dict[str, A
         "raw_arm": s_raw,
         "power_cal_arm": synthetic_power(cal_picks) if cal_picks else None,
         "projection": projection(root, window_start, float(ppg)),
-        "wall_s": round(time.time() - t0, 1),
+        "structure_cal_arm": structure_counts(cal_picks) if cal_picks else None,
     }
+    print(f"[gate] done in {time.time() - t0:.1f}s", flush=True)
     return out
 
 
@@ -751,7 +907,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     res = run(a.data_root, a.since, a.until, a.window_start)
     a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_text(json.dumps(res, indent=2, default=str) + "\n")
+    a.out.write_text(json.dumps(res, indent=2, default=str, sort_keys=True) + "\n")
     print(f"[gate] wrote {a.out}", flush=True)
     return 0
 

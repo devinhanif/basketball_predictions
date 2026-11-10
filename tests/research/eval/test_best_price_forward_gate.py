@@ -131,3 +131,59 @@ def test_predictions_refuse_rows_made_after_entry() -> None:
 def test_window_refuses_other_seasons(tmp_path: object) -> None:
     with pytest.raises(ValueError):
         g.run(g.Path("/nonexistent"), date(2025, 10, 1), date(2026, 11, 8), date(2026, 11, 11))
+
+
+def _book_db(e: datetime) -> duckdb.DuckDBPyConnection:
+    con = duckdb.connect(":memory:")
+    con.execute(
+        "CREATE TABLE live_book_odds (game_id VARCHAR, slate_date DATE, snapshot_kind VARCHAR,"
+        " received_at TIMESTAMP, book VARCHAR, market VARCHAR, player_id INT, side VARCHAR,"
+        " point DOUBLE, price_american INT, last_update TIMESTAMP)"
+    )
+    rows = [
+        (e, "over", -110),
+        (e, "under", -110),
+        (e + timedelta(minutes=1), "over", 250),  # planted: labelled t60, received after E
+    ]
+    for rec, side, a in rows:
+        con.execute(
+            "INSERT INTO live_book_odds VALUES ('G1', DATE '2026-11-01', 't60', ?, 'draftkings',"
+            " 'player_points', 7, ?, 24.5, ?, ?)",
+            [rec, side, a, rec],
+        )
+    return con
+
+
+def test_book_quotes_refuse_post_entry_t60_row() -> None:
+    e = datetime(2026, 11, 1, 23, 0)
+    con = _book_db(e)
+    grp, refused = g.load_book_quotes(
+        con, date(2026, 10, 20), date(2026, 11, 8), {"G1": (e, e + timedelta(hours=1))}
+    )
+    assert refused == 1
+    chosen = g.choose_quotes(grp[("G1", 7, "pts")])
+    assert int(chosen["draftkings"][("over", 24.5)][6]) == -110  # price unchanged by the plant
+
+
+def test_choose_quotes_deterministic_order() -> None:
+    t = datetime(2026, 11, 1, 22, 0)
+    lu1, lu2 = t - timedelta(minutes=2), t - timedelta(minutes=1)
+    a = ("G1", 7, "player_points", "fanduel", "over", 24.5, -105, t, lu1)
+    b = ("G1", 7, "player_points", "fanduel", "over", 24.5, -120, t, lu2)  # later last_update
+    c = ("G1", 7, "player_points", "fanduel", "over", 24.5, -115, t, lu2)  # tie: worse price wins
+    for rows in ([a, b, c], [c, b, a], [b, a, c]):
+        got = g.choose_quotes(rows)["fanduel"][("over", 24.5)]
+        assert int(got[6]) == -120
+
+
+def test_sort_picks_and_power_reproduce() -> None:
+    def pk(gid: str, d: int, pid: int, side: str) -> g.Pick:
+        return g.Pick(
+            gid, date(2026, 11, d), "pts", pid, 24.5, side, 0.5, 0.56, 0.5,
+            {"draftkings": 1.91, "fanduel": 1.95},
+        )  # fmt: skip
+
+    picks = [pk(f"G{i}", 1 + i % 3, 100 + i % 4, "over" if i % 2 else "under") for i in range(12)]
+    a = g.synthetic_power(g.sort_picks(picks), games_grid=(6,), n_synth=20)
+    b = g.synthetic_power(g.sort_picks(list(reversed(picks))), games_grid=(6,), n_synth=20)
+    assert a == b
