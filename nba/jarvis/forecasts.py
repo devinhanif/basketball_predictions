@@ -121,11 +121,24 @@ class ModelView:
             return None
         if (q.game_id, q.player_id) in sl.info.out_on_report:
             return None
+        # the slate builder fills 1.0 when a row has no p_play: only a row that CARRIES one counts
+        raw = getattr(sl, "props_raw", {})
+        if not any(
+            gid == q.game_id and pid == q.player_id and "p_play" in (d or {})
+            for (gid, pid, _stat), d in raw.items()
+        ):
+            return None
         tip = getattr(sl.info, "tipoff", {}).get(q.game_id)
         if tip is not None:
-            for (gid, pid, _stat), made in getattr(sl, "made_at", {}).items():
-                if gid == q.game_id and pid == q.player_id and _naive(made) > tip:
-                    return None
+            try:
+                for (gid, pid, _stat), made in getattr(sl, "made_at", {}).items():
+                    if gid == q.game_id and pid == q.player_id and _naive(made) > tip:
+                        return None
+            except (
+                TypeError,
+                ValueError,
+            ):  # an unparseable made_at caps the prop; never fails the tick
+                return None
         return stored_p_play(ctx.p_play, q)
 
 

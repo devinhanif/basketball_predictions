@@ -23,6 +23,7 @@ def _view(
     made: dict[tuple[str, int, str], str],
     tip: datetime,
     out: bool = False,
+    raw: dict[tuple[str, int, str], dict[str, float]] | None = None,
 ) -> ModelView:
     mv = ModelView(JarvisConfig.__new__(JarvisConfig), SLATE)
     ctx = SimpleNamespace(p_play=p_play, team_of={LEBRON: 1})
@@ -31,7 +32,9 @@ def _view(
         tipoff={G1: tip},
         out_on_report={(G1, LEBRON): OutNotice(NOW, None)} if out else {},
     )
-    mv._sl = SimpleNamespace(info=info, made_at=made)
+    if raw is None:  # a stored row that carries p_play, as the slate loader keeps it
+        raw = {(G1, LEBRON, "pts"): {"p_play": p_play.get(LEBRON, 0.0)}}
+    mv._sl = SimpleNamespace(info=info, made_at=made, props_raw=raw)
     return mv
 
 
@@ -75,7 +78,21 @@ def test_single_candidate_prices_on_p_play_and_caps_without_it(cfg: JarvisConfig
     with_p = single_candidate(cfg, replace(st, model=PPlayView(st.model, {LEBRON: 0.5})), q, "yes")
     without = single_candidate(cfg, replace(st, model=PPlayView(st.model, {})), q, "yes")
     assert with_p is not None and without is not None
-    if with_p.pin_prob is not None and without.pin_prob is not None:
-        assert with_p.pin_prob == pytest.approx(0.5 * without.pin_prob)
-        assert any("includes P(plays)" in n for n in with_p.notes)
-        assert any("no P(plays)" in n for n in without.notes)
+    assert with_p.pin_prob is not None and without.pin_prob is not None
+    assert with_p.pin_prob == pytest.approx(0.5 * without.pin_prob)
+    assert any("includes P(plays)" in n for n in with_p.notes)
+    assert any("no P(plays)" in n for n in without.notes)
+
+
+def test_p_play_is_none_when_the_row_carries_no_p_play() -> None:
+    """Review M2: the slate builder fills 1.0 for a row without p_play; that must cap, not price."""
+    made = {(G1, LEBRON, "pts"): str(NOW - timedelta(hours=2))}
+    raw = {(G1, LEBRON, "pts"): {"mean": 20.0}}
+    mv = _view({LEBRON: 1.0}, made, NOW + timedelta(hours=1), raw=raw)
+    assert mv.p_play(_q()) is None
+
+
+def test_an_unparseable_made_at_caps_and_never_raises() -> None:
+    """Review M1: a NULL made_at ('None') must not fail the tick."""
+    made = {(G1, LEBRON, "pts"): "None"}
+    assert _view({LEBRON: 0.93}, made, NOW + timedelta(hours=1)).p_play(_q()) is None
