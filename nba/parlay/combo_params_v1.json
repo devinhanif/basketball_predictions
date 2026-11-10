@@ -258,7 +258,7 @@
  "eval_rule_commit": "fd81aaf (amended 4fa66a1 before the second run)",
  "map_sha8": "443743a1",
  "n_games_corr": 2638,
- "note": "Fitted in-sample on 2023-24 with the shipped LINE_CALIBRATION map; the fold results in reports/parlay/combo_eval_2026-11-09.json are the out-of-sample check. Season 2025 never loaded.",
+ "note": "Fitted in-sample on 2023-24 with the shipped LINE_CALIBRATION map; the fold results in reports/parlay/combo_eval_2026-11-09.json are the out-of-sample check, and the first run is in reports/parlay/combo_eval_2026-11-09_run1.json. Season 2025 never loaded. Review override 2026-11-10: no script is labelled calibrated (adversary combo_math_2026-11-10, B1); script_label() in combo_eval.py is the frozen rule and still returns grind=calibrated for run 2.",
  "schema": "combo_params/1",
  "script_params": [
   [
@@ -535,8 +535,10 @@
    ]
   },
   "grind": {
-   "status": "calibrated",
-   "why_not": []
+   "status": "exploratory",
+   "why_not": [
+    "frozen rule as run: grind passed only the second run, after an amendment (4fa66a1) decided on the first run's test-season outcomes; fragile to seed and month; confirm under a new frozen forward rule"
+   ]
   },
   "shootout": {
    "status": "exploratory",
@@ -548,5 +550,5 @@
    ]
   }
  },
- "sha256": "79d1b0e61815932bd7334b2dd87fda31756efea21cf395f5b9916f3b0ea1d31c"
+ "sha256": "8b5a124e0000b2948de02617d79648f5a1d44c59caeadb4b0a4e70d0b25008b5"
 }

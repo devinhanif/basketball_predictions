@@ -224,6 +224,7 @@ def build() -> dict[str, Any]:
                     "method": r.method,
                     "p_all_play": r.p_all_play,
                     "p_joint_incl_dnp": r.p_joint_incl_dnp,
+                    "label": r.label,
                 },
             }
         )

@@ -2,6 +2,7 @@
  "cases": [
   {
    "expect": {
+    "label": null,
     "lift": 1.0,
     "marginals": [
      0.5266
@@ -27,6 +28,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 1.16335380021284,
     "marginals": [
      0.5266,
@@ -61,6 +63,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 1.293109930973761,
     "marginals": [
      0.5266,
@@ -95,6 +98,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 0.8001031882215401,
     "marginals": [
      0.5266,
@@ -129,6 +133,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 1.0,
     "marginals": [
      0.6324
@@ -162,6 +167,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": null,
     "marginals": [
      0.0
@@ -195,6 +201,7 @@
   },
   {
    "expect": {
+    "label": "model estimate, not checked against results",
     "lift": 1.3631053180432393,
     "marginals": [
      0.5266,
@@ -238,6 +245,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 0.9908599952014131,
     "marginals": [
      0.5266,
@@ -272,6 +280,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 1.0059774422076568,
     "marginals": [
      0.5266,
@@ -306,6 +315,7 @@
   },
   {
    "expect": {
+    "label": "model estimate, not checked against results",
     "lift": 1.2863864804777203,
     "marginals": [
      0.5266,
@@ -358,16 +368,17 @@
   },
   {
    "expect": {
-    "lift": 1.0442326833345255,
+    "label": null,
+    "lift": 1.0456763314803652,
     "marginals": [
-     0.587293468848657,
+     0.5729240515641634,
      0.5266
     ],
     "method": "exact_bivariate",
     "p_all_play": 0.98,
-    "p_independent": 0.3092687406957027,
-    "p_joint": 0.3229485269681632,
-    "p_joint_incl_dnp": 0.3164895564287999,
+    "p_independent": 0.3017018055536884,
+    "p_joint": 0.3154824372323834,
+    "p_joint_incl_dnp": 0.3091727884877357,
     "se": 0.0
    },
    "legs": [
@@ -390,6 +401,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 1.0702501337602393,
     "marginals": [
      0.5106089163433181,
@@ -422,6 +434,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 1.2240357849148407,
     "marginals": [
      0.4480217477853753,
@@ -457,6 +470,7 @@
   },
   {
    "expect": {
+    "label": null,
     "lift": 1.0051305449211356,
     "marginals": [
      0.5622103186587675,
@@ -913,6 +927,8 @@
  },
  "lift_ranking_top5": [
   {
+   "above_tested_range": false,
+   "label": "model estimate, not checked against results",
    "legs": [
     {
      "game_id": "G1",
@@ -943,11 +959,17 @@
    "method": "qmc",
    "p_independent": 0.05808709468800001,
    "p_joint": 0.11504575466003104,
+   "range_2se": [
+    0.1149725326980405,
+    0.11511897662202158
+   ],
    "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
    "se": 3.6610980995269863e-05,
    "side": "under"
   },
   {
+   "above_tested_range": false,
+   "label": "model estimate, not checked against results",
    "legs": [
     {
      "game_id": "G1",
@@ -978,11 +1000,17 @@
    "method": "qmc",
    "p_independent": 0.05572627704000001,
    "p_joint": 0.10401999393443671,
+   "range_2se": [
+    0.10396683930644467,
+    0.10407314856242876
+   ],
    "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
    "se": 2.657731399602451e-05,
    "side": "under"
   },
   {
+   "above_tested_range": false,
+   "label": "model estimate, not checked against results",
    "legs": [
     {
      "game_id": "G1",
@@ -1013,11 +1041,17 @@
    "method": "qmc",
    "p_independent": 0.09062900106,
    "p_joint": 0.16440548577039038,
+   "range_2se": [
+    0.16432928432510194,
+    0.16448168721567882
+   ],
    "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
    "se": 3.810072264421513e-05,
    "side": "under"
   },
   {
+   "above_tested_range": false,
+   "label": "model estimate, not checked against results",
    "legs": [
     {
      "game_id": "G1",
@@ -1048,11 +1082,17 @@
    "method": "qmc",
    "p_independent": 0.08725269672000001,
    "p_joint": 0.15680433398556856,
+   "range_2se": [
+    0.15672932765486625,
+    0.15687934031627088
+   ],
    "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
    "se": 3.75031653511625e-05,
    "side": "under"
   },
   {
+   "above_tested_range": false,
+   "label": "model estimate, not checked against results",
    "legs": [
     {
      "game_id": "G1",
@@ -1083,6 +1123,10 @@
    "method": "qmc",
    "p_independent": 0.090094193136,
    "p_joint": 0.16030465031537425,
+   "range_2se": [
+    0.16023034814269138,
+    0.1603789524880571
+   ],
    "reason": "same player: threes are points, so a hot or cold shooting night moves both (latent r = +0.54)",
    "se": 3.7151086341437056e-05,
    "side": "under"
@@ -1522,10 +1566,38 @@
  "target_search": {
   "band": [
    0.35,
-   0.85
+   0.75
   ],
   "combos": [
    {
+    "label": null,
+    "legs": [
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 26.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "pts"
+     },
+     {
+      "game_id": "G1",
+      "kind": "player",
+      "line": 3.5,
+      "player_id": 1,
+      "side": "over",
+      "stat": "fg3m"
+     }
+    ],
+    "lift": 1.627928406826431,
+    "method": "exact_bivariate",
+    "p_independent": 0.13074768,
+    "p_joint": 0.21284786239865203,
+    "range_2se": null,
+    "se": 0.0
+   },
+   {
+    "label": null,
     "legs": [
      {
       "game_id": "G1",
@@ -1548,9 +1620,11 @@
     "method": "exact_bivariate",
     "p_independent": 0.15773688,
     "p_joint": 0.24206260391424952,
+    "range_2se": null,
     "se": 0.0
    },
    {
+    "label": null,
     "legs": [
      {
       "game_id": "G1",
@@ -1573,38 +1647,14 @@
     "method": "exact_bivariate",
     "p_independent": 0.18578447999999997,
     "p_joint": 0.26866083918841027,
-    "se": 0.0
-   },
-   {
-    "legs": [
-     {
-      "game_id": "G1",
-      "kind": "player",
-      "line": 2.5,
-      "player_id": 1,
-      "side": "over",
-      "stat": "fg3m"
-     },
-     {
-      "game_id": "G1",
-      "kind": "player",
-      "line": 26.5,
-      "player_id": 1,
-      "side": "over",
-      "stat": "pts"
-     }
-    ],
-    "lift": 1.382957755695643,
-    "method": "exact_bivariate",
-    "p_independent": 0.21376208,
-    "p_joint": 0.2956239264096325,
+    "range_2se": null,
     "se": 0.0
    }
   ],
   "feasible": true,
   "floor_mode": "p_band",
   "k_legs": 2,
-  "objective": "max lift s.t. p_joint >= target, marginals in band",
+  "objective": "max lift s.t. p_joint >= target, marginals in band, above-range legs excluded",
   "target": 0.15
  },
  "tolerance": {

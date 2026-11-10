@@ -39,6 +39,7 @@ from statistics import NormalDist
 from typing import Any
 
 SCHEMA = "combo_export_v1"
+ESTIMATE_LABEL = "model estimate, not checked against results"
 STATS = ("pts", "reb", "ast", "fg3m")
 SCRIPTS = ("blowout", "close", "shootout", "grind")
 INF = math.inf
@@ -50,6 +51,7 @@ QMC_POINTS = 1500
 QMC_SHIFTS = 8
 SIMPSON_N = 2000
 RHO_MAX = 0.9999
+SCREEN_BIV_N = 120  # screening Simpson intervals for pair searches
 SCREEN_QMC = (150, 4)  # search screening budget; answers are recomputed at the full budget
 
 Payload = Mapping[str, Any]
@@ -171,6 +173,8 @@ def merge_legs(legs: Sequence[Mapping[str, Any]], game: Payload) -> list[Merged]
         elif kind == "team_margin":
             e = Entity("margin")
             gt = float(leg["gt"])
+            if abs(gt - round(gt)) < 1e-9:
+                gt += 0.5  # integer margin: "wins by more than 6" is M >= 7, i.e. M > 6.5
             if int(leg["team"]) == int(game["home_team"]):
                 lo_f, hi_f = gt, INF
             elif int(leg["team"]) == int(game["away_team"]):
@@ -180,6 +184,8 @@ def merge_legs(legs: Sequence[Mapping[str, Any]], game: Payload) -> list[Merged]
         elif kind == "total":
             e = Entity("total")
             x = float(leg["line"])
+            if abs(x - math.floor(x) - 0.5) > 1e-9:
+                raise ValueError(f"total line {x} is not an x.5 line")
             if str(leg["side"]) == "over":
                 lo_f, hi_f = x, INF
             else:
@@ -291,7 +297,9 @@ def build_corr(
 # ---------------------------------------------------------------- rectangle probabilities
 
 
-def bivariate_rect(a1: float, b1: float, a2: float, b2: float, rho: float) -> float:
+def bivariate_rect(
+    a1: float, b1: float, a2: float, b2: float, rho: float, n: int = SIMPSON_N
+) -> float:
     """P(a1 < Z1 <= b1, a2 < Z2 <= b2) for a standard bivariate normal, by Simpson on the
     conditional form. Exact to about 1e-10."""
     if b1 <= a1 or b2 <= a2:
@@ -301,7 +309,6 @@ def bivariate_rect(a1: float, b1: float, a2: float, b2: float, rho: float) -> fl
     lo, hi = max(a1, -_ZCLIP), min(b1, _ZCLIP)
     if hi <= lo:
         return 0.0
-    n = SIMPSON_N
     h = (hi - lo) / n
     tot = 0.0
     for i in range(n + 1):
@@ -373,19 +380,33 @@ class ComboResult:
     marginals: tuple[float, ...]  # per merged entity
     se: float  # standard error of p_joint (0 when exact)
     method: str  # marginal | exact_bivariate | qmc | product | empty
-    p_all_play: float
-    p_joint_incl_dnp: float
+    p_all_play: float | None  # None when any named player's p_play is null (unknown)
+    p_joint_incl_dnp: float | None
     repair_t: float
     script: str | None = None
     n_entities: int = 0
+    label: str | None = None  # ESTIMATE_LABEL for three or more entities
+    range_2se: tuple[float, float] | None = None  # p_joint +- 2 se (qmc only)
 
 
-def _p_all_play(merged: Sequence[Merged], game: Payload) -> float:
+def _labelled(r: ComboResult) -> ComboResult:
+    """Three or more entities were never scored against outcomes: say so, show +-2 se."""
+    from dataclasses import replace
+
+    rng = None
+    if r.method in ("qmc", "product_of_games") and r.se > 0:
+        rng = (max(0.0, r.p_joint - 2 * r.se), min(1.0, r.p_joint + 2 * r.se))
+    return replace(r, label=ESTIMATE_LABEL if r.n_entities >= 3 else None, range_2se=rng)
+
+
+def _p_all_play(merged: Sequence[Merged], game: Payload) -> float | None:
     p = 1.0
     for m in merged:
         if m.entity.kind == "player" and m.entity.stat == _first_stat(merged, m.entity.player_id):
             pp = _player(game, m.entity.player_id).get("p_play")
-            p *= 1.0 if pp is None else float(pp)  # null = availability unknown: conditional only
+            if pp is None:
+                return None  # availability unknown: only the conditional number is shown
+            p *= float(pp)
     return p
 
 
@@ -409,6 +430,7 @@ def evaluate_game_legs(
     shared: Payload,
     script: str | None = None,
     qmc: tuple[int, int] = (QMC_POINTS, QMC_SHIFTS),
+    biv_n: int = SIMPSON_N,
 ) -> ComboResult:
     """Joint P of ``legs`` (all in ``game``) with the independent P and lift. ``qmc`` is
     (points, shifts) for three or more entities; the searches screen with a small budget and
@@ -434,18 +456,20 @@ def evaluate_game_legs(
     p_ind = math.prod(marg)
     p_play = _p_all_play(merged, game)
     if any(p <= 0.0 for p in marg) or any(m.b <= m.a for m in merged):
-        return ComboResult(
-            0.0,
-            p_ind,
-            None if p_ind == 0 else 0.0,
-            marg,
-            0.0,
-            "empty",
-            p_play,
-            0.0,
-            0.0,
-            script,
-            len(merged),
+        return _labelled(
+            ComboResult(
+                0.0,
+                p_ind,
+                None if p_ind == 0 else 0.0,
+                marg,
+                0.0,
+                "empty",
+                p_play,
+                None if p_play is None else 0.0,
+                0.0,
+                script,
+                len(merged),
+            )
         )
     k = len(merged)
     repair_t = 0.0
@@ -455,7 +479,8 @@ def evaluate_game_legs(
         r, repair_t = build_corr([m.entity for m in merged], game, table)
         a, b = [m.a for m in merged], [m.b for m in merged]
         if k == 2:
-            p, se, method = bivariate_rect(a[0], b[0], a[1], b[1], r[0][1]), 0.0, "exact_bivariate"
+            p = bivariate_rect(a[0], b[0], a[1], b[1], r[0][1], biv_n)
+            se, method = 0.0, "exact_bivariate"
         else:
             chol = cholesky(r)
             assert chol is not None
@@ -465,7 +490,10 @@ def evaluate_game_legs(
         p = min(p, min(marg))
         p = max(p, max(0.0, sum(marg) - (k - 1)))
     lift = None if p_ind <= 0 else p / p_ind
-    return ComboResult(p, p_ind, lift, marg, se, method, p_play, p_play * p, repair_t, script, k)
+    incl = None if p_play is None else p_play * p
+    return _labelled(
+        ComboResult(p, p_ind, lift, marg, se, method, p_play, incl, repair_t, script, k)
+    )
 
 
 def evaluate_combo(
@@ -488,11 +516,15 @@ def evaluate_combo(
     p_ind = math.prod(r.p_independent for r in parts)
     rel2 = sum((r.se / r.p_joint) ** 2 for r in parts if r.p_joint > 0)
     marg = tuple(m for r in parts for m in r.marginals)
-    play = math.prod(r.p_all_play for r in parts)
+    plays = [r.p_all_play for r in parts]
+    play = None if any(x is None for x in plays) else math.prod(x for x in plays if x is not None)
     method = "product" if all(r.method == "marginal" for r in parts) else "product_of_games"
-    return ComboResult(
-        p, p_ind, None if p_ind <= 0 else p / p_ind, marg, p * math.sqrt(rel2), method, play,
-        play * p, max(r.repair_t for r in parts), script, sum(r.n_entities for r in parts),
+    return _labelled(
+        ComboResult(
+            p, p_ind, None if p_ind <= 0 else p / p_ind, marg, p * math.sqrt(rel2), method, play,
+            None if play is None else play * p, max(r.repair_t for r in parts), script,
+            sum(r.n_entities for r in parts),
+        )
     )  # fmt: skip
 
 
@@ -574,6 +606,27 @@ def pair_reason(e1: Entity, e2: Entity, rho: float) -> str:
     return f"different players: weak link through game pace and margin (latent r = {rho:+.2f})"
 
 
+TESTED_P_MAX = 0.75  # calibrated leg P above this was over-predicted in the 2023-24 check
+TESTED_RAW_MAX = 0.80  # a posted-line leg with raw P at or above this ran about 15-30 points high
+
+
+def leg_above_tested_range(leg: Mapping[str, Any], game: Payload) -> bool:
+    """True when a player leg lies above the range the calibration was checked on: calibrated
+    P > 0.75, or a leg AT the posted main line whose raw P is >= 0.80. Label it ("above the tested
+    range, likely too high"); the number is never capped."""
+    if leg.get("kind") != "player":
+        return False
+    grid = _player(game, int(leg["player_id"]))["stats"][str(leg["stat"])]
+    lo, hi = line_to_bounds(float(leg["line"]), str(leg["side"]))
+    if interval_prob(grid, lo, hi) > TESTED_P_MAX:
+        return True
+    ml, raw = grid.get("main_line"), grid.get("raw_at_main")
+    if ml is not None and raw is not None and abs(float(leg["line"]) - float(ml)) < 1e-9:
+        raw_leg = float(raw) if leg["side"] == "over" else 1.0 - float(raw)
+        return raw_leg >= TESTED_RAW_MAX
+    return False
+
+
 def main_line_legs(game: Payload, side: str) -> list[dict[str, Any]]:
     out = []
     for p in game["players"]:
@@ -621,7 +674,9 @@ def lift_ranking(
         out.append(
             {"legs": r["legs"], "side": r["side"], "p_joint": res.p_joint,
              "p_independent": res.p_independent, "lift": res.lift, "se": res.se,
-             "method": res.method, "reason": pair_reason(pe1, pe2, prho)}
+             "method": res.method, "reason": pair_reason(pe1, pe2, prho),
+             "label": res.label, "range_2se": res.range_2se,
+             "above_tested_range": any(leg_above_tested_range(c, game) for c in r["legs"])}
         )  # fmt: skip
     out.sort(key=lambda r: (-r["lift"], -r["p_joint"], str(r["legs"])))
     return out[:top_n]
@@ -649,7 +704,7 @@ def _strongest_pair(
 # ---------------------------------------------------------------- framing 2: target probability
 
 TARGET_P_MIN = 0.35  # no lottery-ticket legs
-TARGET_P_MAX = 0.85  # no near-certain filler legs (the degenerate "lowest lines" answer)
+TARGET_P_MAX = 0.75  # no near-certain filler legs; also the top of the tested calibration range
 
 
 def candidate_legs(
@@ -673,11 +728,52 @@ def candidate_legs(
                 line = k - 0.5
                 if floor_mode == "main_line" and (ml is None or line < float(ml)):
                     continue
-                out.append(
-                    {"kind": "player", "game_id": str(game["game_id"]), "player_id": int(p["player_id"]),
-                     "stat": stat, "line": line, "side": "over", "p": s}
-                )  # fmt: skip
+                leg = {"kind": "player", "game_id": str(game["game_id"]),
+                       "player_id": int(p["player_id"]), "stat": stat, "line": line,
+                       "side": "over", "p": s}  # fmt: skip
+                if leg_above_tested_range(leg, game):
+                    continue  # labelled and excluded, never capped
+                out.append(leg)
     return out
+
+
+def _search(
+    game: Payload,
+    shared: Payload,
+    cands: list[dict[str, Any]],
+    k_legs: int,
+    target: float,
+    beam: int,
+    prune: bool,
+) -> list[tuple[list[Mapping[str, Any]], float, float]]:
+    """Partial combos grow one leg at a time. Adding an over leg can only lower the joint, so a
+    partial below ``target`` can never reach it: with ``prune`` it is dropped (exact bound). The
+    first level is never cut and the second scores every pair, so k = 2 is exhaustive; for
+    k >= 3 the levels after the first keep the best ``beam`` partials by lift."""
+    frontier: list[list[Mapping[str, Any]]] = [[]]
+    scored: list[tuple[list[Mapping[str, Any]], float, float]] = []
+    for level in range(1, k_legs + 1):
+        nxt: dict[tuple[tuple[int, str, float], ...], tuple[list[Mapping[str, Any]], float, float]]
+        nxt = {}
+        for combo in frontier:
+            used = {(c["player_id"], c["stat"]) for c in combo}
+            for c in cands:
+                if (c["player_id"], c["stat"]) in used:
+                    continue
+                new = [*combo, c]
+                key = tuple(sorted((x["player_id"], x["stat"], x["line"]) for x in new))
+                if key in nxt:
+                    continue
+                res = evaluate_game_legs(new, game, shared, qmc=SCREEN_QMC, biv_n=SCREEN_BIV_N)
+                if prune and res.p_joint < target:
+                    continue
+                nxt[key] = (new, res.lift if res.lift is not None else 0.0, res.p_joint)
+        scored = sorted(nxt.values(), key=lambda t: (-t[1], -t[2], str(t[0])))
+        keep = scored if level == 1 else scored[: max(beam, 1)]
+        frontier = [t[0] for t in keep]
+        if not frontier:
+            return []
+    return scored
 
 
 def target_search(
@@ -692,53 +788,36 @@ def target_search(
     p_max: float = TARGET_P_MAX,
 ) -> dict[str, Any]:
     """Framing 2. OBJECTIVE (explicit): among combos of ``k_legs`` over legs on distinct
-    (player, stat) entities of one game, each leg's marginal in [p_min, p_max], with
-    ``p_joint >= target``, MAXIMISE lift = p_joint / product of marginals; ties by the smaller
-    excess ``p_joint - target``, then by a fixed key. The marginal band is the guard against the
-    degenerate answer (stacking near-certain lowest lines to hit any target at lift 1).
-    Beam search over legs added one at a time (width ``beam``, ranked by lift among partial combos
-    that could still reach the target); the final answer is exact for k = 2 and a seeded QMC
-    estimate beyond. When no combo reaches the target the result says so and returns the highest
-    joint found (``feasible = False``)."""
+    (player, stat) entities of one game, each leg's marginal in [p_min, p_max] (legs above the
+    tested range are excluded, see ``leg_above_tested_range``), with ``p_joint >= target``,
+    MAXIMISE lift = p_joint / product of marginals; ties by the smaller excess ``p_joint -
+    target``, then by a fixed key. The band is the guard against stacking near-certain lowest
+    lines (lift 1.00). Known tendency: because lift peaks for low-probability legs, the best
+    answer usually has a leg at the band floor (p near ``p_min``). k = 2 is exhaustive (screened
+    on a coarse pair integral, the leaders recomputed exactly); k >= 3 prunes partials below the
+    target and beam-searches the third leg on, a model estimate (``label``). When no combo reaches
+    the target the result says so and returns the highest joint found (``feasible = False``)."""
     cands = candidate_legs(game, p_min, p_max, floor_mode)
-    frontier: list[tuple[Sequence[Mapping[str, Any]], float]] = [((), 1.0)]
-    for _ in range(k_legs):
-        nxt: dict[
-            tuple[tuple[int, str, float], ...], tuple[list[Mapping[str, Any]], float, float]
-        ] = {}
-        for combo, _score in frontier:
-            used = {(c["player_id"], c["stat"]) for c in combo}
-            for c in cands:
-                if (c["player_id"], c["stat"]) in used:
-                    continue
-                new = [*combo, c]
-                key = tuple(sorted((x["player_id"], x["stat"], x["line"]) for x in new))
-                if key in nxt:
-                    continue
-                res = evaluate_game_legs(new, game, shared, qmc=SCREEN_QMC)
-                lift = res.lift if res.lift is not None else 0.0
-                nxt[key] = (new, lift, res.p_joint)
-        ranked = sorted(nxt.values(), key=lambda t: (-t[1], -t[2], str(t[0])))
-        frontier = [(t[0], t[1]) for t in ranked[: max(beam, top_n)]]
-        if not frontier:
-            break
+    scored = _search(game, shared, cands, k_legs, target, beam, prune=True)
+    feasible = bool(scored)
+    if not feasible:
+        scored = sorted(
+            _search(game, shared, cands, k_legs, target, beam, prune=False),
+            key=lambda t: (-t[2], str(t[0])),
+        )
     final: list[dict[str, Any]] = []
-    for combo, _ in frontier:
-        if len(combo) != k_legs:
-            continue
+    for combo, _lift, _p in scored[: max(3 * top_n, top_n)]:
         res = evaluate_game_legs(combo, game, shared)
         final.append(
             {"legs": [{k: v for k, v in c.items() if k != "p"} for c in combo],
              "p_joint": res.p_joint, "p_independent": res.p_independent, "lift": res.lift,
-             "se": res.se, "method": res.method}
+             "se": res.se, "method": res.method, "label": res.label, "range_2se": res.range_2se}
         )  # fmt: skip
+    meta = {"target": target, "k_legs": k_legs, "band": [p_min, p_max], "floor_mode": floor_mode,
+            "objective": "max lift s.t. p_joint >= target, marginals in band, above-range legs excluded"}  # fmt: skip
     ok = [r for r in final if r["p_joint"] >= target]
     ok.sort(key=lambda r: (-(r["lift"] or 0.0), r["p_joint"] - target, str(r["legs"])))
     if ok:
-        return {"target": target, "k_legs": k_legs, "feasible": True, "combos": ok[:top_n],
-                "objective": "max lift s.t. p_joint >= target, marginals in band",
-                "band": [p_min, p_max], "floor_mode": floor_mode}  # fmt: skip
+        return {**meta, "feasible": True, "combos": ok[:top_n]}
     final.sort(key=lambda r: (-r["p_joint"], str(r["legs"])))
-    return {"target": target, "k_legs": k_legs, "feasible": False, "combos": final[:top_n],
-            "objective": "max lift s.t. p_joint >= target, marginals in band",
-            "band": [p_min, p_max], "floor_mode": floor_mode}  # fmt: skip
+    return {**meta, "feasible": False, "combos": final[:top_n]}

@@ -484,3 +484,106 @@ def test_eval_refuses_season_2025_by_name(tmp_path: Path) -> None:
         combo_eval.load_season(tmp_path, 2025)
     with pytest.raises(ValueError, match="holdout"):
         combo_eval.fit_fold_map(tmp_path, tmp_path, 2025)
+
+
+# ---------------------------------------------------------------- review fixes (2026-11-10)
+
+
+def _brute_pairs(target: float) -> list[tuple[float, float]]:
+    cands = combo.candidate_legs(G)
+    out = []
+    for a, b in itertools.combinations(cands, 2):
+        if (a["player_id"], a["stat"]) == (b["player_id"], b["stat"]):
+            continue
+        r = combo.evaluate_game_legs([a, b], G, SH)
+        if r.p_joint >= target and r.lift is not None:
+            out.append((r.lift, r.p_joint))
+    return out
+
+
+@pytest.mark.parametrize("target", [0.15, 0.35, 0.5])
+def test_target_search_k2_matches_brute_force(target: float) -> None:
+    brute = _brute_pairs(target)
+    out = combo.target_search(G, SH, target=target, k_legs=2, top_n=3)
+    assert brute, "fixture must have feasible pairs at this target"
+    assert out["feasible"] is True
+    assert out["combos"][0]["lift"] == pytest.approx(max(b[0] for b in brute), abs=1e-4)
+    assert all(c["p_joint"] >= target for c in out["combos"])
+
+
+def test_target_search_feasibility_agrees_with_brute_force_at_the_edge() -> None:
+    # with legs above 0.75 excluded no pair reaches 0.55 on the fixture (the adversary's feasible
+    # case at 0.55 used the old 0.85 band): brute force and the search must agree both ways
+    for target in (0.55, 0.45):
+        brute = _brute_pairs(target)
+        out = combo.target_search(G, SH, target=target, k_legs=2, top_n=2)
+        assert out["feasible"] is bool(brute)
+
+
+def test_target_search_k3_prunes_unreachable_partials_and_labels() -> None:
+    out = combo.target_search(G, SH, target=0.08, k_legs=3, top_n=2, beam=10)
+    assert out["feasible"]
+    for c in out["combos"]:
+        assert c["p_joint"] >= 0.08
+        assert c["label"] == combo.ESTIMATE_LABEL and c["range_2se"] is not None
+
+
+def test_target_p_max_is_the_tested_range_and_best_leg_sits_near_the_floor() -> None:
+    assert combo.TARGET_P_MAX == 0.75
+    out = combo.target_search(G, SH, target=0.15, k_legs=2, top_n=1)
+    ps = [combo.evaluate_combo([x], GAMES, SH).p_joint for x in out["combos"][0]["legs"]]
+    assert min(ps) < combo.TARGET_P_MIN + 0.03  # documented tendency
+
+
+def test_above_tested_range_is_labelled_and_excluded_not_capped() -> None:
+    g = json.loads(json.dumps(G))
+    g["players"][0]["stats"]["pts"]["raw_at_main"] = 0.82  # raw leg at the main line >= 0.80
+    assert combo.leg_above_tested_range(leg(1, "pts", 24.5), g)
+    assert not combo.leg_above_tested_range(leg(1, "pts", 24.5), G)
+    assert combo.leg_above_tested_range(leg(1, "pts", 10.5), G)  # calibrated P > 0.75
+    cands = combo.candidate_legs(g)
+    assert not any(c["player_id"] == 1 and c["stat"] == "pts" and c["line"] == 24.5 for c in cands)
+    # the displayed probability is the model's own, never capped
+    assert combo.evaluate_combo([leg(1, "pts", 10.5)], GAMES, SH).p_joint > 0.9
+    rows = combo.lift_ranking(G, SH, top_n=3)
+    assert all("above_tested_range" in r for r in rows)
+
+
+def test_null_p_play_means_no_dnp_numbers() -> None:
+    g = json.loads(json.dumps(G))
+    g["players"][1]["p_play"] = None
+    r = combo.evaluate_combo([leg(1, "pts", 24.5), leg(2, "pts", 8.5)], {"G1": g}, SH)
+    assert r.p_all_play is None and r.p_joint_incl_dnp is None and r.p_joint > 0
+    r1 = combo.evaluate_combo([leg(1, "pts", 24.5)], {"G1": g}, SH)
+    assert r1.p_all_play == pytest.approx(0.98)
+
+
+def test_game_legs_get_the_half_point_integer_correction() -> None:
+    win = {"kind": "team_margin", "game_id": "G1", "team": HOME, "gt": 0.0}
+    r = combo.evaluate_combo([win], GAMES, SH)
+    assert r.p_joint == pytest.approx(stats.norm.sf((0.5 - 3.0) / 13.6), abs=1e-12)
+    half = {**win, "gt": 6.5}
+    whole = {**win, "gt": 6.0}  # M > 6 is M >= 7 is M > 6.5
+    a = combo.evaluate_combo([half], GAMES, SH).p_joint
+    assert combo.evaluate_combo([whole], GAMES, SH).p_joint == pytest.approx(a, abs=1e-12)
+    bad = {"kind": "total", "game_id": "G1", "line": 227.0, "side": "over"}
+    with pytest.raises(ValueError):
+        combo.evaluate_combo([bad], GAMES, SH)
+
+
+def test_three_entity_combos_are_labelled_estimates_with_range() -> None:
+    legs3 = [leg(1, "pts", 24.5), leg(1, "reb", 6.5), leg(1, "ast", 5.5)]
+    r = combo.evaluate_combo(legs3, GAMES, SH)
+    assert r.label == combo.ESTIMATE_LABEL and r.range_2se is not None
+    assert r.range_2se[0] < r.p_joint < r.range_2se[1]
+    two = combo.evaluate_combo([leg(1, "pts", 24.5), leg(1, "reb", 6.5)], GAMES, SH)
+    assert two.label is None
+
+
+def test_params_status_has_no_calibrated_script_and_run1_file_is_committed() -> None:
+    root = Path(combo.__file__).resolve().parents[2]
+    p = json.loads(Path(combo.__file__).with_name("combo_params_v1.json").read_text())
+    assert all(v["status"] == "exploratory" for v in p["script_status"].values())
+    run1_path = root / "reports" / "parlay" / "combo_eval_2026-11-09_run1.json"
+    run1 = json.loads(run1_path.read_text())
+    assert {v["status"] for v in run1["script_labels"].values()} == {"exploratory"}

@@ -84,7 +84,7 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
 - Class: set / joint model. Gaussian copula of per-stat normal-score latents with pooled relation correlations, marginals from the frozen
   LINE_CALIBRATION map applied across the grid (banded), plus a per-(script, stat, role) latent shift and scale.
 - Information or capacity? No new pre-tip information; the structure it exposes is the one thing the data supports, a same-player
-  minutes factor. Same-player pair lift is 1.17 to 1.20 (about 69,000 pairs, 1,300 games per fold); teammates, opponents and
+  minutes factor. Same-player pair lift is 1.17 to 1.20, 1.16 to 1.20 after removing the cross-game marginal offset (about 69,000 pairs, 1,300 games per fold); teammates, opponents and
   different games have residual r of 0 within +-0.01. Capacity is not the lever.
 - Enough data? Pooled correlations use 55,000 same-player rows and 270,000+ pair rows per season; script cells have 290 to 444
   realised games per script per season (the effective n is games, not player rows).
@@ -101,7 +101,9 @@ Evidence citations are ledger rows; "unknown" means nobody has measured it here 
 - Typical failures seen: map extrapolation fattening tails (fixed by the band); script effects under-predicted for close and shootout
   (about 2 to 3 points; they stay `exploratory`); blowout same-player joint over-reacts in one fold. The linear copula cannot represent
   the nonlinear blowout minutes cut, which the script shift only partly absorbs.
-- Verdict: `grind` passes the pre-stated check; `blowout`, `close`, `shootout` are exploratory; the copula is kept for same-player legs only.
+- Verdict: no script is calibrated. `grind` passed the frozen check only in a second run, after an amendment decided on run 1's test-season
+  outcomes, and the pass is fragile to seed and month (adversary combo_math_2026-11-10); `blowout`, `close`, `shootout` failed. The copula is kept for
+  same-player legs only; triples are labelled model estimates.
 
 ## Play-by-play generative models (PBP_GPT)
 - Driven by: event volume and vocabulary consistency across seasons; long-context training; compute.

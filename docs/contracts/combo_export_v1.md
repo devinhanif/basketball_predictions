@@ -48,7 +48,8 @@ ignores unknown keys. Top level:
 - `scripts.params`: array of `[script, stat, role, mu, sigma, n]`; `role` is `starter` (`starter10 >= 0.5`) or `bench`. Latent shift
   and scale of the player normal score under that script, shrunk toward `(0, 1)` with k = 200.
 - `scripts.status`: `{script: {"status": "calibrated" | "exploratory", "why_not": [..]}}` from the pre-stated check of section 6.
-  The app MUST show the word "exploratory" next to any script whose status is not `calibrated`.
+  **Review override 2026-11-10: in v1 every script is `exploratory`** (grind's pass in the second run is not confirmatory, section 7).
+  The app MUST show the word "exploratory" next to any script whose status is not `calibrated`; none is.
 - `provenance`: `map` `"LINE_CALIBRATION"`, `map_sha8` (`443743a1`), `fit_through` (`2025-06-30`), `corr_fit_seasons`
   (`[2023, 2024]`), `corr_n_games` (2,638), `combo_params_sha8` (sha of `nba/parlay/combo_params_v1.json`), `rule_sha8` of the
   evaluation rule (docstring of `combo_eval.py` at the commit that produced the params), `code_version` (git sha of `nba/parlay`).
@@ -125,8 +126,11 @@ About 20 players per game, 13 to 16 KB raw per game. **Budget: <= 300 KB raw and
    `se` = sd across shifts / sqrt(8). Then clamp to the Frechet bounds `[max(0, sum p - (k - 1)), min p]`. Cross-game: the product of
    the games' joints (independent by construction); `se` combines by the delta method on the product.
 5. **Outputs per combo.** `p_joint`, `p_independent` (product of the merged entities' marginals), `lift = p_joint / p_independent`,
-   `marginals`, `se`, `method` (`marginal | exact_bivariate | qmc | product_of_games | empty`), `p_all_play`, `p_joint_incl_dnp`.
-   Show `p_joint +- 2 se` whenever `method == "qmc"`; the exact methods show no error bar.
+   `marginals`, `se`, `method` (`marginal | exact_bivariate | qmc | product_of_games | empty`), `p_all_play`, `p_joint_incl_dnp` (both `null` when any named player's `p_play` is null: unknown availability is not 'no DNP risk'),
+   `label`, `range_2se`. Show `p_joint +- 2 se` whenever `method == "qmc"`; the exact methods show no error bar. Any combo with three
+   or more entities carries `label = "model estimate, not checked against results"`: only two-leg combos were scored (section 7), and
+   never call a three-leg number "calibrated". Game legs use the integer half-point correction (a whole `gt` is `gt + 0.5`; whole
+   total lines are refused, as for players).
 6. **Tolerances for the TS port** (golden file): `exact_bivariate`, `marginal`, `empty`, script priors: 2e-6 absolute. `qmc`: within
    `4 * se + 1e-4` of the stored `p_joint` (a port that copies the lattice and shifts exactly will agree to about 1e-9). Lift
    ranking and target search: same legs in the same order (ties break on the stringified legs, as in the reference).
@@ -141,10 +145,15 @@ All four use the same `evaluate` core. None shows a price.
    (same player: shared minutes, or "threes are points"; different players: "no reliable link, treated as near independent") with
    the latent r printed. Top of the list is always same-player combos; different-player pairs sit at lift 1.00 +- 0.01.
 2. **Target probability** (`target_search`). User sets `target` and `k_legs`. **Objective, stated:** over combos of `k_legs` over-legs
-   on distinct (player, stat) entities of ONE game, each leg's marginal in `[0.35, 0.85]`, with `p_joint >= target`, MAXIMISE
+   on distinct (player, stat) entities of ONE game, each leg's marginal in `[0.35, 0.75]` and not above the tested range (below), with `p_joint >= target`, MAXIMISE
    `lift`; ties by smaller `p_joint - target`. The marginal band is the guard against the degenerate answer: without it the
-   cheapest way to reach any target is to stack near-certain lowest lines at lift 1.00. `floor_mode = "main_line"` additionally
-   requires each leg's line to be at or above the posted main line. Beam search (width 40), legs added one at a time; the answer
+   cheapest way to reach any target is to stack near-certain lowest lines at lift 1.00. **Known tendency: the best answer usually has a
+   leg at the band floor** (marginal near 0.35), because lift is largest for low-probability legs; the band moved the degenerate
+   answer from "near-certain filler" to "the 0.35 edge", it did not remove it. Legs the app would label "above the tested range"
+   are excluded here (labelled and excluded, never capped). `floor_mode = "main_line"` additionally
+   requires each leg's line to be at or above the posted main line. k = 2 is exhaustive (every pair screened on a coarse integral, the leaders recomputed exactly; checked against brute force in
+   the tests). For k >= 3 a partial combo below the target is pruned (adding an over leg can only lower the joint, an exact bound) and
+   the survivors are beam-searched (width 40): a model estimate, labelled as such. The answer
    says `feasible: false` and returns the highest joint found when the target cannot be reached. Cross-game combos are not searched
    (their lift is 1 by construction; the user can build them in framing 4).
 3. **Pick a script** (`evaluate(..., script=...)`). Definitions, all checkable from the final score:
@@ -153,7 +162,9 @@ All four use the same `evaluate` core. None shows a price.
    the scoring environment). Not exclusive. Under a script the player latent is `z = mu + sigma * eps` with `(mu, sigma)` from
    `shared.scripts.params` by (script, stat, role) and `eps` keeping the pooled within-game correlations (an approximation:
    within-script correlations were not re-estimated). `script_prior` is P(script) from the game's normals with integer support
-   (margin 15 is `M >= 14.5`); the shootout and grind priors are the same constant for every game by definition (about 0.27).
+   (margin 15 is `M >= 14.5`); the shootout and grind priors are the same number for every game by definition (about 0.27), while the REALISED share has ranged by season from 22% to 31% (shootout
+   22.1% / 28.6%, grind 31.1% / 22.7% in 2023 / 2024) because the season mean of `total - mu_t` moved from -2.4 to +2.1. Show the prior
+   with that range next to it.
    Game legs (win, total) are refused inside a script. The status in `shared.scripts.status` comes from the historical check below.
 4. **Build your own** (`evaluate_combo`). Any legs, any lines, any games: live `p_joint`, `p_independent`, `lift`, `se`, DNP line.
 
@@ -177,7 +188,9 @@ date for cross-game pairs).
 | cross-game, same date | A / B | 150,000 each | 183 / 187 dates | 1.000 | 1.028 [1.006, 1.051] / 0.984 [0.961, 1.008] | same | +0.002 [-0.004, +0.008] / -0.001 [-0.006, +0.004] |
 
 Plain reading: **lift is real for one thing, the same player's different stats (about 1.17 to 1.20 for a pair, from shared
-minutes), and it is nothing for everything else.** Teammates, opponents and different games have a leg-outcome residual
+minutes; 1.16 to 1.20 after removing the season-level marginal offset seen in cross-game pairs: 1.197 / 1.028 = 1.164 in A,
+1.179 / 0.984 = 1.198 in B), and it is nothing for everything else.** The copula's own predicted lift is 1.169 / 1.171. The headline
+"1.197" mixes dependence with a 3% marginal offset, so quote the range, not the third decimal. Teammates, opponents and different games have a leg-outcome residual
 correlation of 0 within +-0.01 (all six CIs inside [-0.009, +0.008]), consistent with T490 (independence supported in 55 of 65 pools;
 its "dependent" cells were a weighting artifact). The deviations of "realised / product" from 1 for cross-game pairs (+-3%) are
 marginal calibration offsets of the legs, not dependence (the residual r is 0). The copula beats independence on log loss only for
@@ -213,21 +226,24 @@ conditional prediction inside +-0.02, (iii) for same-player pairs the 95% CI of 
 | blowout | 32.8% / 34.4% | 18,404 / 444: 0.443, 0.439, 0.477 | -0.00187 [-0.00260, -0.00118] | -0.00181 [-0.00272, -0.00094] | exploratory (fold B same-player joint ratio CI [1.015, 1.097] excludes 1) |
 | close | 23.5% / 25.2% | 13,686 / 331: 0.513, 0.490, 0.476 | -0.00047 [-0.00089, -0.00004] | -0.00081 [-0.00125, -0.00038] | exploratory (under-reacts: obs - pred +0.023 [+0.013, +0.032] A, +0.021 [+0.011, +0.030] B) |
 | shootout | 22.1% / 28.6% | 15,380 / 373: 0.521, 0.497, 0.477 | -0.00274 [-0.00341, -0.00213] | -0.00212 [-0.00272, -0.00157] | exploratory (under-reacts: +0.025 [+0.014, +0.035] A, +0.033 [+0.022, +0.043] B) |
-| grind | 31.1% / 22.7% | 12,030 / 291: 0.434, 0.440, 0.476 | -0.00351 [-0.00438, -0.00271] | -0.00463 [-0.00560, -0.00364] | **calibrated** (obs - pred -0.006 [-0.014, +0.003] A, +0.001 [-0.007, +0.009] B; pair ratio 0.965 [0.925, 1.005], 1.002 [0.966, 1.041]) |
+| grind | 31.1% / 22.7% | 12,030 / 291: 0.434, 0.440, 0.476 | -0.00351 [-0.00438, -0.00271] | -0.00463 [-0.00560, -0.00364] | **exploratory (review override)**: the frozen check passed in run 2 (obs - pred -0.006 [-0.014, +0.003] A, +0.001 [-0.007, +0.009] B; pair ratio 0.965 [0.925, 1.005], 1.002 [0.966, 1.041]) but failed in run 1 (three conditions), the amendment came after run 1 on test-season outcomes, and the pass is fragile (fails under 1 of 5 alternate PIT seeds and when 2024-10 or 2024-11 is dropped; adversary review combo_math_2026-11-10) |
 
-Reading: every script moves the legs the right way and beats the unconditional prediction on Brier, but only `grind` meets all three
-pre-stated conditions in both folds. The shift is large and robust: over legs hit 3.5 to 4.6 points LESS in blowouts and grinds and
+Reading: every script moves the legs the right way and beats the unconditional prediction on Brier, but only `grind` met all three
+pre-stated conditions in both folds, and only in the second run (see the override above). The shift is large and robust: over legs hit 3.5 to 4.6 points LESS in blowouts and grinds and
 2.7 to 4.6 points MORE in close games and shootouts than the unconditional forecast. `shootout` and `close` are under-predicted by
 about 2 to 3 points. The cross-fit fold is not walk-forward; one season each; the 2026 forward log has not been used and nothing
-is claimed about it. Even `calibrated` means only "passed this check on 2023-24 legs at posted lines", not a forecast skill claim:
-the script is a realised outcome, so this tests the conditional probabilities, not anyone's ability to predict the script
+is claimed about it. No script is labelled calibrated until a frozen forward rule says so (draft: `docs/contracts/combo_script_forward_rule_DRAFT.md`, not
+frozen, not run). The check also cannot see a joint miscalibration smaller than about 4% (the same-player ratio CI half-width is about
+0.04, and "CI contains 1" is a non-rejection test). The script is a realised outcome, so this tests the conditional probabilities, not anyone's ability to predict the script
 (`script_prior` is just the game model's normal tail).
 
 **Amendment, recorded before the second run (commit 4fa66a1).** The first run applied the map at every rung; the PIT diagnostic
 (normal-score sd 0.63 to 0.90) showed an invalid latent and the script parameters were re-estimated on the banded grid. Thresholds were
-unchanged. The first run's pair and band numbers are unchanged by the amendment (main-line legs are inside the band). First-run
-script statuses (all four exploratory, Brier CI upper bounds above 0 for blowout and shootout) are superseded and kept only in git
-history. `resid_r` and the PIT sd were added after the first run, descriptive only. A follow-up that would likely close the
+unchanged. The first run's pair and band numbers are unchanged to the third decimal by the amendment (same-player lift 1.1960 vs 1.1971; main-line
+legs beyond |z| = 1 moved slightly and the bootstrap stream shifted). The amendment was decided after run 1 failed all four scripts, on a PIT
+diagnostic computed from 2024 outcomes, and it flipped grind: that is a second look at the same test seasons, not a pre-registered pass. The
+first-run output is committed at `reports/parlay/combo_eval_2026-11-09_run1.json` (reproduced by the adversary from fd81aaf; all four
+exploratory, grind failing three conditions). `resid_r` and the PIT sd were added after the first run, descriptive only. A follow-up that would likely close the
 under-reaction (a log-odds offset per script and stat estimated directly on rotation-player legs instead of via the PIT latent) is a
 new question and needs its own rule before it is run.
 
@@ -235,7 +251,11 @@ new question and needs its own rule before it is run.
 
 - Show `p_joint` (calibrated), `p_independent`, `lift`, the reason in words, `p_all_play`, and the `se` for `qmc`. Show the word
   "calibrated" only for legs inside `cal_k`; outside it say "outside the calibrated range".
-- "Exploratory" beside any script whose status is not `calibrated`, with the n above on request.
+- "Exploratory" beside every script (none is calibrated in v1), with the n above on request.
+- A leg with calibrated P above 0.75, or at the posted main line with `raw_at_main >= 0.80`, is shown with "above the tested range,
+  likely too high" (2023-24: calibrated 0.75-0.80 legs hit 12.6 points less than predicted, n = 67; raw 80%+ legs 16 points less after
+  calibration, n = 85) and is excluded from target search. The number itself is not capped (a cap invents a probability).
+- Any combo with three or more legs: "model estimate, not checked against results", with the +-2 se range.
 - Cross-game combos: "different games are treated as independent (measured r about 0)". Never present a lift for them.
 - No stakes, no sizing, no EV, no fee, no price, no "should I bet". The market is not an input and is not compared here; any
   price comparison lives in the separate markets panel with its own verdicts (`keep_your_money` until the log proves skill).

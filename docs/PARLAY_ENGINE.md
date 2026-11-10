@@ -185,8 +185,8 @@ Contract: `docs/contracts/combo_export_v1.md` (payload, normative algorithms, si
 reference the browser port is tested against; golden vectors in `tests/parlay/golden/combo_golden_v1.json`), `combo_build.py` (banded calibrated
 grids, PIT, payload packing), `combo_eval.py` (the pre-stated 2023-24 evidence harness), `combo_params_v1.json` (pooled correlations and script
 parameters fitted on 2023-24). Four framings: game-script lift (rank by joint over product of marginals), target probability (maximise lift
-subject to a joint target with every leg's marginal in [0.35, 0.85], so it cannot degenerate to the lowest lines), pick a script (blowout, close,
-shootout, grind, defined from the final score; only `grind` has passed its calibration check, the rest are labelled exploratory), build your own.
+subject to a joint target with every leg's marginal in [0.35, 0.75], so it cannot degenerate to the lowest lines), pick a script (blowout, close,
+shootout, grind, defined from the final score; all four are labelled exploratory: `grind` passed the frozen check only in a second, post-amendment run), build your own.
 Measured lift: same-player different stats about 1.17 to 1.20; teammates, opponents and different games 1.00 (residual r 0 within +-0.01).
 Maintainer run (about 2 minutes, reads seasons 2023-24 only, `nba.duckdb` read-only):
 ```
