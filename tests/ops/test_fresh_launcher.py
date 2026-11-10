@@ -23,7 +23,8 @@ SCRIPT = REPO / "ops" / "nba_live_capture.sh"
 
 def test_fresh_interval_cli_without_date(capsys: pytest.CaptureFixture[str]) -> None:
     assert lc.main(["fresh-interval"]) == 0
-    assert capsys.readouterr().out.strip() == "0 off (config 0)"
+    # shipped default since 2026-11-10 (Devin): 15 s; real core-API fixtures are committed
+    assert capsys.readouterr().out.strip() == "15 on"
 
 
 def test_plan_still_requires_date() -> None:
@@ -78,10 +79,12 @@ def _capture_call(calls: list[str]) -> str:
     return next(c for c in calls if "nba.live capture" in c)
 
 
-def test_launcher_default_config_passes_zero_and_no_alert(tmp_path: Path) -> None:
+def test_launcher_default_config_with_real_fixtures_passes_15_and_no_alert(tmp_path: Path) -> None:
+    fx = tmp_path / "root" / "tests" / "live" / "fixtures" / "espn_core_real"
+    shutil.copytree(REPO / "tests" / "live" / "fixtures" / "espn_core_real", fx)
     r, calls, alerts = _launch(tmp_path)
     assert r.returncode == 0
-    assert "--fresh-interval-s 0" in _capture_call(calls)
+    assert "--fresh-interval-s 15" in _capture_call(calls)
     assert alerts == ""
 
 

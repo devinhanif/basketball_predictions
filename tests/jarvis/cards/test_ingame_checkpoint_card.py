@@ -44,10 +44,10 @@ def view(cp: int, known: datetime, **over: Any) -> dict[str, Any]:
     return {**v, **over}
 
 
-def test_the_shipped_config_is_off_and_valid() -> None:
+def test_the_shipped_config_is_on_and_valid() -> None:
     cfg = load_config(ROOT / "configs" / "jarvis.yaml")
-    assert cfg.ingame_checkpoints["enabled"] is False  # flipping it on is the merge-time decision
-    assert not IC.enabled(cfg)
+    assert cfg.ingame_checkpoints["enabled"] is True  # Devin turned it on, 2026-11-10
+    assert IC.enabled(cfg)
     assert str(cfg.ingame_checkpoints["store"]).endswith("ingame_checkpoints.duckdb")
 
 

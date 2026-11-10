@@ -185,7 +185,7 @@ ingame_checkpoints:             # the in-game line model at every 5 game-minutes
   # changes no existing condition. Serves the halftime_overs artifact (same digest pin, fee pin, recency window).
   # Overtime is excluded; a state older than 3 min since its last play, or a checkpoint more than 150 s past, is refused.
   # Ships OFF: flipping it on is the merge-time decision (Devin's go + replay oracle), not part of the branch.
-  enabled: false
+  enabled: true
   store: data/jarvis/ingame_checkpoints.duckdb
   top_n: 3                      # overs shown on the card block (display only; the table keeps every row)
 

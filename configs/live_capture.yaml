@@ -7,4 +7,4 @@
 # tests/live/test_espn_core_real.py passes on them. Takes effect at the next capture start (a running capture keeps its value).
 # Backoff (2^fails x interval, cap 300 s) and the consecutive 401/403 auth latch stay as in nba/live/espn_fresh.py.
 # Each changed body is written atomically (tmp + rename) the moment it is fetched, no batching (nba/live/store.py).
-espn_fresh_interval_s: 0
+espn_fresh_interval_s: 15
