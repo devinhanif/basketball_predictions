@@ -41,7 +41,7 @@ it has stored checkpoint rows (the v1 rule); a game in play with no Kalshi quote
   ESPN summary's period and clock), `state_at` = when the capture received that summary (the number is that old).
 - `pregame` and `rules` come from the night's `combo_<night>.json` (`data/export/latest/`; the directory is
   `ingame_checkpoints.script_priors_dir`). If that file is missing, the game has no entry in it (matched by `AWAY@HOME`
-  abbreviations, never guessed), the score is missing, the game is in overtime or past regulation, then the block is
+  abbreviations, never guessed), the score is missing, the game is in overtime or past regulation, the state is older than 180 s when written, then the block is
   ABSENT and the rest of the entry is unchanged. The app shows nothing in place of it, not a guess.
 - The block refreshes every tick (the newest summary the live capture holds), not only on a 5-minute checkpoint; the
   checkpoint rows next to it still update only at their checkpoints. `elapsed_min` and `state_at` say which state the
@@ -60,4 +60,4 @@ What it is not: validated. The model is independent increments (Stern 1994), a t
 the rest of the game proportional to the time left. Observed pace is NOT extrapolated beyond the points already scored,
 so a hot or cold start is treated as noise; real pace persists, so shootout / grind are probably under-reacting. It has
 not been checked against play-by-play and has no live record (the forward test is a separate, pre-registered piece,
-DECISIONS 2026-11-10 12:52). Every number carries "exploratory" and the `label` above. Overtime is out of scope.
+DECISIONS 2026-11-10 12:52). Every number carries "exploratory" and the `label` above. Overtime is out of scope: a tied game late in regulation can still end outside +-5 (the label says so).

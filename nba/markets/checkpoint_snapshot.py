@@ -27,12 +27,14 @@ log = logging.getLogger("nba.markets.checkpoint_snapshot")
 
 VERSION = 2
 MAX_BYTES = 5_000_000
+STATE_MAX_AGE_S = 180.0  # a state older than this at write time carries no script block
 MAX_ROWS_PER_GAME = 200
 ROW_KEYS = ("stat", "k", "p_model", "cur", "minutes", "fouls")
 METHOD = "independent_increments_v1"
 SCRIPT_LABEL = (
     "EXPLORATORY and UNPROVEN: script chances from the live score and clock on the pre-game game model "
-    "(independent increments; pace is not extrapolated). No live record yet."
+    "(independent increments; pace is not extrapolated; overtime is not modelled, so a tied game late in "
+    "regulation can still end outside +-5). No live record yet."
 )
 
 _CACHE: dict[tuple[str, int], dict[str, Any]] = {}
@@ -45,6 +47,10 @@ def iso(ts: Any) -> str | None:
         t = ts if ts.tzinfo is not None else ts.replace(tzinfo=UTC)
         return t.astimezone(UTC).isoformat(timespec="seconds")
     return str(ts)
+
+
+def _aware(ts: datetime) -> datetime:
+    return ts if ts.tzinfo is not None else ts.replace(tzinfo=UTC)
 
 
 def load_pregame(path: Path) -> dict[str, dict[str, Any]]:
@@ -75,12 +81,18 @@ def load_pregame(path: Path) -> dict[str, dict[str, Any]]:
 
 
 def script_block(
-    pre: Mapping[str, Any], state: Any, state_at: datetime | None
+    pre: Mapping[str, Any], state: Any, state_at: datetime | None, now: datetime | None = None
 ) -> dict[str, Any] | None:
     """The live script block for one game, or None when the state cannot be used (no score, overtime,
     unreadable clock). ``state`` is a ``checkpoint_scorer.State``."""
     from nba.parlay import game_scripts as GS
 
+    if (
+        now is not None
+        and state_at is not None
+        and (_aware(now) - _aware(state_at)).total_seconds() > STATE_MAX_AGE_S
+    ):
+        return None  # a stale state is not shown as live
     if (
         state is None
         or state.elapsed_s is None
@@ -133,7 +145,7 @@ def build_snapshot(
         pre = pregame.get(game)
         st = states.get(eid)
         if pre is not None and st is not None:
-            blk = script_block(pre, st, getattr(st, "received_at", None))
+            blk = script_block(pre, st, getattr(st, "received_at", None), now)
             if blk is not None:
                 entry["script"] = blk
         games[eid] = entry

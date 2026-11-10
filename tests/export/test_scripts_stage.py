@@ -247,9 +247,12 @@ def test_market_block_uses_the_engine_ev_code(gm_path: Path) -> None:
         m = leg["market"]
         assert leg["player_id"] == 101 and m["threshold"] == k
         p_over = C.surv_at(pl["stats"]["pts"], k)
-        joint = pl["p_play"] * p_over
         fee = fee_per_contract(0.55, cfg.fee, series="KXNBAPTS")
-        assert abs(m["ev_raw"] - (joint - 0.55 - fee)) < 2e-4  # P(plays)*P(over) - ask - fee
+        assert not ({"ev_raw", "ev_raw_low", "p_low"} & set(m))  # m6: only the conservative bound
+        assert m["ev_low"] <= m["ev"] + 1e-9 or m["model_weight"] == 0.0
+        assert (
+            abs(m["ev"] - (m["p_over"] * 0 + (0.5 * (0.55 + 0.52)) - 0.55 - fee)) < 2e-4
+        )  # market mid - ask - fee
         assert abs(m["fee"] - fee) < 1e-4 and abs(m["spread"] - 0.03) < 1e-9
         assert abs(m["p_over"] - p_over) < 1e-4 and m["p_model_incl_dnp"] <= m["p_over"]
         assert m["verdict"] == "no_positive_ev_found" and m["n_settled_track"] == 0
@@ -380,3 +383,159 @@ def test_the_manifest_files_block_and_hashes_are_unchanged_by_the_step(
 
 def test_now_is_naive_utc_helper_is_consistent() -> None:
     assert cs._iso_z(datetime(2026, 11, 10, 1, 2, 3, tzinfo=UTC)) == "2026-11-10T01:02:03Z"
+
+
+# ------------------------------------------------------------------ adversary fixes (M2, m1, m2, m3, m7)
+
+
+def test_read_markets_removes_its_private_copy_of_a_locked_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import tempfile
+
+    import duckdb
+
+    import nba.markets.asof as asof
+
+    db = tmp_path / "kalshi.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute(
+        "CREATE TABLE kalshi_markets (ticker VARCHAR, series_ticker VARCHAR, event_ticker VARCHAR, "
+        "title VARCHAR, player_id BIGINT, stat VARCHAR, threshold DOUBLE, result VARCHAR)"
+    )
+    con.execute(
+        "CREATE TABLE kalshi_prices (ticker VARCHAR, ts TIMESTAMP, yes_bid DOUBLE, yes_ask DOUBLE)"
+    )
+    con.execute("INSERT INTO kalshi_markets VALUES ('T1','S','E','t',1,'pts',20,NULL)")
+    con.execute(
+        "INSERT INTO kalshi_prices VALUES ('T1', TIMESTAMP '2026-11-10 12:00:00', 0.4, 0.5)"
+    )
+    con.close()
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    real = duckdb.connect
+
+    def locked(path: str, *a: Any, **k: Any) -> Any:
+        if Path(path) == db:
+            raise duckdb.IOException("Could not set lock on file")
+        return real(path, *a, **k)
+
+    monkeypatch.setattr(asof.duckdb, "connect", locked)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    rows = cs.read_markets(db)
+    assert [r["ticker"] for r in rows] == ["T1"] and rows[0]["yes_ask"] == 0.5
+    assert list(scratch.iterdir()) == []  # the copy was used, then deleted
+
+
+def test_read_markets_on_an_unlocked_store_deletes_nothing(tmp_path: Path) -> None:
+    import duckdb
+
+    db = tmp_path / "market_ro_keep" / "kalshi.duckdb"
+    db.parent.mkdir()
+    con = duckdb.connect(str(db))
+    con.execute(
+        "CREATE TABLE kalshi_markets (ticker VARCHAR, series_ticker VARCHAR, event_ticker VARCHAR, "
+        "title VARCHAR, player_id BIGINT, stat VARCHAR, threshold DOUBLE, result VARCHAR)"
+    )
+    con.execute(
+        "CREATE TABLE kalshi_prices (ticker VARCHAR, ts TIMESTAMP, yes_bid DOUBLE, yes_ask DOUBLE)"
+    )
+    con.close()
+    assert cs.read_markets(db) == []
+    assert db.exists()  # the original is never removed, whatever its folder is called
+
+
+def test_budget_is_enforced_and_reported(gm_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    r = _build_stage(gm_path)
+    assert r.combo is not None and r.scripts is not None
+    assert (
+        r.info["budget"]["over_budget"] is False and r.info["budget"]["pairs_dropped_for_size"] == 0
+    )
+    assert r.info["mu_t_source"] == {"live-season games only": 1}
+    monkeypatch.setattr(cs, "COMBO_BUDGET", 5_000)
+    monkeypatch.setattr(cs, "PICKS_BUDGET", 1)
+    r2 = _build_stage(gm_path)
+    b = r2.info["budget"]
+    assert b["dropped_raw_at_main"] is True and b["trimmed_surv_below"] == 0.001
+    assert b["over_budget"] is True  # said, not hidden
+    assert all(
+        "raw_at_main" not in e
+        for g in r2.combo["games"]
+        for p in g["players"]
+        for e in p["stats"].values()
+    )
+    assert all(blk["pairs"] == [] for g in r2.scripts["games"] for blk in g["picks"].values())
+
+
+def test_pairs_are_dropped_lowest_first() -> None:
+    def pair(p: float) -> dict[str, Any]:
+        return {"p_joint_script": p, "pad": "x" * 100}
+
+    scripts: dict[str, Any] = {
+        "games": [
+            {
+                "picks": {
+                    "a": {"pairs": [pair(0.5), pair(0.1)]},
+                    "b": {"pairs": [pair(0.4), pair(0.2)]},
+                }
+            }
+        ]
+    }
+    full = len(cs.dumps(scripts)) + 1
+    cs.PICKS_BUDGET, saved = full - 150, cs.PICKS_BUDGET
+    try:
+        out = cs.enforce_budget({"games": []}, scripts)
+    finally:
+        cs.PICKS_BUDGET = saved
+    left = sorted(
+        p["p_joint_script"] for blk in scripts["games"][0]["picks"].values() for p in blk["pairs"]
+    )
+    assert out["pairs_dropped_for_size"] == 2 and left == [0.4, 0.5]
+
+
+def test_second_file_failure_leaves_neither_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import os
+    from types import SimpleNamespace
+
+    import nba.export.build as bm
+
+    res = cs.StageResult({"games": []}, {"games": []}, {"status": "ok"})
+    monkeypatch.setattr(cs, "build", lambda *a, **k: res)
+    fwd = SimpleNamespace(games=[], prop_grids=[], win_probs=[], p_play=[])
+    real = os.replace
+
+    def flaky(a: Any, b: Any) -> None:
+        if str(b).endswith("game_scripts_2026-11-10.json"):
+            raise OSError("disk")
+        real(a, b)
+
+    out = tmp_path / "o"
+    out.mkdir()
+    monkeypatch.setattr(bm.os, "replace", flaky)
+    m = bm._scripts_stage(out, DAY, fwd, [], [], [], [], MADE, None, None, None)  # type: ignore[arg-type]
+    assert m["status"] == "absent" and m["reason"] == "error:OSError"
+    assert list(out.iterdir()) == []  # the combo file swapped in first was removed again
+    # the combo file was swapped in before the failure only if its own replace ran first: both temps exist
+    # before either swap, so a failure while WRITING leaves nothing; check that case too
+    monkeypatch.setattr(bm.os, "replace", real)
+    out2 = tmp_path / "o2"
+    out2.mkdir()
+    calls = {"n": 0}
+    orig = Path.write_text
+
+    def bad_write(self: Path, *a: Any, **k: Any) -> Any:
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("disk full")
+        return orig(self, *a, **k)
+
+    monkeypatch.setattr(Path, "write_text", bad_write)
+    m2 = bm._scripts_stage(out2, DAY, fwd, [], [], [], [], MADE, None, None, None)  # type: ignore[arg-type]
+    assert m2["reason"] == "error:OSError" and list(out2.iterdir()) == []  # neither file, no temp
+
+
+def test_note_says_the_track_record_is_large_but_shows_no_skill() -> None:
+    assert "shows no skill yet" in cs.MARKET_NOTE and "defers to the market" in cs.MARKET_NOTE

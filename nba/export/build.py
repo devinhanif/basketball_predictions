@@ -430,18 +430,21 @@ def _sits_stage(
         )
 
 
-def _history_stage(src: duckdb.DuckDBPyConnection, day: date) -> list[tuple[Any, ...]] | None:
+def _history_stage(
+    src: duckdb.DuckDBPyConnection, day: date
+) -> tuple[list[tuple[Any, ...]] | None, str]:
     """Live-season games before ``day`` for the game model's total feature; None on any problem (the
     scripts step then falls back to the league mean and says so)."""
     try:
         from nba.export import combo_stage
 
-        return combo_stage.history_rows(src, day, guard.LIVE_SEASON)
+        rows = combo_stage.history_rows(src, day, guard.LIVE_SEASON)
+        return rows, "ok" if rows else "empty"
     except Exception as exc:
         logging.getLogger(__name__).warning(
             "scripts history skipped: %s: %s", type(exc).__name__, exc
         )
-        return None
+        return None, f"error:{type(exc).__name__}"
 
 
 def _scripts_stage(
@@ -457,6 +460,7 @@ def _scripts_stage(
     kalshi_db: Path | None,
     paper_db: Path | None,
     game_model: Path | None = None,
+    hist_status: str = "ok",
 ) -> dict[str, Any]:
     """Write ``combo_<day>.json`` and ``game_scripts_<day>.json`` (contracts/game_scripts_v1.md)
     and return the manifest block. EVERYTHING here sits inside one guard: this step can never
@@ -495,20 +499,42 @@ def _scripts_stage(
             game_model_path=game_model,
         )  # fmt: skip
         if res.combo is None or res.scripts is None:
-            return {**res.info, "markets": ask_info, "seconds": round(time.monotonic() - t0, 2)}
+            return {
+                **res.info,
+                "markets": ask_info,
+                "history": hist_status,
+                "seconds": round(time.monotonic() - t0, 2),
+            }
         files: dict[str, Any] = {}
-        for name, obj in ((f"combo_{day.isoformat()}.json", res.combo),
-                          (f"game_scripts_{day.isoformat()}.json", res.scripts)):  # fmt: skip
-            text = cs.dumps(obj)
-            _write_text_atomic(out_dir / name, text + "\n")
-            raw = text.encode()
-            files[name] = {
-                "bytes": len(raw) + 1, "gzip_bytes": len(gzip.compress(raw, 6)),
-                "sha256": hashlib.sha256(raw).hexdigest(),
-            }  # fmt: skip
+        temps: list[tuple[Path, Path]] = []
+        try:
+            for name, obj in ((f"combo_{day.isoformat()}.json", res.combo),
+                              (f"game_scripts_{day.isoformat()}.json", res.scripts)):  # fmt: skip
+                text = cs.dumps(obj)
+                tmp = out_dir / f".{name}.tmp.{os.getpid()}"
+                tmp.write_text(text + "\n")
+                temps.append((tmp, out_dir / name))
+                raw = text.encode()
+                files[name] = {
+                    "bytes": len(raw) + 1, "gzip_bytes": len(gzip.compress(raw, 6)),
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                }  # fmt: skip
+            swapped: list[Path] = []
+            try:
+                for tmp, final in temps:  # both temps are complete: now swap them in
+                    os.replace(tmp, final)
+                    swapped.append(final)
+            except BaseException:
+                for final in swapped:  # all or nothing: never one new file beside a stale other
+                    final.unlink(missing_ok=True)
+                raise
+        finally:
+            for tmp, _final in temps:
+                tmp.unlink(missing_ok=True)
         return {
             **res.info,
             "markets": ask_info,
+            "history": hist_status,
             "files": files,
             "seconds": round(time.monotonic() - t0, 2),
         }
@@ -592,7 +618,7 @@ def build_export(
         sits_rows, sits_info = _sits_stage(
             src, day, fwd, teams_of, report, made_at, sits_model_root, sits_budget_s
         )
-        scripts_hist = _history_stage(src, day) if scripts else None
+        scripts_hist, hist_status = _history_stage(src, day) if scripts else (None, "disabled")
     finally:
         if own:
             src.close()
@@ -662,7 +688,7 @@ def build_export(
     if scripts:
         scripts_info = _scripts_stage(
             out_dir, day, fwd, sits_rows, scripts_hist, players, teams, made_at,
-            gi["git_sha"], kalshi_db, paper_db, game_model,
+            gi["git_sha"], kalshi_db, paper_db, game_model, hist_status,
         )  # fmt: skip
 
     manifest: dict[str, Any] = {

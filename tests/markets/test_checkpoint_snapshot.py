@@ -222,3 +222,24 @@ def test_jarvis_hook_writes_only_when_enabled_and_never_in_a_dry_run(
         "ok": False,
         "error": "RuntimeError",
     }
+
+
+def test_a_stale_state_carries_no_script_block_and_the_label_names_overtime(tmp_path: Path) -> None:
+    pre = CS.load_pregame(combo_file(tmp_path / "c.json"))
+    old = replace_received(state(1500.0, 60, 50), NOW - timedelta(seconds=CS.STATE_MAX_AGE_S + 1))
+    fresh = replace_received(state(1500.0, 60, 50), NOW - timedelta(seconds=CS.STATE_MAX_AGE_S - 1))
+    assert (
+        "script"
+        not in CS.build_snapshot({"DET@PHI": rows()}, {"evt1": old}, pre, NOW)["games"]["evt1"]
+    )
+    assert (
+        "script"
+        in CS.build_snapshot({"DET@PHI": rows()}, {"evt1": fresh}, pre, NOW)["games"]["evt1"]
+    )
+    assert "overtime is not modelled" in CS.SCRIPT_LABEL
+
+
+def replace_received(st: ck.State, at: datetime) -> ck.State:
+    import dataclasses
+
+    return dataclasses.replace(st, received_at=at)

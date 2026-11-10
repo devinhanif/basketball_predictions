@@ -55,8 +55,9 @@ SITS_PTS_MIN = 0.05  # |delta| below this is not exported (sub-0.05-point shifts
 MIN_P_PLAY_EXPORT = 0.02  # a player this unlikely to play is not exported (size)
 MARKET_NOTE = (
     "EV = P(plays) * P(over | plays) - ask - fee per 1 contract, the parlay engine's evaluate() with the "
-    "verified fee object; the unconditional probability, never the script one. Without a settled track "
-    "record the engine shrinks to the market and the verdict is no_positive_ev_found. Not a stake."
+    "verified fee object; the unconditional probability, never the script one. The paper "
+    "track record is large but shows no skill yet, so the model defers to the market: the engine shrinks to "
+    "the market and the verdict is no_positive_ev_found. Shown: only the conservative ev. Not a stake."
 )
 
 
@@ -239,7 +240,11 @@ def read_markets(path: Path) -> list[dict[str, Any]]:
     from nba.markets.asof import open_read_only
 
     con = open_read_only(path, copy_fallback=True)
+    tmp_dir: Path | None = None
     try:
+        for _seq, _name, f in con.execute("PRAGMA database_list").fetchall():
+            if f and Path(str(f)).resolve() != Path(path).resolve():
+                tmp_dir = Path(str(f)).resolve().parent  # the private copy of a locked store
         rows = con.execute(
             "SELECT m.ticker, m.series_ticker, m.event_ticker, m.title, m.player_id, m.stat, "
             "m.threshold, p.yes_bid, p.yes_ask, p.ts FROM kalshi_markets m "
@@ -248,6 +253,10 @@ def read_markets(path: Path) -> list[dict[str, Any]]:
         ).fetchall()
     finally:
         con.close()
+        if tmp_dir is not None and tmp_dir.name.startswith("market_ro_"):
+            import shutil
+
+            shutil.rmtree(tmp_dir, ignore_errors=True)  # never leave 100 MB behind
     cols = ("ticker", "series_ticker", "event_ticker", "title", "player_id", "stat", "threshold",
             "yes_bid", "yes_ask", "ts")  # fmt: skip
     return [dict(zip(cols, r, strict=True)) for r in rows]
@@ -357,14 +366,12 @@ def make_market_fn(
             n_settled=int(track.n_settled), skill=float(track.skill), seed=20261110,
             series=str(q["series"]),
         )  # fmt: skip
-        lo = rec.raw_ev_low + float(q["ask"]) + rec.fees
         return {
             "ticker": q["ticker"], "threshold": k, "ask": round(float(q["ask"]), 4),
             "bid": None if q["bid"] is None else round(float(q["bid"]), 4),
             "spread": None if rec.spread is None else round(rec.spread, 4),
             "price_ts": q["price_ts"], "fee": round(rec.fees, 4),
             "p_over": round(p_over, 4), "p_model_incl_dnp": round(joint, 4),
-            "p_low": round(lo, 4), "ev_raw": round(rec.raw_ev, 4), "ev_raw_low": round(rec.raw_ev_low, 4),
             "ev": round(rec.ev, 4), "ev_low": round(rec.ev_low, 4), "verdict": rec.verdict,
             "model_weight": round(rec.model_weight, 4), "n_settled_track": rec.n_settled_track,
         }  # fmt: skip
@@ -512,12 +519,63 @@ def build(
         "market_note": MARKET_NOTE, "script_status": shared["scripts"]["status"],
         "definitions": shared["scripts"]["definitions"], "games": gs_games,
     }  # fmt: skip
+    budget = enforce_budget(combo, scripts)
+    mu_src: dict[str, int] = defaultdict(int)
+    for g in out_games:
+        mu_src[str(g["mu_t_source"])] += 1
     info = {
-        "status": "ok", "n_games": len(out_games), "n_players": sum(len(g["players"]) for g in out_games),
+        "budget": budget, "mu_t_source": dict(mu_src), "status": "ok", "n_games": len(out_games), "n_players": sum(len(g["players"]) for g in out_games),
         "n_priced_picks": n_priced, "verdicts": dict(verdicts), "skipped": dict(skipped),
         "n_asks": len(asks), "sits_games": len(sits),
     }  # fmt: skip
     return StageResult(combo, scripts, info, notes)
+
+
+COMBO_BUDGET = 300_000  # bytes raw per night (combo_export_v1 section 4)
+PICKS_BUDGET = 150_000
+
+
+def _size(obj: Any) -> int:
+    return len(dumps(obj)) + 1
+
+
+def enforce_budget(combo: dict[str, Any], scripts: dict[str, Any]) -> dict[str, Any]:
+    """Keep the files inside their budgets and SAY what was cut. Combo: drop ``raw_at_main``, then trim the
+    survival tails below 0.001 (the contract's own list). Picks: drop the lowest-ranked pairs first (lowest
+    ``p_joint_script``), across games and scripts."""
+    out: dict[str, Any] = {"combo_bytes_before": _size(combo), "picks_bytes_before": _size(scripts)}
+    if out["combo_bytes_before"] > COMBO_BUDGET:
+        for g in combo["games"]:
+            for pl in g["players"]:
+                for e in pl["stats"].values():
+                    e.pop("raw_at_main", None)
+        out["dropped_raw_at_main"] = True
+    if _size(combo) > COMBO_BUDGET:
+        for g in combo["games"]:
+            for pl in g["players"]:
+                for e in pl["stats"].values():
+                    while e["surv"] and e["surv"][-1] < 0.001:
+                        e["surv"].pop()
+        out["trimmed_surv_below"] = 0.001
+    n = 0
+    size = _size(scripts)
+    while size > PICKS_BUDGET:
+        worst: tuple[float, dict[str, Any]] | None = None
+        for g in scripts["games"]:
+            for blk in g["picks"].values():
+                if blk["pairs"]:
+                    cand = blk["pairs"][-1]
+                    if worst is None or cand["p_joint_script"] < worst[0]:
+                        worst = (cand["p_joint_script"], blk)
+        if worst is None:
+            break
+        pair = worst[1]["pairs"].pop()
+        size -= _size(pair)
+        n += 1
+    out["pairs_dropped_for_size"] = n
+    out["combo_bytes"], out["picks_bytes"] = _size(combo), _size(scripts)
+    out["over_budget"] = out["combo_bytes"] > COMBO_BUDGET or out["picks_bytes"] > PICKS_BUDGET
+    return out
 
 
 def _main_line(row: Mapping[str, Any]) -> float | None:

@@ -161,20 +161,29 @@ ones the contract scored. Pairs across players or games have lift about 1 and ar
 at most 60 minutes before the build; `market.price_ts` says when). Then:
 
 ```
-{ticker, threshold, ask, bid, spread, price_ts, fee, p_over, p_model_incl_dnp, p_low,
- ev_raw, ev_raw_low, ev, ev_low, verdict, model_weight, n_settled_track}
+{ticker, threshold, ask, bid, spread, price_ts, fee, p_over, p_model_incl_dnp,
+ ev, ev_low, verdict, model_weight, n_settled_track}
 ```
 - `p_model_incl_dnp = p_play * p_over`: Kalshi's DNP rule is unverified, so a DNP is priced as a miss (as the cards do);
   `p_over` is the UNCONDITIONAL calibrated chance, **never the script one**: the script chance is not a price comparison.
 - EV is `nba.parlay.ev.evaluate` (the single EV code of the engine and the cards; the fee object of `configs/parlay.yaml`,
-  `fee = ceil_to_cent(M * rate * P * (1 - P))` for one contract, rounded up, `M` by series): `ev_raw = p_model_incl_dnp - ask -
-  fee`; `ev_raw_low` the same at the lower end of the probability interval (Beta noise widened by the calibration sd);
+  `fee = ceil_to_cent(M * rate * P * (1 - P))` for one contract, rounded up, `M` by series): the raw expectation is computed inside the engine but NOT exported;
   `ev` / `ev_low` after the engine shrinks the model to the market with weight `model_weight = n/(n+k)` if the paper track
   record has skill, else 0 (on 2026-11-10 `n_settled_track` was 31,481 but the skill was not positive, so
   `model_weight` was 0 and `ev` is the market's own expectation less the fee: negative by construction); `spread = ask - bid` is shown, the cost is the ASK. `verdict` is
   `no_positive_ev_found` or `positive_ev_at_conservative_bound`; tonight every verdict is the first. **Say it:**
   "no_positive_ev_found" is a result; "keep your money" is the answer until the live log proves skill. A hit is annotated
   "this one hit; it was still a -X% bet" and a miss and a hit show the "true odds" in the identical font and size.
+- **Display validity (adversary M1):** the export is not rebuilt after the last tip, so the app shows a `market` block ONLY
+  while `now < tip_utc` and `now - price_ts <= 60 min`; otherwise it shows "no current quote" (never a stale or post-tip ask
+  beside a live game).
+- **What may sit beside a price (m6):** in a pick row, `ask`, `bid`, `fee` and `ev` / `ev_low` are shown only beside `p_leg`
+  / `p_model_incl_dnp`, never in the `p_leg_script` column. Only the conservative `ev_low` is exported as a bound; the file no
+  longer carries a raw EV or a raw probability bound, so a positive raw EV can never sit beside a `no_positive_ev_found`
+  verdict.
+- **Tip source (m5):** quotes are filtered against the stamped `tipoff`; a game stamped with the 19:00 ET proxy (the export
+  logs "real tip missing") may admit a quote from after its real tip, which is why the app's `now < tip_utc` rule above is
+  the binding one.
 - No `stake`, `size`, `kelly` or contract count exists in the file; the app adds none.
 
 ## 4. Size (measured; budget: combo <= 300 KB raw and <= 60 KB gzipped per night as in combo_export_v1 section 4)
@@ -186,9 +195,11 @@ Measured on the real 2026-11-10 slate (6 games, 172 players; the step took 4.3 s
 | `combo_2026-11-10.json` | 147,180 | 32,242 |
 | `game_scripts_2026-11-10.json` | 89,447 | 8,588 |
 
-The combo file is about 24.5 KB raw per game, so a 15-game night extrapolates to about 370 KB raw, OVER the 300 KB combo
-budget: flag it, and if it happens drop `raw_at_main` and trim `surv` at 0.001 (the combo contract's own list). The picks file
-is about 15 KB raw per game. A player with `p_play < 0.02` is not exported.
+The budgets are ENFORCED (m3): above 300 KB the combo file loses `raw_at_main`, then its `surv` tails below 0.001; above
+150 KB the picks file loses its lowest-ranked pairs first (lowest `p_joint_script`). The manifest's `game_scripts.budget` says
+what was cut (`dropped_raw_at_main`, `trimmed_surv_below`, `pairs_dropped_for_size`, byte counts, `over_budget`). The combo
+file is about 24.5 KB raw per game before trimming. The manifest also carries `history` (`ok|empty|error:<type>`) and
+`mu_t_source` counts, so a league-mean fallback night is visible (m2). A player with `p_play < 0.02` is not exported.
 
 ## 5. What the app may and may not say (additions to combo_export_v1 section 8)
 
