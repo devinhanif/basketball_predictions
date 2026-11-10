@@ -87,10 +87,10 @@ def test_rule_hash_and_status() -> None:
         ev.verify_rule(draft, ev.rule_text_sha(draft))
 
 
-def test_committed_rule_text_hash_is_the_reviewed_one() -> None:
+def test_committed_rule_text_hash_is_the_frozen_one() -> None:
     text = (Path(__file__).resolve().parents[3] / "docs/prereg/BEST_PRICE_FORWARD.md").read_text()
     assert (
-        ev.rule_text_sha(text) == "84a887bd2399778ab5124c7f285e708f6bb4f0b7793d5d29979c56a734331a9b"
+        ev.rule_text_sha(text) == "5ac0fa2f70fe6b7e1cdcdc38d91c29541022923120a32693397b0779df2a78d6"
     )
 
 

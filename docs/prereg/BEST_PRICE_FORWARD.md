@@ -1,9 +1,9 @@
 # BEST_PRICE_FORWARD: do production's prop picks, taken at the best pre-tip price across venues, reach ROI >= 0 after fees on the 2026-27 live log? (pre-registration)
 
-Status: **DRAFT, revision 1, written by the modeler on Mon 2026-11-09 (revision 0 about 21:00-22:00 CST; revision 1 applies the
-adversary pre-freeze review docs/reviews/best_price_forward_prefreeze_2026-11-09.md: MUSTs M1-M6 verbatim, SHOULDs S1, S3, S5, S6,
-S7, S8, S10, S11, and the delegated choices D_OVER and U1). Not frozen. No ROI, hit rate or settled outcome of any pick defined here
-has been computed on any 2026 row.** Branch `agent/modeler-best-price-forward`.
+Status: **FROZEN by the main session, Mon 2026-11-09 about 23:00 ET (revision 2: revision 1 plus the re-review's M7, S12, S13 verbatim;
+adversary re-review condition met, READY_TO_FREEZE; Devin's overnight delegation of 2026-11-09 21:17 recorded as the confirmation).
+No ROI, hit rate or settled outcome of any pick defined here had been computed on any 2026 row at freeze.** Window: from the first ET date
+after the freeze commit's committer time.
 - **How it becomes the rule:** the main session commits `prereg(BEST_PRICE_FORWARD): <sha256>` of everything above the line
   `=== RESULTS BELOW ===` (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/BEST_PRICE_FORWARD.md | shasum -a 256`), with this
   status line changed to FROZEN in the same commit. Before that: Devin reads it and settles the open choices (section 13), the scorer is
