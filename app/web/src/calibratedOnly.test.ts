@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { calibratedLine, read, type SliderInput } from "./slider";
 import { sourceWord } from "./words";
-import { LOCK_NOTE, MODEL_LOCK_FROM, isLockedNight } from "./record";
+import { LOCK_NOTE, MODEL_LOCK_FROM, RESULT_HIDDEN, isLockedNight } from "./record";
 import type { LineCal, RungCal } from "./types";
 
 const SRC = __dirname;
@@ -121,5 +121,16 @@ describe("the locked test window (LINE_CAL_LIVE, until about Dec 1)", () => {
     expect(readFileSync(join(SRC, "record.ts"), "utf8")).not.toMatch(/model_call|model_right/);
     expect(text).toContain("LOCK_NOTE");
     expect(text).toContain("isLockedNight");
+  });
+  it("the game page hides the per-prop result on locked nights and says where to see it", () => {
+    expect(RESULT_HIDDEN).toBe("Result hidden while the model's number for this night is a locked test (about Dec 1). See it in Replay.");
+    const game = readFileSync(join(SRC, "pages/Game.tsx"), "utf8");
+    expect(game).toContain("isLockedNight(g.date)");
+    expect(game).toMatch(/actual=\{props\.locked \? undefined/);
+    expect(game).toContain("RESULT_HIDDEN");
+  });
+  it("replay shows no typical night or range on locked nights", () => {
+    const text = readFileSync(join(SRC, "pages/Record.tsx"), "utf8");
+    expect(text).toMatch(/props\.locked \? null : \(\s*<span class="small muted num">\s*typical/);
   });
 });

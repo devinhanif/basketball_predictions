@@ -16,9 +16,10 @@ import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
+import { RESULT_HIDDEN, isLockedNight } from "../record";
 import { chanceSentence, didText, rangeSentence } from "../words";
 
-function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; lens: Lens }) {
+function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens }) {
   const { prop, player, actual } = props;
   const market = props.lens === "market";
   const q = prop.q;
@@ -84,6 +85,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
         </p>
       ) : null}
       <AltLine gameId={props.gameId} playerId={props.playerId} player={player} prop={prop} showPrices={market} />
+      {props.hidden ? <p class="result-line small muted">{RESULT_HIDDEN}</p> : null}
       {actual !== undefined ? (
         <p class="result-line">
           <span class="label">Final</span> {player} {didText(prop.stat, actual)}:{" "}
@@ -94,7 +96,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean; mode: Mode; lens: Lens }) {
+function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean; locked: boolean; mode: Mode; lens: Lens }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
@@ -144,7 +146,7 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
       {props.p.role ? <RoleSection role={props.p.role} player={props.p.name} /> : null}
       {STATS.map((s: Stat) => {
         const prop = props.p.props[s];
-        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={res?.actual[s]} lens={props.lens} /> : null;
+        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={props.locked ? undefined : res?.actual[s]} hidden={props.locked && res?.actual[s] !== undefined} lens={props.lens} /> : null;
       })}
     </details>
   );
@@ -279,7 +281,7 @@ function Body({ g }: { g: GameDetail }) {
           {players.length === 0 ? (
             <p class="muted">We have no forecasts for this team in this game.</p>
           ) : (
-            players.map((p) => <PlayerRow key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} mode={mode} lens={lens} />)
+            players.map((p) => <PlayerRow key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} locked={isLockedNight(g.date)} mode={mode} lens={lens} />)
           )}
         </div>
         <ul class="plain small muted">

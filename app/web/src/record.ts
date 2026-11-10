@@ -9,6 +9,8 @@ export type Guess = "over" | "under";
  * MODEL_LOCK_FROM in api/trackrecord.py. */
 export const MODEL_LOCK_FROM = "2026-10-30";
 export const LOCK_NOTE = "The model's number for this night is part of a locked test until about Dec 1.";
+export const RESULT_HIDDEN =
+  "Result hidden while the model's number for this night is a locked test (about Dec 1). See it in Replay.";
 export function isLockedNight(date: string): boolean {
   return date >= MODEL_LOCK_FROM;
 }

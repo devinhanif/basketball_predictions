@@ -257,3 +257,17 @@ def test_no_payload_carries_a_raw_chance_field(client: TestClient, tmp_path: Any
         hits = {k for k in _all_keys(body) if k in banned or k.endswith("_raw")}
         assert not hits, hits
     assert "p_ge" in _all_keys(bodies[4]) and "q" in _all_keys(bodies[3])
+
+
+def test_slate_and_game_payloads_carry_no_prop_outcome(client: TestClient) -> None:
+    """Locked nights: props (with their chances) never carry an outcome. Results stay on /results,
+    which carries no chance."""
+    outcome = {"actual", "went_over", "outcome", "prop_result", "hit", "miss"}
+    gid, _, _ = PLANTED
+    slates = client.get("/api/slates").json()
+    for s in slates[:6]:
+        assert not (_all_keys(client.get(f"/api/slates/{s['date']}").json()) & outcome)
+    assert not (_all_keys(client.get(f"/api/games/{gid}").json()) & outcome)
+    date = next(s["date"] for s in slates if s["finished"] > 0)
+    res = client.get(f"/api/slates/{date}/results").json()
+    assert not any(k.startswith("model_") or k in {"p_over", "p_under"} for k in _all_keys(res))

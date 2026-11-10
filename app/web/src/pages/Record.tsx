@@ -24,10 +24,12 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
     <li class="rp-player">
       <div class="rp-line">
         <strong>{props.p.name}</strong>
-        <span class="small muted num">
-          typical {num(q[9] ?? 0)}, middle half {num(q[4] ?? 0)} to {num(q[14] ?? 0)}
-          {props.showSource ? `, from ${plainModel(prop.model_source)}` : ""}
-        </span>
+        {props.locked ? null : (
+          <span class="small muted num">
+            typical {num(q[9] ?? 0)}, middle half {num(q[4] ?? 0)} to {num(q[14] ?? 0)}
+            {props.showSource ? `, from ${plainModel(prop.model_source)}` : ""}
+          </span>
+        )}
       </div>
       <div class="rp-call num">
         {posted ? (
@@ -41,7 +43,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
             )}
           </>
         ) : (
-          <>No usable sportsbook line; reference line {lineText(prop.line)} (the middle of our forecast).</>
+          <>{props.locked ? "No usable sportsbook line." : `No usable sportsbook line; reference line ${lineText(prop.line)} (the middle of our forecast).`}</>
         )}
       </div>
       {props.open ? (
