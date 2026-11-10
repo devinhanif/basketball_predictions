@@ -237,3 +237,34 @@ An app reads `latest.json` candles while live and draws flat "quiet" stretches w
 ### Drafted DECISIONS row (not appended)
 
 | 2026-11-09 | Re-review of agent/market-kalshi-15s-candles 45e17e2 (docs/reviews/kalshi_candles15_2026-11-09.md, Re-review): F1 to F4 fixed and verified by plant (quarantine rc 0; no early end before last tip +150 min; `problem()` catches 403s and zero-row nights; `latest.json` 7.3 MB / 0.7 s on 12 games). Merge and install approved; WOUNDED because the capture-sourced candles hold 41% of traded minutes and the live export carries no coverage. No app reads `candles` until R1 (live coverage field, plus either an own KXNBAGAME trade pull or capture priority; Devin's call). Would reverse: a full night's reconciliation shows coverage at or above 90%. |
+
+---
+
+## Re-review 2: 45e17e2..2c9386a (2026-11-09, diff only, R1 to R4)
+
+_Worktree at 2c9386a. Same rules: no live Kalshi request, no replay, no season 2025, no running process or launchd job touched.
+Command: `PYTHONPATH=. .venv/bin/python <scratchpad>/attack/rereview2.py` from the worktree, exit 0._
+
+**Verdict for merge: SURVIVES.** R1 to R4 are fixed and the three plants pass. Install remains Devin's decision.
+
+Verdict: APPROVED
+
+| Plant / check | Result | Pass |
+|---|---|---|
+| Low-coverage night from capture prints only (R1a): own pulls return no prints; the capture store holds 10 prints x 300 per ticker on 24 tickers | export `coverage` = `{ratio: 0.077, floor: 0.9, complete_enough: false}`; every market's `print_coverage` is 0.077; the notes read "no candle = no print held (unknown if coverage < 0.9)"; no note says "hold". The contract (Meaning, first bullet) now says "no print held, not no trade. Never hold the previous close flat", and tells the app to treat the gap as unknown when `print_coverage < 0.9` or `complete_enough` is false | PASS |
+| Catch-up burst (R1b): all 24 tickers' volume rises every poll, and every trade pull hits the 2-page cap, for 20 min, with a budget on the poller's clock and 0.5 s per request | **80 of 80 game polls sent, max gap 15.9 s**; line polls on schedule; trade requests 37.7/min, total 43.7/min, under the 60 cap. The 257 skipped requests are all trade pulls held back by the 10-slot reserve (`RequestBudget.take(reserve)`); none was a quote poll | PASS |
+| R2 early close: the last slate row at +135 min, followed by successful empty polls | `problem()` None at +146 and +149 (measured from `last_ok_poll_ts`). If the polls stop succeeding it still fires ("no successful game poll for 11 min"). If no slate row was ever seen it still fires ("no slate row yet") | PASS |
+| R3 lock with an empty start file | `[ -s "$LOCK/start" ] \|\| return 1` before the start-time comparison; new launcher test passes | PASS |
+| R4 `fetch_trades_page` | has a caller again (the own bounded pull) | PASS |
+| Reconciliation per source | `sources: {own, capture}`, each with minute and volume coverage and OHLC agreement, so the first full night will settle which source is complete | PASS |
+| Tooling | ruff 0, format 0, mypy 0 (3 files); `pytest -q -p no:cacheprovider --no-cov tests/kalshi tests/live/test_no_orders.py tests/ops` **379 passed, exit 0** | PASS |
+
+**New in the revision (minor, not blocking):**
+- **N1:** the contract defines unknown as `print_coverage < 0.9`. When the book shows no volume, `print_coverage` is `null`, and the contract does not say what the app should do with null. A null here means the book recorded no trades, so a missing candle really is a quiet market. Fix: one clause in the Meaning bullet ("`null` = the book shows no volume: no candle is expected").
+- **N2:** the slate-level `coverage.ratio` adds volume across tickers, so one heavily traded ticker can hide a near-zero one. The contract already points to the per-market `print_coverage`; the app should use that, not the slate ratio.
+- **N3:** in a sustained burst the reserve correctly gives up trade pulls (257 skipped in 20 min), so candle coverage drops in exactly those minutes. That is by design: `print_coverage` shows it, and the per-source reconciliation measures it.
+
+**Remaining unknown:** full-night coverage of the poller's own pulls against the capture's (the first `sources` block will answer it). Until then, an app showing candles must apply the coverage rule above.
+
+**Drafted DECISIONS row (not appended):**
+| 2026-11-09 | Re-review 2 of agent/market-kalshi-15s-candles 2c9386a (docs/reviews/kalshi_candles15_2026-11-09.md): SURVIVES for merge. Live coverage fields with the "no print held, unknown below 0.9" contract; own bounded KXNBAGAME pull with a 10-slot reserve (80/80 quote polls kept through a 20-min burst); early-close watchdog false alarm fixed; lock start-file check. Install is Devin's. Would reverse: the first full night's `sources` show both print sources under 0.9 volume coverage. |
