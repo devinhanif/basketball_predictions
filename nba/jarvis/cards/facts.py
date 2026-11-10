@@ -120,6 +120,44 @@ def pregame_overs(
     return ranked[:top_n], priced
 
 
+def priced_lines(
+    cfg: JarvisConfig,
+    st: SlateState,
+    game_id: str,
+    shown_at: str,
+    kb: Any = None,
+    hold: Callable[[Play], bool] | None = None,
+    unmeasured: set[tuple[int, str]] | None = None,
+) -> dict[tuple[int, str], OverRow]:
+    """The player-checkpoint view of ``pregame_overs``: for every (player_id, stat) with a priced
+    over, the line with the best EV after fees (ties: the lower line), including a negative EV.
+    The SAME helpers price it (``single_candidate``, ``is_capped``, the stale-reference ``hold``,
+    ``over_from_play``); nothing is computed here, only selected. A price with no sharp reference
+    has no measured edge (NaN) and is not returned; ``unmeasured`` (when given) collects the
+    (player_id, stat) of every priced over that is NOT returned (no sharp line, capped at thin for
+    a weak input, or held on a stale reference), so a card can say "priced, no usable EV"."""
+    best: dict[tuple[int, str], OverRow] = {}
+    for q in st.tradable(cfg):
+        if q.game_id != game_id or q.kind != "prop" or not q.player_id:
+            continue
+        p = single_candidate(cfg, st, q, "yes")
+        if p is None:
+            continue
+        row = (
+            None
+            if is_capped(p) or (hold is not None and hold(p))
+            else over_from_play(p, st.slate, shown_at, _name(q, kb), st.now)
+        )
+        if row is None or row.player_id is None:
+            if unmeasured is not None and q.stat is not None:
+                unmeasured.add((int(q.player_id), q.stat))
+            continue
+        key = (int(row.player_id), row.stat)
+        if key not in best or (row.edge_c, -row.line) > (best[key].edge_c, -best[key].line):
+            best[key] = row
+    return best
+
+
 def _name(q: Quote, kb: Any = None) -> str:
     """The resolver's display name (right diacritics) when it knows the player, else the venue's
     own title text before the colon."""

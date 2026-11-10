@@ -315,6 +315,11 @@ def load_config(
             raise ValueError("team_cards.narrow_pts must be below wide_pts")
         if not 5 <= int(tc["bar_width"]) <= 20 or float(tc["rate_budget_s"]) < 0:
             raise ValueError("team_cards.bar_width must be 5..20 and rate_budget_s >= 0")
+        pcp = tc.get("player_checkpoints") or {}
+        if pcp.get("enabled", False):
+            from nba.jarvis.cards.players import validate as validate_pcp
+
+            validate_pcp(dict(pcp))
     if cfg.reserve_for_strong >= cfg.nightly_cap:
         raise ValueError("caps.reserve_for_strong_usd must be below caps.nightly_usd")
     return cfg

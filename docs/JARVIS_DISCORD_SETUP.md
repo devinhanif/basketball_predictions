@@ -208,3 +208,39 @@ wait on Discord. A deleted card message is replaced by a new post and the new id
 * Cards already posted stay in Discord until you delete the channels or messages. Delete `data/jarvis/cards_state.jsonl`
   only if you want JARVIS to post fresh cards (it forgets the message ids); keep `data/jarvis/card_picks.jsonl`, it is the
   paper log the recaps and the season line read.
+
+## 11. Player checkpoints (T-180, T-30, T-5; Devin's request, 2026-11-10)
+
+One silent message per team channel at 180, 30 and 5 minutes before each game's real tip, one line per likely player.
+It uses the same webhooks and the same card pass (same `rate_budget_s` / `tick_budget_s`; it runs first because its
+windows are minutes wide). With no webhooks, or `team_cards.player_checkpoints.enabled: false`, it does nothing.
+
+Each line: minutes and projected pts / reb / ast / 3PM (the stored `props_context_residual` forecast, "if he plays"); the
+official injury status and the model's chance to play; a confirmed starter / bench flag from T-30 on (only when the
+lineup snapshot says confirmed); for each stat with a price, the best-EV line with ask, model chance of the over and EV in
+cents after fee and spread (the cards' own `single_candidate`); and what changed since the last posted checkpoint (T-180
+says "first look"). Every message prints the as-of time of the forecasts, the injury report and the lineups.
+
+* **Timing.** A tick inside `[T-k, T-k + tolerance]` posts (`lateness_tolerance_min`: 10, 6, 3 minutes); a checkpoint
+  missed past its tolerance is logged as `skipped_late` and never posted late; nothing posts at or after tip, or once the
+  scoreboard says the game began. Each (game, team, checkpoint) fires once: `data/jarvis/player_checkpoints_state.jsonl`
+  (append-only; it also holds the per-player snapshot the next checkpoint diffs against). A 429 or a spent tick budget
+  defers to the next tick (nothing recorded, so no duplicate and no drop) while the window is still open.
+* **Never edited.** Messages are posted once, silently (no ping), and are never edited afterwards, so no outcome is ever
+  added to a pre-tip message (LINE_CAL_LIVE hygiene).
+* **Who is listed.** Players whose model chance to play is at least `min_p_play` (0.5), plus anyone whose status changed
+  since the last posted checkpoint. Long lists are cut with "+N more players" inside Discord's 4096 limit.
+* **Tick log.** `pcp=4posted`, and `pcp_skipped_late=N`, `pcp_deferred=N`, `pcp_failed=N`, `pcp_error=...` when non-zero.
+* **See one without sending anything** (any time; as of "now", whatever the window):
+
+```bash
+cd /Users/devin/Downloads/nba-prediction
+.venv/bin/python -m nba.jarvis cards --phase players --checkpoint 30 --preview            # all games, both teams
+.venv/bin/python -m nba.jarvis cards --phase players --checkpoint 30 --game "BOS@PHI"    # one game (JSON to the terminal)
+```
+
+* **Rollback.** `team_cards.player_checkpoints.enabled: false`. Posted messages stay in Discord; delete the state file
+  only if you want a game's checkpoints to fire again.
+* **Known limit.** The cards' own pricing path caps every prop at thin because the production model view has no
+  `p_play` (so cards never list an over). The player checkpoints hand the same pricing function the stored P(plays) as of
+  the checkpoint, so their EV is measured and includes the chance he does not play; the cards are unchanged.

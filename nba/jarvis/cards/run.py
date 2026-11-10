@@ -417,6 +417,9 @@ def run_cards(
     missing: set[str] = set()
     errors: list[str] = []
     try:
+        # Player checkpoints (T-180/T-30/T-5) go FIRST: their windows are minutes wide, a card is
+        # not. They share this pass's client, rate budget and tick budget, and never raise.
+        rep["player_checkpoints"] = _player_checkpoints(rt, d, client, wh, slate, now, style)
         days = [slate]
         if YESTERDAY_FROM_UTC_HOUR <= now.hour < YESTERDAY_UNTIL_UTC_HOUR:
             days = [slate - timedelta(days=1), slate]
@@ -443,6 +446,20 @@ def run_cards(
     if gate.stopped():
         rep["stopped"] = "broken" if gate.broken else "tick budget"
     return rep
+
+
+def _player_checkpoints(
+    rt: Any, d: Deps, client: CardClient, wh: TeamWebhooks, slate: date, now: datetime,
+    style: T.Style,
+) -> dict[str, Any]:  # fmt: skip
+    try:
+        from nba.jarvis.cards.players import run_player_checkpoints
+
+        return run_player_checkpoints(rt, d, client, wh, slate, now, style)
+    except Exception as exc:  # noqa: BLE001 - a player checkpoint never costs the cards or the tick
+        log.warning("player checkpoints failed (%s)", type(exc).__name__)
+        log.debug("player checkpoint failure detail: %s", wh.redact(repr(exc)))
+        return {"errors": [type(exc).__name__]}
 
 
 def _one_day(
