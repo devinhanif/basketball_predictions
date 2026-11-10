@@ -279,6 +279,17 @@ def _box_rows(body: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _elapsed(state: str, period: int, clock: str) -> float | None:
+    """Game minutes played; a finished game has played its whole length, whatever the clock says."""
+    if state == "pre":
+        return None
+    got = elapsed_minutes(period, clock)
+    if state == "post":
+        full = 48.0 + max(0, period - 4) * 5.0
+        return max(got or 0.0, full)
+    return got
+
+
 def parse_body(raw: bytes, ref: BodyRef, date: str, event_id: str) -> GameState:
     try:
         body = json.loads(raw)
@@ -341,7 +352,7 @@ def parse_body(raw: bytes, ref: BodyRef, date: str, event_id: str) -> GameState:
             "period": period,
             "clock": clock,
             "detail": str(stype.get("shortDetail") or stype.get("detail") or ""),
-            "elapsed_min": elapsed_minutes(period, clock) if state != "pre" else None,
+            "elapsed_min": _elapsed(state, period, clock),
         },
         plays=plays,
         box=_box_rows(body),

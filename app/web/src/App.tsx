@@ -16,6 +16,7 @@ import { Alerts } from "./pages/Alerts";
 import { Admin } from "./pages/Admin";
 import { Welcome } from "./Welcome";
 import { Record } from "./pages/Record";
+import { Live } from "./pages/Live";
 import { Tour } from "./Tour";
 import { MarketOnly } from "./Lens";
 import { useLens } from "./prefs";
@@ -96,6 +97,9 @@ export function App() {
       break;
     case "record":
       page = <Record tab={route.tab} date={route.date} />;
+      break;
+    case "live":
+      page = <Live key={route.id ?? "list"} id={route.id} date={route.date} />;
       break;
     case "alerts":
       page = <Alerts />;

@@ -21,6 +21,7 @@ import type { LegEdges } from "./edges";
 import type { TopParlays, TpResult } from "./topParlays";
 import { getRaw, warmGames } from "./transport";
 import { parseDesk, type Desk } from "./desk";
+import type { LiveList, Play } from "./live";
 
 export { warmGames };
 
@@ -80,11 +81,31 @@ export const api = {
   knowsGame: (gameId: string) => getJson<GameKnows>(`/api/knows/${encodeURIComponent(gameId)}`),
   knowsPlayer: (gameId: string, playerId: number, stat: string) =>
     getJson<PlayerKnows>(`/api/knows/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}`),
+  liveList: (date: string) => getJson<LiveList>(`/api/live/${encodeURIComponent(date)}`),
+  livePlays: (eventId: string, before: number, limit = 100) =>
+    getJson<{ plays: Play[]; more: boolean }>(
+      `/api/live/${encodeURIComponent(eventId)}/plays?before=${before.toString()}&limit=${limit.toString()}`,
+    ),
+  liveCheckpoint: (eventId: string) => getJson<LiveCheckpoint>(`/api/live/${encodeURIComponent(eventId)}/checkpoint`),
   propAtLine: (gameId: string, playerId: number, stat: string, line: number) =>
     getJson<ProbAtLine>(
       `/api/props/${encodeURIComponent(gameId)}/${playerId.toString()}/${encodeURIComponent(stat)}?line=${line.toString()}`,
     ),
 };
+
+export interface LiveCheckpoint {
+  game_id: string;
+  label: string;
+  available: boolean;
+  reason?: string;
+  checkpoint?: number;
+  e_used?: number;
+  support?: string;
+  period?: number;
+  clock?: string;
+  known_at?: string;
+  rows?: { player: string; stat: string; k: number; p_model: number; cur: number; minutes: number; fouls: number }[];
+}
 
 export interface TopContract {
   side: Side;

@@ -284,3 +284,11 @@ and is not for a shared page. The API refuses a shared cut that carries any mone
 Identity: the platform user in the shared page, a locally typed name in the regular build; never a password. Admin studio:
 `user.isOwner()` or `canEdit()` in the shared page (photos through the `assets` capability into `photos/<player id>`),
 the private build locally.
+
+## Live play-by-play (Devin's override, DECISIONS 2026-11-10 03:10)
+
+Reads the live capture's ESPN summary bodies from disk (no network, no export store). `APP_LIVE_DIR` (default
+`<repo>/data/raw`), `APP_LIVE_POLL_S` (default 0.2), `APP_CHECKPOINT_DB` (default `<repo>/data/jarvis/ingame_checkpoints.duckdb`).
+Routes: `GET /api/live/{date}`, `/api/live/{event_id}/stream` (SSE), `/snapshot`, `/plays?before=`, `/checkpoint`.
+Latency replay (own port, fixtures): `cd app/api && PYTHONPATH=src uv run python tests/live_harness.py`.
+Fixtures: `app/fixtures/live/` (trimmed 2026-11-09 capture bodies; `build_live_fixture.py` rebuilds them).

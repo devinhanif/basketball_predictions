@@ -8,6 +8,7 @@ import { OnItChip } from "../SharedUI";
 import { useLens, useMode, type Lens, type Mode } from "../prefs";
 import { LensSwitch } from "../Lens";
 import { GameKnowsPanel } from "../Knows";
+import { GameLive } from "../LiveParts";
 import { IS_ARTIFACT } from "../env";
 import { plainPlay } from "../plain";
 import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
@@ -216,6 +217,8 @@ function Body({ g }: { g: GameDetail }) {
           </p>
         </Explain>
       </section>
+
+      {IS_ARTIFACT ? null : <GameLive g={g} />}
 
       {g.final ? (
       <section class="panel">

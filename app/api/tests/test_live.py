@@ -73,6 +73,7 @@ def test_parse_pre_game_and_final() -> None:
     assert pre.state == "pre" and not pre.plays and pre.status["elapsed_min"] is None
     fin = state_of(NAMES[-1])
     assert fin.state == "post"
+    assert fin.status["elapsed_min"] >= 48  # a finished game has played its whole length
 
 
 def test_bad_body_is_an_error_not_a_crash(tmp_path: Path) -> None:

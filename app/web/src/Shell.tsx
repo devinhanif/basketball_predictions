@@ -21,6 +21,7 @@ interface NavDef {
 // Track record and the Desk of earlier plans are now Model History and Signals; nothing else is listed until it exists.
 const ALL_WORKSPACE: NavDef[] = [
   { name: "today", label: "Discover", icon: "discover" },
+  { name: "live", label: "Live", icon: "live" },
   { name: "signals", label: "Signals", icon: "signals" },
   { name: "hedge", label: "Hedge Finder", icon: "hedge" },
   { name: "history", label: "Model History", icon: "history" },
@@ -30,17 +31,17 @@ const ALL_WORKSPACE: NavDef[] = [
   { name: "picks", label: "My picks", icon: "picks" },
 ];
 // The track record reads the live API, which the single-file snapshot does not have.
-const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && n.name === "record"));
-const TABS: TopName[] = ["today", "record", "signals", "swipe", "picks"];
+const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name === "record" || n.name === "live")));
+const TABS: TopName[] = ["today", "live", "record", "signals", "swipe", "picks"];
 /** Screens whose whole subject is prices and edges: they leave the nav outside the Market lens. */
 export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
 
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
-  signals: "signals", hedge: "hedge", history: "history", record: "record", alerts: "alerts", admin: "admin",
+  signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
 };
 const TITLES: Record<TopName, string> = {
-  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences",
+  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences",
 };
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day" };
 
