@@ -153,3 +153,80 @@ Write the F7 rule and commit it before the first poller night is read.
 
 DECISIONS (draft, for the main session):
 `| 2026-11-10 | ESPN freshness poller review: WOUNDED/BLOCKED for flag > 0 until 403 backoff+stop latch (F1), last_success heartbeat (F2), core-parser loud failure (F3), empty-plays re-store (F4) are fixed; flag 0 is inert (29 tests, code read). | Adversary review docs/reviews/espn_fresh_poller_2026-11-10.md | A real core-API fixture shows a shape the parser handles and F1–F4 land with tests. |`
+
+## Re-review: c2dbc39 (diff 2c90a70..c2dbc39), 2026-11-10
+
+Scope: the fixes in `nba/live/espn_fresh.py`, the new tests, the DECISIONS row and the DRAFT rule
+`docs/prereg/ESPN_FRESH_POLLER_NIGHT1.md`. I re-ran every plant with
+`/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/3f9498c6-47e0-4634-a07a-43f2643fe309/scratchpad/attack_poller_v2.py`
+(mock transport, no live request), from the worktree at c2dbc39.
+
+**Re-review verdict: SURVIVES for merging with the flag at 0. Turning the poller on stays WOUNDED (R1 below).**
+
+Verdict: APPROVED
+
+(The approval covers the merge with `--fresh-interval-s` at its default of 0. It does not cover turning the poller on,
+which still waits for R1 and for a real core-API fixture (F3b).)
+
+### Plants re-run
+
+| Plant | Before (2c90a70) | After (c2dbc39) | Pass |
+|---|---|---|---|
+| 403 storm, 2 live games, all game endpoints 403 | 80 game requests in 20 cycles, 0 backoffs | 5 game requests, then it stops itself: `stopped_reason='http 403 x5'` | PASS |
+| 403 storm, **1** live game, scoreboard OK | n/a | Backoff works (10 game requests in 40 cycles, about 12 min). It **never stops**, and `fresh_last_success_ts` stays current with `fresh_consecutive_fail=0` | **FAIL (R1)** |
+| Scoreboard 403 from the start | heartbeat looked like a quiet night | Stops after 5: `fresh_stopped_reason='http 403 x5'`, `fresh_last_success_ts=''`, `fresh_consecutive_fail=5` | PASS |
+| `$ref`-only core body | 0 errors, `unchanged_rate=1.0` | `fresh_parse_bad=10`, core rows not written, endpoint absent from the report | PASS |
+| Empty-plays body ×10 | saved=10 | saved=1 | PASS |
+| `close()` with a 20 s in-flight request | returned at 15.0 s, thread alive | Still 15.0 s, thread alive. It exits once the request returns (alive=False after the request finished). `read=5.0` caps real hangs, but the mock does not honour timeouts. | PASS (minor, R3) |
+| Disk full (`store.save` raises ENOSPC; error log path unwritable) | thread died | Thread alive, cycles continue | PASS (see R2) |
+| Flag 0 inert | identical | `capture.py` and `__main__.py` are untouched in this diff (0 lines). The new test `test_capture_wiring_and_flag_off_heartbeat_unchanged` asserts no `fresh*` keys when off. Consumers read named keys only (unchanged). | PASS |
+
+Verification at c2dbc39 (unpiped, `.venv-1`): `ruff check nba/live tests/live` exit 0. `ruff format --check` exit 0.
+`mypy` on the 4 files exit 0. `pytest tests/live --no-cov`: **38 passed, exit 0**.
+
+### New findings in the revision
+
+- **R1 (major for enabling, not for merge): the scoreboard's successes hide the game endpoints' 403s.** At
+  `espn_fresh.py` `get()`, every 200/304 resets `consecutive_auth` and `consecutive_fail` and sets `last_success_ts`,
+  including the scoreboard, which succeeds every 45 s. With one live game, the game endpoints add at most 4 auth
+  failures per 45 s window, so the 5-in-a-row stop never fires. The heartbeat then reports success while every game
+  request is refused. The DRAFT rule's invalid-night trigger (`fresh_stopped_reason`) would not fire either. The backoff
+  does cut the request rate, so this is a health and measurement problem, not a politeness one.
+  - **Fix:** keep the counters per endpoint class (scoreboard, summary, core). Add `fresh_last_game_success_ts`, set only
+    by summary or core 200/304. Stop on 5 consecutive 401/403 within any one class.
+  - **Test:** the 1-game plant above must stop.
+- **R2 (minor): a failed save is never retried.** `record()` sets `prev[(endpoint, game)] = (sha, ...)` before
+  `store.save`. When the save raises (disk full), the next identical body counts as unchanged and is never stored. The
+  jsonl row exists but no raw file backs it. Fix: set `prev` only after a successful save, or on `OSError` clear
+  `prev` for that key.
+- **R3 (minor): `close()` still returns at 15 s and then closes the client under an in-flight request** (`close()`:
+  join, then `self.client.close()`). The thread's resulting exception is caught by `run()`, so this is harmless. Note it
+  rather than fix it.
+- **R4 (minor, tests):** the wiring test runs `run(once=True)` against an empty scoreboard, which returns `no_games`
+  before the start/close code is reached. So `stub.started == 0` is trivially true, and nothing asserts that a normal
+  window calls `start` once and `close` once. The flag-off check asserts that no `fresh*` keys appear, not equality with
+  the pre-branch key list. That is sufficient here only because `capture.py` is unchanged in this diff.
+
+### DRAFT rule `ESPN_FRESH_POLLER_NIGHT1.md`: quick read (not a freeze review)
+
+The structure is sound: paired, same games and nights, game-clustered bootstrap, m = 1, a minimum-n gate, no variants.
+The lag reading and the budget are now correct. Points to settle before freezing:
+- **D1:** state the hypotheses the 15 s floor separates. If ESPN publishes continuously, the expected mechanical
+  `delta` is (60 − 18)/2 ≈ 21 s. If ESPN batches server-side at ≥ 60 s, it is ≈ 0. A 15 s floor separates these, but
+  the rule should say so. Otherwise a pass reads as a discovery when it is the expected result of a shorter poll interval.
+- **D2:** the invalid-night trigger "`fresh_parse_bad` > 0 on the core endpoint" cannot be read from the heartbeat
+  (`parse_bad` is one counter for summary and core). Name the source (`fresh_errors.log` lines `parse_bad core`) or
+  split the counter. Excluding a whole night because a descriptive endpoint failed throws away valid summary data.
+  Consider excluding only on summary `parse_bad`.
+- **D3:** add R1's case to the invalid-night conditions: any night where game-endpoint auth failures occurred
+  (counted from `fresh_errors.log`), whether or not the poller stopped.
+- **D4:** name the exact function: `nba/truth/metrics.py::bootstrap_ci` on the per-game deltas, one-sided 95%,
+  2,000 draws, seed 0. Also say how a poller restart mid-game is handled. Today rows after a restart are `first_poll`
+  and are excluded, which is fine, but say it.
+- **D5 (non-negotiable 8):** the gate is 30 game-nights. At about 8 live games a night that is about 4 nights with the
+  flag on, so it is feasible. It cannot start until R1 and F3b are done and Devin decides about the disk (14 GiB free).
+
+### Biggest remaining risk
+
+R1: a single-game 403 stretch, or one late game left alone on the slate, would produce a night that looks healthy and
+valid but contains no game data. The draft rule would admit it.
