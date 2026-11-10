@@ -50,6 +50,29 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument(
         "--no-sits", action="store_true", help="skip the 'if a teammate sits' scenarios entirely"
     )
+    b.add_argument(
+        "--no-scripts",
+        action="store_true",
+        help="skip the game-scripts files (combo_<date>.json, game_scripts_<date>.json)",
+    )
+    b.add_argument(
+        "--kalshi-db",
+        type=Path,
+        default=REPO_ROOT / "data" / "kalshi" / "kalshi.duckdb",
+        help="Kalshi snapshot store (read-only; absent file = no market block on the picks)",
+    )
+    b.add_argument(
+        "--paper-db",
+        type=Path,
+        default=REPO_ROOT / "data" / "parlay" / "paper_trades.duckdb",
+        help="paper-trade store (read-only) for the track record behind the EV verdict",
+    )
+    b.add_argument(
+        "--game-model",
+        type=Path,
+        default=REPO_ROOT / "data" / "parlay" / "joint_model.json",
+        help="the engine's game model (five numbers, seasons <= 2024) for the scripts step",
+    )
     b.add_argument("--parlay-dir", type=Path, default=REPO_ROOT / "reports" / "parlay")
     a = ap.parse_args(argv)
     try:
@@ -58,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
             box_games=a.box_games, box_days=a.box_days, seasons=a.season,
             parlay_dir=a.parlay_dir, odds_db=a.odds_db, roster_dir=a.roster_dir,
             sits_model_root=None if a.no_sits else a.sits_model_root,
+            scripts=not a.no_scripts, kalshi_db=a.kalshi_db, paper_db=a.paper_db,
+            game_model=a.game_model,
         )  # fmt: skip
     except guard.ExportRefused as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
@@ -67,7 +92,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(
         f"export {m['export_date']}: {m['row_counts']} parlay={m['parlay']['verdict']} "
-        f"lines={m['lines']['status']} sits={m['teammate_sits']['status']}"
+        f"lines={m['lines']['status']} sits={m['teammate_sits']['status']} "
+        f"scripts={m['game_scripts']['status']}"
     )
     for n, f in m["files"].items():
         print(f"  {n} sha256={f['sha256'][:12]} bytes={f['bytes']}")

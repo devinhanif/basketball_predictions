@@ -7,6 +7,7 @@ last. A failed build leaves yesterday's files untouched and removes its temp fil
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
 import logging
@@ -321,6 +322,15 @@ def _write_json_atomic(path: Path, obj: Any) -> None:
         tmp.unlink(missing_ok=True)
 
 
+def _write_text_atomic(path: Path, text: str) -> None:
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    try:
+        tmp.write_text(text)
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 def _read_lines(
     props: list[dict[str, Any]],
     window: reader.Window,
@@ -402,6 +412,96 @@ def _sits_stage(
         )
 
 
+def _history_stage(src: duckdb.DuckDBPyConnection, day: date) -> list[tuple[Any, ...]] | None:
+    """Live-season games before ``day`` for the game model's total feature; None on any problem (the
+    scripts step then falls back to the league mean and says so)."""
+    try:
+        from nba.export import combo_stage
+
+        return combo_stage.history_rows(src, day, guard.LIVE_SEASON)
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "scripts history skipped: %s: %s", type(exc).__name__, exc
+        )
+        return None
+
+
+def _scripts_stage(
+    out_dir: Path,
+    day: date,
+    fwd: reader.ForwardBundle,
+    sits_rows: list[dict[str, Any]],
+    hist: list[tuple[Any, ...]] | None,
+    players: list[dict[str, Any]],
+    teams: list[dict[str, Any]],
+    made_at: datetime,
+    git_sha: str | None,
+    kalshi_db: Path | None,
+    paper_db: Path | None,
+    game_model: Path | None = None,
+) -> dict[str, Any]:
+    """Write ``combo_<day>.json`` and ``game_scripts_<day>.json`` (contracts/game_scripts_v1.md)
+    and return the manifest block. EVERYTHING here sits inside one guard: this step can never
+    fail the export. Files go to temp names and ``os.replace``; a failure leaves earlier files."""
+    t0 = time.monotonic()
+    try:
+        from nba.export import combo_stage as cs
+
+        names = {int(p["player_id"]): str(p["full_name"]) for p in players}
+        abbr = {int(t["team_id"]): str(t["abbr"]) for t in teams}
+        asks: dict[Any, Any] = {}
+        ask_info: dict[str, Any] = {"status": "not_requested"}
+        cfg = track = None
+        if kalshi_db is not None and Path(kalshi_db).exists():
+            try:
+                from nba.parlay.config import load_config
+                from nba.parlay.kalshi_map import load_team_abbr
+
+                asks, left = cs.ask_index(
+                    cs.read_markets(Path(kalshi_db)),
+                    load_team_abbr(),
+                    day,
+                    fwd.games,
+                    fwd.prop_grids,
+                    made_at,
+                )
+                cfg, track = load_config(), cs.load_track(paper_db)
+                ask_info = {"status": "ok", "n_asks": len(asks), "left_out": left,
+                            "n_settled_track": int(track.n_settled)}  # fmt: skip
+            except Exception as exc:
+                asks, cfg, track = {}, None, None
+                ask_info = {"status": f"error:{type(exc).__name__}", "detail": str(exc)[:200]}
+        res = cs.build(
+            day, fwd.games, fwd.win_probs, fwd.prop_grids, fwd.p_play, sits_rows, hist or [],
+            names, abbr, made_at=made_at, code_version=git_sha, asks=asks, cfg=cfg, track=track,
+            game_model_path=game_model,
+        )  # fmt: skip
+        if res.combo is None or res.scripts is None:
+            return {**res.info, "markets": ask_info, "seconds": round(time.monotonic() - t0, 2)}
+        files: dict[str, Any] = {}
+        for name, obj in ((f"combo_{day.isoformat()}.json", res.combo),
+                          (f"game_scripts_{day.isoformat()}.json", res.scripts)):  # fmt: skip
+            text = cs.dumps(obj)
+            _write_text_atomic(out_dir / name, text + "\n")
+            raw = text.encode()
+            files[name] = {
+                "bytes": len(raw) + 1, "gzip_bytes": len(gzip.compress(raw, 6)),
+                "sha256": hashlib.sha256(raw).hexdigest(),
+            }  # fmt: skip
+        return {
+            **res.info,
+            "markets": ask_info,
+            "files": files,
+            "seconds": round(time.monotonic() - t0, 2),
+        }
+    except Exception as exc:
+        logging.getLogger(__name__).warning("game scripts skipped: %s: %s", type(exc).__name__, exc)
+        return {
+            "status": "absent", "reason": f"error:{type(exc).__name__}", "detail": str(exc)[:200],
+            "seconds": round(time.monotonic() - t0, 2),
+        }  # fmt: skip
+
+
 def build_export(
     src_db: Path,
     out_dir: Path,
@@ -421,6 +521,10 @@ def build_export(
     con: duckdb.DuckDBPyConnection | None = None,
     sits_model_root: Path | None = None,
     sits_budget_s: float = sits_schema.DEFAULT_BUDGET_S,
+    scripts: bool = False,
+    kalshi_db: Path | None = None,
+    paper_db: Path | None = None,
+    game_model: Path | None = None,
 ) -> dict[str, Any]:
     """Build the export for ``day``; returns the manifest dict (also written to ``manifest.json``).
 
@@ -434,6 +538,11 @@ def build_export(
     disables) holds production's cached heads for the
     "if a teammate sits" scenarios (nba.export.teammate_sits); None disables them. They never fit a
     model and never fail the export: any problem leaves the table empty and the manifest says why.
+    ``scripts`` turns on the game-scripts step (``combo_<day>.json`` and
+    ``game_scripts_<day>.json``, nba.export.combo_stage; default off, the CLI turns it on): guarded
+    like the sits step, it can never fail the export, and the manifest's ``game_scripts`` block says
+    what it did. ``kalshi_db`` (read-only; None = no market block) and ``paper_db`` (the track
+    record) feed only the picks' ``market`` block.
     ``odds_db`` is the live capture store (``data/markets/market_asof.duckdb``), opened read-only
     for ``prop_lines``; None (or an absent file) exports no lines and says so in the manifest.
     Raises ``guard.ExportRefused`` before reading anything when a holdout season is requested."""
@@ -465,6 +574,7 @@ def build_export(
         sits_rows, sits_info = _sits_stage(
             src, day, fwd, teams_of, report, made_at, sits_model_root, sits_budget_s
         )
+        scripts_hist = _history_stage(src, day) if scripts else None
     finally:
         if own:
             src.close()
@@ -530,6 +640,12 @@ def build_export(
         for p in (tmp_db, Path(str(tmp_db) + ".wal")):
             p.unlink(missing_ok=True)
     _write_json_atomic(out_dir / PARLAY_NAME, parlay)
+    scripts_info: dict[str, Any] = {"status": "absent", "reason": "disabled"}
+    if scripts:
+        scripts_info = _scripts_stage(
+            out_dir, day, fwd, sits_rows, scripts_hist, players, teams, made_at,
+            gi["git_sha"], kalshi_db, paper_db, game_model,
+        )  # fmt: skip
 
     manifest: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION, "export_date": day.isoformat(),
@@ -550,6 +666,7 @@ def build_export(
         "rung_cal": rung,
         "line_cal": line_cal,
         "teammate_sits": sits_info,
+        "game_scripts": scripts_info,
         "primary_sources": _primary_counts(fwd.prop_grids),
         "parlay": {"status": parlay["status"], "verdict": parlay["verdict"],
                    "n_evaluated": parlay["n_evaluated"]},

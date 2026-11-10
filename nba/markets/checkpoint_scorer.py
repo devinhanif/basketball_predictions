@@ -338,6 +338,9 @@ class CheckpointReport:
     counts: Counter[str] = field(default_factory=Counter)
     by_checkpoint: dict[int, Counter[str]] = field(default_factory=lambda: defaultdict(Counter))
     stored: int = 0
+    #: live only: event id -> the newest parsed summary of each game in play (the in-game state the
+    #: snapshot's script block is computed from; nothing is read that the scorer did not already parse)
+    latest_states: dict[str, State] = field(default_factory=dict)
 
 
 _TALLIES = ("scored_candidates", "markets_at_snapshot")
@@ -442,6 +445,11 @@ def score_night_checkpoints(
         _note_tallies(
             store, made, f, sc
         )  # after the rows are stored: a failed append stays retryable
+    if as_of is not None:
+        for eid in sorted(reader.summaries):
+            last = reader.latest(eid)
+            if last is not None and last.live:
+                rep.latest_states[eid] = last
     return rep
 
 
