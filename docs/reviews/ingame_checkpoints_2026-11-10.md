@@ -201,3 +201,62 @@ signal. The plumbing is right. The words are the risk.
 Drafted DECISIONS row (not appended): `2026-11-10 | in-game checkpoints merged with the flag OFF (adversary SURVIVES; flag-on WOUNDED
 on card wording F1/F2) | halftime rows identical old vs new on 1,522 rows over 2 nights; live rows identical to replay on 7,803 (11-08) and 7,923 (11-09) rows | reverse if the
 replay oracle differs or a flag-off tick shows any checkpoint I/O.`
+
+---
+
+# Re-review (diff only: 013dd959..3d2cf576, branch `agent/market-ingame-checkpoints-2`), 2026-11-10
+
+Scope: the fixes for F1-F5, F8 and F11, plus the runner change that now passes FINAL games to the scorer. The flag is still
+`enabled: false` (`git show 3d2cf576:configs/jarvis.yaml`). `halftime_entry.py`, `halftime_scorer.py` and `configs/` are not in the
+diff, so the earlier 1,522-row halftime identity still holds. Code run from `git archive 3d2cf576` in scratch; same scripts and
+nights as above.
+
+**Merge with the flag off: SURVIVES.**
+**Flag-on go: acceptable** (WOUNDED -> SURVIVES on everything user-facing). One accounting gap is left (R1 below). It is not a leak
+and not user-facing. It must be fixed before amendment A's capture audit is relied on.
+
+Verdict: APPROVED
+
+| # | Check | Command | n | Result |
+|---|---|---|---|---|
+| 1 | Flag-off inertness after "FINAL games passed" | `cd $S/fix && PYTHONPATH=$S/fix python $S/probe_flag_off.py $S/fix` (exit 0) | 1 call | **PASS**. The game-list change sits after the `IC.enabled` early return in `runner._checkpoints`, so with the flag off the scoreboard is never read (patched to raise; not called). Output: `{'skipped': 'disabled'}`, `ck_scored = {}`. Scorer and store not imported, no store file. The tick-report key and the import of `nba.jarvis.ingame_checkpoints` are unchanged from the merged version. Card: the new `phase == "live"` no-repost branch (`cards/run.py:256`) is reachable only through `need_edit(..., has_checkpoint=True)`, which needs a checkpoint, so it never runs with the flag off. |
+| 2 | Tests | `PYTHONPATH=$S/fix <worktree>/.venv/bin/python -m pytest -q --no-cov tests/markets/test_checkpoint_{fixes,scorer,store}.py tests/jarvis/cards/test_ingame_checkpoint_card.py tests/jarvis/cards/test_run.py` | 114 passed, exit 0 | **PASS** |
+| 3 | 11-09 live-vs-replay plant, 197 real tick times | `cd $S/fix && PYTHONPATH=$S/fix python $S/sim_live.py .../live_2026-11-09 $S/out2 .../launchd_jarvis.out`, then the per-decision diff | 280 replay decisions, 8,591 rows | **Partial.** All 7,923 live rows are still identical to replay (0 live-only). Lost decisions: still **20**. Of these, **16 are now named `refused_late_write`** (the 12 plus the 4 that used to be misnamed `state_stale`; that ordering fix works). **4 are still unnamed**: game 401909957, checkpoint 45, all four series. Live `game_over_during_gap` count: **0**. |
+| 4 | Card text | rendered `checkpoint_field` for c = 30 / 10 / 45-extrapolated (live) and 20 / 45 (halftime / final) | 5 variants | **PASS**. No glm_e anywhere on the card (`grep glm nba/jarvis/cards/` finds only the data field `CkOver.p_glm_e` and its parse in `ck_views`; never rendered). Head: "UNPROVEN: no live record; most nights the market already knows this. Paper, no stake. Late-game mark (30+ game-min)." There is no edge promise. On halftime and final cards the block shows only "Last in-game check; its prices are not current." with no asks. |
+
+**R1 (minor, flag-on; the F11 silent loss is not fixed on real data).** On the real capture, an ESPN summary for a finished game
+reports `STATUS_FINAL` with **period 0 and an empty clock**, so `elapsed_s` is None. For 401909957: last in-play summary 03:51:16
+(Q4 1.2); finals every ~60 s from 03:52:13; the c = 45 state was at 03:45:52. The next tick after the 745 s gap (03:57:41) sees
+`latest = FINAL`, sets `over = True`, but `states()` gives only the 300 s window plus one predecessor. All of those are period-0
+finals, so `first_at_or_after` skips every one, nothing fires and nothing is noted. The new test hides this. Its fixture
+(`tests/markets/test_checkpoint_fixes.py:106`) builds the final state as `(180, "STATUS_FINAL", 2880.0, None)`, a final that still
+carries regulation elapsed time, which ESPN does not send. A real game-over-in-gap only matters when the gap exceeds the window, and
+in exactly that case the fix cannot see the in-play states.
+
+*Fix:*
+- Code: in `CheckpointReader.fires`, when `over` is true, build the states from the game's summaries received in `[now - 30 min,
+  now]` (or since the last in-play summary's predecessor), skipping period-0 finals, instead of `self.states(eid)`. The existing
+  lateness filter and `done()` keep it to genuinely open checkpoints.
+- Test: change the fixture's final to period 0 with an empty clock, and add a case where the gap is longer than `LIVE_WINDOW_S`.
+- Acceptance: on this plant, live `game_over_during_gap` = 4 and unnamed = 0.
+
+This is a capture-audit undercount (4 of 280 decisions on 11-09), not a wrong row. It does not block the flag-on go. It blocks any
+use of the live refusal counts in amendment A's 12.9 audit until fixed.
+
+**R2 (minor, flag-on).** The F4 fix returns `"failed"` and records nothing. The next tick `_quiet` still sees
+`ck.known_at > rec.ts` and retries the PATCH. A deleted message (404) is therefore retried on every tick until halftime or final,
+which then reposts. This is bounded (at most about 20 requests per card per half) and makes no notification.
+*Optional fix:* record a `CardRecord` with `kind="edit_failed"` and the new `ts`, so the slot stays quiet until the next checkpoint.
+
+**R3 (minor, pre-existing wording).** When the display filter (bid >= 1c, spread <= 10c) removes every flagged over, the block
+reads "No over clears the 5c bar after fees (2 of 40 player-stats flagged)." That contradicts itself.
+*Fix:* "No over with a real book clears the 5c bar after fees (2 of 40 player-stats clear it on thin books)."
+
+Fixed and confirmed: F1, F2, F3, F4 (no repost on a live edit), F5 (wiring tests), F8 (tallies after append; a failed append stays
+retryable), and F11's naming part (late writes named first). The window invariant is now a module-level assert.
+Not re-verified: the replay oracle (main session); Discord behaviour (no network).
+
+Drafted DECISIONS row (not appended): `2026-11-10 | in-game checkpoints review fixes (3d2cf576) merged with the flag OFF; flag-on
+acceptable for Devin's go (adversary re-review SURVIVES) with R1 open: game-over-in-gap still unnamed on real ESPN finals (4/280
+decisions on 11-09) | live rows identical to replay 7,923/7,923; 16/20 lost decisions named | reverse if a flag-off tick shows
+checkpoint I/O or a live row differs from replay.`
