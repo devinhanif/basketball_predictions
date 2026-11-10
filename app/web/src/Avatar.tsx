@@ -11,7 +11,7 @@ const PX = { sm: 28, md: 40, lg: 72 } as const;
  * Order: an editor's uploaded photo, then the NBA's public headshot for the player id (the browser loads it straight from
  * cdn.nba.com: nothing is copied, proxied or stored here), then initials. A headshot that fails to load becomes initials.
  */
-export function Avatar(props: { name: string; team?: string | null; playerId?: number | null; size?: "sm" | "md" | "lg"; src?: string | null }) {
+export function Avatar(props: { name: string; team?: string | null; playerId?: number | null; size?: "sm" | "md" | "lg"; src?: string | null; remote?: boolean }) {
   const photos = usePhotos();
   const [failed, setFailed] = useState<number | null>(null);
   const id = props.playerId ?? null;
@@ -19,7 +19,7 @@ export function Avatar(props: { name: string; team?: string | null; playerId?: n
   const size = props.size ?? "md";
   const px = PX[size];
   if (uploaded) return <img class={`avatar ${size}`} src={uploaded} alt="" width={px} height={px} />;
-  const remote = id !== null && failed !== id ? headshotUrl(id) : null;
+  const remote = props.remote === true && id !== null && failed !== id ? headshotUrl(id) : null;
   if (remote)
     return (
       <img

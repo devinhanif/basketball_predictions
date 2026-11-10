@@ -28,8 +28,9 @@ make the worst day boring. "Enterprise-safe" here means least privilege, rotatio
 - CSRF: SameSite plus a double-submit token on every state-changing request, `Origin` header checked against the domain.
 - Security headers: strict CSP (no inline script, `connect-src` only the API), `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: no-referrer`, `frame-ancestors 'none'`, minimal `Permissions-Policy`.
-- Player headshots (Devin, 2026-11-10; revisit before any revenue): the CSP allows `img-src 'self' data: blob:
-  https://cdn.nba.com` and no other image host. The browser loads
+- Player headshots (Devin, 2026-11-10; revisit before any revenue): when the CSP is added, its `img-src` must be
+  `'self' data: blob: https://cdn.nba.com` and no other image host (no CSP exists in the code yet). Only public pages
+  request photos; private desk pages (History, Hedge, Signals, Admin) stay initials-only. The browser loads
   `https://cdn.nba.com/headshots/nba/latest/260x190/{player_id}.png` directly (`<img loading="lazy"
   referrerpolicy="no-referrer">`, width/height set, alt = name, initials on a team colour on error); the player id is
   a number from our data, never user text. Nothing is copied, proxied or stored server-side. The footer says

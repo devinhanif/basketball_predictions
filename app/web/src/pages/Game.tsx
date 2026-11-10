@@ -107,7 +107,7 @@ function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result:
       <summary>
         <span class="player-sum">
           <span class="player-name">
-            <Avatar name={props.p.name} team={props.team} playerId={props.p.player_id} size="sm" />
+            <Avatar name={props.p.name} team={props.team} playerId={props.p.player_id} size="sm" remote />
             {props.p.name}
             {res?.starter ? <span class="tag">Starter</span> : null}
             {props.p.role ? (

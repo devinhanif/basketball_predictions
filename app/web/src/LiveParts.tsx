@@ -209,7 +209,7 @@ export function BoxScore(props: { live: LiveState; game?: GameDetail | null }) {
                   <tr key={r.id} class="dnp">
                     <th scope="row">
                       <span class="who">
-                        <Avatar name={r.name} team={r.team} playerId={ids[r.id] ?? null} size="sm" />
+                        <Avatar name={r.name} team={r.team} playerId={ids[r.id] ?? null} size="sm" remote />
                         {r.name}
                       </span>
                     </th>
@@ -219,7 +219,7 @@ export function BoxScore(props: { live: LiveState; game?: GameDetail | null }) {
                   <tr key={r.id} class={r.pf >= 5 ? "foul-trouble" : undefined}>
                     <th scope="row">
                       <span class="who">
-                        <Avatar name={r.name} team={r.team} playerId={ids[r.id] ?? null} size="sm" />
+                        <Avatar name={r.name} team={r.team} playerId={ids[r.id] ?? null} size="sm" remote />
                         {r.name}
                       </span>
                       {r.starter ? <span class="sr"> (starter)</span> : null}
@@ -262,7 +262,7 @@ function TrackerRow({ t, locked }: { t: Tracker; locked: boolean }) {
       <div class="row between wrap">
         <span>
           <span class="who">
-            <Avatar name={t.player} team={t.team} playerId={t.playerId} size="sm" />
+            <Avatar name={t.player} team={t.team} playerId={t.playerId} size="sm" remote />
             <b>{t.player}</b> <span class="muted small">{t.team}</span>
           </span>
         </span>

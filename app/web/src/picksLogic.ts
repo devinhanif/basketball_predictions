@@ -68,7 +68,7 @@ export function whyText(c: TopContract): string {
   const w = x?.model_weight ?? null;
   const b =
     w === 0
-      ? `The model defers to the market until its record clears the gate, so its ${pct(c.model_prob)} sits at the ${price} price, and the ${fee} fee leaves it ${c.ev < 0 ? "negative" : "positive"}.`
+      ? `The model defers to the market until its record clears the gate, so its chance is the market's middle, ${pct(c.model_prob)}; buying at the ${price} ask plus the ${fee} fee leaves it ${c.ev < 0 ? "negative" : "positive"}.`
       : `Model ${pct(c.model_prob)} against a ${price} price and a ${fee} fee.`;
   return a === "" ? b : `${a} ${b}`;
 }
@@ -82,7 +82,7 @@ export type PicksHead =
 export function picksHead(verdict: string | null, nEvaluated: number | null, nPositive: number | null, shown: TopContract[]): PicksHead {
   if (shown.length === 0) return { kind: "none", text: "No priced player contract is stored for this morning's run." };
   const ev = nEvaluated === null ? "" : ` ${nEvaluated.toLocaleString("en-US")} contracts evaluated, ${(nPositive ?? 0).toLocaleString("en-US")} positive after fees.`;
-  const anyPositive = shown.some((c) => c.ev > 0);
+  const anyPositive = shown.some((c) => c.ev > 0) && (nPositive ?? 0) > 0;
   if (verdict === "no_positive_ev_found" || !anyPositive) {
     return { kind: "negative", text: `No bet is positive after fees this morning; these are the closest.${ev}` };
   }

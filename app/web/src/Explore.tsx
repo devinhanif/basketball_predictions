@@ -401,7 +401,7 @@ export function ExplorePanel(props: { gameId: string; playerId: number; stat: st
         {(card) => (
           <>
             <p class="who explore-who">
-              <Avatar name={card.player} team={card.team} playerId={props.playerId} size="md" />
+              <Avatar name={card.player} team={card.team} playerId={props.playerId} size="md" remote />
               <strong>{card.player}</strong>
             </p>
             <Lab key={card.prop_id} card={card} lens={props.lens} />

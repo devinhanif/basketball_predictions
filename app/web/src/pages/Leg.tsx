@@ -800,7 +800,7 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
         </a>
       </p>
       <h1 class="who">
-        <Avatar name={data.player} team={data.team} playerId={data.player_id} size="lg" />
+        <Avatar name={data.player} team={data.team} playerId={data.player_id} size="lg" remote />
         {data.player}
       </h1>
       <p class="muted num" style={{ margin: 0 }}>

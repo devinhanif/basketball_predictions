@@ -49,8 +49,10 @@ describe("selecting the closest picks", () => {
 describe("the reason is template text from stored fields", () => {
   it("with only the weight, says the model defers to the market", () => {
     const t = whyText(mk({ context: { model_weight: 0, n_settled_track: 1, spread: 0.01, p_play: null, proj_minutes: null, mean_cond: null, teammates_out: [] } }));
-    expect(t).toContain("defers to the market");
-    expect(t).toContain("83c");
+    expect(t).toBe(
+      "The model defers to the market until its record clears the gate, so its chance is the market's middle, 83%; buying at the 83c ask plus the 1c fee leaves it negative.",
+    );
+    expect(t).not.toContain("sits at");
     expect(t).not.toContain("minutes");
   });
   it("uses minutes, chance of playing, projection and teammates out when stored", () => {
@@ -71,6 +73,18 @@ describe("the honest no-positive state", () => {
     expect(h.kind).toBe("negative");
     expect(h.text).toContain("No bet is positive after fees this morning; these are the closest.");
     expect(h.text).toContain("3,462 contracts evaluated, 0 positive");
+  });
+  it("is positive only when the engine counts a positive contract", () => {
+    expect(picksHead("evaluated", 10, 0, [mk({ ev: 0.01 })]).kind).toBe("negative");
+    expect(picksHead("evaluated", 10, 1, [mk({ ev: 0.01 })]).kind).toBe("positive");
+  });
+  it("the heading and labels follow the data, and only positive rows are ranked", () => {
+    const text = readFileSync(join(SRC, "TodaysPicks.tsx"), "utf8");
+    expect(text).toContain("Closest to break-even this morning (none is a bet)");
+    expect(text).toContain('head.kind === "positive" ? "The model\'s morning picks"');
+    expect(text).toContain("Market middle (model weight 0)");
+    expect(text).toContain("not a bet");
+    expect(text).toContain("Today&apos;s picks");
   });
   it("is plain when nothing is stored, and never claims a pick it does not have", () => {
     expect(picksHead(null, null, null, []).kind).toBe("none");
@@ -107,6 +121,15 @@ describe("headshots", () => {
     expect(text).toContain("alt={props.name}");
     expect(text).toContain("onError");
     expect(text).toContain("initials");
+  });
+  it("only public pages ask for the remote photo; private desk pages stay initials-only", () => {
+    expect(readFileSync(join(SRC, "Avatar.tsx"), "utf8")).toContain("props.remote === true");
+    for (const f of ["TodaysPicks.tsx", "LiveParts.tsx", "Explore.tsx", "pages/Game.tsx", "pages/Leg.tsx"]) {
+      expect(readFileSync(join(SRC, f), "utf8")).toMatch(/<Avatar [^\n]* remote \/>/);
+    }
+    for (const f of ["pages/History.tsx", "pages/Hedge.tsx", "pages/Signals.tsx", "pages/Admin.tsx"]) {
+      expect(readFileSync(join(SRC, f), "utf8")).not.toMatch(/<Avatar [^\n]*\bremote\b/);
+    }
   });
   it("maps a live box row id to the export player id by name within the team", () => {
     const live = {

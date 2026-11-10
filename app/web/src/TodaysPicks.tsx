@@ -12,10 +12,10 @@ function Pick({ c, rank }: { c: TopContract; rank: number }) {
   const started = c.tip_utc !== null && Date.parse(c.tip_utc) <= Date.now();
   return (
     <li class="tp-pick">
-      <span class="tp-rank num" aria-hidden="true">
-        {rank}
+      <span class="tp-rank num" aria-hidden={c.ev > 0 ? "true" : undefined}>
+        {c.ev > 0 ? rank : <span class="tag">not a bet</span>}
       </span>
-      <Avatar name={c.player} team={c.team} playerId={c.player_id} size="md" />
+      <Avatar name={c.player} team={c.team} playerId={c.player_id} size="md" remote />
       <div class="tp-body">
         <div class="tp-bet">
           <strong>{betWords(c)}</strong>
@@ -34,7 +34,7 @@ function Pick({ c, rank }: { c: TopContract; rank: number }) {
           <dd>{priceCents(c.price)}</dd>
         </div>
         <div>
-          <dt>Model chance</dt>
+          <dt>{c.context?.model_weight === 0 ? "Market middle (model weight 0)" : "Model chance"}</dt>
           <dd>{pct(c.model_prob)}</dd>
         </div>
         <div>
@@ -61,23 +61,26 @@ export function TodaysPicks(props: { date: string; engine: ParlayState | null; o
   return (
     <section class="panel todays-picks" aria-labelledby="tp-h">
       <div class="label">Today&apos;s picks</div>
-      <h2 id="tp-h">The model&apos;s morning picks</h2>
       <View state={top} reload={reload} what="the morning picks" onStale={props.onStale}>
         {(data) => {
           if (!runIsForNight(date, data.report_date)) {
             return (
-              <p class="tp-none">
-                {data.report_date === null
-                  ? "No morning run is stored yet."
-                  : `The latest morning run is for ${data.report_date}, not this night, so no picks are shown for it.`}{" "}
-                Nothing to bet on here. Keep your money.
-              </p>
+              <>
+                <h2 id="tp-h">Closest to break-even this morning (none is a bet)</h2>
+                <p class="tp-none">
+                  {data.report_date === null
+                    ? "No morning run is stored yet."
+                    : `The latest morning run is for ${data.report_date}, not this night, so no picks are shown for it.`}{" "}
+                  Nothing to bet on here. Keep your money.
+                </p>
+              </>
             );
           }
           const shown = selectPicks(data.contracts);
           const head = picksHead(engine?.headline_verdict ?? null, engine?.counts["n_contracts"] ?? null, engine?.counts["n_flagged_positive"] ?? data.n_positive, shown);
           return (
             <>
+              <h2 id="tp-h">{head.kind === "positive" ? "The model's morning picks" : "Closest to break-even this morning (none is a bet)"}</h2>
               <p class={`tp-head ${head.kind}`} role="status">
                 {head.text}
               </p>
