@@ -17,6 +17,7 @@ credential can be attached.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import statistics
@@ -39,7 +40,8 @@ CORE = "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba"
 SUMMARY = "espn_summary_fresh"
 CORE_PLAYS = "espn_core_plays_fresh"
 ENDPOINTS = (SUMMARY, CORE_PLAYS)
-TIMEOUT = httpx.Timeout(8.0)
+TIMEOUT = httpx.Timeout(8.0, read=5.0)
+AUTH_STOP_AFTER = 5  # consecutive 401/403 before the poller stops itself
 MAX_BACKOFF_S = 300.0
 
 
@@ -139,6 +141,13 @@ class Stats:
     live_games: int = 0
     last_cycle_ts: str = ""
     last_error: str = ""
+    last_success_ts: str = ""
+    last_scoreboard_ok_ts: str = ""
+    consecutive_fail: int = 0
+    consecutive_auth: int = 0
+    parse_bad: int = 0
+    last_cycle_s: float = 0.0
+    stopped_reason: str = ""
     by_endpoint: dict[str, int] = field(default_factory=dict)
 
 
@@ -177,14 +186,20 @@ class FreshPoller:
     def log_error(self, what: str) -> None:
         self.st.errors += 1
         self.st.last_error = what[:200]
-        with (self.out / "fresh_errors.log").open("a") as f:
+        # a full disk must not kill the thread
+        with contextlib.suppress(OSError), (self.out / "fresh_errors.log").open("a") as f:
             f.write(f"{self.now().isoformat()} {what}\n")
+
+    def bad(self, what: str) -> None:
+        """A body that parsed as JSON but lacks the fields we measure with: loud, own counter."""
+        self.st.parse_bad += 1
+        self.log_error(f"parse_bad {what}")
 
     def get(self, url: str, params: dict[str, Any] | None = None) -> Fetched | None:
         """One GET, no retry. None when backing off or on a failure (counted, backoff armed)."""
         key = url + json.dumps(params or {}, sort_keys=True)
         ep = self.eps.setdefault(key, Endpoint())
-        if self.clock() < ep.next_ok:
+        if self.stop.is_set() or self.clock() < ep.next_ok:
             return None
         headers: dict[str, str] = {}
         if ep.etag:
@@ -198,26 +213,35 @@ class FreshPoller:
             self._fail(ep, f"{type(exc).__name__}: {str(exc)[:100]} {url}")
             return None
         fetched_at = self.now()
-        if r.status_code == 429 or r.status_code >= 500:
+        if r.status_code not in (200, 304):
+            if r.status_code in (401, 403):
+                self.st.consecutive_auth += 1
+                if self.st.consecutive_auth >= AUTH_STOP_AFTER:
+                    self.st.stopped_reason = f"http {r.status_code} x{self.st.consecutive_auth}"
+                    self.stop.set()
+            else:
+                self.st.consecutive_auth = 0
             self._fail(ep, f"http {r.status_code} {url}")
             return None
         ep.fails = 0
         ep.next_ok = 0.0
+        self.st.consecutive_fail = 0
+        self.st.consecutive_auth = 0
+        self.st.last_success_ts = fetched_at.isoformat()
+        hdrs = dict(r.headers)
         if r.status_code == 304:
             ep.saw_304 = True
             self.st.not_modified += 1
-            return Fetched(304, b"", fetched_at, True, dict(r.headers))
-        if r.status_code != 200:
-            self.log_error(f"http {r.status_code} {url}")
-            return None
+            return Fetched(304, b"", fetched_at, True, hdrs)
         ep.etag = r.headers.get("etag") or ep.etag
         ep.last_modified = r.headers.get("last-modified") or ep.last_modified
         ep.saw_validator = ep.saw_validator or bool(r.headers.get("etag") or ep.last_modified)
         self.st.ok += 1
-        return Fetched(200, r.content, fetched_at, False, dict(r.headers))
+        return Fetched(200, r.content, fetched_at, False, hdrs)
 
     def _fail(self, ep: Endpoint, what: str) -> None:
         ep.fails += 1
+        self.st.consecutive_fail += 1
         ep.next_ok = self.clock() + min(MAX_BACKOFF_S, self.interval_s * 2**ep.fails)
         self.st.backoffs += 1
         self.log_error(what)
@@ -228,7 +252,10 @@ class FreshPoller:
             return
         self._sb_at = self.clock()
         r = self.get(f"{ESPN}/scoreboard", {"dates": self.day.strftime("%Y%m%d")})
-        if r is None or r.not_modified:
+        if r is None:
+            return
+        self.st.last_scoreboard_ok_ts = r.fetched_at.isoformat()
+        if r.not_modified:
             return
         try:
             self.live = live_event_ids(json.loads(r.body))
@@ -262,11 +289,16 @@ class FreshPoller:
             "lag_s": lag,
             "changed": changed,
             "first_poll": prev is None,
+            "hdr": {
+                k: r.headers[k]
+                for k in ("date", "age", "cache-control", "etag", "last-modified")
+                if k in r.headers
+            },
         }
         with (self.out / "fresh.jsonl").open("a") as f:
             f.write(json.dumps(row, sort_keys=True) + "\n")
-        if sha and lp:
-            self.prev[(endpoint, game)] = (sha, lp.play_id)
+        if sha:
+            self.prev[(endpoint, game)] = (sha, lp.play_id if lp else "")
         self.st.by_endpoint[endpoint] = self.st.by_endpoint.get(endpoint, 0) + 1
 
     def poll_summary(self, game: str) -> None:
@@ -280,6 +312,9 @@ class FreshPoller:
             lp, state = last_play_summary(json.loads(r.body))
         except ValueError as exc:
             self.log_error(f"summary {game} parse {exc}")
+            return
+        if lp is not None and (not lp.play_id or lp.wallclock is None):
+            self.bad(f"summary {game}: newest play lacks id or wallclock")
             return
         sha = hashlib.sha256(r.body).hexdigest()
         prev = self.prev.get((SUMMARY, game))
@@ -308,8 +343,12 @@ class FreshPoller:
         if head is None or head.not_modified:
             return
         try:
-            count = int(json.loads(head.body).get("count") or 0)
-        except (ValueError, TypeError) as exc:
+            head_body = json.loads(head.body)
+            if "count" not in head_body:
+                self.bad(f"core plays {game}: no count in head body")
+                return
+            count = int(head_body["count"] or 0)
+        except (ValueError, TypeError, AttributeError) as exc:
             self.log_error(f"core plays {game} parse {exc}")
             return
         if count <= 0:
@@ -321,6 +360,9 @@ class FreshPoller:
             lp = last_play_core(json.loads(r.body))
         except ValueError as exc:
             self.log_error(f"core plays {game} parse {exc}")
+            return
+        if lp is None or not lp.play_id or lp.wallclock is None:
+            self.bad(f"core plays {game}: item missing, or no inline id/wallclock ($ref only?)")
             return
         sha = hashlib.sha256(r.body).hexdigest()
         prev = self.prev.get((CORE_PLAYS, game))
@@ -360,6 +402,19 @@ class FreshPoller:
                 self.cycle()
             except Exception:
                 self.log_error("cycle " + traceback.format_exc().replace("\n", " | ")[:800])
+            self.st.last_cycle_s = round(self.clock() - t0, 3)
+            with contextlib.suppress(OSError), (self.out / "fresh_cycles.jsonl").open("a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "at": self.now().isoformat(),
+                            "cycle_s": self.st.last_cycle_s,
+                            "live": self.st.live_games,
+                            "requests": self.st.requests,
+                        }
+                    )
+                    + "\n"
+                )
             self.stop.wait(max(1.0, self.interval_s - (self.clock() - t0)))
 
     # ---------------------------------------------------------------- thread + heartbeat
@@ -371,6 +426,7 @@ class FreshPoller:
         self.stop.set()
         if self.thread:
             self.thread.join(timeout=15)
+        self.client.close()
 
     def heartbeat_fields(self) -> dict[str, Any]:
         s = self.st
@@ -385,6 +441,12 @@ class FreshPoller:
             "fresh_live_games": s.live_games,
             "fresh_last_cycle_ts": s.last_cycle_ts,
             "fresh_last_error": s.last_error,
+            "fresh_last_success_ts": s.last_success_ts,
+            "fresh_last_scoreboard_ok_ts": s.last_scoreboard_ok_ts,
+            "fresh_consecutive_fail": s.consecutive_fail,
+            "fresh_parse_bad": s.parse_bad,
+            "fresh_last_cycle_s": s.last_cycle_s,
+            "fresh_stopped_reason": s.stopped_reason,
         }
 
 
@@ -401,12 +463,26 @@ def freshness_report(jsonl: Path, interval_s: float | None = None) -> dict[str, 
 
     ``first_seen_lag_s``: fetch time minus the newest play's wallclock, on fetches where that play
     was new to us (the first fetch of a game is excluded: its play may be old). With polls ``d``
-    seconds apart, true availability delay lies in [lag - d, lag]. ``update_gap_s``: time between
+    seconds apart, lag = source delay + U(0, d), so true availability delay lies in [lag - d, lag]
+    (a 50 s median at d = 60 s means about 20 s of source delay). ``update_gap_s``: time between
     successive new-play fetches. ``unchanged_rate``: share of consecutive live fetches returning
     the same newest play. Descriptive only; n on every line.
     """
-    rows = [json.loads(line) for line in jsonl.read_text().splitlines() if line.strip()]
-    out: dict[str, Any] = {"interval_s": interval_s, "endpoints": {}}
+    rows: list[dict[str, Any]] = []
+    torn = 0
+    for line in jsonl.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            torn += 1
+            continue
+        if isinstance(row, dict) and "endpoint" in row and "game" in row:
+            rows.append(row)
+        else:
+            torn += 1
+    out: dict[str, Any] = {"interval_s": interval_s, "n_unparseable_lines": torn, "endpoints": {}}
     for ep in sorted({r["endpoint"] for r in rows}):
         er = [r for r in rows if r["endpoint"] == ep]
         by: dict[str, list[dict[str, Any]]] = {}

@@ -224,3 +224,191 @@ def test_freshness_report_shape(tmp_path: Path) -> None:
     assert rep["first_seen_lag_s"] == {"n": 2, "median": 21.0, "p90": 30.0}
     assert rep["unchanged_pairs"] == 3 and abs(rep["unchanged_rate"] - 1 / 3) < 1e-9
     assert rep["update_gap_s"]["n"] == 2
+
+
+# ---------------------------------------------------------------- adversary review (F1-F10)
+def two_live() -> dict[str, Any]:
+    return {
+        "events": [
+            {"id": "1", "status": {"type": {"state": "in"}}},
+            {"id": "2", "status": {"type": {"state": "in"}}},
+        ]
+    }
+
+
+def test_403_backs_off_stops_and_says_why(tmp_path: Path) -> None:
+    clock = Clock()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("/scoreboard"):
+            return httpx.Response(200, json=two_live())
+        return httpx.Response(403)
+
+    p, seen = make(tmp_path, handler, clock)
+    for _ in range(20):
+        p.cycle()
+        clock.advance(18)
+    game_reqs = [r for r in seen if not r.url.path.endswith("/scoreboard")]
+    assert len(game_reqs) == 5  # armed backoff is not cleared; the 5th 403 trips the latch
+    assert p.stop.is_set()
+    assert p.st.backoffs >= 1 and p.st.consecutive_fail >= 1
+    for _ in range(10):  # long idle: backoff expires, 403s accumulate to the latch
+        clock.advance(400)
+        p.cycle()
+    assert p.stop.is_set() and p.heartbeat_fields()["fresh_stopped_reason"].startswith("http 403")
+    n = len(seen)
+    p.cycle()
+    assert len(seen) == n  # stopped: no more requests
+
+
+def test_heartbeat_shows_failure_when_scoreboard_403(tmp_path: Path) -> None:
+    clock = Clock()
+    p, _ = make(tmp_path, lambda r: httpx.Response(403), clock)
+    p.cycle()
+    hb = p.heartbeat_fields()
+    assert hb["fresh_last_success_ts"] == "" and hb["fresh_last_scoreboard_ok_ts"] == ""
+    assert hb["fresh_consecutive_fail"] == 1
+
+
+def test_core_ref_only_body_is_a_loud_parse_error(tmp_path: Path) -> None:
+    clock = Clock()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        path = req.url.path
+        if path.endswith("/scoreboard"):
+            return httpx.Response(200, json=SCOREBOARD)
+        if path.endswith("/summary"):
+            return httpx.Response(200, json=SUMMARY_BODY)
+        if req.url.params.get("page"):
+            return httpx.Response(200, json={"count": 7, "items": [{"$ref": "http://x/plays/7"}]})
+        return httpx.Response(200, json={"count": 7, "items": []})
+
+    p, _ = make(tmp_path, handler, clock)
+    for _ in range(3):
+        p.cycle()
+        clock.advance(18)
+    assert p.st.parse_bad == 3
+    assert p.heartbeat_fields()["fresh_parse_bad"] == 3
+    rep = freshness_report(tmp_path / "fresh.jsonl")["endpoints"]
+    assert CORE_PLAYS not in rep  # no fake "unchanged_rate 1.0" row for the broken endpoint
+
+
+def test_empty_plays_not_restored(tmp_path: Path) -> None:
+    clock = Clock()
+    empty = {"plays": [], "header": {"competitions": [{"status": {"type": {"state": "in"}}}]}}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("/scoreboard"):
+            return httpx.Response(200, json=SCOREBOARD)
+        if req.url.path.endswith("/summary"):
+            return httpx.Response(200, json=empty)
+        return httpx.Response(404)
+
+    p, _ = make(tmp_path, handler, clock)
+    for _ in range(5):
+        p.poll_summary("1")
+    assert p.st.saved == 1
+
+
+def test_headers_logged_and_cycle_duration(tmp_path: Path) -> None:
+    clock = Clock()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("/scoreboard"):
+            return httpx.Response(200, json=SCOREBOARD)
+        if req.url.path.endswith("/summary"):
+            return httpx.Response(
+                200,
+                json=SUMMARY_BODY,
+                headers={"Age": "7", "Date": "Fri, 23 Oct 2026 00:20:00 GMT"},
+            )
+        return httpx.Response(404)
+
+    p, _ = make(tmp_path, handler, clock)
+    p.poll_summary("1")
+    row = json.loads((tmp_path / "fresh.jsonl").read_text().splitlines()[0])
+    assert row["hdr"]["age"] == "7" and "date" in row["hdr"]
+
+
+def test_thread_start_close_and_cycle_log(tmp_path: Path) -> None:
+    p = FreshPoller(
+        date(2026, 10, 22),
+        tmp_path,
+        client=httpx.Client(
+            transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"events": []}))
+        ),
+        interval_s=1.0,
+    )
+    p.start()
+    assert p.thread is not None and p.thread.is_alive()
+    p.close()
+    assert not p.thread.is_alive() and p.client.is_closed
+    assert (tmp_path / "fresh_cycles.jsonl").exists()
+
+
+def test_report_tolerates_torn_line(tmp_path: Path) -> None:
+    path = tmp_path / "fresh.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "endpoint": SUMMARY,
+                "game": "1",
+                "fetched_at": T0.isoformat(),
+                "status": 200,
+                "state": "in",
+                "changed": True,
+                "first_poll": True,
+                "lag_s": 5.0,
+            }
+        )
+        + '\n{"endpoint": "espn_sum'
+    )
+    rep = freshness_report(path)
+    assert rep["n_unparseable_lines"] == 1 and rep["endpoints"][SUMMARY]["n_fetches"] == 1
+
+
+def test_log_error_survives_oserror(tmp_path: Path) -> None:
+    p, _ = make(tmp_path, lambda r: httpx.Response(200, json={}), Clock())
+    (tmp_path / "fresh_errors.log").mkdir()  # opening it for append now raises
+    p.log_error("x")  # must not raise
+    assert p.st.errors == 1
+
+
+class StubFresh:
+    def __init__(self) -> None:
+        self.started = 0
+        self.closed = 0
+
+    def start(self) -> None:
+        self.started += 1
+
+    def close(self) -> None:
+        self.closed += 1
+
+    def heartbeat_fields(self) -> dict[str, Any]:
+        return {"fresh_alive": True}
+
+
+def test_capture_wiring_and_flag_off_heartbeat_unchanged(tmp_path: Path) -> None:
+    from nba.live.capture import Capture
+    from nba.live.http import Fetcher
+
+    def fetcher() -> Fetcher:
+        client = httpx.Client(
+            transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"events": []}))
+        )
+        return Fetcher(client=client, rate_per_s=1e6, sleep=lambda s: None)
+
+    off = Capture(date(2026, 10, 21), tmp_path / "a", tmp_path / "a.json", fetcher=fetcher())
+    off.beat("running")
+    keys_off = set(json.loads((tmp_path / "a.json").read_text()))
+    assert not any(k.startswith("fresh") for k in keys_off)
+    stub = StubFresh()
+    on = Capture(
+        date(2026, 10, 21), tmp_path / "b", tmp_path / "b.json", fetcher=fetcher(), fresh=stub
+    )
+    on.beat("running")
+    keys_on = set(json.loads((tmp_path / "b.json").read_text()))
+    assert keys_on - keys_off == {"fresh_alive"}
+    assert on.run(once=True, start_now=True) in (0, 2)
+    assert stub.started == 0 and stub.closed <= 1  # once=True never starts the thread
