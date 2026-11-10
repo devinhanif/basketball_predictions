@@ -5,6 +5,9 @@ Moved because nothing under ``nba/`` may import ``research``; this proves the mo
 
 from __future__ import annotations
 
+from datetime import date
+from typing import cast
+
 import numpy as np
 import polars as pl
 import pytest
@@ -93,7 +96,7 @@ def test_scenario_vacancy_features_and_forecasts_equal_reference(
     assert fa.height > 0
     assert_frame_equal(fa, fb)
     cfg = ContextResidualConfig(n_estimators=20, min_child_samples=30, min_cal_rows=300)
-    models = fit_for_date(base, day, cfg)
+    models = fit_for_date(base, cast(date, day), cfg)
     ra = C.scenario_forecasts(models, slate, fa, ("pts", "reb"))
     rb = S.scenario_forecasts(models, slate, fb)
     assert ra.height > 0

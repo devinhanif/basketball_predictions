@@ -9,7 +9,7 @@ import json
 import pickle
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import duckdb
 import polars as pl
@@ -41,7 +41,7 @@ AVAIL_SCHEMA: dict[str, Any] = {
 class World:
     def __init__(self, tmp: Path) -> None:
         gdf, pdf, static, flagged = _league(n_days=120)
-        self.day: date = gdf["game_date"].max()
+        self.day: date = cast(date, gdf["game_date"].max())
         self.slate_ids = gdf.filter(pl.col("game_date") == self.day)["game_id"].to_list()
         self.h_games = gdf.filter(pl.col("game_date") < self.day)
         self.h_pgs = pdf.join(self.h_games.select("game_id"), on="game_id")
