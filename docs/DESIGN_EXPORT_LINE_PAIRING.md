@@ -22,12 +22,28 @@ game with `C.made_at < tip`:
 2. Therefore every quote with `received_at <= C.made_at` and `received_at < tip` was knowable when a
    forecast with R's exact content existed. Pairing it with R reads nothing from the future.
 
-Rule: `lines_through(R) = max(R.made_at, newest covering run made_at)` if R is the latest row of its key,
-else `R.made_at` (a superseded row is never re-confirmed by a later run: it was replaced). The quote must
-also satisfy `received_at <= lines_through` and `received_at < row.tipoff` and `< commence_time` (unchanged
-query) and `lines_through` is capped at the row's tip. Every exported quote carries `paired_through`
-(new additive column of `prop_lines`; schema version stays 2). AVG-shadow rows keep
-`lines_through = made_at` (a different table and dedup; not extended).
+Rule: `lines_through(R) = max(R.made_at, newest covering run made_at)` if R is the latest row of its key
+and its model was stamped by that run, else `R.made_at` (a superseded row is never re-confirmed by a
+later run: it was replaced). The quote must also satisfy `received_at <= lines_through` and
+`received_at < row.tipoff` and `< commence_time` (unchanged query); `lines_through` is capped at the tip.
+Every exported quote carries `paired_through` (new additive column of `prop_lines`; schema version stays 2).
+
+Guards added after the adversary review (`docs/reviews/export_pairing_2026-11-10.md`):
+
+* **Per model (M2).** Cover is taken per `(model_name, version)` from `forward_model_stamps`, never from
+  another model's stamp. `late_*` runs (the tip-15 shadow) are not cover for anyone, so `*_late` rows and
+  models nobody stamps (`*_t15`) keep `lines_through = made_at`.
+* **OUT guard (M1).** A player listed OUT on the latest official report (`nba.daily.injury.out_players`,
+  the pipeline's own rule) at the covering run's time keeps `made_at`: that run may have dropped the
+  player instead of re-confirming the row.
+* **AVG rows (B1).** The AVG shadow shares the production `run_id` but is another table: its rows keep
+  `lines_through = made_at` and never lower a production key's cutoff in `pair_quotes`. An AVG primary
+  card shows the production run's quotes (`lines_run_id`), so it shows the extended prices too.
+* **Calibration fields (B2).** `rung_cal` and `line_cal` are computed from a second pairing with the old
+  rule (`lines_through = made_at` for every row), because they keep only the newest quote below
+  `made_at`; feeding them the extended rows would overwrite the quote they need. `build._read_lines`
+  returns `(lines, cal_lines)`. `nba/parlay/top_source.py` keeps its own cut at `prod.made_at`, so a
+  parlay leg price can be older than the card price (accepted, not aligned here).
 
 ## "Newest pretip run that covered the game"
 
@@ -59,8 +75,9 @@ then attaches pre-tip quotes to a forecast the newest run no longer made. The ap
 row (it is the latest); no post-tip or post-run quote is added. Recommended follow-up if it matters:
 write a per-run `(run_id, game_id, key)` coverage record in `nba.daily` (live path, replay oracle).
 
-`rung_cal_fields` and `line_cal_fields` still cut quotes at the row's own `made_at` (they are the
-producer's calibration cutoff and score-aligned); only `prop_lines` rows are extended.
+The OUT guard is a proxy (it catches the common drop path, not roster or threshold drops). The proper
+fix is a per-run `(run_id, game_id, model, target, player_id)` coverage record in `nba.daily`, extending
+only keys the covering run emitted (live path, replay oracle, Devin's go).
 
 ## F2: store hold
 

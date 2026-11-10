@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 
 import duckdb
 
+from nba.daily.injury import out_players
 from nba.daily.schedule import cached_game_teams
 from nba.daily.store import withdrawn_players
 from nba.export import best_model, guard
@@ -127,13 +128,22 @@ class ForwardBundle:
     excluded_withdrawn: int = 0
 
 
-def pretip_run_times(con: duckdb.DuckDBPyConnection) -> list[datetime]:
-    """``made_at`` of every pretip run that stamped its models (``forward_model_stamps``, one row
-    per model per run, written for every run that built predictions, including a run whose rows
-    were all skipped by write-on-change). Empty when the table is absent."""
+def pretip_run_times(con: duckdb.DuckDBPyConnection) -> dict[tuple[str, str], list[datetime]]:
+    """``made_at`` of the pretip runs that stamped each model, keyed by (model_name, version)
+    (``forward_model_stamps``: one row per model per run, written for every run that built
+    predictions, including a run whose rows were all skipped by write-on-change). ``late_*``
+    runs (the tip-15 shadow, which only covers games about to tip) are not cover for anyone, so a
+    model that only they stamp (``*_late``) and a model with no stamps (``*_t15``) get no
+    extension. Empty when the table is absent."""
     if not table_exists(con, STAMPS_TABLE):
-        return []
-    return [r[0] for r in con.execute(f"SELECT DISTINCT made_at FROM {STAMPS_TABLE}").fetchall()]  # noqa: S608
+        return {}
+    out: dict[tuple[str, str], list[datetime]] = defaultdict(list)
+    for m, v, t in con.execute(
+        f"SELECT DISTINCT model_name, version, made_at FROM {STAMPS_TABLE} "  # noqa: S608
+        f"WHERE run_id NOT LIKE 'late\\_%' ESCAPE '\\'"
+    ).fetchall():
+        out[(str(m), str(v))].append(t)
+    return dict(out)
 
 
 def newest_cover(run_times: list[datetime], game_date: date, tipoff: datetime) -> datetime | None:
@@ -187,7 +197,8 @@ def forward_predictions(
     run_times = pretip_run_times(con)
     withdrawn = withdrawn_players(con)  # misplaced players: forecast kept in the log, never shown
     kept: list[tuple[Any, ...]] = []
-    cover: dict[str, datetime | None] = {}  # game -> made_at of the newest pretip run covering it
+    # (game, model, version) -> made_at of the newest stamped pretip run of THAT model covering it
+    cover: dict[tuple[str, str, str], datetime | None] = {}
     post_tip = 0
     n_withdrawn = 0
     for r in raw:
@@ -202,10 +213,14 @@ def forward_predictions(
         if not (window.first <= gdate <= window.day):
             continue
         kept.append(r)
-        if r[2] not in cover:
-            cover[r[2]] = newest_cover(run_times, gdate, tipoff)
+        ck = (r[2], r[4], r[5])
+        if ck not in cover:
+            cover[ck] = newest_cover(run_times.get((r[4], r[5]), []), gdate, tipoff)
     _assert_allowed({int(r[12]) for r in kept}, window.seasons)
 
+    # M1 guard: a player on the official report as OUT at the covering run's time (the pipeline's
+    # own rule, nba.daily.injury.out_players) may have been dropped by that run, not re-confirmed
+    out_by_cover = {c: out_players(con, c) for c in {c for c in cover.values() if c is not None}}
     stamps = model_stamps(con, {r[0] for r in kept})
     latest: dict[tuple[str, str, str, int], tuple[datetime, str]] = {}
     for r in kept:
@@ -220,7 +235,9 @@ def forward_predictions(
         run_id, made_at, game_id, tipoff, model, version, target, pid, pred_s = r[:9]
         pred = _jloads(pred_s)
         is_latest = latest[(game_id, model, target, int(pid))] == (made_at, run_id)
-        cov = cover.get(game_id)
+        cov = cover.get((game_id, model, version))
+        if cov is not None and is_latest and int(pid) in out_by_cover[cov]:
+            cov = None  # ruled OUT on the report between made_at and the newest run: not extended
         base: dict[str, Any] = {
             "run_id": run_id, "made_at": made_at, "game_id": game_id, "tipoff": tipoff,
             # quotes may pair up to here: a latest row is unchanged at every later run that
@@ -693,12 +710,21 @@ def pair_quotes(props: list[dict[str, Any]], quotes: RawQuotes) -> LinesBundle:
     if quotes.status != "ok":
         return LinesBundle([], 0, quotes.status)
     preds: dict[tuple[str, str, int, str], tuple[datetime, datetime, datetime]] = {}
-    for p in props:  # models in one run share that run's quotes
+    avg_keys: set[tuple[str, str, int, str]] = set()
+    for p in sorted(props, key=lambda p: p.get("model_name") == best_model.AVG_MODEL_NAME):
         k = (p["run_id"], str(p["game_id"]), int(p["player_id"]), str(p["stat"]))
         through = min(p.get("lines_through", p["made_at"]), p["tipoff"])  # never past the tip
-        if k in preds:  # arms of one group share the cutoff; on a clash keep the earlier one
+        if p.get("model_name") == best_model.AVG_MODEL_NAME:
+            # the AVG shadow shares the production run_id but is a different table: it never
+            # lowers a production key's cutoff (its card shows the production run's quotes)
+            if k not in preds:
+                preds[k] = (p["made_at"], p["tipoff"], through)
+                avg_keys.add(k)
+            continue
+        if k in preds and k not in avg_keys:  # arms of one group: on a clash keep the earlier
             through = min(through, preds[k][2])
         preds[k] = (p["made_at"], p["tipoff"], through)
+        avg_keys.discard(k)
     stat_of = _stat_of()
     by_player: dict[tuple[str, int], list[tuple[Any, ...]]] = defaultdict(list)
     for r in quotes.raw:

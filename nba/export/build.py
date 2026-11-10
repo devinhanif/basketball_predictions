@@ -311,28 +311,35 @@ def _read_lines(
     window: reader.Window,
     odds_db: Path | None,
     odds_con: duckdb.DuckDBPyConnection | None,
-) -> reader.LinesBundle:
-    """Quotes for ``props`` from the capture store, read-only. A missing store or table, or a
-    lock that outlasts the retry, yields no rows and a status the manifest carries; the export
-    itself never fails on the capture's file."""
+) -> tuple[reader.LinesBundle, reader.LinesBundle]:
+    """Quotes for ``props`` from the capture store, read-only: ``(lines, cal_lines)``. ``lines``
+    (exported as ``prop_lines``) pairs each latest row through the newest covering run;
+    ``cal_lines`` pairs every row only through its own ``made_at`` (the producer's cutoff) and is
+    the sole input of ``rung_cal`` / ``line_cal``, which keep their old values. A missing store
+    or table, or a lock that outlasts the retry, yields no rows and a status the manifest
+    carries; the export itself never fails on the capture's file."""
     if odds_con is not None:
-        return reader.prop_lines(odds_con, props, window)
-    if odds_db is None:
-        return reader.LinesBundle([], 0, "not_requested")
-    try:
-        con = reader.open_odds_read_only(odds_db)
-    except duckdb.IOException as exc:
-        from nba.db.connect import is_lock_error
+        quotes = reader.fetch_quotes(odds_con, props, window)
+    elif odds_db is None:
+        empty = reader.LinesBundle([], 0, "not_requested")
+        return empty, empty
+    else:
+        try:
+            con = reader.open_odds_read_only(odds_db)
+        except duckdb.IOException as exc:
+            from nba.db.connect import is_lock_error
 
-        if not is_lock_error(exc):
-            raise
-        return reader.LinesBundle([], 0, "locked")
-    try:  # hold the capture store only for the one filtered read, never for the pairing loop
-        quotes = reader.fetch_quotes(con, props, window)
-    finally:
-        if con is not None:
-            con.close()
-    return reader.pair_quotes(props, quotes)
+            if not is_lock_error(exc):
+                raise
+            locked = reader.LinesBundle([], 0, "locked")
+            return locked, locked
+        try:  # hold the capture store only for the one filtered read, never for the pairing
+            quotes = reader.fetch_quotes(con, props, window)
+        finally:
+            if con is not None:
+                con.close()
+    old = [dict(p, lines_through=p["made_at"]) for p in props]
+    return reader.pair_quotes(props, quotes), reader.pair_quotes(old, quotes)
 
 
 def _primary_counts(props: list[dict[str, Any]]) -> dict[str, int]:
@@ -404,9 +411,9 @@ def build_export(
     for prow in fwd.prop_grids:
         tid, how = teams_of.get((prow["game_id"], prow["player_id"]), (None, None))
         prow["team_id"], prow["team_source"] = tid, how
-    lines = _read_lines(fwd.prop_grids, window, odds_db, odds_con)
-    rung = rung_cal_fields.attach(fwd.prop_grids, lines.rows, grids)
-    line_cal = line_cal_fields.attach(fwd.prop_grids, lines.rows, grids)
+    lines, cal_lines = _read_lines(fwd.prop_grids, window, odds_db, odds_con)
+    rung = rung_cal_fields.attach(fwd.prop_grids, cal_lines.rows, grids)
+    line_cal = line_cal_fields.attach(fwd.prop_grids, cal_lines.rows, grids)
     parlay = parlay_of_day(parlay_dir or REPO_ROOT / "reports" / "parlay", day.isoformat())
 
     players, teams = _names(

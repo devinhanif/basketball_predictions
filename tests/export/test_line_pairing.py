@@ -7,6 +7,7 @@ Fixture DB only; no network."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -97,8 +98,16 @@ def _odds(path: Path, quotes: list[tuple[str, int, float, int, datetime, datetim
     return path
 
 
-def _paired(tmp_path: Path) -> tuple[ForwardBundle, LinesBundle]:
+def _paired(
+    tmp_path: Path,
+    mutate: Callable[[duckdb.DuckDBPyConnection], None] | None = None,
+    extra: Callable[[list[dict[str, Any]]], list[dict[str, Any]]] | None = None,
+) -> tuple[ForwardBundle, LinesBundle]:
     src = _src(tmp_path)
+    if mutate is not None:
+        wc = duckdb.connect(str(src))
+        mutate(wc)
+        wc.close()
     t = TIP1
     quotes = [
         (G1, 1000, 10.5, -110, t - timedelta(minutes=170), TIP1),  # between r1 and r2
@@ -116,7 +125,8 @@ def _paired(tmp_path: Path) -> tuple[ForwardBundle, LinesBundle]:
     oc = duckdb.connect(str(odds), read_only=True)
     try:
         fwd = forward_predictions(con, Window(D2, 1))
-        bundle = prop_lines(oc, fwd.prop_grids, Window(D2, 1))
+        props = extra(fwd.prop_grids) if extra is not None else fwd.prop_grids
+        bundle = prop_lines(oc, props, Window(D2, 1))
     finally:
         oc.close()
         con.close()
@@ -173,3 +183,87 @@ def test_newest_cover_ignores_post_tip_other_date_and_empty() -> None:
     assert newest_cover([r_post, r_other_date], D1, TIP1) is None
     assert newest_cover([], D1, TIP1) is None
     assert newest_cover([TIP1], D1, TIP1) is None  # made_at == tip is not pre-tip
+
+
+def test_avg_row_in_the_same_run_does_not_collapse_the_extension(tmp_path: Path) -> None:
+    """B1: the AVG shadow shares the production run_id and keeps lines_through = made_at."""
+
+    def with_avg(props: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        prod = next(p for p in props if p["run_id"] == "r1" and p["player_id"] == 1000)
+        avg = dict(prod, model_name="props_avg_live2", lines_through=prod["made_at"])
+        return [*props, avg]
+
+    _, bundle = _paired(tmp_path, extra=with_avg)
+    assert _by_run(bundle)[("r1", G1, 1000)] == [10.5, 11.5]  # still through r3
+
+
+def test_cal_rows_keep_the_old_rule(tmp_path: Path) -> None:
+    """B2: build._read_lines hands rung_cal / line_cal rows cut at each row's own made_at."""
+    from nba.export.build import _read_lines
+
+    src = _src(tmp_path)
+    odds = _odds(
+        tmp_path / "market_asof.duckdb",
+        [(G1, 1000, 10.5, -110, TIP1 - timedelta(minutes=190), TIP1),
+         (G1, 1000, 10.5, -150, TIP1 - timedelta(minutes=100), TIP1)],
+    )  # fmt: skip
+    con = open_read_only(src)
+    try:
+        props = forward_predictions(con, Window(D2, 1)).prop_grids
+    finally:
+        con.close()
+    lines, cal = _read_lines(props, Window(D2, 1), odds, None)
+    assert all(r["snapshot_ts"] <= r["made_at"] for r in cal.rows)
+    assert all(r["paired_through"] == r["made_at"] for r in cal.rows)
+    r1_cal = [r for r in cal.rows if r["run_id"] == "r1" and r["player_id"] == 1000]
+    assert [r["price_american"] for r in r1_cal] == [-110]  # the pre-made_at quote survives
+    r1_new = [r for r in lines.rows if r["run_id"] == "r1" and r["player_id"] == 1000]
+    assert [r["price_american"] for r in r1_new] == [-150]  # prop_lines shows the newer one
+
+
+def test_player_out_on_the_report_is_not_extended(tmp_path: Path) -> None:
+    """M1: OUT at the covering run's time on the official report: the cutoff stays made_at."""
+    from nba.daily.injury import to_report_dt
+
+    def out(con: duckdb.DuckDBPyConnection) -> None:
+        con.execute(
+            "INSERT INTO player_availability VALUES "
+            "(1000, ?, ?, 'out', 'x', 'nba_official_report', ?)",
+            [to_report_dt(TIP1 - timedelta(minutes=65)), G1, TIP1 - timedelta(minutes=65)],
+        )
+
+    fwd, bundle = _paired(tmp_path, mutate=out)
+    p = next(p for p in fwd.prop_grids if p["run_id"] == "r1" and p["player_id"] == 1000)
+    assert p["lines_through"] == p["made_at"]
+    assert ("r1", G1, 1000) not in _by_run(bundle)  # nothing before r1's made_at (T-180)
+    assert _by_run(bundle)[("r3", G1, 1001)] == [10.5, 11.5]  # 1001 is not out: unaffected
+
+
+def test_cover_is_per_model_and_ignores_late_runs(tmp_path: Path) -> None:
+    """M2: another model's later stamp, a late_ run and an unstamped model are not cover."""
+
+    def mut(con: duckdb.DuckDBPyConnection) -> None:
+        con.execute(f"DELETE FROM {stamps.TABLE} WHERE run_id = 'r3'")  # CTX did not run at r3
+        t3 = TIP1 - timedelta(minutes=60)
+        con.execute(  # the same run stamped a different model: not cover for CTX
+            f"INSERT INTO {stamps.TABLE} VALUES ('r3', 'rung0_mov_elo', 'v1', ?, 'a', 'f', 'dv', "
+            "DATE '2026-10-27', 1, 'g', false, ?)",
+            [t3, t3],
+        )
+        t5 = TIP1 - timedelta(minutes=30)
+        con.execute(  # a late_ run stamped CTX: not cover
+            f"INSERT INTO {stamps.TABLE} VALUES ('late_x', ?, 'v1', ?, 'a', 'f', 'dv', "
+            "DATE '2026-10-27', 1, 'g', false, ?)",
+            [CTX, t5, t5],
+        )
+        pred = ForwardPrediction(
+            G1, TIP1, "props_context_residual_t15", "v1", "pts", _pred(7.5), 1002
+        )
+        append_predictions_ex(con, "r6", TIP1 - timedelta(minutes=170), [pred])  # never stamped
+
+    fwd, bundle = _paired(tmp_path, mutate=mut)
+    rows = {(p["run_id"], p["model_name"], p["player_id"]): p for p in fwd.prop_grids}
+    assert rows[("r1", CTX, 1000)]["lines_through"] == TIP1 - timedelta(minutes=120)  # r2, not r3
+    t15 = rows[("r6", "props_context_residual_t15", 1002)]
+    assert t15["lines_through"] == t15["made_at"]
+    assert _by_run(bundle)[("r1", G1, 1000)] == [10.5]  # the T-100 quote is after r2
