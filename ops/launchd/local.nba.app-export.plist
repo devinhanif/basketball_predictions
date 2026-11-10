@@ -5,8 +5,9 @@
     install:    cp ops/launchd/local.nba.app-export.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.app-export.plist && launchctl kickstart -k gui/$(id -u)/local.nba.app-export
     (the kickstart writes a first heartbeat at once; without it the watchdog alerts app-export:stale until the first slot has run)
     uninstall:  launchctl bootout gui/$(id -u)/local.nba.app-export && rm ~/Library/LaunchAgents/local.nba.app-export.plist
-  Two slots a day, after the morning job (08:00 on the schedule clock; ~2 h when the Drive upload is slow), at :35 so they fall between
-  the pretip runs (:20 + a few minutes, :50). launchd evaluates the calendar on the same clock as the other jobs (data/ops/schedule_tz);
+  Two slots an hour, :05 and :35, 12-23 on the schedule clock (the first after the morning job, 08:00; ~2 h when the Drive upload is slow), so they
+  fall between the pretip runs (:20 + a few minutes, :50). After today's first export a slot rebuilds only when a pretip run has ended since
+  the last build and a game has not tipped; otherwise it is a one-second no-op. launchd evaluates the calendar on the same clock as the other jobs (data/ops/schedule_tz);
   keep the hours and minute in step with JOBS["app-export"] in nba/ops/watchdog.py (tests/ops/test_app_export.py checks it).
   Launched through uv, never /bin/sh: TCC blocks sh from reading ~/Downloads (exit 126 stopped every job once).
 -->
@@ -21,8 +22,30 @@
   </array>
   <key>StartCalendarInterval</key>
   <array>
+    <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>5</integer></dict>
     <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>5</integer></dict>
     <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>15</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>15</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>35</integer></dict>
   </array>
   <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_app-export.out</string>
   <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_app-export.err</string>

@@ -117,14 +117,15 @@ JOBS: tuple[JobSpec, ...] = (
     ),
     JobSpec(
         # the app export (nba.ops.app_export, ops/launchd/local.nba.app-export.plist): two slots
-        # after the morning job, at :35 so it falls between the pretip runs (:20 + a few minutes,
-        # :50). Keep in step with the plist.
+        # an hour (:05 and :35) from 12 to 23 on the schedule clock, between the pretip runs (:20
+        # + a few minutes, :50); most slots are a one-second no-op (nothing newer). Keep in step
+        # with the plist.
         "app-export",
         "local.nba.app-export",
         "slots",
-        timedelta(minutes=30),
-        minutes=(35,),
-        hours=(12, 14),
+        timedelta(minutes=25),
+        minutes=(5, 35),
+        hours=tuple(range(12, 24)),
         max_skips=2,
         optional=True,
     ),
