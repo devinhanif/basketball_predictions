@@ -1,3 +1,19 @@
+# NEXT SESSION, resume here (written 2026-11-10 early morning CST; overnight 11-09 -> 11-10; START A FRESH SESSION)
+
+**Phone summary for Devin:**
+1. **Merged tonight** (each adversary-reviewed; live-path ones replay-oracle IDENTICAL or outside the replay closure): public desk,
+   Phase B app, afternoon re-export, export line pairing, player names, Kalshi candles + trade-pull fixes, combo math, JARVIS team
+   cards (dormant), ESPN poller (off), in-game checkpoints (off), TEAMMATE_SITS draft. BEST_PRICE_FORWARD frozen. Details: DECISIONS rows dated 11-09/11-10.
+2. **Yours to install** (Claude is refused launchd): the re-export schedule and, optionally, the candles poller. Exact install and
+   rollback steps are in docs/DAILY_PIPELINE.md and docs/KALSHI_CANDLES_15S.md.
+3. **Disk is 97% full**: old replay copies in data/rehearsal (about 130 GB) are yours to delete; each is logged in HOLDOUT_ACCESS_LOG.
+4. **JARVIS team cards** need 30 webhooks: docs/JARVIS_DISCORD_SETUP.md.
+5. **Your calls**: in-game checkpoints flag; ESPN poller flag (needs a real core-API fixture); data-source terms before any revenue.
+6. **In flight at handoff**: app calibrated-only branch (final re-review); TEAMMATE_SITS pre-freeze review.
+
+Loose ends (recorded, not chased): 3 pre-existing full-suite failures; checkpoint R1; export-pairing r3 copy; per-run coverage
+record in nba.daily; combo export wiring; LINE_CAL_LIVE look about Dec 1. Retro: docs/reviews/retro_2026-11-10.md.
+
 # NEXT SESSION, resume here (written 2026-11-08 ~12:30 CST)
 
 **Phone summary for Devin:**
