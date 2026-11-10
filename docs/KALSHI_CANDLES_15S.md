@@ -36,9 +36,17 @@ after the games, for reconciliation only.
 - **Trades (re-review R1b, carried-cursor catch-up).** For the game-winner tickers whose cumulative `volume_fp` rose, `GET /markets/trades?ticker=T&min_ts=<mark>`, newest page first. The **mark** (high-water
   mark per ticker) moves only when a walk reaches the previous mark; a walk cut short by the page budget (12 pages a poll in all, 6 per ticker, 8 tickers) or by the budget reserve (10 slots stay free for the quote polls) or by an
   error keeps its **cursor** and the next poll resumes there, so no older print of a burst is skipped (the old cap of 2 pages dropped them for good). A catch-up that spanned polls gets one **verify pass** from the new mark. A stale
-  cursor (400/404) restarts the walk, deduplicated on `trade_id`; a 429 opens the cool-down and keeps the cursor. Marks, cursors and the queue persist in `<store>/<date>/trade_state.json` (written after the raw file), so a restart
-  resumes mid catch-up; an unreadable or other-day state falls back to the newest stored print per ticker. One raw file per poll. The candles use these prints **united with the live capture's** `kalshi_trades` store (read-only), one row per
-  trade id; the reconciliation reports the coverage of each (`sources.own`, `sources.capture`) and of the union.
+  cursor (400/404) restarts the walk, deduplicated on `trade_id`. **A walk is complete only on evidence it reached the mark**: the cursor ended and a stored print of the mark's second
+  was seen again; a resumed cursor that answers an empty last page is treated as expired (restart), and a walk that ends without the mark stays open and is logged.
+  A 429 or 5xx on a trade page opens a **trade-only cool-down** (15 s doubling to 240 s); the quote polls and the watchdog's failure counters are not affected.
+  Order of effects per poll: walk (no state changed), raw file, then marks and cursors, then `trade_state.json`; a failed raw write applies nothing and the next poll walks again.
+  **Restart.** Marks, cursors, open maxima and the queue persist in `<store>/<date>/trade_state.json`; with that file a restart resumes mid catch-up. **Without a readable state file**
+  (missing, corrupt, another day) the open catch-up cannot be located and the newest stored print is not a safe mark, so the poller **re-walks every stored ticker from the window start**:
+  the stored ids make that cost pages (about night prints / 1,000 per ticker, spread over polls), not prints, and nothing is skipped. It logs `trade_state missing or unreadable: re-walking N
+  tickers` and says `trade_state_fallback: true` in the heartbeat and the reconciliation, so a coverage drop on such a night has a named cause. Until the re-walk finishes the own source is
+  behind, which the live `print_coverage` shows.
+  The candles use these prints **united with the live capture's** `kalshi_trades` store (read-only), one row per trade id; the reconciliation reports the coverage of each (`sources.own`,
+  `sources.capture`) and of the union.
 - **Live coverage (R1a).** Each game market in the export carries `print_volume` (contracts in the prints held since our first poll), `book_volume_delta` (the book's cumulative volume change over the same span) and `print_coverage`, and the file a slate-level `coverage` with a 0.9 floor. A missing candle means "no print held"; below the floor the app shows it as unknown.
 - **Raw quotes are write-once parquet, one file per poll and series**, written with fsync before the rename (F1). A file that cannot be read back (power cut,
   full disk) is renamed `.bad`, logged to `errors.log` and the heartbeat (`quarantined`), and the night goes on. A restart reloads the night from disk.
