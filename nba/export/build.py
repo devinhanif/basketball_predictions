@@ -259,12 +259,19 @@ def _ids(rows: Iterable[dict[str, Any]], *keys: str) -> set[int]:
 
 
 def _names(
-    player_ids: set[int], team_ids: set[int]
+    player_ids: set[int],
+    team_ids: set[int],
+    fallback: dict[int, str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Static nba_api lists (local data, no network); unknown ids keep the 'Player <id>' form."""
-    from nba.explain import names
+    """Static nba_api lists, then local rosters/lineups/official list (no network); an id no
+    source holds keeps the 'Player <id>' form. ``fallback`` overrides the local lookup."""
+    from nba.explain import local_names, names
 
-    players = [{"player_id": p, "full_name": names.player_name(p)} for p in sorted(player_ids)]
+    if fallback is None:
+        fallback = local_names.load_local_names().names
+    players = [
+        {"player_id": p, "full_name": names.player_name(p, fallback)} for p in sorted(player_ids)
+    ]
     teams = [
         {"team_id": t, "abbr": names.team_abbr(t), "full_name": names.team_name(t)}
         for t in sorted(team_ids)
