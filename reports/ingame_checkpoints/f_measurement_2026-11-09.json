@@ -1,0 +1,235 @@
+{
+ "nights": [
+  "2026-11-04",
+  "2026-11-05",
+  "2026-11-06",
+  "2026-11-07",
+  "2026-11-08"
+ ],
+ "per_night": {
+  "2026-11-04": {
+   "stored": 14768,
+   "fires": 504
+  },
+  "2026-11-05": {
+   "stored": 2357,
+   "fires": 72
+  },
+  "2026-11-06": {
+   "stored": 10282,
+   "fires": 324
+  },
+  "2026-11-07": {
+   "stored": 7308,
+   "fires": 252
+  },
+  "2026-11-08": {
+   "stored": 7803,
+   "fires": 252
+  }
+ },
+ "by_checkpoint": [
+  {
+   "checkpoint": 5,
+   "games": 38,
+   "units": 1336,
+   "rows": 4492,
+   "units_model_edge_ge": 318,
+   "units_glm_edge_ge": 365,
+   "f_model": 0.23802395209580837,
+   "f_glm_e": 0.27320359281437123
+  },
+  {
+   "checkpoint": 10,
+   "games": 38,
+   "units": 1766,
+   "rows": 5681,
+   "units_model_edge_ge": 283,
+   "units_glm_edge_ge": 243,
+   "f_model": 0.16024915062287656,
+   "f_glm_e": 0.13759909399773498
+  },
+  {
+   "checkpoint": 15,
+   "games": 37,
+   "units": 1778,
+   "rows": 5581,
+   "units_model_edge_ge": 185,
+   "units_glm_edge_ge": 150,
+   "f_model": 0.10404949381327334,
+   "f_glm_e": 0.0843644544431946
+  },
+  {
+   "checkpoint": 20,
+   "games": 37,
+   "units": 1777,
+   "rows": 5377,
+   "units_model_edge_ge": 232,
+   "units_glm_edge_ge": 158,
+   "f_model": 0.1305571187394485,
+   "f_glm_e": 0.08891389983117615
+  },
+  {
+   "checkpoint": 25,
+   "games": 36,
+   "units": 1684,
+   "rows": 4768,
+   "units_model_edge_ge": 160,
+   "units_glm_edge_ge": 117,
+   "f_model": 0.09501187648456057,
+   "f_glm_e": 0.06947743467933491
+  },
+  {
+   "checkpoint": 30,
+   "games": 37,
+   "units": 1703,
+   "rows": 4647,
+   "units_model_edge_ge": 147,
+   "units_glm_edge_ge": 303,
+   "f_model": 0.08631826189078097,
+   "f_glm_e": 0.17792131532589547
+  },
+  {
+   "checkpoint": 35,
+   "games": 38,
+   "units": 1698,
+   "rows": 4467,
+   "units_model_edge_ge": 67,
+   "units_glm_edge_ge": 252,
+   "f_model": 0.039458186101295645,
+   "f_glm_e": 0.14840989399293286
+  },
+  {
+   "checkpoint": 40,
+   "games": 36,
+   "units": 1600,
+   "rows": 3946,
+   "units_model_edge_ge": 14,
+   "units_glm_edge_ge": 113,
+   "f_model": 0.00875,
+   "f_glm_e": 0.070625
+  },
+  {
+   "checkpoint": 45,
+   "games": 36,
+   "units": 1536,
+   "rows": 3559,
+   "units_model_edge_ge": 49,
+   "units_glm_edge_ge": 96,
+   "f_model": 0.031901041666666664,
+   "f_glm_e": 0.0625
+  }
+ ],
+ "late_family_model": {
+  "checkpoints": [
+   30,
+   35,
+   40
+  ],
+  "column": "edge_model",
+  "threshold": 0.05,
+  "units": 1800,
+  "entries": 194,
+  "share_f": 0.10777777777777778,
+  "by_checkpoint": {
+   "30": 147,
+   "35": 37,
+   "40": 10
+  },
+  "mean_ask": 0.32927835051546395,
+  "rms_sd_per_dollar": 1.7007624875220713
+ },
+ "late_family_glm_e": {
+  "checkpoints": [
+   30,
+   35,
+   40
+  ],
+  "column": "edge_glm_e",
+  "threshold": 0.05,
+  "units": 1800,
+  "entries": 476,
+  "share_f": 0.2644444444444444,
+  "by_checkpoint": {
+   "30": 303,
+   "35": 125,
+   "40": 48
+  },
+  "mean_ask": 0.3503151260504202,
+  "rms_sd_per_dollar": 1.6582346906584116
+ },
+ "late_family_model_3040_45": {
+  "checkpoints": [
+   30,
+   35,
+   40,
+   45
+  ],
+  "column": "edge_model",
+  "threshold": 0.05,
+  "units": 1802,
+  "entries": 227,
+  "share_f": 0.12597114317425084,
+  "by_checkpoint": {
+   "30": 147,
+   "35": 37,
+   "40": 10,
+   "45": 33
+  },
+  "mean_ask": 0.3035242290748899,
+  "rms_sd_per_dollar": 1.924104412224807
+ },
+ "all_family_model": {
+  "checkpoints": [
+   5,
+   10,
+   15,
+   20,
+   25,
+   30,
+   35,
+   40,
+   45
+  ],
+  "column": "edge_model",
+  "threshold": 0.05,
+  "units": 1867,
+  "entries": 695,
+  "share_f": 0.37225495447241563,
+  "by_checkpoint": {
+   "5": 318,
+   "10": 114,
+   "15": 70,
+   "20": 84,
+   "25": 36,
+   "30": 36,
+   "35": 11,
+   "40": 7,
+   "45": 19
+  },
+  "mean_ask": 0.37270503597122306,
+  "rms_sd_per_dollar": 1.520018502062918
+ },
+ "rows_by_night": [
+  [
+   "2026-11-04",
+   14768
+  ],
+  [
+   "2026-11-05",
+   2357
+  ],
+  [
+   "2026-11-06",
+   10282
+  ],
+  [
+   "2026-11-07",
+   7308
+  ],
+  [
+   "2026-11-08",
+   7803
+  ]
+ ]
+}

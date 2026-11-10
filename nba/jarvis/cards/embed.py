@@ -85,11 +85,12 @@ def enforce(e: dict[str, Any]) -> dict[str, Any]:
 def build_embed(
     card: CardData, channel_team: str, style: T.Style, tip_in: str = ""
 ) -> dict[str, Any]:
-    """Fields in priority order: overs, halftime check, what the game knows, recap (final)."""
+    """Fields in priority order: overs, halftime, in-game checkpoint, recap, game knowledge."""
     fields: list[dict[str, Any]] = []
     for name_value in (
         T.overs_field(card, style),
         T.half_field(card, style),
+        T.checkpoint_field(card, style),
         T.recap_field(card),
         T.knows_field(card, style, channel_team),
     ):
