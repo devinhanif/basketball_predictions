@@ -1,0 +1,69 @@
+{
+  "by_season": {
+    "2023": {
+      "all_k_teammate_rows": 24202,
+      "all_regular_starter_out_rows": 2422,
+      "events_k1": 271,
+      "events_team_games": 569,
+      "fresh_team_games_with_2plus_sitters_excluded": 121,
+      "games": 502,
+      "k_distribution_regular": {
+        "k1": 406,
+        "k2": 241,
+        "k3": 186,
+        "k4_10": 743,
+        "k_gt10": 846
+      },
+      "sitters_player_seasons": 159,
+      "teammate_player_seasons": 526,
+      "teammate_rows": 5872,
+      "teammate_rows_k1": 2823,
+      "weeks": 30
+    },
+    "2024": {
+      "all_k_teammate_rows": 28211,
+      "all_regular_starter_out_rows": 2779,
+      "events_k1": 306,
+      "events_team_games": 629,
+      "fresh_team_games_with_2plus_sitters_excluded": 185,
+      "games": 551,
+      "k_distribution_regular": {
+        "k1": 556,
+        "k2": 286,
+        "k3": 226,
+        "k4_10": 801,
+        "k_gt10": 910
+      },
+      "sitters_player_seasons": 168,
+      "teammate_player_seasons": 528,
+      "teammate_rows": 6544,
+      "teammate_rows_k1": 3190,
+      "weeks": 29
+    }
+  },
+  "definitions": {
+    "counted": "production vacated_features filters (n_after >= 5, min40 >= 12, team in game)",
+    "primary": "team-games with exactly one regular starter OUT at absence game k <= 3",
+    "regular_starter": "as-of starter10 >= 0.6",
+    "scored_rows": "teammates who played with n_prior >= 5 (same rows for all four stats)"
+  },
+  "export_size_2024": {
+    "candidates_per_team_game_max": 7.0,
+    "candidates_per_team_game_mean": 4.288167938931298,
+    "games_per_date_max": 15.0,
+    "games_per_date_p50": 6.0,
+    "rows_per_game_4_stats": 335.6396946564886,
+    "rows_per_night_max": 5034.595419847329,
+    "rows_per_night_p50": 2013.8381679389315,
+    "team_games": 2620,
+    "teammates_per_candidate_mean": 9.783889630618603
+  },
+  "made_at": "2026-11-10T03:03:10",
+  "production_tie": {
+    "n_mismatch": 0,
+    "pass": true,
+    "team_games": 6253,
+    "vac_min_mismatch": 0
+  },
+  "rule": "TEAMMATE_SITS (DRAFT)"
+}
