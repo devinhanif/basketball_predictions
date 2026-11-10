@@ -48,8 +48,9 @@ def _roster(data_dir: Path) -> dict[int, str]:
         for f in files:
             try:
                 rows = con.execute(
-                    "select player_id, player_name from read_parquet(?)"
-                    " where player_id is not null and player_name is not null",
+                    "select try_cast(player_id as bigint), player_name from read_parquet(?)"
+                    " where try_cast(player_id as bigint) is not null"
+                    " and player_name is not null",
                     [str(f)],
                 ).fetchall()
             except duckdb.Error:
@@ -72,8 +73,10 @@ def _lineups(data_dir: Path) -> dict[int, str]:
         return {}
     try:
         rows = con.execute(
-            "select player_id, arg_max(player_name, fetched_at) from lineup_snapshots_dedup"
-            " where player_id is not null and player_name is not null group by 1"
+            "select try_cast(player_id as bigint), arg_max(player_name, fetched_at)"
+            " from lineup_snapshots_dedup"
+            " where try_cast(player_id as bigint) is not null and player_name is not null"
+            " group by 1"
         ).fetchall()
     except duckdb.Error:
         return {}
@@ -89,8 +92,9 @@ def _commonall(data_dir: Path) -> dict[int, str]:
     con = duckdb.connect()
     try:
         rows = con.execute(
-            "select person_id, display_first_last from read_parquet(?)"
-            " where person_id is not null and display_first_last is not null",
+            "select try_cast(person_id as bigint), display_first_last from read_parquet(?)"
+            " where try_cast(person_id as bigint) is not null"
+            " and display_first_last is not null",
             [str(f)],
         ).fetchall()
     except duckdb.Error:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import subprocess
 from collections.abc import Callable, Iterable, Sequence
@@ -268,7 +269,11 @@ def _names(
     from nba.explain import local_names, names
 
     if fallback is None:
-        fallback = local_names.load_local_names().names
+        try:
+            fallback = local_names.load_local_names().names
+        except Exception as exc:  # names are cosmetic: the export never fails on them
+            logging.getLogger(__name__).warning("local name fallback unavailable: %s", exc)
+            fallback = {}
     players = [
         {"player_id": p, "full_name": names.player_name(p, fallback)} for p in sorted(player_ids)
     ]

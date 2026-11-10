@@ -79,3 +79,34 @@ def test_placeholder_only_when_no_source_has_the_id(tmp_path: Path) -> None:
 
 def test_missing_sources_are_empty_not_an_error(tmp_path: Path) -> None:
     assert local_names.load_local_names(tmp_path).names == {}
+
+
+def test_string_and_nan_ids_are_skipped_not_fatal(tmp_path: Path) -> None:
+    d1 = tmp_path / "rosters" / "2026-11-01"
+    d2 = tmp_path / "rosters" / "2026-11-02"
+    d1.mkdir(parents=True)
+    d2.mkdir(parents=True)
+    con = duckdb.connect()
+    con.execute("create table t(team_id bigint, player_id varchar, player_name varchar)")
+    con.executemany(
+        "insert into t values (1, ?, ?)",
+        [("abc", "Bad String"), ("NaN", "Bad Nan"), (str(MISSING), "Good Id")],
+    )
+    con.execute(f"copy t to '{d1 / '1.parquet'}' (format parquet)")
+    con.execute("create table f(team_id bigint, player_id double, player_name varchar)")
+    con.execute(
+        f"insert into f values (1, 'nan'::double, 'Nan Float'), (1, {MISSING2}, 'Float Id')"
+    )
+    con.execute(f"copy f to '{d2 / '1.parquet'}' (format parquet)")
+    con.close()
+    got = local_names.load_local_names(tmp_path).names
+    assert got == {MISSING: "Good Id", MISSING2: "Float Id"}
+
+
+def test_export_names_survive_loader_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    def boom(*a: object, **k: object) -> None:
+        raise ValueError("bad source")
+
+    monkeypatch.setattr(local_names, "load_local_names", boom)
+    players, _ = _names({NOBODY}, set())
+    assert players == [{"player_id": NOBODY, "full_name": f"Player {NOBODY}"}]
