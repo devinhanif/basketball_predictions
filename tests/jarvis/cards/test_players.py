@@ -21,6 +21,7 @@ from nba.jarvis.cards import players as P
 from nba.jarvis.cards import run as R
 from nba.jarvis.cards import text as T
 from nba.jarvis.config import load_config
+from nba.jarvis.forecasts import PPlayView
 from nba.jarvis.runner import Runtime, build_state, tick_line
 from tests.jarvis.cards.test_run import Ids, at, make_rt, scoreboard, wurl
 from tests.jarvis.cards.test_webhooks_and_client import Resp
@@ -367,7 +368,7 @@ def test_a_line_carries_projection_status_chance_price_ev_and_the_change(
     st = build_state(rt, SLATE)
     q = next(x for x in st.tradable(rt.cfg) if x.player_id == LEBRON)
     play = S.single_candidate(
-        rt.cfg, replace(st, model=P._WithPPlay(st.model, {LEBRON: 0.97})), q, "yes"
+        rt.cfg, replace(st, model=PPlayView(st.model, {LEBRON: 0.97})), q, "yes"
     )
     assert play is not None and ln.ev_c == pytest.approx(play.edge_cents)
     assert F.is_capped(play) is False
