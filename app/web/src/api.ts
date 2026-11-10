@@ -149,6 +149,17 @@ export interface TopContract {
   stat: string;
   matchup: string;
   tip_utc: string | null;
+  /** Stored fields for a plain-words reason; each null when the record does not carry it. Absent from an older API. */
+  context?: ContractContext;
+}
+export interface ContractContext {
+  model_weight: number | null;
+  n_settled_track: number | null;
+  spread: number | null;
+  p_play: number | null;
+  proj_minutes: number | null;
+  mean_cond: number | null;
+  teammates_out: string[];
 }
 export interface TopContracts {
   report_date: string | null;

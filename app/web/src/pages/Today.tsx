@@ -17,6 +17,7 @@ import { pickHero } from "../discover";
 import { Court, DeskTiles, Discipline, Hero, Insight, Radar, useRadar } from "./DiscoverParts";
 import { compareLine, doesText, rangeSentence } from "../words";
 import { hasTickets, type TpResult } from "../topParlays";
+import { TodaysPicks } from "../TodaysPicks";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
 function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) {
@@ -225,6 +226,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           <h1 class="answer pending">Reading the night&hellip;</h1>
         )}
       </header>
+      <TodaysPicks date={date} engine={engine} onStale={props.onStale} />
       <LiveStrip date={date} games={liveGames} />
       <nav class="tabs" aria-label="Choose a night">
         {props.nights.map((d) => (
@@ -313,7 +315,7 @@ function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolea
             : "Every forecast is the last one stored before tip. A prop's line is the one most books carried; where none had a usable quote, it shows a reference line at the middle of our own forecast."}
         </p>
         {gateClosed ? (
-          <p class="small muted">Our model has no track record yet, so nothing on this page is a pick. Keep your money.</p>
+          <p class="small muted">Our model has no track record yet, so nothing on this page is a recommendation, and the picks above are a closest-look list. Keep your money.</p>
         ) : null}
         <ModelNote items={s.games.flatMap((g) => g.key_props.map((p) => ({ source: p.model_source, label: p.model_label })))} />
       </section>

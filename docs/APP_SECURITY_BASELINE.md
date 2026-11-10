@@ -28,6 +28,12 @@ make the worst day boring. "Enterprise-safe" here means least privilege, rotatio
 - CSRF: SameSite plus a double-submit token on every state-changing request, `Origin` header checked against the domain.
 - Security headers: strict CSP (no inline script, `connect-src` only the API), `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: no-referrer`, `frame-ancestors 'none'`, minimal `Permissions-Policy`.
+- Player headshots (Devin, 2026-11-10; revisit before any revenue): the CSP allows `img-src 'self' data: blob:
+  https://cdn.nba.com` and no other image host. The browser loads
+  `https://cdn.nba.com/headshots/nba/latest/260x190/{player_id}.png` directly (`<img loading="lazy"
+  referrerpolicy="no-referrer">`, width/height set, alt = name, initials on a team colour on error); the player id is
+  a number from our data, never user text. Nothing is copied, proxied or stored server-side. The footer says
+  "Player photos: NBA". `connect-src` is unchanged (an `<img>` is not a connection to the API).
 
 ## 3. Input handling
 - **Slip images**: allow jpeg, png, webp, heic only; max 8 MB; max dimensions capped; type decided by content sniffing

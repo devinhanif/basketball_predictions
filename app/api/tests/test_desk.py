@@ -216,6 +216,33 @@ def test_top_contracts_sorts_by_edge_and_skips_unknown_games() -> None:
     assert out["contracts"][1]["player"] == "One"
 
 
+def test_top_contracts_carry_stored_context_only() -> None:
+    base: dict[str, Any] = {
+        "legs": [{"game_id": "G1", "player_id": 1, "stat": "fg3m", "threshold": 2.0}],
+        "side": "yes", "price": 0.5, "fees": 0.01, "ev": -0.02, "model_prob": 0.48,
+        "prob_interval": [0.48, 0.48], "ticker": "T1", "model_weight": 0.0,
+        "n_settled_track": 31481, "spread": 0.01, "p_play": 0.97,
+        "drivers": {
+            "proj_minutes": 33.5, "mean_cond": 2.29,
+            "teammates_out": [{"name": "A B", "min": 20}, {"name": "C D"}, {"min": 3}],
+        },
+    }  # fmt: skip
+    old = {k: v for k, v in base.items() if k not in ("drivers", "p_play")}
+    games = {
+        "G1": {
+            "home": {"abbr": "HHH"}, "away": {"abbr": "AAA"}, "tip_utc": None,
+            "players": [{"player_id": 1, "side": "home"}],
+        }
+    }  # fmt: skip
+    new = top_contracts([base], {1: "One"}, games.get)["contracts"][0]["context"]
+    assert new["p_play"] == 0.97 and new["proj_minutes"] == 33.5 and new["mean_cond"] == 2.29
+    assert new["teammates_out"] == ["A B", "C D"] and new["model_weight"] == 0.0
+    plain = top_contracts([old], {1: "One"}, games.get)["contracts"][0]["context"]
+    assert (
+        plain["p_play"] is None and plain["proj_minutes"] is None and plain["teammates_out"] == []
+    )
+
+
 def test_contracts_top_endpoint(export_client: TestClient) -> None:
     r = export_client.get("/api/contracts/top?n=3")
     assert r.status_code == 200

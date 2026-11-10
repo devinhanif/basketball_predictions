@@ -3,6 +3,7 @@ import { api } from "../api";
 import { AltLine } from "../AltLine";
 import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
+import { Avatar } from "../Avatar";
 import { CalTag, DistBar, DistLegend, Explain, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { OnItChip } from "../SharedUI";
 import { useLens, useMode, type Lens, type Mode } from "../prefs";
@@ -97,7 +98,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | null; final: boolean; locked: boolean; mode: Mode; lens: Lens }) {
+function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result: GameResult | null; final: boolean; locked: boolean; mode: Mode; lens: Lens }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
@@ -106,6 +107,7 @@ function PlayerRow(props: { gameId: string; p: PlayerView; result: GameResult | 
       <summary>
         <span class="player-sum">
           <span class="player-name">
+            <Avatar name={props.p.name} team={props.team} playerId={props.p.player_id} size="sm" />
             {props.p.name}
             {res?.starter ? <span class="tag">Starter</span> : null}
             {props.p.role ? (
@@ -284,7 +286,7 @@ function Body({ g }: { g: GameDetail }) {
           {players.length === 0 ? (
             <p class="muted">We have no forecasts for this team in this game.</p>
           ) : (
-            players.map((p) => <PlayerRow key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} locked={isLockedNight(g.date)} mode={mode} lens={lens} />)
+            players.map((p) => <PlayerRow team={(side === "home" ? g.home : g.away).abbr} key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} locked={isLockedNight(g.date)} mode={mode} lens={lens} />)
           )}
         </div>
         <ul class="plain small muted">

@@ -1,16 +1,44 @@
+import { useState } from "preact/hooks";
 import { initials } from "./identity";
+import { headshotUrl } from "./headshot";
 import { usePhotos } from "./photos";
 import { teamColor } from "./teams";
 
-/** Initials on a team colour, or an uploaded photo when an editor added one. Never a stock photo or a logo; never text over a picture. */
+const PX = { sm: 28, md: 40, lg: 72 } as const;
+
+/**
+ * A player's picture, or initials on a team colour.
+ * Order: an editor's uploaded photo, then the NBA's public headshot for the player id (the browser loads it straight from
+ * cdn.nba.com: nothing is copied, proxied or stored here), then initials. A headshot that fails to load becomes initials.
+ */
 export function Avatar(props: { name: string; team?: string | null; playerId?: number | null; size?: "sm" | "md" | "lg"; src?: string | null }) {
   const photos = usePhotos();
-  const photo = props.src ?? (props.playerId !== null && props.playerId !== undefined ? (photos[props.playerId.toString()] ?? null) : null);
+  const [failed, setFailed] = useState<number | null>(null);
+  const id = props.playerId ?? null;
+  const uploaded = props.src ?? (id !== null ? (photos[id.toString()] ?? null) : null);
   const size = props.size ?? "md";
-  if (photo) return <img class={`avatar ${size}`} src={photo} alt="" width={size === "lg" ? 72 : size === "sm" ? 28 : 40} height={size === "lg" ? 72 : size === "sm" ? 28 : 40} />;
+  const px = PX[size];
+  if (uploaded) return <img class={`avatar ${size}`} src={uploaded} alt="" width={px} height={px} />;
+  const remote = id !== null && failed !== id ? headshotUrl(id) : null;
+  if (remote)
+    return (
+      <img
+        class={`avatar headshot ${size}`}
+        src={remote}
+        alt={props.name}
+        width={px}
+        height={px}
+        loading="lazy"
+        decoding="async"
+        referrerpolicy="no-referrer"
+        onError={() => {
+          setFailed(id);
+        }}
+      />
+    );
   const bg = props.team ? teamColor(props.team) : "var(--surface-3)";
   return (
-    <span class={`avatar initials ${size}${props.team ? " team" : ""}`} style={{ "--av": bg }} aria-hidden="true">
+    <span class={`avatar initials ${size}${props.team ? " team" : ""}`} style={{ "--av": bg }} role="img" aria-label={props.name}>
       {initials(props.name)}
     </span>
   );

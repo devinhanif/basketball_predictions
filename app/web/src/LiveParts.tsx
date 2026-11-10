@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { api, type LiveCheckpoint } from "./api";
+import { Avatar } from "./Avatar";
 import { CalTag } from "./components";
 import { pctBounded, tipTime } from "./format";
 import {
@@ -8,6 +9,7 @@ import {
   STALE_AFTER_S,
   ageNow,
   ageText,
+  boxPlayerIds,
   buildTrackers,
   clockLabel,
   lagText,
@@ -153,8 +155,9 @@ function sortRows(rows: BoxRow[]): BoxRow[] {
   return [...rows].sort((a, b) => Number(Boolean(a.dnp)) - Number(Boolean(b.dnp)) || Number(b.starter) - Number(a.starter) || (b.min ?? 0) - (a.min ?? 0) || b.pts - a.pts);
 }
 
-export function BoxScore(props: { live: LiveState }) {
+export function BoxScore(props: { live: LiveState; game?: GameDetail | null }) {
   const { live } = props;
+  const ids = useMemo(() => (props.game ? boxPlayerIds(props.game.players, live) : {}), [props.game, live]);
   const [side, setSide] = useState<"away" | "home">("away");
   const team = side === "home" ? live.home : live.away;
   const rows = useMemo(() => sortRows(Object.values(live.box).filter((r) => r.team === team.abbr)), [live.box, team.abbr]);
@@ -204,13 +207,21 @@ export function BoxScore(props: { live: LiveState }) {
               {rows.map((r) =>
                 r.dnp ? (
                   <tr key={r.id} class="dnp">
-                    <th scope="row">{r.name}</th>
+                    <th scope="row">
+                      <span class="who">
+                        <Avatar name={r.name} team={r.team} playerId={ids[r.id] ?? null} size="sm" />
+                        {r.name}
+                      </span>
+                    </th>
                     <td colSpan={10}>{r.dnp}</td>
                   </tr>
                 ) : (
                   <tr key={r.id} class={r.pf >= 5 ? "foul-trouble" : undefined}>
                     <th scope="row">
-                      {r.name}
+                      <span class="who">
+                        <Avatar name={r.name} team={r.team} playerId={ids[r.id] ?? null} size="sm" />
+                        {r.name}
+                      </span>
                       {r.starter ? <span class="sr"> (starter)</span> : null}
                     </th>
                     <td>{r.min ?? "-"}</td>
@@ -250,7 +261,10 @@ function TrackerRow({ t, locked }: { t: Tracker; locked: boolean }) {
     <li class={`tracker pace-${t.pace.replace(" ", "-")}`}>
       <div class="row between wrap">
         <span>
-          <b>{t.player}</b> <span class="muted small">{t.team}</span>
+          <span class="who">
+            <Avatar name={t.player} team={t.team} playerId={t.playerId} size="sm" />
+            <b>{t.player}</b> <span class="muted small">{t.team}</span>
+          </span>
         </span>
         <span class="pace-chip small">{PACE_WORD[t.pace]}</span>
       </div>
@@ -434,7 +448,7 @@ export function LiveGame(props: { eventId: string; game: GameDetail | null; game
         ))}
       </div>
       {view === "plays" ? <PlayFeed live={live} /> : null}
-      {view === "box" ? <BoxScore live={live} /> : null}
+      {view === "box" ? <BoxScore live={live} game={props.game} /> : null}
       {view === "props" ? <Trackers live={live} game={props.game} loading={props.gameLoading} /> : null}
       <CheckpointPanel eventId={live.gameId} state={live.state} />
       <Attribution />
