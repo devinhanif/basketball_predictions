@@ -707,6 +707,19 @@ def _cat_raw(arrs: list[F64]) -> F64:
     return np.concatenate([np.pad(a, ((0, 0), (0, k - a.shape[1]))) for a in arrs])
 
 
+def review_override(labels: dict[str, Any]) -> dict[str, Any]:
+    """Adversary review combo_math_2026-11-10 (B1): no script is `calibrated` until a frozen
+    forward rule says so. The frozen rule's own labels stay under ``rule_labels``."""
+    why = (
+        "review override 2026-11-10: not confirmatory (second run after an amendment on test "
+        "seasons, fragile to seed and month); confirm under a frozen forward rule"
+    )
+    return {
+        sc: {"status": "exploratory", "why_not": [*v.get("why_not", []), why]}
+        for sc, v in labels.items()
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model-dir", required=True)
@@ -730,7 +743,8 @@ def main(argv: list[str] | None = None) -> int:
     print("wrote", a.out)
     if a.params_out:
         prod = production_params(*args, lc.MAP_PATH)
-        prod["script_status"] = res["script_labels"]
+        prod["rule_labels"] = res["script_labels"]  # the frozen rule's own output
+        prod["script_status"] = review_override(res["script_labels"])
         prod["definitions"] = DEFINITIONS
         Path(a.params_out).write_text(json.dumps(prod, indent=1, sort_keys=True) + "\n")
         print("wrote", a.params_out)

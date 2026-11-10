@@ -147,6 +147,7 @@ def _leg(pid: int, stat: str, line: float, side: str = "over") -> dict[str, Any]
 
 def cases() -> list[dict[str, Any]]:
     return [
+        {"name": "above_tested_range_leg", "legs": [_leg(1, "pts", 10.5), _leg(1, "reb", 6.5)]},
         {"name": "single_leg", "legs": [_leg(1, "pts", 24.5)]},
         {"name": "same_player_pts_reb", "legs": [_leg(1, "pts", 24.5), _leg(1, "reb", 6.5)]},
         {"name": "same_player_pts_fg3m", "legs": [_leg(1, "pts", 24.5), _leg(1, "fg3m", 2.5)]},
@@ -225,6 +226,7 @@ def build() -> dict[str, Any]:
                     "p_all_play": r.p_all_play,
                     "p_joint_incl_dnp": r.p_joint_incl_dnp,
                     "label": r.label,
+                    "above_tested_range": list(r.above_tested_range),
                 },
             }
         )

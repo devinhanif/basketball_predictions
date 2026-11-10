@@ -47,7 +47,7 @@ ignores unknown keys. Top level:
 - `scripts.definitions`: `{"blowout_abs_margin": 15, "close_abs_margin": 5, "total_delta": 12.0}` (section 6).
 - `scripts.params`: array of `[script, stat, role, mu, sigma, n]`; `role` is `starter` (`starter10 >= 0.5`) or `bench`. Latent shift
   and scale of the player normal score under that script, shrunk toward `(0, 1)` with k = 200.
-- `scripts.status`: `{script: {"status": "calibrated" | "exploratory", "why_not": [..]}}` from the pre-stated check of section 6.
+- `scripts.status`: `{script: {"status": "calibrated" | "exploratory", "why_not": [..]}}` from the pre-stated check of section 7 (overridden, see below).
   **Review override 2026-11-10: in v1 every script is `exploratory`** (grind's pass in the second run is not confirmatory, section 7).
   The app MUST show the word "exploratory" next to any script whose status is not `calibrated`; none is.
 - `provenance`: `map` `"LINE_CALIBRATION"`, `map_sha8` (`443743a1`), `fit_through` (`2025-06-30`), `corr_fit_seasons`

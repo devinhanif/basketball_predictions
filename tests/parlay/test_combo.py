@@ -587,3 +587,29 @@ def test_params_status_has_no_calibrated_script_and_run1_file_is_committed() -> 
     run1_path = root / "reports" / "parlay" / "combo_eval_2026-11-09_run1.json"
     run1 = json.loads(run1_path.read_text())
     assert {v["status"] for v in run1["script_labels"].values()} == {"exploratory"}
+
+
+def test_params_out_override_keeps_rule_labels_separate() -> None:
+    rule = {
+        "grind": {"status": "calibrated", "why_not": []},
+        "close": {"status": "exploratory", "why_not": ["x"]},
+    }
+    out = combo_eval.review_override(rule)
+    assert all(v["status"] == "exploratory" for v in out.values())
+    assert out["close"]["why_not"][0] == "x" and len(out["grind"]["why_not"]) == 1
+    assert rule["grind"]["status"] == "calibrated"  # input untouched
+    src = Path(combo_eval.__file__).read_text()
+    assert 'prod["rule_labels"]' in src and "review_override(res[" in src
+
+
+def test_per_leg_above_tested_range_flags_in_build_your_own() -> None:
+    r = combo.evaluate_combo([leg(1, "pts", 10.5), leg(1, "reb", 6.5)], GAMES, SH)
+    assert r.above_tested_range == (True, False)
+    golden = json.loads(GOLDEN.read_text())
+    case = next(c for c in golden["cases"] if c["name"] == "above_tested_range_leg")
+    assert case["expect"]["above_tested_range"] == [True, False]
+    g2 = json.loads(json.dumps(G))
+    g2["game_id"] = "G2"
+    b = {**leg(1, "pts", 10.5), "game_id": "G2"}
+    multi = combo.evaluate_combo([leg(1, "reb", 6.5), b], {"G1": G, "G2": g2}, SH)
+    assert multi.above_tested_range == (False, True)

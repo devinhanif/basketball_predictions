@@ -2,6 +2,48 @@
  "cases": [
   {
    "expect": {
+    "above_tested_range": [
+     true,
+     false
+    ],
+    "label": null,
+    "lift": 1.0004137496129064,
+    "marginals": [
+     0.9994,
+     0.5503
+    ],
+    "method": "exact_bivariate",
+    "p_all_play": 0.98,
+    "p_independent": 0.5499698199999999,
+    "p_joint": 0.5501973698001351,
+    "p_joint_incl_dnp": 0.5391934224041324,
+    "se": 0.0
+   },
+   "legs": [
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 10.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "pts"
+    },
+    {
+     "game_id": "G1",
+     "kind": "player",
+     "line": 6.5,
+     "player_id": 1,
+     "side": "over",
+     "stat": "reb"
+    }
+   ],
+   "name": "above_tested_range_leg"
+  },
+  {
+   "expect": {
+    "above_tested_range": [
+     false
+    ],
     "label": null,
     "lift": 1.0,
     "marginals": [
@@ -28,6 +70,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 1.16335380021284,
     "marginals": [
@@ -63,6 +109,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 1.293109930973761,
     "marginals": [
@@ -98,6 +148,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 0.8001031882215401,
     "marginals": [
@@ -133,6 +187,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     true,
+     true
+    ],
     "label": null,
     "lift": 1.0,
     "marginals": [
@@ -167,6 +225,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": null,
     "marginals": [
@@ -201,6 +263,11 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false,
+     false
+    ],
     "label": "model estimate, not checked against results",
     "lift": 1.3631053180432393,
     "marginals": [
@@ -245,6 +312,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 0.9908599952014131,
     "marginals": [
@@ -280,6 +351,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 1.0059774422076568,
     "marginals": [
@@ -315,6 +390,12 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false,
+     false,
+     false
+    ],
     "label": "model estimate, not checked against results",
     "lift": 1.2863864804777203,
     "marginals": [
@@ -368,6 +449,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 1.0456763314803652,
     "marginals": [
@@ -401,6 +486,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 1.0702501337602393,
     "marginals": [
@@ -434,6 +523,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 1.2240357849148407,
     "marginals": [
@@ -470,6 +563,10 @@
   },
   {
    "expect": {
+    "above_tested_range": [
+     false,
+     false
+    ],
     "label": null,
     "lift": 1.0051305449211356,
     "marginals": [

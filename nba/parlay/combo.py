@@ -387,6 +387,7 @@ class ComboResult:
     n_entities: int = 0
     label: str | None = None  # ESTIMATE_LABEL for three or more entities
     range_2se: tuple[float, float] | None = None  # p_joint +- 2 se (qmc only)
+    above_tested_range: tuple[bool, ...] = ()  # per input leg, in input order
 
 
 def _labelled(r: ComboResult) -> ComboResult:
@@ -425,6 +426,21 @@ def script_params(shared: Payload, script: str, stat: str, role: str) -> tuple[f
 
 
 def evaluate_game_legs(
+    legs: Sequence[Mapping[str, Any]],
+    game: Payload,
+    shared: Payload,
+    script: str | None = None,
+    qmc: tuple[int, int] = (QMC_POINTS, QMC_SHIFTS),
+    biv_n: int = SIMPSON_N,
+) -> ComboResult:
+    """``_evaluate_game_legs_core`` plus the per-leg ``above_tested_range`` flags."""
+    from dataclasses import replace
+
+    res = _evaluate_game_legs_core(legs, game, shared, script, qmc, biv_n)
+    return replace(res, above_tested_range=tuple(leg_above_tested_range(x, game) for x in legs))
+
+
+def _evaluate_game_legs_core(
     legs: Sequence[Mapping[str, Any]],
     game: Payload,
     shared: Payload,
@@ -519,13 +535,16 @@ def evaluate_combo(
     plays = [r.p_all_play for r in parts]
     play = None if any(x is None for x in plays) else math.prod(x for x in plays if x is not None)
     method = "product" if all(r.method == "marginal" for r in parts) else "product_of_games"
-    return _labelled(
+    from dataclasses import replace
+
+    res = _labelled(
         ComboResult(
             p, p_ind, None if p_ind <= 0 else p / p_ind, marg, p * math.sqrt(rel2), method, play,
             None if play is None else play * p, max(r.repair_t for r in parts), script,
             sum(r.n_entities for r in parts),
         )
     )  # fmt: skip
+    return replace(res, above_tested_range=tuple(f for r in parts for f in r.above_tested_range))
 
 
 # ---------------------------------------------------------------- script priors
