@@ -33,7 +33,12 @@ after the games, for reconciliation only.
   The launcher's slate date is the ET date of now minus 6 h, so a crash at 00:30 ET is restarted for the day it belongs to (F7).
 - **Per poll** (`configs/kalshi_candles.yaml`): `GET /markets?series_ticker=KXNBAGAME&status=open&limit=1000` every 15 s (one request returns every open
   game winner, filtered to the slate date from the event ticker); `KXNBASPREAD` and `KXNBATOTAL` every 60 s. Player props are **not** polled.
-- **Trades (re-review R1b).** For the game-winner tickers whose cumulative `volume_fp` rose since the previous poll (largest jump first, at most 8 tickers and 2 pages a poll), `GET /markets/trades?ticker=T&min_ts=...`, deduplicated by trade id, one raw file per poll. Trade pulls need 10 free budget slots (`budget_reserve`), so a catch-up burst can never starve a quote poll. The candles use these prints **united with the live capture's** `kalshi_trades` store (read-only, `data/raw/live_<ET date>/...`), one row per trade id. Which source is better is measured, not assumed: the reconciliation reports coverage for each (`sources.own`, `sources.capture`) and for the union.
+- **Trades (re-review R1b, carried-cursor catch-up).** For the game-winner tickers whose cumulative `volume_fp` rose, `GET /markets/trades?ticker=T&min_ts=<mark>`, newest page first. The **mark** (high-water
+  mark per ticker) moves only when a walk reaches the previous mark; a walk cut short by the page budget (12 pages a poll in all, 6 per ticker, 8 tickers) or by the budget reserve (10 slots stay free for the quote polls) or by an
+  error keeps its **cursor** and the next poll resumes there, so no older print of a burst is skipped (the old cap of 2 pages dropped them for good). A catch-up that spanned polls gets one **verify pass** from the new mark. A stale
+  cursor (400/404) restarts the walk, deduplicated on `trade_id`; a 429 opens the cool-down and keeps the cursor. Marks, cursors and the queue persist in `<store>/<date>/trade_state.json` (written after the raw file), so a restart
+  resumes mid catch-up; an unreadable or other-day state falls back to the newest stored print per ticker. One raw file per poll. The candles use these prints **united with the live capture's** `kalshi_trades` store (read-only), one row per
+  trade id; the reconciliation reports the coverage of each (`sources.own`, `sources.capture`) and of the union.
 - **Live coverage (R1a).** Each game market in the export carries `print_volume` (contracts in the prints held since our first poll), `book_volume_delta` (the book's cumulative volume change over the same span) and `print_coverage`, and the file a slate-level `coverage` with a 0.9 floor. A missing candle means "no print held"; below the floor the app shows it as unknown.
 - **Raw quotes are write-once parquet, one file per poll and series**, written with fsync before the rename (F1). A file that cannot be read back (power cut,
   full disk) is renamed `.bad`, logged to `errors.log` and the heartbeat (`quarantined`), and the night goes on. A restart reloads the night from disk.
@@ -88,7 +93,7 @@ every night** (`minute_coverage`, `volume_coverage`, `official_minutes_missing_o
 |---|---|---|
 | Requests, game poll | 1,560 | 15 s over a 6.5 h window (23,400 s) |
 | Requests, spreads + totals | 780 | 60 s, two series |
-| Requests, trades (estimate) | about 1,500 to 12,500 | 1 to 8 tickers per poll with a volume rise (1 to 2 pages each); a quiet poll costs none; capped by the 60/min budget and its reserve |
+| Requests, trades (estimate) | about 1,500 to 12,500 | 1 to 8 tickers per poll with a volume rise (up to 6 pages each, 12 a poll, carried over); a quiet poll costs none; capped by the 60/min budget and its reserve |
 | Requests, 1-minute reconciliation | about 10 to 30 | one per game ticker |
 | **Total** | **about 4,000 typical, 15,000 ceiling** | 0.2 to 0.6 requests per second; the live capture sent 76,572 on 2026-11-09 as of 02:49Z |
 | Raw quotes during the night | about 20 MB in about 2,300 files | a game poll file is 7 KB (10 rows); a spread or total file 10 to 11 KB |

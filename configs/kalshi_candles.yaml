@@ -19,7 +19,8 @@ trades:
   enabled: true               # GET /markets/trades per game ticker whose cumulative volume rose
   series: [KXNBAGAME]
   max_tickers_per_poll: 8     # largest volume jump first; the rest queue for the next poll
-  max_pages: 2                # 2,000 prints per ticker per poll; a cap hit is logged, never hidden
+  pages_per_poll: 12          # trade pages per poll, all tickers (4 polls a minute x 12 = 48 <= 60 - reserve); the rest carries over
+  pages_per_ticker: 6         # fairness: one ticker cannot take the whole poll; its cursor is carried to the next poll
   budget_reserve: 10          # free budget slots a trade pull must leave for the quote polls
 export_series: [KXNBAGAME]    # latest.json (rebuilt every minute) carries these only; the rest go to <day>_lines.json at the end
 lead_min: 30                  # start polling this long before the first tip
@@ -30,7 +31,7 @@ quiet_polls_to_finish: 3      # ... and at least this many polls
 min_interval_s: 0.5           # never two requests closer than this
 max_requests_per_minute: 60   # hard budget over HTTP requests actually sent (client retries included), sliding 60 s;
                               # a poll that would exceed it is skipped, not queued. Steady load: 4 game polls + 2 line polls
-                              # a minute = 6, plus trade pulls (<= 8 tickers x 2 pages per game poll when volume rises).
+                              # a minute = 6, plus trade pulls (<= 12 pages per game poll when volume rises, carried over beyond that).
                               # Trade pulls need `budget_reserve` free slots, so a catch-up burst cannot starve a quote poll.
                               # 60 = 1 request per second, 5% of the authenticated Basic tier
 jitter_s: 1.0                 # uniform start jitter on every cadence slot
