@@ -196,17 +196,18 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const liveSt = useLiveList([date], 20000);
   const liveGames = liveSt.lists[0]?.games ?? [];
   const market = lens === "market";
+  const liveCounts = { live: liveGames.filter((g) => g.state === "in").length, final: liveGames.filter((g) => g.state === "post").length };
   // Without the Market lens the card never claims "no parlay": it says only that a check exists, or that parlays live there.
   const engineHasPick = speaks && engine.headline_verdict !== "no_positive_ev_found";
   const checkExists = engineHasPick || (tickets !== null && tickets.kind === "ok" && hasTickets(tickets.data));
   const learnStrip = checkExists
-    ? { title: "A parlay check exists for this night. Keep your money.", body: "See it in the Market lens. Our model has no live track record yet, so nothing here is a pick." }
-    : { title: "Parlays live in the Market lens. Keep your money.", body: "Our model has no live track record yet, so nothing here is a pick." };
+    ? "A parlay check exists in the Market lens. Keep your money."
+    : "Parlays live in the Market lens. Keep your money.";
   const head =
     slate.status === "ready" && (!market || (eng.status !== "loading" && tp.status !== "loading"))
       ? market
-        ? headline({ games: slate.data.counts.games, engine, speaks, tickets })
-        : learnHeadline(slate.data.counts.games)
+        ? headline({ games: slate.data.counts.games, engine, speaks, tickets, live: liveCounts })
+        : learnHeadline(slate.data.counts.games, liveCounts)
       : null;
   return (
     <>
@@ -261,16 +262,10 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           </div>
         </div>
       ) : null}
+      {market ? null : <p class="keep-line small">{learnStrip}</p>}
       <View state={slate} reload={reloadSlate} onStale={props.onStale} what="tonight's games">
         {(s) => <SlateBody s={s} engine={engine} speaks={speaks} mode={mode} market={market} liveGames={liveGames} />}
       </View>
-      {market ? null : (
-        <section class="panel verdict strip keep" aria-labelledby="strip-h">
-          <div class="kicker">Parlays for {longDate(date)}</div>
-          <h2 id="strip-h">{learnStrip.title}</h2>
-          <p class="small muted">{learnStrip.body}</p>
-        </section>
-      )}
       <p class="small muted more-leagues">NBA only for now. Other leagues are not covered yet.</p>
     </>
   );

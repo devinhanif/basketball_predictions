@@ -129,3 +129,8 @@ ol.plain {
 .kn-first summary {
   min-height: 44px;
 }
+
+.keep-line {
+  margin: 0;
+  font-weight: 600;
+}

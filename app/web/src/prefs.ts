@@ -113,6 +113,13 @@ export function useLens(): Lens {
 }
 
 /** Is the page showing dark right now? An explicit choice wins; otherwise the system setting. */
+/** Landing screens that need the Market lens (their subject is prices and edges). */
+export const MARKET_ONLY_SCREENS: readonly Screen[] = ["signals"];
+
+export function screenAllowed(screen: Screen, lens: Lens): boolean {
+  return lens === "market" || !MARKET_ONLY_SCREENS.includes(screen);
+}
+
 export function effectiveDark(theme: Theme): boolean {
   if (theme === "dark") return true;
   if (theme === "light") return false;

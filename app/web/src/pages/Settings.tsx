@@ -3,7 +3,7 @@ import { Avatar } from "../Avatar";
 import { deskOf, useDesk } from "../deskStore";
 import { IS_ARTIFACT } from "../env";
 import { cleanName, setLocalName, useIdentity } from "../identity";
-import { setPref, usePrefs, type Mode, type Screen, type Theme } from "../prefs";
+import { screenAllowed, setPref, usePrefs, useLens, type Mode, type Screen, type Theme } from "../prefs";
 import { useIsAdmin } from "../shellData";
 import { useUserState, setNotify } from "../userState";
 import { stamp } from "../format";
@@ -84,6 +84,7 @@ function Status(props: { name: string; value: string; kind?: "ok" | "off" | "" }
 
 export function Settings() {
   const p = usePrefs();
+  const lens = useLens();
   const id = useIdentity();
   const us = useUserState();
   const desk = deskOf(useDesk());
@@ -102,7 +103,7 @@ export function Settings() {
         <section class="panel settings" aria-label="Appearance and detail">
           <Choice legend="Appearance" help="Dark is the default. Match my device follows your system setting." value={p.theme} options={THEMES} onPick={(v) => { setPref("theme", v); }} />
           <Choice legend="Detail level" help="Simple shows plain cards, one line per player. Analyst adds the line ladder, splits, calibration and the edge arithmetic." value={p.mode} options={MODES} onPick={(v) => { setPref("mode", v); }} />
-          <Choice legend="Opens on" help="The screen you land on when you open the app without a link." value={p.screen} options={SCREENS} onPick={(v) => { setPref("screen", v); }} />
+          <Choice legend="Opens on" help="The screen you land on when you open the app without a link." value={p.screen} options={SCREENS.filter((o) => screenAllowed(o.value, lens))} onPick={(v) => { setPref("screen", v); }} />
         </section>
         <section class="panel settings" aria-label="Notifications">
           <h2>Notifications</h2>
