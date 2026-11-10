@@ -1,0 +1,303 @@
+/* Live play-by-play. Colours come from theme.css variables only, so light and dark both follow the theme. */
+.live-game,
+.live-embed {
+  min-width: 0;
+}
+
+.live-head {
+  padding: 14px 16px;
+}
+.live-score {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.ls-team {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ls-team.right {
+  align-items: flex-end;
+}
+.ls-abbr {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.ls-pts {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 2.6rem;
+  line-height: 1;
+}
+.ls-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.ls-clock {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.ls-state {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.ls-state.in {
+  background: var(--loss);
+  color: var(--bg);
+}
+.ls-state.post {
+  background: var(--line);
+  color: var(--muted);
+}
+
+.live-asof {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.live-asof.stale {
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  border-color: transparent;
+}
+.live-phase {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+}
+.live-attrib {
+  margin: 0;
+}
+.live-unproven {
+  margin: 0 0 6px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--tonight);
+  background: var(--tonight-soft);
+  border-radius: var(--radius-sm);
+}
+
+/* play feed */
+.plays {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+}
+.play {
+  display: grid;
+  grid-template-columns: 4.6rem 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+.play:first-child {
+  border-top: 0;
+}
+.play-t {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.play-s {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.play.score .play-x {
+  font-weight: 700;
+}
+.play.score .play-s {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* box score: scrolls sideways on a phone, the name column stays put */
+.box-wrap {
+  overflow-x: auto;
+  margin: 8px calc(-1 * var(--gutter)) 0;
+  padding: 0 var(--gutter);
+  -webkit-overflow-scrolling: touch;
+}
+table.box {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+  font-size: 0.88rem;
+}
+.box th,
+.box td {
+  padding: 6px 8px;
+  text-align: right;
+  white-space: nowrap;
+  border-top: 1px solid var(--line);
+}
+.box thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.box th[scope="row"],
+.box thead th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  font-weight: 600;
+  max-width: 9.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.box tr.dnp {
+  color: var(--muted);
+}
+.box tr.dnp td {
+  text-align: left;
+  font-size: 0.78rem;
+}
+.box tr.foul-trouble td:nth-child(7) {
+  color: var(--loss);
+  font-weight: 800;
+}
+
+/* prop trackers */
+.trackers {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.tracker {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.tr-line {
+  margin-top: 4px;
+  font-weight: 600;
+}
+.tr-meta {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.pace-chip {
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.pace-cleared .pace-chip,
+.pace-on-pace .pace-chip {
+  background: var(--win);
+  color: var(--bg);
+}
+.pace-behind .pace-chip {
+  background: var(--tonight-soft);
+  color: var(--tonight);
+}
+.meter {
+  position: relative;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--line);
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.pace-cleared .meter > span,
+.pace-on-pace .meter > span {
+  background: var(--win);
+}
+.pace-behind .meter > span {
+  background: var(--tonight);
+}
+.meter > i {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  background: var(--ink);
+  opacity: 0.7;
+}
+
+/* the live screen's game cards */
+.live-cards {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.live-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+.live-card:hover {
+  border-color: var(--accent);
+}
+.lc-teams {
+  display: grid;
+  gap: 4px;
+  min-width: 6rem;
+}
+.lc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 1.1rem;
+}
+.lc-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+@media (min-width: 720px) {
+  .live-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ls-pts {
+    font-size: 3.2rem;
+  }
+}
+
+.live-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.live-track .seg {
+  flex-wrap: wrap;
+}

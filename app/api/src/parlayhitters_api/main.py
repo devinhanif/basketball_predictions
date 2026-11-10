@@ -36,6 +36,8 @@ from .forecast import (
     shown_probs,
 )
 from .knows import GameKnows, PlayerKnows, game_knows, player_knows
+from .live import LiveHub
+from .live_routes import register_live
 from .minutes import minutes_info
 from .model_source import model_detail, model_label, p_play_label
 from .models import (
@@ -178,7 +180,8 @@ def create_app() -> FastAPI:
         resp = await call_next(request)
         resp.headers["X-Content-Type-Options"] = "nosniff"
         resp.headers["Referrer-Policy"] = "no-referrer"
-        resp.headers["Cache-Control"] = "no-cache"  # the service worker owns offline caching
+        if "cache-control" not in resp.headers:  # the stream keeps its own (no-transform)
+            resp.headers["Cache-Control"] = "no-cache"  # the service worker owns offline caching
         return resp
 
     @app.exception_handler(ExportRefused)
@@ -186,6 +189,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"detail": f"the data export was refused: {exc}"}, status_code=503)
 
     register(app)
+    register_live(app, LiveHub())
     return app
 
 

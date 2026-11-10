@@ -103,6 +103,9 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // Live play-by-play is never cached or proxied through the worker: a saved copy would read as live, and a
+  // cached stream would never end. The browser handles /api/live/* (the stream included) directly.
+  if (url.pathname.startsWith("/api/live")) return;
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(apiNetworkFirst(req));
   } else if (req.mode === "navigate") {

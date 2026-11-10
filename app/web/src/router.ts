@@ -19,13 +19,14 @@ export type Route =
   | { name: "hedge"; game: string | null; player: number | null; stat: string | null }
   | { name: "history" }
   | { name: "record"; tab: RecordTab; date: string | null }
+  | { name: "live"; id: string | null; date: string | null }
   | { name: "alerts" }
   | { name: "admin" };
 
 /** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
-export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "alerts" | "swipe" | "picks" | "admin" | "settings";
+export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings";
 const ARTIFACT_NAME: Record<TopName, string> = {
-  today: "discover", signals: "signals", hedge: "hedge", history: "history", record: "record", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs",
+  today: "discover", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs",
 };
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
@@ -36,6 +37,12 @@ export function legHref(gameId: string, playerId: number, stat: LegStat, side: S
 /** Hash for a game page. */
 export function gameHref(gameId: string): string {
   return `#/game/${encodeURIComponent(gameId)}`;
+}
+
+/** Hash for the live screen, or for one live game by its ESPN event id. */
+export function liveHref(id: string | null = null, date: string | null = null): string {
+  const q = date === null ? "" : `?date=${encodeURIComponent(date)}`;
+  return id === null ? `#/live${q}` : `#/live/${encodeURIComponent(id)}${q}`;
 }
 
 /** Hash for a top-level view. The artifact frame passes only plain `#name` hashes, so there they carry no slash. */
@@ -81,6 +88,8 @@ export function parse(hash: string): Route {
     }
     case "alerts":
       return { name: "alerts" };
+    case "live":
+      return { name: "live", id: parts[1] ? decodeURIComponent(parts[1]) : null, date: q.get("date") };
     case "admin":
       return { name: "admin" };
     default:
@@ -118,6 +127,8 @@ export function plainName(route: Route): TopName | null {
       return route.game === null ? "hedge" : null;
     case "record":
       return route.tab === "replay" && route.date === null ? "record" : null;
+    case "live":
+      return route.id === null && route.date === null ? "live" : null;
     case "picks":
     case "settings":
     case "signals":

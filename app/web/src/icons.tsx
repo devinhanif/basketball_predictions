@@ -29,6 +29,7 @@ export const ICONS = {
   grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   sliders: "M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6",
   arrow: "M7 17L17 7M9 7h8v8",
+  live: "M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14",
   record: "M4 20h16M7 20v-9M12 20V5M17 20v-6",
 } as const;
 export type IconName = keyof typeof ICONS;
