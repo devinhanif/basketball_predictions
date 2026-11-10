@@ -531,7 +531,7 @@ function Guess() {
         <h2>Guess against the model</h2>
         <p class="small muted">
           Real player lines from games already played. You see the line and his recent games; the result and the model's call stay hidden until you
-          choose. No prices here, and the score stays on this device.
+          choose. The score stays on this device.
         </p>
       </section>
       <ScoreBoard
@@ -572,7 +572,7 @@ export function Record(props: { tab: RecordTab; date: string | null }) {
     <div class="stack record">
       <header class="page-head">
         <h1>Track record</h1>
-        <p class="muted">What we forecast, what happened, and how often the numbers held up. Nothing on these three tabs shows a price.</p>
+        <p class="muted">What we forecast, what happened, and how often the numbers held up. These three tabs stay with the forecasts and what happened.</p>
       </header>
       <nav class="tabs" aria-label="Track record">
         {(Object.keys(TAB_LABEL) as RecordTab[]).map((t) => (

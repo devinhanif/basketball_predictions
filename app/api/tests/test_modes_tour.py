@@ -389,6 +389,126 @@ def test_moments_of_a_known_count() -> None:
     assert json.dumps([mean, sd])
 
 
+# ------------------------------------------------------------------- known-at guards
+
+
+def _fake_game() -> dict[str, Any]:
+    return {
+        "game_id": "g",
+        "tip_utc": "2024-11-13T00:00:00Z",
+        "home": {"id": 10, "abbr": "AAA"},
+        "away": {"id": 11, "abbr": "BBB"},
+        "players": [{"player_id": 1, "side": "home", "name": "A", "props": {}}],
+    }
+
+
+def _snap_row(made: str, lead: float, shown: bool) -> dict[str, Any]:
+    return {
+        "made_at": made, "lead_minutes": lead, "mean": 10.0, "q": [float(i) for i in range(19)],
+        "proj_minutes": 30.0, "p_play": 0.9, "surv": None, "run_id": "r", "shown": shown,
+    }  # fmt: skip
+
+
+def test_rows_at_or_after_tip_are_dropped_and_counted() -> None:
+    from parlayhitters_api.knows import pre_tip_reports, pre_tip_snapshots  # noqa: PLC0415
+
+    class Fake:
+        names: dict[int, str] = {}
+        injury = {
+            "g": [
+                {
+                    "at_utc": "2024-11-12T20:00:00+00:00",
+                    "player_id": 1,
+                    "team_id": 10,
+                    "status": "out",
+                    "reason": None,
+                },
+                {
+                    "at_utc": "2024-11-13T00:00:00+00:00",
+                    "player_id": 2,
+                    "team_id": 10,
+                    "status": "out",
+                    "reason": None,
+                },  # exactly at tip
+                {
+                    "at_utc": "2024-11-13T01:00:00+00:00",
+                    "player_id": 3,
+                    "team_id": 10,
+                    "status": "out",
+                    "reason": None,
+                },  # after tip
+                {
+                    "at_utc": "not a time",
+                    "player_id": 4,
+                    "team_id": 10,
+                    "status": "out",
+                    "reason": None,
+                },
+            ]
+        }
+        snapshots = {
+            ("g", 1, "pts"): [
+                _snap_row("2024-11-12T18:00:00Z", 360.0, False),
+                _snap_row("2024-11-13T00:05:00Z", -5.0, True),
+                _snap_row("2024-11-13T00:00:00Z", 0.0, False),
+            ]
+        }
+
+    rows, dropped = pre_tip_reports(Fake(), _fake_game())
+    assert [r["player_id"] for r in rows] == [1] and dropped == 3
+    assert [n.player_id for n in news_items(Fake(), _fake_game(), None, None)] == [1]
+    snaps, sdropped = pre_tip_snapshots(Fake(), ("g", 1, "pts"))
+    assert len(snaps) == 1 and sdropped == 2
+
+
+def _teammate_text(c: TestClient, shift_minutes: float) -> tuple[list[str], dict[str, Any]]:
+    """Plant one teammate listed out on a report stamped `shift_minutes` after the shown forecast
+    was made (negative: before), then read the "why" notes for that prop."""
+    from datetime import datetime, timedelta  # noqa: PLC0415
+
+    store = get_store()
+    gid, pid, stat = _two_snapshot_prop()
+    g = store.game(gid)
+    assert g is not None
+    shown = next(s for s in store.snapshots[(gid, pid, stat)] if s["shown"])
+    side = next(p for p in g["players"] if p["player_id"] == pid)["side"]
+    tid = g["home"]["id"] if side == "home" else g["away"]["id"]
+    made = datetime.fromisoformat(shown["made_at"].replace("Z", "+00:00"))
+    at = (made + timedelta(minutes=shift_minutes)).isoformat()
+    tip = datetime.fromisoformat(g["tip_utc"].replace("Z", "+00:00"))
+    assert datetime.fromisoformat(at) < tip  # a pre-tip report either way
+    store.injury[gid] = [
+        {"at_utc": at, "player_id": 424242, "team_id": tid, "status": "out", "reason": None}
+    ]
+    d = c.get(f"/api/knows/{gid}/{pid}/{stat}").json()
+    return [i["text"] for i in d["uncertainty"]["items"] if i["key"] == "teammates"], d
+
+
+def test_a_report_published_after_the_forecast_is_not_cited_as_why(
+    export_client: TestClient,
+) -> None:
+    texts, d = _teammate_text(export_client, +5.0)
+    assert len(texts) == 1 and "published after this forecast" in texts[0]
+    assert "Unnamed" not in texts[0] and "listed out" not in texts[0]
+    assert d["n_reports"] == 1 and "1 injury report for this game" in d["note"]
+
+
+def test_a_report_published_before_the_forecast_is_cited(export_client: TestClient) -> None:
+    texts, _ = _teammate_text(export_client, -60.0)
+    assert len(texts) == 1 and "before this forecast" in texts[0] and "1 teammate" in texts[0]
+
+
+def test_a_zero_minutes_projection_is_no_projection() -> None:
+    from parlayhitters_api.minutes import minutes_info  # noqa: PLC0415
+
+    q = [float(i) for i in range(19)]
+    for proj in (0.0, -3.0, None):
+        m = minutes_info({"q": q, "mean": 9.0, "proj_minutes": proj}, None)
+        assert m.proj_minutes is None and m.baseline is None and m.baseline_source is None
+    m = minutes_info({"q": q, "mean": 9.0, "proj_minutes": 31.0}, None)
+    assert m.baseline == 31.0 and m.baseline_source == "model"
+
+
 # ------------------------------------------------------------------- model source
 
 

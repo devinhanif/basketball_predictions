@@ -4,8 +4,8 @@ export const LENS_LABEL: Record<Lens, string> = { learn: "Learn", explore: "Expl
 
 /** One line each, in words a first-time visitor can act on. */
 export const LENS_SAY: Record<Lens, string> = {
-  learn: "How the game and the forecast work. No prices, no edges, no fees on this screen.",
-  explore: "Move the line, the minutes or a price and watch the forecast respond. Nothing is saved.",
+  learn: "How the game and the forecast work. The market side stays out of view on this screen.",
+  explore: "Move the line or the minutes and watch the forecast respond. Nothing is saved.",
   market: "The market side: posted prices, edges and fees from the stored snapshots.",
 };
 
@@ -43,9 +43,7 @@ export function MarketOnly(props: { name: string; what: string }) {
   return (
     <section class="panel empty" aria-labelledby="mo-h">
       <h1 id="mo-h">{props.name} is a Market screen</h1>
-      <p>
-        {props.what} The Learn and Explore lenses leave prices, edges and fees out, so this screen is hidden while you are in them.
-      </p>
+      <p>{props.what} It is hidden in the Learn and Explore lenses. The optional what-if for a number you type, inside Explore, is the one exception.</p>
       <button
         type="button"
         class="btn primary"

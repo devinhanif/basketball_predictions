@@ -5,6 +5,7 @@ import { engineSpeaksFor } from "../nights";
 import { LatestTopParlays } from "../TopParlaysPanel";
 import { useLoad } from "../useLoad";
 import { useLens } from "../prefs";
+import { MarketOnly } from "../Lens";
 import type { ParlayState } from "../types";
 
 /** Plain-language headline for the verdict. The engine's own label is kept in the details. */
@@ -130,11 +131,16 @@ export function ParlayCard({ compact, date }: { compact: boolean; date?: string 
 }
 
 export function ParlayPage(props: { date: string | null }) {
+  const market = useLens() === "market";
   return (
     <div class="stack">
       <h1>Parlay of the day</h1>
       <ParlayCard compact={false} date={props.date} />
-      <LatestTopParlays date={props.date} />
+      {market ? (
+        <LatestTopParlays date={props.date} />
+      ) : (
+        <MarketOnly name="The ticket list" what="The ticket list is the market side of a night's tickets." />
+      )}
       <section class="panel flat">
         <h3>The three ways a day can go</h3>
         <ul class="plain">
@@ -147,7 +153,7 @@ export function ParlayPage(props: { date: string | null }) {
             idea, clearly marked as unproven. Keep your money.
           </li>
           <li>
-            <strong>Nothing today.</strong> No ticket was worth it, or there was nothing we could price. This is a normal
+            <strong>Nothing today.</strong> No ticket was worth it, or there was nothing we could check. This is a normal
             day, not an error.
           </li>
         </ul>

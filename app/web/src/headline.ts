@@ -33,7 +33,7 @@ export function learnHeadline(games: number): Headline {
   return {
     text: `${gamesPhrase(games)} tonight · forecasts only · keep your money`,
     verdict: "keep",
-    source: "Our model has no live track record yet, so nothing here is a pick. Switch to the Market lens for prices and edges.",
+    source: "Our model has no live track record yet, so nothing here is a pick. Switch to the Market lens for the market side.",
   };
 }
 

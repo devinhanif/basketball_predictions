@@ -205,7 +205,7 @@ function Headline(props: { data: LegBreakdown; row: LadderRow | null; side: Side
         </p>
       ) : (
         <p class="small muted num">
-          {nText(data.last10)}. Ten games say less than they seem to: a streak is not an edge.
+          {nText(data.last10)}. Ten games say less than they seem to: a streak is not a signal.
         </p>
       )}
       {market ? (

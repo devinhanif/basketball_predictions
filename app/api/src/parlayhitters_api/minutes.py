@@ -64,7 +64,8 @@ def minutes_info(forecast: Json, ctx: Context | None) -> MinutesInfo:
     mean, sd = moments(dist_grid(forecast)["p_ge"])
     steady = steadiness(ctx.all_prior) if ctx is not None else None
     proj = forecast.get("proj_minutes")
-    proj = None if proj is None else float(proj)
+    # A projection of zero or less is no projection: nothing can be scaled from it.
+    proj = None if proj is None or float(proj) <= 0 else float(proj)
     recent_avg = None if steady is None else steady.avg_minutes
     baseline, source = (
         (proj, "model") if proj is not None else (recent_avg, "recent" if recent_avg else None)

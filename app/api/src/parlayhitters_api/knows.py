@@ -71,6 +71,9 @@ class Uncertainty(BaseModel):
 
 
 class PlayerKnows(BaseModel):
+    #: Rows the export should never hold (a forecast or report at or after tip), dropped here.
+    post_tip_dropped: int = 0
+    n_reports: int = 0
     game_id: str
     player_id: int
     player: str
@@ -100,6 +103,7 @@ class Mover(BaseModel):
 
 
 class GameKnows(BaseModel):
+    post_tip_dropped: int = 0
     game_id: str
     tip_utc: str
     news: list[News]
@@ -127,6 +131,36 @@ def clean_reason(raw: str | None) -> str | None:
     return f"{first}, {words}" if words else first
 
 
+def _when(text: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def pre_tip_reports(store: Any, g: Json) -> tuple[list[Json], int]:
+    """The game's injury report lines that were current before tip, and how many at or after tip
+    (or with an unreadable time) were dropped. The exporter already refuses post-tip rows; this is
+    a second check so a public "what the game knew" screen can never show one."""
+    tip = _when(g["tip_utc"])
+    keep: list[Json] = []
+    dropped = 0
+    for r in store.injury.get(g["game_id"], []):
+        at = _when(r["at_utc"])
+        if tip is None or at is None or at >= tip:
+            dropped += 1
+        else:
+            keep.append(r)
+    return keep, dropped
+
+
+def pre_tip_snapshots(store: Any, key: tuple[str, int, str]) -> tuple[list[Json], int]:
+    """The prop's stored forecasts made before tip (positive lead time), and how many were not."""
+    snaps = store.snapshots.get(key, [])
+    keep = [s for s in snaps if s["lead_minutes"] > 0]
+    return keep, len(snaps) - len(keep)
+
+
 def _minutes_before(tip_utc: str, at_utc: str) -> float | None:
     try:
         tip = datetime.fromisoformat(tip_utc.replace("Z", "+00:00"))
@@ -143,7 +177,7 @@ def news_items(store: Any, g: Json, team_id: int | None, pid: int | None) -> lis
     names: dict[int, str] = getattr(store, "names", {})
     last: dict[int, str] = {}
     out: list[News] = []
-    for r in store.injury.get(g["game_id"], []):
+    for r in pre_tip_reports(store, g)[0]:
         if team_id is not None and r["team_id"] != team_id:
             continue
         prev = last.get(r["player_id"])
@@ -258,7 +292,26 @@ def _uncertainty(store: Any, g: Json, pl: Json, stat: str, pr: Json) -> Uncertai
             )
     names: dict[int, str] = getattr(store, "names", {})
     team_id = g["home"]["id"] if pl["side"] == "home" else g["away"]["id"]
-    rows = store.injury.get(g["game_id"], [])
+    all_rows = pre_tip_reports(store, g)[0]
+    # Only reports published at or before the shown forecast were there for the model to see.
+    shown_snap = next(
+        (
+            s
+            for s in pre_tip_snapshots(store, (g["game_id"], int(pl["player_id"]), stat))[0]
+            if s["shown"]
+        ),
+        None,
+    )
+    cutoff = None if shown_snap is None else _when(shown_snap["made_at"])
+    rows = [r for r in all_rows if cutoff is None or (_when(r["at_utc"]) or cutoff) <= cutoff]
+    if all_rows and not rows:
+        items.append(
+            UncItem(
+                key="teammates",
+                text="The injury report stored for this game was published after this forecast "
+                "was made, so it is not counted here.",
+            )
+        )
     if rows:
         newest = max(r["at_utc"] for r in rows)
         out = [
@@ -274,7 +327,7 @@ def _uncertainty(store: Any, g: Json, pl: Json, stat: str, pr: Json) -> Uncertai
             items.append(
                 UncItem(
                     key="teammates",
-                    text=f"On the latest report, {len(out)} teammate"
+                    text=f"On the latest report before this forecast, {len(out)} teammate"
                     f"{'' if len(out) == 1 else 's'} listed out: {shown}.",
                 )
             )
@@ -285,7 +338,10 @@ def player_knows(store: Any, g: Json, pl: Json, stat: str) -> PlayerKnows:
     pr = pl["props"][stat]
     line = float(pr["line"])
     key = (g["game_id"], int(pl["player_id"]), stat)
-    snaps = [_snap(s, line) for s in store.snapshots.get(key, [])]
+    raw_snaps, dropped_snaps = pre_tip_snapshots(store, key)
+    snaps = [_snap(s, line) for s in raw_snaps]
+    reports, dropped_rows = pre_tip_reports(store, g)
+    n_reports = len({r["at_utc"] for r in reports})
     me, _ = (g["home"], g["away"]) if pl["side"] == "home" else (g["away"], g["home"])
     news = news_items(store, g, me["id"], int(pl["player_id"]))
     if len(snaps) >= 2:
@@ -305,7 +361,14 @@ def player_knows(store: Any, g: Json, pl: Json, stat: str) -> PlayerKnows:
             "This data holds one forecast per prop and no earlier ones, so there is no timeline "
             "to draw. The uncertainty notes below still apply."
         )
+    if n_reports:
+        note += (
+            f" This data holds {n_reports} injury report{'' if n_reports == 1 else 's'} for this "
+            "game, so earlier reports, if there were any, are not shown."
+        )
     return PlayerKnows(
+        post_tip_dropped=dropped_snaps + dropped_rows,
+        n_reports=n_reports,
         game_id=g["game_id"],
         player_id=int(pl["player_id"]),
         player=pl["name"],
@@ -327,7 +390,7 @@ def game_knows(store: Any, g: Json, top: int = 6) -> GameKnows:
     for pl in g["players"]:
         if "pts" not in pl["props"]:
             continue
-        snaps = store.snapshots.get((g["game_id"], int(pl["player_id"]), "pts"), [])
+        snaps = pre_tip_snapshots(store, (g["game_id"], int(pl["player_id"]), "pts"))[0]
         first, last = (snaps[0], snaps[-1]) if snaps else (None, None)
         if len(snaps) < 2 or first is None or last is None:
             continue
@@ -349,7 +412,9 @@ def game_knows(store: Any, g: Json, top: int = 6) -> GameKnows:
             )
         )
     movers.sort(key=lambda m: (-abs(m.delta), m.name))
-    rows = store.injury.get(g["game_id"], [])
+    rows, dropped = pre_tip_reports(store, g)
+    for pl in g["players"]:
+        dropped += pre_tip_snapshots(store, (g["game_id"], int(pl["player_id"]), "pts"))[1]
     note = (
         "Biggest changes in the points forecast between the first and last forecast stored "
         "before tip, next to what the injury report said."
@@ -357,6 +422,7 @@ def game_knows(store: Any, g: Json, top: int = 6) -> GameKnows:
         else "This data holds no earlier forecasts to compare, so no forecast moved on record."
     )
     return GameKnows(
+        post_tip_dropped=dropped,
         game_id=g["game_id"],
         tip_utc=g["tip_utc"],
         news=news_items(store, g, None, None),

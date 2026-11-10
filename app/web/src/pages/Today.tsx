@@ -13,7 +13,7 @@ import { VerdictStrip } from "../VerdictStrip";
 import { pickHero } from "../discover";
 import { Court, DeskTiles, Discipline, Hero, Insight, LeagueTabs, Radar, useRadar } from "./DiscoverParts";
 import { compareLine, doesText, rangeSentence } from "../words";
-import type { TpResult } from "../topParlays";
+import { hasTickets, type TpResult } from "../topParlays";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
 function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) {
@@ -153,6 +153,12 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const played = featured !== null && Date.parse(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const lens = useLens();
   const market = lens === "market";
+  // Without the Market lens the card never claims "no parlay": it says only that a check exists, or that parlays live there.
+  const engineHasPick = speaks && engine.headline_verdict !== "no_positive_ev_found";
+  const checkExists = engineHasPick || (tickets !== null && tickets.kind === "ok" && hasTickets(tickets.data));
+  const learnStrip = checkExists
+    ? { title: "A parlay check exists for this night. Keep your money.", body: "See it in the Market lens. Our model has no live track record yet, so nothing here is a pick." }
+    : { title: "Parlays live in the Market lens. Keep your money.", body: "Our model has no live track record yet, so nothing here is a pick." };
   const head =
     slate.status === "ready" && (!market || (eng.status !== "loading" && tp.status !== "loading"))
       ? market
@@ -192,8 +198,8 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
       ) : (
         <section class="panel verdict strip keep" aria-labelledby="strip-h">
           <div class="kicker">Parlays for {longDate(date)}</div>
-          <h2 id="strip-h">No parlay tonight. Keep your money.</h2>
-          <p class="small muted">Our model has no live track record yet. How the checks work, with prices and fees, is in the Market lens.</p>
+          <h2 id="strip-h">{learnStrip.title}</h2>
+          <p class="small muted">{learnStrip.body}</p>
         </section>
       )}
       {market ? (

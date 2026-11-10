@@ -356,8 +356,23 @@
 }
 .gs-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+.gs-actions .btn.big {
+  min-width: 0;
+  padding: 8px 6px;
+  height: auto;
+}
+.gs-actions .btn-sub {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  text-transform: none;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 .gs-reveal {
   display: grid;
@@ -455,4 +470,11 @@
 }
 .tour-actions .btn {
   min-height: 44px;
+}
+
+/* ---- bottom tabs: labels may wrap but are never cut ---- */
+.nav-bottom a {
+  min-width: 0;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { groupNews, leadText } from "./Knows";
 import { learnHeadline } from "./headline";
+import { hideBook } from "./slider";
 import { MARKET_ONLY } from "./Shell";
 import { DEFAULTS, KEYS, getPrefs, parseLens, resetPrefsCache, setPref, writeKey } from "./prefs";
 import { GUESS_KEY, loadRounds, makeRound, saveRounds, scoreOf } from "./record";
@@ -137,5 +138,14 @@ describe("the Learn lens, app-wide", () => {
   });
   it("the market-only screens are the ones whose subject is prices and edges", () => {
     expect([...MARKET_ONLY].sort()).toEqual(["hedge", "history", "signals"]);
+  });
+});
+
+describe("book names outside the Market lens", () => {
+  it("reads the line, not the book", () => {
+    expect(hideBook("No calibrated number: no two-sided DraftKings line was posted before tip.")).toBe("No calibrated number: no two-sided sportsbook line was posted before tip.");
+    expect(hideBook("how often chances like this came in, DraftKings line, T493")).toBe("how often chances like this came in, sportsbook line, T493");
+    expect(hideBook("Calibration: rung map x (DraftKings only)")).toBe("Calibration: rung map x (the sportsbook only)");
+    expect(hideBook("no book named here")).toBe("no book named here");
   });
 });

@@ -282,7 +282,7 @@ function Body({ g }: { g: GameDetail }) {
           )}
         </div>
         <ul class="plain small muted">
-          {g.notes.map((n) => (
+          {(lens === "market" ? g.notes : g.notes.filter((n) => !/\bprices?\b|quote|sportsbook/i.test(n))).map((n) => (
             <li key={n}>{n}</li>
           ))}
         </ul>

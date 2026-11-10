@@ -4,7 +4,7 @@ import { Explain, View } from "./components";
 import { american, lineText, pct } from "./format";
 import type { Lens } from "./prefs";
 import { evVerdict } from "./plain";
-import { modelLine, pairLines, percentAlong, quantile, read, sliderRange, snapHalf } from "./slider";
+import { hideBook, modelLine, pairLines, percentAlong, quantile, read, sliderRange, snapHalf } from "./slider";
 import { STAT_LABEL, type CardView, type MinutesInfo } from "./types";
 import { useLoad } from "./useLoad";
 import { DistStrip, ProbBar } from "./Viz";
@@ -32,8 +32,13 @@ function MinutesBlock(props: {
 }) {
   const { mi } = props;
   const base = mi.baseline;
-  if (base === null) {
-    return <p class="small muted">This data holds no projected or recent minutes for him, so there is nothing to move here.</p>;
+  if (base === null || !(base > 0)) {
+    return (
+      <div class="xp-block">
+        <h3>If he plays a different number of minutes</h3>
+        <p class="small muted">This data holds no usable projected or recent minutes for him, so the minutes what-if is switched off here rather than guessing.</p>
+      </div>
+    );
   }
   const where = mi.baseline_source === "model" ? `the model's projection, ${base.toFixed(0)} minutes` : `his recent average, ${base.toFixed(0)} minutes (this data holds no projection)`;
   const share = mi.minutes_share;
@@ -337,7 +342,7 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
           <>
             <div class="ls-pair small num">
               <div class="ls-raw">{pair.raw}</div>
-              {pair.cal !== null ? <div class="ls-cal">{pair.cal}</div> : <div class="ls-cal none muted">{r.cal_note}</div>}
+              {pair.cal !== null ? <div class="ls-cal">{lens === "market" ? pair.cal : hideBook(pair.cal)}</div> : <div class="ls-cal none muted">{lens === "market" ? r.cal_note : hideBook(r.cal_note ?? "")}</div>}
             </div>
             <p class={`small ls-label ${r.source}`}>{r.plain}</p>
             {r.tail_note ? <p class="small ls-tail">{r.tail_note}</p> : null}

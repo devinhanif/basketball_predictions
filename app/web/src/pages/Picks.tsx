@@ -123,11 +123,18 @@ export function Picks() {
             {sum.n_skips > 0 ? `${sum.n_skips.toString()} skipped.` : ""}
           </p>
           <Explain>
-            <p>
-              "Won" means you picked the right side of the line. The sportsbook's price turns into a chance once you remove
-              its built-in margin: a side priced like a 52% shot should win about 52 times in 100. If your win rate sits
-              near those numbers, you did about as well as the odds said you would.
-            </p>
+            {market ? (
+              <p>
+                "Won" means you picked the right side of the line. The sportsbook's price turns into a chance once you remove
+                its built-in margin: a side priced like a 52% shot should win about 52 times in 100. If your win rate sits
+                near those numbers, you did about as well as the odds said you would.
+              </p>
+            ) : (
+              <p>
+                "Won" means you picked the right side of the line. A side our model gave 52% should win about 52 times in 100. If your
+                win rate sits near the model's numbers, you did about as well as the model expected.
+              </p>
+            )}
             <p>With a small number of picks, a hot or cold streak says very little. Differences here are mostly luck.</p>
           </Explain>
         </section>

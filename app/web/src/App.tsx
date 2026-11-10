@@ -82,17 +82,17 @@ export function App() {
       page = <Settings />;
       break;
     case "signals":
-      page = market ? <Signals /> : <MarketOnly name="Signals" what="Signals lists stored contracts by their edge after fees." />;
+      page = market ? <Signals /> : <MarketOnly name="Signals" what="Signals ranks stored contracts on the market side." />;
       break;
     case "hedge":
       page = market ? (
         <Hedge game={route.game} player={route.player} stat={route.stat} />
       ) : (
-        <MarketOnly name="Hedge Finder" what="The Hedge Finder works out positions from stored prices." />
+        <MarketOnly name="Hedge Finder" what="The Hedge Finder works on the market side." />
       );
       break;
     case "history":
-      page = market ? <History /> : <MarketOnly name="Model History" what="Model History is the paper book: entry prices, closing-line value and edges." />;
+      page = market ? <History /> : <MarketOnly name="Model History" what="Model History is the paper book of market plays." />;
       break;
     case "record":
       page = <Record tab={route.tab} date={route.date} />;
