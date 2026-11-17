@@ -52,7 +52,7 @@ No lint finding exists inside the live path (`nba/`), so there is nothing to pro
 - **Full set, first run** (`make test`, before the fixes below): 6148 tests ran in the first invocation: **2 failed, 6131 passed, 15 skipped, 42:49 wall**; then it crashed (INTERNALERROR) at the coverage combine, so the rung-4 step and the 70% ratchet never ran in that attempt. The two failures:
   `tests/ingest/test_reporters.py::test_cli_month_cap_exits_2` and `tests/daily/test_combo_shadow_reader.py::test_the_full_reader_honours_a_counting_start_when_its_meta_table_exists` (both fixed, Task 3 below).
   Rung-4 file run alone: 10 passed. Per-directory runs (no coverage) all passed, apart from what is listed here.
-- **Full set, second run** (after the fixes, `make test`, with `--durations=40`): see the section "Full run 2" at the end of this file (filled in when it finished).
+- **Full set, second run** (after the fixes, `make test`, 23:14-00:07 CST): step 1 = **6133 passed, 15 skipped, 0 failed, 53:10 min** (exit 0, no INTERNALERROR: the coverage combine now works). Step 2 (rung-4 file in its own process, `--cov-append`) segfaulted in that run because my first conftest change preloaded LightGBM into that process (see "lightgbm first" below); fixed (conditional import), then re-run by hand with the Makefile's exact command: **10 passed, exit 0**, and step 3 `coverage report --fail-under=70`: **TOTAL 72%, exit 0**. So the three `make test` steps were each seen green, but not in one uninterrupted `make test` invocation after the last conftest edit.
 - CI (`.github/workflows/ci.yml`): `unit` now runs `make test-fast` (timeout 25 min); new `unit-full` job (nightly cron 09:17 UTC + `workflow_dispatch`, `timeout-minutes: 120`, `continue-on-error: true`) runs `make test` (two processes + 70% ratchet);
   `lint-type` got a 15 min timeout; `concurrency.cancel-in-progress` is now true only for pull requests (on main every push cancelled the previous run: 35 of 40 cancelled). `smoke-backtest` is skipped on the schedule trigger.
   **This workflow change is UNVERIFIED: nothing was pushed.** I only parsed the YAML (jobs: lint-type, unit, unit-full, data-contract, smoke-backtest, model-gate) and ran the same commands locally. Not checked: `uv sync --extra dev` on the runner with UV 0.5.11 against the current `uv.lock`, the `fetch-depth: 0` clone time, the fast job's real runtime on a 2-vCPU Linux runner.
@@ -60,7 +60,7 @@ No lint finding exists inside the live path (`nba/`), so there is nothing to pro
 Two real defects found while timing, both fixed:
 
 1. **`make test` could not finish.** pytest-cov passes only the `--cov-branch` CLI flag to subprocesses, not `[tool.coverage.run] branch = true`; tests that spawn Python (e.g. `tests/ops/test_pulls_script.py`, `test_live_capture.py`, `test_fresh_launcher.py`) wrote 91 statement-only data files, and the combine died with `DataError: Can't combine statement coverage data with branch data`. Reproduced on 4 small files (exit 3), fixed by adding `--cov-branch` to `addopts` (same 4 files: 57 passed, exit 0). This probably contributed to the 5 red GitHub runs.
-2. **`pytest tests/research/props` alone segfaults** (`Fatal Python error: Segmentation fault` in `lightgbm/basic.py`): `test_cli.py` imports torch at collection, and a LightGBM fit after torch is loaded crashes. The full suite happens to import LightGBM first, so it was fine. `tests/conftest.py` now imports lightgbm first; the directory run then passes (155 passed, 1 skipped). This is the same torch/LightGBM OpenMP clash the Makefile comments describe.
+2. **`pytest tests/research/props` alone segfaults** (`Fatal Python error: Segmentation fault` in `lightgbm/basic.py`): `test_cli.py` imports torch at collection, and a LightGBM fit after torch is loaded crashes. The full suite happens to import LightGBM first, so it was fine. `tests/conftest.py` now imports lightgbm first (so the directory run passes: 165 passed, 1 skipped with the layering test) EXCEPT when the pytest arguments name `test_rung4_stepheads.py` (the Makefile's isolated torch process): preloading LightGBM there makes the torch step segfault (seen in full run 2). Both facts are in the conftest comment. This is the same torch/LightGBM OpenMP clash the Makefile comments describe; it is order- and import-set-sensitive, so treat any new torch or LightGBM test file as a risk and re-run `make test`.
 
 ## Task 3. Known failures
 
@@ -126,6 +126,10 @@ Facts read: 107 registered worktrees (1 prunable), 166 branches merged into main
 - Slow list: tests that take 5-10 s each stay in the fast set; per-test timings of the slow list come from per-directory `--durations=15` runs because the first full run lost its duration table to the combine crash.
 - App lane: `app/fixtures/build_export_best_real.py` I001 left as is.
 
-## Full run 2
+## Verification summary (all unpiped, exit codes seen)
 
-(filled below when finished)
+- `ruff check nba/ research/ tests/` exit 0; `ruff format --check nba/ research/ tests/` exit 0 (1413 files); `mypy nba/ research/` exit 0 (788 files). `ruff check .` exit 1 (1 error, app lane).
+- `tests/test_layering.py`: 10 passed (also inside the full runs). No `nba/`->`research/` edge was touched.
+- `make test-fast`: 5861 passed, 13 skipped, 284 deselected, exit 0, 20:59.
+- `make test` (second run): step 1 6133 passed, 15 skipped (53:10); rung-4 file 10 passed; coverage TOTAL 72% (floor 70), as described above.
+- Highest remaining per-test times in the full run (>= 14 s, all already marked slow except ensemble_eval): tests/research/eval/test_ensemble_eval.py::test_p_in_probe_flags_a_planted_pattern_and_not_a_clean_one 18.2 s is NOT in the slow list (it was below the per-directory top-15 cut in the earlier chunk run); `t478_era_probe/test_probe.py::test_probe_reads_to_2024...` 14.0 s and `seq_learning_curve_2/test_job.py::test_smoke_matched_steps...` 13.8 s likewise. Add them to `SLOW_PREFIXES` if the fast set should shed another ~46 s.

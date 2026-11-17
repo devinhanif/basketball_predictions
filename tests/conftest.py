@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-# Load LightGBM's OpenMP runtime BEFORE anything can import torch. If a test module that imports
-# torch is collected first (tests/research/props/test_cli.py does, transitively), the first
-# LightGBM fit afterwards segfaults (reproduced 2026-11-16: `pytest tests/research/props` alone ->
-# "Fatal Python error: Segmentation fault" in lightgbm/basic.py). The whole suite happens to import
-# LightGBM first and was fine; this makes single-directory runs safe too.
-import lightgbm  # noqa: F401
 import pytest
+
+# LightGBM and torch each bundle an OpenMP runtime; real work with both in one process crashes on
+# macOS, and WHICH order is safe depends on what else is imported. Two measured facts (2026-11-16):
+#  * `pytest tests/research/props` alone: test_cli.py imports torch at collection, then the first
+#    LightGBM fit segfaults. Importing LightGBM first (below) fixes it; the whole suite is fine.
+#  * `pytest tests/research/models/test_rung4_stepheads.py` alone (the Makefile's second process):
+#    with LightGBM loaded first the torch training step segfaults, so that process must not preload
+#    (the `--ignore=...rung4...` of the first process does not count).
+if not any("rung4_stepheads" in a and not a.startswith("--ignore") for a in sys.argv):
+    import lightgbm  # noqa: F401
 
 
 @pytest.fixture(autouse=True)
