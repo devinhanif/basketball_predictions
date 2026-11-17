@@ -68,15 +68,17 @@ files); `docs/jarvis-gap-matrix.md`; `docs/jarvis-acceptance-checklist.md`; `doc
 
 | What | Before the follow-up | Now, switch OFF | Now, switch ON |
 |---|---|---|---|
-| Web tests (vitest) | 408 | LAST_WEB_OFF | LAST_WEB_ON |
+| Web tests (vitest) | 408 | 559 | 559 |
 | API tests | 560 | 604 passed, 1 skipped | 604 passed, 1 skipped |
 | Layering test | 10 | 15 | |
-| js bundle | 390,523 B | LAST_JS_OFF | LAST_JS_ON |
-| css | 76,308 B | LAST_CSS | same file |
-| Single-file artifact (fixtures bake) | 4,520,376 B | LAST_ART_OFF | LAST_ART_ON |
-| Route walk, 5 settings x 150 steps | 0 violations | LAST_WALK | |
-| Betting journey (real export, 375 and 1280, dark and light) | | | LAST_JOURNEY |
-| Visual check, structural layer | | LAST_VISUAL_OFF | LAST_VISUAL_ON |
+| Flag parity | | passed, 16 markers | |
+| js bundle | 390,523 B | 418,151 B | 584,495 B |
+| css | 76,308 B | 124,827 B | same file |
+| Single-file page, fixtures bake (at 0e1d18a3) | 4,520,376 B | 4,595,443 B | 4,761,601 B |
+| Single-file page, tonight's export | | 6,497,488 B | 6,663,830 B |
+| Route walk, 5 settings x 150 steps | 0 violations | 0 violations at all five settings (390, 390 with injected faults, 360, 768, 1180) | |
+| Betting journey (real export, 375 and 1280, dark and light) | | | passed, 98 steps |
+| Visual check, structural layer | | 120 captures (quick set), 0 with a gating finding | 148 captures (quick set), 0 with a gating finding |
 
 With the switch off the js grew by the new look and the shared components, not by betting code: flag parity finds no
 betting marker in either OFF bundle.
@@ -89,7 +91,10 @@ betting marker in either OFF bundle.
 - The kit's Admin, photo library, alerts and signals screens were not ported: the app already has its own, and the kit's
   metrics there are fixtures. Details per file in `docs/jarvis-donor-map.md`.
 - Pixel comparison is opt-in and local: baselines are not committed (the repo blocks binary files).
-- LAST_SKIPPED
+- The prop page keeps two separate lines (the line card's and the what-if lab's). They are now labelled as separate;
+  making them one changes what the lab starts from, so it is left for you.
+- The search palette has no entry for Prop analysis: the screen needs a prop to mean anything, so it opens from Compare
+  and from a slip leg.
 
 ## 5. Decisions proposed
 
@@ -114,7 +119,17 @@ sidebar and fixed bottom tabs; the first-run chooser inside the intro; betting p
 
 ## 7. Artifacts
 
-LAST_ARTIFACTS
+Built at 05:18 CST from the export made 2026-11-16 19:35 CST (nights 11-14, 11-15, 11-16), shared desk cut only (the bake
+never passes the money switch). Not published.
+
+```
+~/Downloads/parlayhitters-artifacts-2026-11-17/parlayhitters.html               6,497,488 B   switch OFF (what a friend gets)
+~/Downloads/parlayhitters-artifacts-2026-11-17/parlayhitters-betting-on.html    6,663,830 B   switch ON
+```
+
+Each is one file that opens from disk with no server. In the switch-ON file the stored quote snapshots are not included
+(they come from the API), and Compare says so and takes typed prices. Rebuild: `app/scripts/artifact.sh --export` and
+`app/scripts/artifact.sh --export --betting`.
 
 ## 8. Not verified
 
@@ -122,4 +137,5 @@ LAST_ARTIFACTS
 - The service worker's offline paths.
 - Cross-tab sync of the slip.
 - GitHub CI (nothing was pushed).
-- LAST_NOT_VERIFIED
+- The full visual set (360 captures off, 444 on) on the final tree: the quick set ran (120 and 148 captures).
+- Importing a file inside the single-file page (it needs a file chooser).
