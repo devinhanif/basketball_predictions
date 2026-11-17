@@ -3,7 +3,7 @@
 Integration branch `agent/integration-2026-11-17`, worktree `/Users/devin/Downloads/nba-wt-int-1117`. Nothing is merged
 to `main`, nothing is pushed. Times are Central.
 
-## Quickstart (verified 2026-11-16 18:50–19:00 CST)
+## Quickstart (verified 2026-11-16 18:48–18:56 CST)
 
 ```
 # API on fixtures (two 2024-25 nights)
@@ -46,9 +46,10 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
+- Lane F (docs) merged 19:06 CST as 60713af7: README, PROJECT_STATUS as of 11-16, drift fixes, root NEXT_SESSION.md removed. Markdown only; report `lane_docs.md`. Its drift list for code-adjacent files goes to lane E2.
 - Phase 0 (above), commit 72924903. Shared error-code registry seeded (`app/error_codes.json`), commit d5d9b058.
 
-## In progress (launched 19:00 CST, each in its own worktree, branched from d5d9b058)
+## In progress (A, B, D launched 18:57–18:59 CST, E1 and F by 19:01, each in its own worktree, branched from d5d9b058)
 | Lane | Branch | Worktree | Scope | Report |
 |---|---|---|---|---|
 | A | `agent/app-1117-api` | `~/Downloads/nba-wt-1117-api` | `app/api`: audit, contract/hostile/failure tests, validation layer, typed errors, request ids, file splits | `docs/handoff_2026-11-17/lane_api.md` |
@@ -69,7 +70,7 @@ for the replay oracle, for the end of the game window about 22:00 CST).
 2. Launch lane E (steward) when D finishes; launch lane C when B is merged.
 3. Replay oracle after 22:00 CST for any live-path change: holdout row first, DB copy under a scratch directory.
 
-## Auto-resume (Devin started it in a terminal about 19:25 CST on 11-16)
+## Auto-resume (Devin started it in a terminal about 19:04 CST on 11-16; if it was the one-shot with `sleep 14700`, it fires about 23:09 CST)
 A terminal command resumes this session headless (`claude --resume ... -p "Continue the autonomous run..."`), either once
 after a fixed wait or hourly until `REPORT.md` contains the line `RUN COMPLETE`. Rules for a resumed copy:
 1. First check whether the original session is still working: `pgrep -fl "nba-wt-1117"` and
@@ -82,7 +83,8 @@ after a fixed wait or hourly until `REPORT.md` contains the line `RUN COMPLETE`.
   integration worktree. They are plain foreground processes of the session; start them again with the quickstart.
 - Repo lint baseline: `ruff check .` finds 82 errors, 81 of them in three `research/scratch/gate_*.py` files and one in
   `app/fixtures/build_export_best_real.py`.
-- The Mac was on battery at 19:05 CST (90%). Power on game nights is Devin's item.
+- The Mac was on battery at about 18:58 CST (90%). Power on game nights is Devin's item.
 
 ## Failures and things not run
 - The repo-wide suites and the replay oracle have not been run yet (game window until about 22:00 CST).
+- Correction: times in earlier versions of this file were written from memory and ran up to 20 minutes fast. They now match commit times (`git log --date=format:%H:%M`).
