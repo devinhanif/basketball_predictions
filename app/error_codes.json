@@ -66,6 +66,15 @@
    "todo": "Choose another player or stat from the game page."
   },
   {
+   "code": "no_game_forecast",
+   "status": 404,
+   "side": "api",
+   "title": "No stored forecast for that game",
+   "what": "We hold no stored winner forecast for that game.",
+   "why": "The game is in the data, but no pre-tip winner forecast was stored for it, or none that the app shows.",
+   "todo": "Open the game from tonight's list, or pick another game."
+  },
+  {
    "code": "no_posted_line",
    "status": 404,
    "side": "api",

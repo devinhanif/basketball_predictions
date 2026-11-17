@@ -67,6 +67,7 @@ from .export_verify import (
 )
 from .forecast import reference_line
 from .history import STAT_ORDER, History
+from .honesty_data import Records, Scores, StripFacts, capture_records, load_scores, load_strip
 
 Json = dict[str, Any]
 log = logging.getLogger("parlayhitters")
@@ -126,6 +127,10 @@ class ExportStore:
                 not grids or "is_primary" in grids[0]
             )
             props = self._latest_props(grids)
+            # The honesty pages' sums and strip facts, read on this same verified connection;
+            # an absent table leaves them unavailable, never refuses the export.
+            self.scores: Scores = load_scores(con, have, self.manifest)
+            self.strip: StripFacts = load_strip(con, have)
             if "prop_lines" in have:
                 tables["prop_lines"] = _prop_lines_for(con, props)
             elif self.manifest["schema_version"] >= 2:
@@ -207,7 +212,11 @@ class ExportStore:
             for r in tables["injury_report"]
             if r["team_id"] is not None
         }
-        win = self._latest_win(tables["win_probs"])
+        win_rows = self._win_primary(tables["win_probs"])
+        win = self._latest_win(win_rows)
+        self.records: Records = capture_records(
+            tables["prop_grids"], props, tables["win_probs"], win_rows
+        )
         self.pplay = self._pplay(tables["p_play"], props)
         stamps = {k: _stamp_text(v) for k, v in props.items()}
         # The team the exporter recorded for each forecast (box row or prior game), by game+player.
@@ -287,9 +296,13 @@ class ExportStore:
         }  # fmt: skip
 
     @staticmethod
-    def _latest_win(rows: list[Json]) -> dict[str, Json]:
+    def _win_primary(rows: list[Json]) -> dict[str, Json]:
+        """The one game-winner row shown per game: latest, not comparison-only, primary first."""
         usable = [r for r in rows if r["is_latest"] and not r["comparison_only"]]
-        best = _pick_latest(usable, lambda r: r["game_id"], lambda r: bool(r["is_primary"]))
+        return _pick_latest(usable, lambda r: r["game_id"], lambda r: bool(r["is_primary"]))
+
+    @staticmethod
+    def _latest_win(best: dict[str, Json]) -> dict[str, Json]:
         out: dict[str, Json] = {}
         for gid, r in best.items():
             out[gid] = {
@@ -625,6 +638,9 @@ class ExportStore:
             raise ExportRefused(f"{PARLAY_NAME} is not a readable parlay file") from exc
         recs = p.get("records")
         self.parlay_records: list[Json] = recs if isinstance(recs, list) else []
+        self.parlay_raw: Json = {
+            k: p.get(k) for k in ("date", "source", "status", "verdict", "n_evaluated")
+        }
         status, verdict = p.get("status"), p.get("verdict")
         n, npos = int(p.get("n_evaluated", 0)), int(p.get("n_positive", 0))
         base: Json = {
