@@ -554,7 +554,7 @@ def test_requests_that_arrive_together_on_a_cold_start_load_the_data_once(
         return real()
 
     m.reset_store()
-    monkeypatch.setattr("parlayhitters_api.main.load_store", slow)
+    monkeypatch.setattr("parlayhitters_api.deps.load_store", slow)  # the cache lives in deps.py
     got: list[Any] = []
     threads = [threading.Thread(target=lambda: got.append(m.get_store())) for _ in range(6)]
     for t in threads:

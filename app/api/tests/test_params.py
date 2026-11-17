@@ -52,13 +52,14 @@ def test_bad_strings_are_refused_with_the_old_status(
 def test_a_malformed_date_is_refused_before_the_store_loads(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    import parlayhitters_api.deps as deps
     import parlayhitters_api.main as m
 
     def boom() -> object:
         raise AssertionError("the store was loaded for a request that should be refused first")
 
     m.reset_store()
-    monkeypatch.setattr(m, "load_store", boom)
+    monkeypatch.setattr(deps, "load_store", boom)
     assert client.get("/api/slates/not-a-date").json()["code"] == "not_a_date"
     assert client.get("/api/games/..%5C..%5Cetc").json()["code"] == "unknown_game"
     m.reset_store()
@@ -94,3 +95,22 @@ def test_top_parlays_refuses_a_file_that_points_outside_its_directory(tmp_path: 
     (base / "top_parlays_2024-01-01.json").symlink_to(outside)
     with pytest.raises(TopParlaysMissing):
         load_top_parlays("2024-01-01", base)
+
+
+def test_the_store_patch_point_is_the_one_get_store_uses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Guards the tests above: patching deps.load_store really reaches get_store."""
+    import parlayhitters_api.deps as deps
+    import parlayhitters_api.main as m
+
+    calls: list[int] = []
+
+    def fake() -> object:
+        calls.append(1)
+        raise RuntimeError("patched")
+
+    m.reset_store()
+    monkeypatch.setattr(deps, "load_store", fake)
+    with pytest.raises(RuntimeError, match="patched"):
+        m.get_store()
+    assert calls == [1]
+    m.reset_store()
