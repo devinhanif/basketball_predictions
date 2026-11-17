@@ -1273,3 +1273,16 @@ h1.answer {
   opacity: 1;
   color: var(--muted);
 }
+/* The drawer lives inside the sticky top bar; while it is open the bar rises above the bottom bar and everything else. */
+.topbar:has(.drawer-scrim) {
+  z-index: 65;
+}
+.sidebar .brand {
+  margin-bottom: 4px;
+  align-items: center;
+}
+.brand-words small {
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+}
