@@ -147,6 +147,39 @@ def _table(con: duckdb.DuckDBPyConnection, name: str) -> list[Json]:
     return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
 
 
+#: The prop_lines columns the app reads (``_quote`` and the run/prop key); nothing else is kept.
+PROP_LINE_COLS = (
+    "run_id", "game_id", "player_id", "stat", "book", "line", "side", "price_american",
+    "unusable", "unusable_reason", "is_alternate", "minutes_before_tip", "snapshot_ts",
+)  # fmt: skip
+
+
+def _prop_lines_for(
+    con: duckdb.DuckDBPyConnection, props: dict[tuple[str, int, str], Json]
+) -> list[Json]:
+    """Only the prop_lines rows a shown prop uses: its quote run (``lines_run_id``, else its own
+    run_id) and its game, player and stat; only the columns the app reads.
+
+    The same rows ``_quotes_by_prop`` would pick out of the whole table, selected in DuckDB
+    instead: the real table has about a million rows, and reading all of them as Python dicts
+    held about 1 GB at peak for a few hundred thousand used ones."""
+    keys = sorted({(pr.get("lines_run_id") or pr["run_id"], *k) for k, pr in props.items()})
+    if not keys:
+        return []
+    runs, gids, pids, stats = (list(col) for col in zip(*keys, strict=True))
+    cols = ", ".join(f'p."{c}"' for c in PROP_LINE_COLS)
+    cur = con.execute(
+        f"SELECT {cols} FROM prop_lines p JOIN ("  # noqa: S608 - fixed column names
+        "  SELECT unnest(?::VARCHAR[]) AS r, unnest(?::VARCHAR[]) AS g,"
+        "         unnest(?::INTEGER[]) AS pl, unnest(?::VARCHAR[]) AS s"
+        ") w ON p.run_id = w.r AND p.game_id = w.g AND p.player_id = w.pl AND p.stat = w.s"
+        " ORDER BY p.rowid",  # the table's own order, as a full read returns it
+        [runs, gids, [int(x) for x in pids], stats],
+    )
+    names = [d[0] for d in cur.description]
+    return [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
+
+
 def _lead_mean(player: Json) -> float:
     """The forecast mean used to order a team's players: points if he has them, else any stat."""
     props = player["props"]
@@ -302,15 +335,22 @@ class ExportStore:
             tables["teammate_sits"] = (
                 _table(con, "teammate_sits") if "teammate_sits" in have else []
             )
+            meta = {r["key"]: r["value"] for r in tables["meta"]}
+            # best_model_schema 1: prop_grids marks one primary row per prop and p_play carries
+            # the chance to play. An export without it keeps the old production-model choice.
+            grids = tables["prop_grids"]
+            self.best_model: bool = _schema_at_least_1(meta.get("best_model_schema")) and (
+                not grids or "is_primary" in grids[0]
+            )
+            props = self._latest_props(grids)
             if "prop_lines" in have:
-                tables["prop_lines"] = _table(con, "prop_lines")
+                tables["prop_lines"] = _prop_lines_for(con, props)
             elif self.manifest["schema_version"] >= 2:
                 raise ExportRefused("a schema 2 export has no prop_lines table")
             else:
                 tables["prop_lines"] = []
         finally:
             con.close()
-        meta = {r["key"]: r["value"] for r in tables["meta"]}
         if meta.get("made_at") != self.manifest["made_at"] or (
             meta.get("data_version", "") != (self.manifest.get("data_version") or "")
         ):
@@ -325,12 +365,6 @@ class ExportStore:
             int(r["season"]) == HOLDOUT_SEASON for r in tables["box_scores"]
         ):
             raise ExportRefused(f"box_scores holds season {HOLDOUT_SEASON}, the frozen holdout")
-        # best_model_schema 1: prop_grids marks one primary row per prop and p_play carries the
-        # chance to play. An export without it keeps the old production-model choice.
-        grids = tables["prop_grids"]
-        self.best_model: bool = _schema_at_least_1(meta.get("best_model_schema")) and (
-            not grids or "is_primary" in grids[0]
-        )
         self.sits_info: Json | None = (
             self.manifest["teammate_sits"]
             if isinstance(self.manifest.get("teammate_sits"), dict)
@@ -341,7 +375,7 @@ class ExportStore:
             self.sits_rows[str(r["game_id"])].append(r)
         self.made_at: str = self.manifest["made_at"]
         self.data_version: str = self.manifest["data_version"]
-        self._build(tables)
+        self._build(tables, props)
         self.parlay: Json = self._parlay()
         self.evidence: Json = {
             "available": False,
@@ -350,7 +384,9 @@ class ExportStore:
 
     # ------------------------------------------------------------------ building
 
-    def _build(self, tables: dict[str, list[Json]]) -> None:
+    def _build(
+        self, tables: dict[str, list[Json]], props: dict[tuple[str, int, str], Json]
+    ) -> None:
         # The export sometimes stores a placeholder ("Player 1643411") where it has no name. Show it
         # as what it is, not as something that looks like a name. No name is looked up elsewhere.
         self.names: dict[int, str] = {
@@ -386,7 +422,6 @@ class ExportStore:
             if r["team_id"] is not None
         }
         win = self._latest_win(tables["win_probs"])
-        props = self._latest_props(tables["prop_grids"])
         self.pplay = self._pplay(tables["p_play"], props)
         stamps = {k: _stamp_text(v) for k, v in props.items()}
         # The team the exporter recorded for each forecast (box row or prior game), by game+player.
