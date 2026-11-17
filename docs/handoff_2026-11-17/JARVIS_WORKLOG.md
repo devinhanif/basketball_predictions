@@ -78,6 +78,8 @@ rerun on 5b94a4ea (see REPORT_JARVIS.md section 3 for the last numbers).
 - Commits after 8a614f48 are documents only (`git diff --stat 8a614f48..HEAD`).
 - `REPORT_JARVIS.md` is final; decision rows 18 to 41 are in `DECISIONS_ROWS.md`; retro in
   `docs/reviews/retro_2026-11-17.md`. The completion line is in `REPORT.md` on both branches.
+- 07:24 CST: stopped this session's stale integration previews (8010, 8011, 5183, 5184) and four headless Chromes left
+  behind by lanes during the 01:30 walker hangs (their working directories were this run's worktrees and scratch folder).
 - Still running from this session, safe to stop: the previews (API 8012 + web 5185 switch off; API 8013 + web 5186
   switch on). `lsof -nP -tiTCP:5185 -sTCP:LISTEN` gives the PID to stop; the same for 5186, 8012, 8013.
 
