@@ -1,7 +1,7 @@
 UV := $(shell command -v uv 2>/dev/null)
 PY := python3
 
-.PHONY: parlay-chat setup test lint backtest smoke smoke-check report data-contract gate gate-local registry data-snapshot data-diff data-check
+.PHONY: parlay-chat setup test test-fast lint backtest smoke smoke-check report data-contract gate gate-local registry data-snapshot data-diff data-check colab-push colab-pull colab-status
 
 ## Install all dependencies (prefers uv, falls back to pip + venv).
 setup:
@@ -29,6 +29,16 @@ else
 	. .venv/bin/activate && pytest --ignore=$(RUNG4_TEST) --cov-fail-under=0
 	. .venv/bin/activate && pytest $(RUNG4_TEST) --cov-append --cov-fail-under=0
 	. .venv/bin/activate && coverage report --fail-under=70
+endif
+
+## Fast set: everything NOT marked `slow` (pyproject.toml markers), no coverage gate, one process.
+## What CI's `unit` job runs. The rung-4 torch file is marked slow, so it is excluded here and the
+## torch/lightgbm OpenMP deadlock cannot occur. `make test` above stays the full truth.
+test-fast:
+ifdef UV
+	uv run pytest -m "not slow" --no-cov -q
+else
+	. .venv/bin/activate && pytest -m "not slow" --no-cov -q
 endif
 
 ## Lint + format-check + type-check nba/ and research/.

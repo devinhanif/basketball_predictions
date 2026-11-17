@@ -44,6 +44,9 @@ include = ["nba*", "research*"]
 [tool.pytest.ini_options]
 addopts = "--cov=nba --cov=research --cov-report=term-missing --cov-fail-under=70"
 testpaths = ["tests"]
+markers = [
+  "slow: takes more than about 10 s (training loops, large fixtures, subprocess replays); excluded by `make test-fast` (-m 'not slow'), included by `make test`",
+]
 
 [tool.coverage.run]
 source = ["nba", "research"]

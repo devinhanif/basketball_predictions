@@ -26,3 +26,22 @@ def _isolate_schedule_cache(
     pass ``schedule_cache_dir``."""
     empty: Path = tmp_path_factory.mktemp("no_schedule_cache")
     monkeypatch.setattr("nba.daily.schedule.DEFAULT_SCHEDULE_CACHE_DIR", empty)
+
+
+# --- slow marker -------------------------------------------------------------------------------
+# Tests (or whole files / directories) measured at > ~10 s are marked `slow` HERE, centrally, so
+# `make test-fast` (-m "not slow") stays quick and no test file needs editing. Central on purpose:
+# tests/research/{pplay_minutes_valid,seq_learning_curve,seq_learning_curve_2} are in the
+# REVIEWED_PATHS of their frozen rules, so touching them (even a marker) would void the loader
+# review. A prefix ending in ".py" or "/" matches that file or directory; anything else matches a
+# test function (parametrized ids ignored). Re-measure with:
+#   uv run pytest --no-cov -q --durations=0 --durations-min=10
+# (details in docs/handoff_2026-11-17/lane_ci.md). A function prefix also matches longer names.
+SLOW_PREFIXES: tuple[str, ...] = ()
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    for item in items:
+        base = item.nodeid.split("[", 1)[0]
+        if any(base.startswith(p) for p in SLOW_PREFIXES):
+            item.add_marker(pytest.mark.slow)
