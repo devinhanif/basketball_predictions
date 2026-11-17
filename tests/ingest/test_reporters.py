@@ -505,7 +505,18 @@ def test_cli_month_cap_exits_2(
 
     monkeypatch.setenv(r.KEY_ENV, TOKEN)
     now = datetime.now(UTC)
-    tip = now.replace(tzinfo=None) + timedelta(minutes=60)
+    # The poll is slate-only: the game must fall on today's ET date. A tip 60 min ahead crosses ET
+    # midnight when this runs after 23:00 ET (a 22:12 CST run failed), so pull it in to +1 min
+    # there; within a minute of midnight no tip can stay on today's date, so skip.
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    lead = 60
+    if (now + timedelta(minutes=lead)).astimezone(et).date() != now.astimezone(et).date():
+        lead = 1
+    if (now + timedelta(minutes=lead)).astimezone(et).date() != now.astimezone(et).date():
+        pytest.skip("within a minute of ET midnight: no tip can share today's ET date")
+    tip = now.replace(tzinfo=None) + timedelta(minutes=lead)
     game = ScheduledGame("g", tip, TID["HOU"], TID["DAL"])
     monkeypatch.setattr("nba.daily.schedule.load_schedule_cache", lambda *a, **k: [game])
     calls: list[int] = []
