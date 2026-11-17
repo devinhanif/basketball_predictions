@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import type { Loaded } from "./api";
+import { failureOf, type ApiFailure } from "./errors";
 
 export type LoadState<T> =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; failure: ApiFailure }
   | { status: "ready"; data: T; fromCache: boolean };
 
 export function useLoad<T>(fn: () => Promise<Loaded<T>>, deps: unknown[]): [LoadState<T>, () => void] {
@@ -17,7 +18,7 @@ export function useLoad<T>(fn: () => Promise<Loaded<T>>, deps: unknown[]): [Load
         if (live) setState({ status: "ready", data: r.data, fromCache: r.fromCache });
       },
       (e: unknown) => {
-        if (live) setState({ status: "error", message: e instanceof Error ? e.message : String(e) });
+        if (live) setState({ status: "error", message: e instanceof Error ? e.message : String(e), failure: failureOf(e) });
       },
     );
     return () => {

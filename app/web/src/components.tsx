@@ -7,7 +7,8 @@ import { MIN_LEGS } from "./stats";
 import { teamColor } from "./teams";
 import type { PSource, PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
-import { errorCopy } from "./errors";
+import { failureFromMessage, reasonOf, technicalOf, type ApiFailure } from "./errors";
+import { ProblemPanel } from "./Problem";
 import { Icon } from "./icons";
 import { effectiveDark, setPref, usePrefs } from "./prefs";
 import { FOOTER_DISCLOSURE } from "./config";
@@ -104,52 +105,23 @@ export function Loading(props: { what?: string }) {
   );
 }
 
-export function ErrorPanel(props: { message: string; retry: () => void }) {
-  if (/^404 /.test(props.message)) {
-    return (
-      <div class="panel error" role="alert">
-        <h1>We could not find that page</h1>
-        <p>
-          The link points to a game, player or stat we do not have, perhaps from an older night.
-          Nothing is broken.
-        </p>
-        {import.meta.env.DEV ? (
-          <p class="muted small">
-            Technical detail: <span class="mono">{props.message}</span>
-          </p>
-        ) : null}
-        <a class="btn" href="#/">
-          Back to today
-        </a>
-      </div>
-    );
-  }
-  const copy = errorCopy(props.message, import.meta.env.DEV);
+/**
+ * The failure screen for a load: the registry's words for the failure's code, a refusal's own reason, the code and
+ * the server's reference id, Try again, and a way home. `failure` is the typed result; screens that only kept the old
+ * message string get it read back from the message.
+ */
+export function ErrorPanel(props: { message: string; retry: () => void; failure?: ApiFailure; level?: 1 | 2 }) {
+  const f = props.failure ?? failureFromMessage(props.message);
   return (
-    <div class="panel error" role="alert">
-      <h1>{copy.title}</h1>
-      <p>{copy.body}</p>
-      {copy.reason ? (
-        <p>
-          Reason: <span class="mono">{copy.reason}</span>
-        </p>
-      ) : null}
-      {copy.devHint ? (
-        <p class="muted small">
-          Development build: start the API with <code>uv run uvicorn parlayhitters_api.main:app --app-dir src</code> in{" "}
-          <code>app/api</code>.
-        </p>
-      ) : null}
-      <details class="explain">
-        <summary>Technical detail</summary>
-        <div class="explain-body">
-          <span class="mono">{props.message}</span>
-        </div>
-      </details>
-      <button type="button" class="btn" onClick={props.retry}>
-        Try again
-      </button>
-    </div>
+    <ProblemPanel
+      code={f.code}
+      reason={reasonOf(f)}
+      requestId={f.requestId}
+      detail={technicalOf(f)}
+      retry={f.status === 404 ? null : props.retry}
+      level={props.level}
+      note={import.meta.env.DEV && f.status === null ? "Development build: start the API with uv run uvicorn parlayhitters_api.main:app --app-dir src in app/api." : null}
+    />
   );
 }
 
@@ -215,7 +187,7 @@ export function View<T>(props: {
     onStale?.(stale);
   }, [stale, onStale]);
   if (state.status === "loading") return <Loading what={props.what} />;
-  if (state.status === "error") return <ErrorPanel message={state.message} retry={props.reload} />;
+  if (state.status === "error") return <ErrorPanel message={state.message} failure={state.failure} retry={props.reload} />;
   return <>{props.children(state.data)}</>;
 }
 

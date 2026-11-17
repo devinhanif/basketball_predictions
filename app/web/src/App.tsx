@@ -25,6 +25,7 @@ import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
 import { IS_ARTIFACT } from "./env";
 import { NotFound } from "./Problem";
+import { failureOf, reasonOf } from "./errors";
 
 export function App() {
   const route = useRoute();
@@ -48,8 +49,14 @@ export function App() {
         );
         if (r.fromCache) setStale(true);
       },
-      () => {
-        setNote("The data server is not answering, so what you see may be old. Nothing here is advice.");
+      (e: unknown) => {
+        const f = failureOf(e);
+        const reason = reasonOf(f);
+        setNote(
+          reason !== null
+            ? `Today's data failed its checks, so it is not shown: ${reason}. Nothing here is advice.`
+            : "The data server is not answering, so what you see may be old. Nothing here is advice.",
+        );
       },
     );
   }, []);

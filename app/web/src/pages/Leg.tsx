@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { Avatar } from "../Avatar";
 import { CalTag, ErrorPanel, Explain, Loading, ModeToggle } from "../components";
+import { failureMessage, failureOf, type ApiFailure } from "../errors";
 import { IS_ARTIFACT } from "../env";
 import { edgeLine, nearestFirst, contractSide } from "../edges";
 import { useLens, useMode, type Lens } from "../prefs";
@@ -857,7 +858,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   const [side, setSide] = useState<Side>(props.side);
   const [data, setData] = useState<LegBreakdown | null>(null);
   const [bounds, setBounds] = useState<{ min: number; max: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiFailure | null>(null);
   const [pending, setPending] = useState(true);
   const [tick, setTick] = useState(0);
   const mode = useMode();
@@ -882,7 +883,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
           },
           (e: unknown) => {
             if (!live) return;
-            setError(e instanceof Error ? e.message : String(e));
+            setError(failureOf(e));
             setPending(false);
           },
         );
@@ -904,7 +905,8 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   if (error && !data) {
     return (
       <ErrorPanel
-        message={error}
+        message={failureMessage(error)}
+        failure={error}
         retry={() => {
           setTick((x) => x + 1);
         }}

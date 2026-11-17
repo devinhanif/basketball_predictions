@@ -173,7 +173,12 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
         {(raw) => {
           const slates = chronological(raw);
           const date = props.date ?? defaultNight(slates);
-          return date ? <Night date={date} nights={slates.map((s) => s.date)} onStale={props.onStale} /> : <p>No nights are loaded.</p>;
+          return date ? <Night date={date} nights={slates.map((s) => s.date)} onStale={props.onStale} /> : (
+            <div class="panel empty" role="status">
+              <h1>No nights are loaded</h1>
+              <p>This copy of the data holds no slates, so there is nothing to show yet. Nothing is broken; check back after the nightly run.</p>
+            </div>
+          );
         }}
       </View>
     </div>
