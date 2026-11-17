@@ -30,7 +30,8 @@ export interface ApiQuote {
   quote_id: string | number;
   provider: string;
   side: "over" | "under";
-  price_american: number;
+  /** Null on an unusable quote (shown as unavailable with its reason, never as a price). */
+  price_american: number | null;
   implied_prob_raw: number | null;
   snapshot_utc: string;
   minutes_before_tip: number | null;
@@ -38,6 +39,14 @@ export interface ApiQuote {
   usable: boolean;
   unusable_reason: string | null;
 }
+/** GET /api/betting/slate/{date}: one night's props with stored quotes (home/away are team abbreviations). */
+export interface ApiSlate {
+  date: string;
+  as_of: string;
+  games: { game_id: string; home: string; away: string; tip_utc?: string }[];
+  props: { game_id: string; player_id: number; player: string; team: string; stat: string; n_providers: number; n_lines: number }[];
+}
+
 export interface ApiBoard {
   game_id: string;
   date: string;
@@ -53,7 +62,8 @@ export interface ApiBoard {
   provenance: "delayed";
   lines: { line: number; quotes: ApiQuote[] }[];
   providers_absent: string[];
-  model_ref: { props: unknown; source: string } | null;
+  /** `props` is the existing props path with ids filled in; that route still needs ?line=<line> appended. */
+  model_ref: { props: string; source: string } | null;
   unknown: string[];
   note: string;
 }
@@ -177,6 +187,8 @@ export interface StoredBoard {
   readonly unusable: readonly { provider: string; reason: string }[];
   /** Lines the export carries for this player and stat (to offer when the chosen line has no stored price). */
   readonly lines: readonly number[];
+  /** The export's own note (on a source with no stored quotes it says so); shown with the empty state. */
+  readonly note: string;
 }
 
 /** A zone-explicit ISO instant for a stored time (stored naive times are UTC), or null. */
@@ -192,7 +204,7 @@ function instant(s: string | null | undefined): string | null {
 export function centsFromAmerican(q: Pick<ApiQuote, "price_american" | "implied_prob_raw">): number | null {
   if (q.implied_prob_raw !== null && isFiniteIn(q.implied_prob_raw, 0.0001, 1)) return Math.round(q.implied_prob_raw * 1e8) / 1e6;
   const o = q.price_american;
-  if (!Number.isFinite(o) || Math.abs(o) < 100) return null;
+  if (o === null || !Number.isFinite(o) || Math.abs(o) < 100) return null;
   return Math.round((o > 0 ? 10000 / (o + 100) : (-o * 100) / (-o + 100)) * 1e6) / 1e6;
 }
 
@@ -207,7 +219,7 @@ export function storedBoard(board: ApiBoard, market: Market, side: Side, provide
   const row = board.lines.find((l) => l.line === market.line);
   for (const q of row?.quotes ?? []) {
     if (q.side !== want) continue;
-    if (!q.usable) {
+    if (!q.usable || q.price_american === null) {
       unusable.push({ provider: q.provider, reason: q.unusable_reason ?? "marked unusable by the export" });
       continue;
     }
@@ -227,5 +239,5 @@ export function storedBoard(board: ApiBoard, market: Market, side: Side, provide
     }
   }
   const built = buildCatalog({ providers, markets: [market], quotes });
-  return { catalog: built.catalog, rejected: built.rejected, unusable, lines: board.lines.map((l) => l.line) };
+  return { catalog: built.catalog, rejected: built.rejected, unusable, lines: board.lines.map((l) => l.line), note: board.note };
 }

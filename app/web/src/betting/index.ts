@@ -7,6 +7,7 @@
 // check proves the OFF build leaves it out.
 import { h } from "preact";
 import { BetPlaceholder } from "./Placeholder";
+import { SlipPage, SlipPanel } from "./Slip";
 import { BET_PREFIX, type BetRoute, type BettingModule, type BettingNavEntry, type BettingRouteDef } from "./seam";
 
 export type { AddToSlipProps, BetRoute, BettingModule, BettingNavEntry, BettingRouteDef, ShellPanelProps } from "./seam";
@@ -17,7 +18,10 @@ export function betHref(path: string = ""): string {
   return path === "" ? `#/${BET_PREFIX}` : `#/${BET_PREFIX}/${path}`;
 }
 
-const ROUTES: readonly BettingRouteDef[] = [{ path: "", title: "Betting tools", render: () => h(BetPlaceholder, null) }];
+const ROUTES: readonly BettingRouteDef[] = [
+  { path: "", title: "Betting tools", render: () => h(BetPlaceholder, null) },
+  { path: "slip", title: "Your rolling slip", render: () => h(SlipPage, null) },
+];
 
 const NAV: readonly BettingNavEntry[] = [
   {
@@ -28,13 +32,21 @@ const NAV: readonly BettingNavEntry[] = [
     words: "bet slip compare",
     marketOnly: true,
   },
+  {
+    href: "#/bet/slip",
+    label: "Your slip",
+    icon: "picks",
+    sub: "Planned legs, recorded positions, cost and every listed outcome",
+    words: "slip rolling legs placed",
+    marketOnly: true,
+  },
 ];
 
 export const BETTING_MODULE: BettingModule = {
   routes: ROUTES,
   nav: NAV,
   AddToSlip: () => null,
-  ShellPanel: () => null,
+  ShellPanel: (props) => h(SlipPanel, props),
 };
 
 /** The registered screen for a route, if there is one. */

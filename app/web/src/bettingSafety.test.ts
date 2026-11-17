@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { BETTING, BETTING_ENV_NAME } from "./features";
 import { parse } from "./router";
+import { BETTING_MODULE } from "./betting";
 
 const SRC = fileURLToPath(new URL(".", import.meta.url));
 const APP = join(SRC, "..", "..");
@@ -157,8 +158,16 @@ describe(`the #/bet prefix (switch ${BETTING ? "ON" : "OFF"} in this run)`, () =
     expect(parse("#/bet/")).toEqual(BETTING ? { name: "bet", path: [], query: "" } : { name: "notfound", hash: "#/bet/" });
   });
 
-  it("every other #/bet... address is not-found in both states (no screen is registered for it yet), and none throws", () => {
-    for (const h of hostile) expect(parse(h), h).toEqual({ name: "notfound", hash: h });
+  it("every other #/bet... address is not-found in both states unless it names a registered screen (then it parses only with the switch on), and none throws", () => {
+    const registered = new Set(BETTING_MODULE.routes.map((r) => r.path).filter((p) => p !== ""));
+    for (const h of hostile) {
+      const m = /^#\/bet\/([a-z]{1,24})(?:\?(.*))?$/.exec(h);
+      const seg = m?.[1];
+      if (BETTING && seg !== undefined && registered.has(seg)) expect(parse(h), h).toEqual({ name: "bet", path: [seg], query: m?.[2] ?? "" });
+      else expect(parse(h), h).toEqual({ name: "notfound", hash: h });
+    }
+    // Still not-found whatever is registered: a second segment, capitals, encodings, an unknown name.
+    for (const h of ["#/bet/a/b", "#/BET", "#/bet/zzz", "#/bet/%2e%2e", "#/bets"]) expect(parse(h), h).toEqual({ name: "notfound", hash: h });
   });
 
   it("existing routes are untouched, including the Hedge Finder", () => {

@@ -4,6 +4,10 @@
     "Betting tools: analysis only, not advice, no orders are placed. Nothing is built here yet.",
     "/api/betting",
     "#/bet",
-    "ph-bet"
+    "ph-bet",
+    "ph.betting.workspace",
+    "Analysis only, not advice: no orders are placed.",
+    "Your rolling slip",
+    "Mark slip as placed"
   ]
 }
