@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import statistics
 from collections import defaultdict
@@ -44,6 +45,7 @@ from .forecast import reference_line
 from .history import STAT_ORDER, History
 
 Json = dict[str, Any]
+log = logging.getLogger("parlayhitters")
 
 SCHEMA_VERSIONS = (1, 2)
 DB_NAME = "export.duckdb"
@@ -311,7 +313,13 @@ class ExportStore:
         self.root = Path(directory)
         self._now = now or (lambda: datetime.now(UTC))
         self.manifest: Json = verify(self.root)
-        con = duckdb.connect(str(self.root / DB_NAME), read_only=True)
+        try:
+            con = duckdb.connect(str(self.root / DB_NAME), read_only=True)
+        except duckdb.Error as exc:
+            # The checksum matched, so the file is what the exporter wrote, but DuckDB cannot open
+            # it. Refused (503), not a crash; the reason names the error kind, never a path.
+            log.warning("export.duckdb cannot be opened: %s", exc)
+            raise ExportRefused(f"export.duckdb cannot be opened ({type(exc).__name__})") from exc
         try:
             tables = {
                 t: _table(con, t)
@@ -349,6 +357,9 @@ class ExportStore:
                 raise ExportRefused("a schema 2 export has no prop_lines table")
             else:
                 tables["prop_lines"] = []
+        except duckdb.Error as exc:  # a table or column the app needs is missing or unreadable
+            log.warning("export.duckdb could not be read: %s", exc)
+            raise ExportRefused(f"export.duckdb could not be read ({type(exc).__name__})") from exc
         finally:
             con.close()
         if meta.get("made_at") != self.manifest["made_at"] or (
@@ -830,7 +841,13 @@ class ExportStore:
     # ------------------------------------------------------------------ parlay
 
     def _parlay(self) -> Json:
-        p = json.loads((self.root / PARLAY_NAME).read_text(encoding="utf-8"))
+        try:
+            p = json.loads((self.root / PARLAY_NAME).read_text(encoding="utf-8"))
+            if not isinstance(p, dict):
+                raise ValueError("not a JSON object")
+            _ = (int(p.get("n_evaluated", 0)), int(p.get("n_positive", 0)))  # counts are integers
+        except (OSError, ValueError, TypeError) as exc:
+            raise ExportRefused(f"{PARLAY_NAME} is not a readable parlay file") from exc
         recs = p.get("records")
         self.parlay_records: list[Json] = recs if isinstance(recs, list) else []
         status, verdict = p.get("status"), p.get("verdict")
