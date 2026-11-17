@@ -156,6 +156,15 @@
    "todo": "Try again in a minute."
   },
   {
+   "code": "no_parlay_check",
+   "status": 404,
+   "side": "api",
+   "title": "No parlay check stored for that night",
+   "what": "The parlay engine's records for that date are not in the data we hold.",
+   "why": "The data holds the engine's records for one night only, the night of the latest export.",
+   "todo": "Open the parlay page from the home screen."
+  },
+  {
    "code": "export_refused",
    "status": 503,
    "side": "api",

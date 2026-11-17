@@ -62,6 +62,7 @@ ROUTES: list[tuple[str, tuple[str, ...], dict[str, str]]] = [
     ("/api/distribution/{game_id}/{player_id}/{stat}", ("game_id", "player_id", "stat"), {}),
     ("/api/scorecard", (), {"target": "props", "stat": "pts"}),
     ("/api/forward-tests", (), {}),
+    ("/api/parlay-diagnostics/{date}", ("date",), {"offset": "0", "limit": "100"}),
 ]
 
 #: The name a refusal must give for each parameter (the live routes' path names).
