@@ -13,6 +13,8 @@ import { activeLegs, evaluateDraft, type SlipEvaluation } from "./slipModel";
 import { scopeLabel } from "./store";
 import type { SlipPick, SlipWorkspace } from "./types";
 import { compareHashFor } from "./viewModel";
+import { localId } from "./ids";
+import { ideaHref } from "./Ideas";
 import { CoverageBlock, LegCard, MarketGate, MoneyNote, OutcomeTable, SaveState, Warnings, marketWords, money, providerLabel } from "./parts";
 import { isSlipPage, slipPanelPlan } from "./panel";
 import { RAIL_MIN, dismissNotice, ensureBetStyles, say, setPanelOpen, useBet, useHash, useNotices, useNow, usePanelOpen, useWide, type BetHook } from "./useBet";
@@ -107,7 +109,7 @@ function Notes(props: { bet: Ready; ws: SlipWorkspace }) {
   return (
     <details class="ph-bet-notes" open={d.title !== "" || d.thesis !== "" ? true : undefined}>
       <summary>The thinking behind this slip</summary>
-      <p class="small muted">Kept with the slip in this browser. Saving it as an idea comes with the Ideas screen.</p>
+      <p class="small muted">Kept with the slip in this browser, and saved with it when you save the slip as an idea.</p>
       <label>
         <span>Title</span>
         <input key={`t${d.title}`} maxLength={200} defaultValue={d.title} placeholder="e.g. Cover my rebound over" onChange={(e) => { set({ title: e.currentTarget.value }); }} />
@@ -121,6 +123,46 @@ function Notes(props: { bet: Ready; ws: SlipWorkspace }) {
         <input key={`g${d.tags.join(",")}`} defaultValue={d.tags.join(", ")} placeholder="hedge, rotation" onChange={(e) => { set({ tags: e.currentTarget.value.split(",") }); }} />
       </label>
     </details>
+  );
+}
+
+/** Saves the working slip as an idea: an independent snapshot of every included leg and its price, taken now. */
+function SaveIdea(props: { bet: Ready; ws: SlipWorkspace }) {
+  const [status, setStatus] = useState<"watching" | "paper">("watching");
+  const [saved, setSaved] = useState<string | null>(null);
+  if (!activeLegs(props.ws.draft).length) return null;
+  return (
+    <section class="ph-bet-saveidea" aria-labelledby="ph-bet-saveidea-h">
+      <h2 class="ph-bet-h" id="ph-bet-saveidea-h">
+        Save as an idea
+      </h2>
+      <p class="small muted">The idea keeps the title, thesis and tags above with a frozen copy of every included leg and its price as it is now. Later price changes and edits to the slip never reach it.</p>
+      <div class="row wrap ph-bet-saverow">
+        <label>
+          <span>Status</span>
+          <select value={status} onChange={(e) => { setStatus(e.currentTarget.value === "paper" ? "paper" : "watching"); }}>
+            <option value="watching">Watching</option>
+            <option value="paper">Paper (tracking it as if placed)</option>
+          </select>
+        </label>
+        <Button
+          kind="primary"
+          onClick={() => {
+            const id = localId("idea");
+            void props.bet.actions.saveIdea({ id, status }).then((d) => {
+              if (say(d, "Idea")) setSaved(id);
+            });
+          }}
+        >
+          Save as an idea
+        </Button>
+      </div>
+      {saved ? (
+        <p class="small" role="status">
+          Saved. <a href={ideaHref(saved)}>Open the idea</a> or <a href="#/bet/ideas">see all ideas</a>.
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -364,6 +406,7 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
       {props.compact ? null : (
         <>
           <Notes bet={bet} ws={ws} />
+          <SaveIdea bet={bet} ws={ws} />
           <SlipTools bet={bet} ws={ws} />
         </>
       )}

@@ -2,10 +2,11 @@
 // LocalWorkspacePort under the viewer's scope. Edits run one at a time (a quick second edit waits for the first save
 // instead of being dropped). A failed save keeps the edit on screen, marked unsaved, with retry and discard; an invalid
 // import changes nothing. No network: every action here writes to the injected browser storage and nowhere else.
-import { addPick, addQuote, addRecordedLeg, markPlaced, putManualQuote, removeLeg, removePick, replacePlannedQuote, setEntry, setLegAmount, setNotes, settlePicks, toggleLeg } from "./slipModel";
+import { addPick, addQuote, addRecordedLeg, loadIdea, markPlaced, putManualQuote, recordOutcomes, removeIdea, removeLeg, removePick, replacePlannedQuote, saveIdea, setEntry, setLegAmount, setNotes, settlePicks, toggleLeg } from "./slipModel";
+import { mergeIdeasFile } from "./ideaModel";
 import { createSlipSession, LocalWorkspacePort, scopeId, SLIP_CODEC, type RepoCode, type StorageLike, type WorkspaceScope, type WorkspaceSession } from "./repository";
 import { sampleWorkspace } from "./sample";
-import type { EntryTerms, Market, Quote, Side, SlipDraft, SlipWorkspace } from "./types";
+import type { EntryTerms, IdeaStatus, Market, Quote, Side, SlipDraft, SlipWorkspace } from "./types";
 import { localId } from "./ids";
 
 export interface BetView {
@@ -180,6 +181,36 @@ export function betActions(store: BetStore, nowIso: () => string) {
     /** Replaces the working slip with the labelled demo (ideas, typed prices and picks stay). */
     loadDemo: () => store.edit((ws) => withDraft(ws, sampleWorkspace().draft, "Loaded the labelled demo. Every price in it is an invented sample.")),
     clearDraft: () => store.edit((ws) => withDraft(ws, { ...ws.draft, legs: [] }, "The working slip is empty. Saved ideas are unchanged.")),
+    /** Saves the working slip as an idea: an independent frozen snapshot of every leg and price, taken now. */
+    saveIdea: (opts: { id: string; status: "watching" | "paper"; title?: string }) =>
+      store.edit((ws) => {
+        const r = saveIdea(ws, { now: nowIso(), status: opts.status, id: opts.id, ...(opts.title !== undefined ? { title: opts.title } : {}) });
+        return r.ok ? { ok: true, workspace: r.workspace, text: "Saved as an idea. Its prices are frozen as they are now; later price changes never reach it." } : fail(r);
+      }),
+    /** Replaces the working slip with a copy of the idea (the idea itself is unchanged). */
+    loadIdea: (ideaId: string) =>
+      store.edit((ws) => {
+        const r = loadIdea(ws, ideaId);
+        return r.ok ? { ok: true, workspace: r.workspace, text: "A copy of the idea is now your working slip. The saved idea is unchanged." } : fail(r);
+      }),
+    removeIdea: (ideaId: string) =>
+      store.edit((ws) => {
+        const r = removeIdea(ws, ideaId);
+        return r.ok ? { ok: true, workspace: r.workspace, text: "Idea deleted from this browser." } : fail(r);
+      }),
+    /** The viewer's own paper outcomes (never a venue's settlement); "settled" needs every market. */
+    recordOutcomes: (ideaId: string, outcomes: Readonly<Record<string, Side>>, voids: readonly string[], status: IdeaStatus) =>
+      store.edit((ws) => {
+        const r = recordOutcomes(ws, ideaId, outcomes, status, voids);
+        return r.ok ? { ok: true, workspace: r.workspace, text: status === "settled" ? "Paper result recorded from the outcomes you entered." : "Saved. The idea stays open." } : fail(r);
+      }),
+    /** Adds the ideas from an ideas file; an invalid file changes nothing and says why. */
+    importIdeas: (text: string) =>
+      store.edit((ws) => {
+        const r = mergeIdeasFile(ws, text);
+        if (!r.ok) return { ok: false, code: r.code, text: r.text };
+        return { ok: true, workspace: r.workspace, text: `${String(r.added)} ${r.added === 1 ? "idea" : "ideas"} added${r.skipped ? `; ${String(r.skipped)} already here and left as they were` : ""}.` };
+      }),
   };
 }
 

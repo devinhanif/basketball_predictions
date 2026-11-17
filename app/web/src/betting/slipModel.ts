@@ -463,20 +463,27 @@ export function ideaMarketIds(idea: Pick<SlipDraft, "legs">): string[] {
 }
 
 /**
- * Records the viewer's own outcome for an idea (a paper result, never a provider settlement). "settled" needs an outcome
- * for every active market; "paper" or "watching" reopens it and may clear them.
+ * Records the viewer's own outcome for an idea (a paper result, never a provider settlement): for each active market the
+ * side that happened, or "void" in `voids`. "settled" needs every active market recorded one way or the other; "paper" or
+ * "watching" keeps it open (and may hold some or none).
  */
-export function recordOutcomes(ws: SlipWorkspace, ideaId: string, outcomes: Readonly<Record<string, Side>>, status: IdeaStatus): IdeaEdit {
+export function recordOutcomes(ws: SlipWorkspace, ideaId: string, outcomes: Readonly<Record<string, Side>>, status: IdeaStatus, voids: readonly string[] = []): IdeaEdit {
   const idea = ws.ideas.find((i) => i.id === ideaId);
   if (!idea) return { ok: false, code: "not_found", text: "That idea is not saved here." };
   const ids = ideaMarketIds(idea);
   const clean: Record<string, Side> = {};
+  const voided: string[] = [];
   for (const id of ids) {
-    const s = outcomes[id];
-    if (s !== undefined) clean[id] = s;
+    if (voids.includes(id)) voided.push(id);
+    else {
+      const s = outcomes[id];
+      if (s !== undefined) clean[id] = s;
+    }
   }
-  if (status === "settled" && Object.keys(clean).length !== ids.length) return { ok: false, code: "outcomes_incomplete", text: "Record an outcome for every market in the idea before settling it." };
-  const next: SavedIdea = frozenCopy({ ...idea, status, outcomes: clean });
+  if (status === "settled" && Object.keys(clean).length + voided.length !== ids.length) return { ok: false, code: "outcomes_incomplete", text: "Record an outcome (or void) for every market in the idea before settling it." };
+  if (status === "settled" && !evaluateDraft(idea, { now: instantMs(idea.createdAt) }).complete) return { ok: false, code: "outcomes_incomplete", text: "This saved idea is incomplete (an unknown fee or an unfinished entry), so it cannot be settled. Load a copy into the slip, finish it and save it again." };
+  const rest = Object.fromEntries(Object.entries(idea).filter(([k]) => k !== "voids")) as unknown as SavedIdea;
+  const next: SavedIdea = frozenCopy({ ...rest, status, outcomes: clean, ...(voided.length ? { voids: voided } : {}) });
   return { ok: true, workspace: { ...ws, ideas: ws.ideas.map((i) => (i.id === ideaId ? next : i)) } };
 }
 
@@ -557,11 +564,15 @@ function checkIdea(v: unknown, path: string): Check<SavedIdea> {
   const ids = ideaMarketIds(d.value);
   const allIds = new Set(d.value.legs.map((l) => l.market.id));
   for (const [k, s] of Object.entries(outcomes)) if (!allIds.has(k) || !isSide(s)) return bad(`outcome for ${k} is not a market in this idea or not yes/no`, ".outcomes");
+  const rawVoids = o["voids"] ?? [];
+  if (!Array.isArray(rawVoids) || !(rawVoids as unknown[]).every((v) => typeof v === "string" && allIds.has(v))) return bad("voids must list markets in this idea", ".voids");
+  const voids = [...new Set(rawVoids as string[])];
+  if (voids.some((v) => outcomes[v] !== undefined)) return bad("a market cannot be both void and decided", ".voids");
   if (status === "settled") {
     if (!evaluateDraft(d.value, { now: instantMs(o["createdAt"]) }).complete) return bad("a settled idea must be complete", "");
-    if (!ids.every((id) => isSide(outcomes[id]))) return bad("a settled idea needs an outcome for every active market", ".outcomes");
+    if (!ids.every((id) => isSide(outcomes[id]) || voids.includes(id))) return bad("a settled idea needs an outcome for every active market", ".outcomes");
   }
-  return { ok: true, value: { ...d.value, id: o["id"], createdAt: o["createdAt"], status, outcomes: { ...(outcomes as Record<string, Side>) } } };
+  return { ok: true, value: { ...d.value, id: o["id"], createdAt: o["createdAt"], status, outcomes: { ...(outcomes as Record<string, Side>) }, ...(voids.length ? { voids } : {}) } };
 }
 
 export type WorkspaceCheck = Result<{ workspace: SlipWorkspace }, "invalid_data">;

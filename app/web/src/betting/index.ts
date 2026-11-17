@@ -11,6 +11,7 @@ import { AddToSlip } from "./AddToSlip";
 import { ComparePage } from "./Compare";
 import { HedgePage } from "./Hedge";
 import { SlipPage, SlipPanel } from "./Slip";
+import { IdeasPage } from "./Ideas";
 import { BET_PREFIX, type BetRoute, type BettingModule, type BettingNavEntry, type BettingRouteDef } from "./seam";
 
 export type { AddToSlipProps, BetRoute, BettingModule, BettingNavEntry, BettingRouteDef, ShellPanelProps } from "./seam";
@@ -26,6 +27,7 @@ const ROUTES: readonly BettingRouteDef[] = [
   { path: "slip", title: "Your rolling slip", render: () => h(SlipPage, null) },
   { path: "compare", title: "Compare venues", render: (r) => h(ComparePage, { route: r }) },
   { path: "hedge", title: "Slip Hedge Finder", render: (r) => h(HedgePage, { route: r }) },
+  { path: "ideas", title: "Saved ideas", param: true, render: (r) => h(IdeasPage, { route: r }) },
 ];
 
 const NAV: readonly BettingNavEntry[] = [
@@ -54,6 +56,14 @@ const NAV: readonly BettingNavEntry[] = [
     marketOnly: true,
   },
   {
+    href: "#/bet/ideas",
+    label: "Saved ideas",
+    icon: "book",
+    sub: "Slips saved with a thesis: prices frozen when saved, paper outcomes you record",
+    words: "ideas thesis saved notebook outcomes paper",
+    marketOnly: true,
+  },
+  {
     href: "#/bet/slip",
     label: "Your slip",
     icon: "picks",
@@ -70,10 +80,16 @@ export const BETTING_MODULE: BettingModule = {
   ShellPanel: () => h(SlipPanel, null),
 };
 
+/** An id segment a screen with `param` takes: plain letters, digits and - _ . : (local ids are uuids). */
+const PARAM = /^[A-Za-z0-9_.:-]{1,160}$/;
+
 /** The registered screen for a route, if there is one. */
 export function betRouteDef(route: BetRoute): BettingRouteDef | null {
-  const key = route.path.join("/");
-  return BETTING_MODULE.routes.find((r) => r.path === key) ?? null;
+  const [first = "", second] = route.path;
+  const def = BETTING_MODULE.routes.find((r) => r.path === first) ?? null;
+  if (def === null || route.path.length > 2) return null;
+  if (second === undefined) return def;
+  return def.param === true && PARAM.test(second) ? def : null;
 }
 
 /**
@@ -81,7 +97,7 @@ export function betRouteDef(route: BetRoute): BettingRouteDef | null {
  * registered screens parse; a segment is plain lowercase letters, and the query is short and free of control characters.
  */
 export function parseBet(rest: readonly string[], query: string): BetRoute | null {
-  if (rest.length > 1 || rest.some((s) => !/^[a-z]{1,24}$/.test(s))) return null;
+  if (rest.length > 2 || (rest[0] !== undefined && !/^[a-z]{1,24}$/.test(rest[0]))) return null;
   // eslint-disable-next-line no-control-regex -- the point is to refuse control characters
   if (query.length > 200 || /[\u0000-\u001f\u007f]/.test(query)) return null;
   const route: BetRoute = { name: "bet", path: rest, query };
@@ -91,7 +107,8 @@ export function parseBet(rest: readonly string[], query: string): BetRoute | nul
 /** The breadcrumb under "Betting tools" for a route (none for #/bet itself). */
 export function betCrumbs(route: BetRoute): string[] {
   const def = betRouteDef(route);
-  return def === null || def.path === "" ? ["Betting tools"] : ["Betting tools", def.title];
+  if (def === null || def.path === "") return ["Betting tools"];
+  return route.path.length > 1 ? ["Betting tools", def.title, "Idea"] : ["Betting tools", def.title];
 }
 
 /** The page for a parsed betting route (parseBet only returns registered ones). */

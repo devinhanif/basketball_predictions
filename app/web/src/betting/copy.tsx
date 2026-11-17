@@ -31,6 +31,11 @@ export const TITLE_HOME = "Betting tools";
 export const TITLE_SLIP = "Your rolling slip";
 export const TITLE_COMPARE = "Compare venues";
 export const TITLE_HEDGE = "Slip Hedge Finder";
+export const TITLE_IDEAS = "Saved ideas";
+export const TITLE_ANALYSIS = "Prop analysis";
+
+/** Beside every paper net: what it is made of. */
+export const PAPER_NET_NOTE = "Paper net: arithmetic on the prices you saved and the outcomes you entered (typed by hand, unverified); not a venue's settlement.";
 
 /** Provenance words, said the same way everywhere. */
 export const PROVENANCE_WORD = {
