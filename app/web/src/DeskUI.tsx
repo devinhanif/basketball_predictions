@@ -13,7 +13,7 @@ export function DeskGate(props: { title: string; children: (desk: Desk) => Compo
   if (d) return <>{props.children(d)}</>;
   return (
     <div class="stack">
-      <PageHead kicker="Analysis notes" title={props.title} />
+      <PageHead kicker="Analysis notes" title={props.title} description="What the analysis publishes after each run, kept apart from the game forecasts." />
       <StateBlock
         kind={h.kind === "refused" ? "partial" : "empty"}
         title={h.kind === "refused" ? "We are holding this screen back" : "Nothing to show here yet"}

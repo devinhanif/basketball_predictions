@@ -258,7 +258,8 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           </div>
           {head ? (
             <>
-              <h1 class={`answer ${head.verdict}`}>{head.text}</h1>
+              {/* A no-break space before each dot keeps a line from starting with one. */}
+              <h1 class={`answer ${head.verdict}`}>{head.text.replace(/ · /g, "\u00a0· ")}</h1>
               <p class="muted answer-src">{head.source}</p>
             </>
           ) : (
