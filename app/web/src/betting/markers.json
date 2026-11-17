@@ -1,0 +1,9 @@
+{
+  "_comment": "Strings that exist only in the betting module. scripts/flag-parity.mjs and src/bettingSafety.test.ts read this list: an OFF build must contain none of them, an ON build all of them. Later lanes add their own distinctive strings here.",
+  "markers": [
+    "Betting tools: analysis only, not advice, no orders are placed. Nothing is built here yet.",
+    "/api/betting",
+    "#/bet",
+    "ph-bet"
+  ]
+}

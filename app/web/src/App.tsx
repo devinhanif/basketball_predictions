@@ -28,6 +28,8 @@ import { IS_ARTIFACT } from "./env";
 import { NotFound } from "./Problem";
 import { Boundary } from "./Boundary";
 import { useMetaLine } from "./metaWatch";
+import { BETTING } from "./features";
+import { renderBet } from "./betting";
 
 export function App() {
   const route = useRoute();
@@ -110,6 +112,10 @@ export function App() {
       break;
     case "notfound":
       page = <NotFound hash={route.hash} />;
+      break;
+    case "bet":
+      // The router parses a betting address only with the betting switch on; this line drops out of a build with it off.
+      page = BETTING ? renderBet(route) : null;
       break;
     default:
       page = <Today date={route.date} onStale={setStale} />;

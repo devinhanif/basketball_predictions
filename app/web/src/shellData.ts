@@ -12,6 +12,8 @@ import { IS_ARTIFACT } from "./env";
 import { useLens } from "./prefs";
 import { termHref, termsFor } from "./terms";
 import { isLegStat } from "./legTypes";
+import { BETTING } from "./features";
+import { BETTING_MODULE } from "./betting";
 
 export interface Notices {
   list: Notice[];
@@ -54,6 +56,8 @@ export const SCREEN_ITEMS: SearchItem[] = [
         { kind: "screen" as const, label: "Track record", sub: "Replay, calibration and guess the line", href: topHref("record"), words: "history replay calibration guess" },
         { kind: "screen" as const, label: "Parlay of the day", sub: "The engine's verdict for the newest night", href: "#/parlay", words: "parlay combo ticket" },
       ]),
+  // The betting module's screens (none in a build with the switch off).
+  ...(BETTING ? BETTING_MODULE.nav.map((n): SearchItem => ({ kind: "screen", label: n.label, sub: n.sub, href: n.href, words: n.words })) : []),
 ];
 
 /** The index: screens now; games and players once the nights load (and the newest night's whole rosters after that). */

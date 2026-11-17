@@ -7,13 +7,19 @@
 //   4. scan the result for things the platform forbids and fail the build if any is found.
 //
 // It also writes dist-artifact/preview.html: the same page inside a doctype/html/body skeleton, for local screenshots only.
+//
+//   node scripts/build-artifact.mjs --out <dir>   write to <dir> (and build in <dir>.tmp) instead of dist-artifact/; used by
+//                                                 scripts/flag-parity.mjs so its builds never clobber the real one.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 const root = new URL("..", import.meta.url).pathname;
-const tmp = join(root, "dist-artifact-tmp");
-const out = join(root, "dist-artifact");
+const outArg = process.argv.indexOf("--out");
+const outDir = outArg >= 0 ? process.argv[outArg + 1] : undefined;
+if (outArg >= 0 && !outDir) throw new Error("--out needs a directory");
+const tmp = outDir ? `${resolve(outDir)}.tmp` : join(root, "dist-artifact-tmp");
+const out = outDir ? resolve(outDir) : join(root, "dist-artifact");
 const bakedPath = join(root, "artifact-data", "baked.json");
 const LIMIT = 16 * 1024 * 1024;
 
@@ -25,7 +31,7 @@ if (!existsSync(bakedPath)) {
   process.exit(1);
 }
 
-execFileSync("npx", ["vite", "build", "--config", "vite.config.artifact.ts"], { cwd: root, stdio: "inherit" });
+execFileSync("npx", ["vite", "build", "--config", "vite.config.artifact.ts", ...(outDir ? ["--outDir", tmp] : [])], { cwd: root, stdio: "inherit" });
 
 let js = readFileSync(join(tmp, "app.js"), "utf8");
 const css = readFileSync(join(tmp, "app.css"), "utf8");
