@@ -85,7 +85,7 @@ export function Terms(props: { term: string | null; q: string | null }) {
             {shown.map((t) => (
               <div key={t.id} id={`term-${t.id}`} class={`term${t.id === wanted ? " on" : ""}`} tabIndex={-1}>
                 <dt>
-                  <a href={termHref(t.id)} class="term-name">
+                  <a href={termHref(t.id)} class="term-name tap">
                     {t.term}
                   </a>
                 </dt>

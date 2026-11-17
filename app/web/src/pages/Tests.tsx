@@ -141,8 +141,8 @@ export function TestsPage() {
         title="Forward tests: what is being tested, and when it reads"
         description={
           <>
-            Each test's rule was frozen before any result existed. No outcome is shown here until its scheduled look. <a href={termHref("prereg")}>Frozen rule</a> ·{" "}
-            <a href={topHref("scorecard")}>Scorecard</a>
+            Each test's rule was frozen before any result existed. No outcome is shown here until its scheduled look. <a class="nowrap" href={termHref("prereg")}>Frozen rule</a> ·{" "}
+            <a class="nowrap" href={topHref("scorecard")}>Scorecard</a>
           </>
         }
         actions={<PageControls lens />}

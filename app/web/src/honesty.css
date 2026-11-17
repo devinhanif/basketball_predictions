@@ -3,7 +3,9 @@
 
 /* ---------------------------------------------------------------- where a number comes from */
 .prov-open {
-  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
