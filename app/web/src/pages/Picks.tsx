@@ -8,6 +8,7 @@ import { MIN_LEGS } from "../stats";
 import { useSettled } from "../useSettled";
 import { didText } from "../words";
 import { useLens } from "../prefs";
+import { PageHead, StateBlock } from "../ui";
 
 function download(picks: Pick[]): void {
   const blob = new Blob([JSON.stringify(picks, null, 1)], { type: "application/json" });
@@ -58,16 +59,18 @@ export function Picks() {
   if (picks.length === 0) {
     return (
       <div class="stack">
-        <div class="page-head">
-          <h1>My picks</h1>
-        </div>
-        <div class="panel empty">
-          <h2>No picks yet</h2>
-          <p class="muted">Swipe a few cards. Each one gets graded against what really happened, and your record shows up here.</p>
-          <a class="btn primary" href="#/swipe">
-            Make some picks
-          </a>
-        </div>
+        <PageHead kicker="Pretend picks" title="My picks" />
+        <StateBlock
+          kind="empty"
+          title="No picks yet"
+          action={
+            <a class="btn primary" href="#/swipe">
+              Make some picks
+            </a>
+          }
+        >
+          Swipe a few cards. Each one gets graded against what really happened, and your record shows up here.
+        </StateBlock>
         <ShareNote />
         <FriendsPicks />
       </div>
@@ -76,15 +79,21 @@ export function Picks() {
 
   return (
     <div class="stack">
-      <div class="page-head">
-        <h1>My picks</h1>
-        <p class="muted">
-          {IS_ARTIFACT
+      <PageHead
+        kicker="Pretend picks"
+        title="My picks"
+        description={
+          IS_ARTIFACT
             ? "Pretend picks, saved on this device and shared with the people who open this link. Each is graded against the real box score."
-            : "Pretend picks, saved only on this device. Each is graded against the real box score."}
-        </p>
-        <ShareNote />
-      </div>
+            : "Pretend picks, saved only on this device. Each is graded against the real box score."
+        }
+        actions={
+          <a class="btn primary" href="#/swipe">
+            Make more picks
+          </a>
+        }
+      />
+      <ShareNote />
 
       {results.status === "error" ? (
         <div class="panel error" role="alert">
@@ -135,7 +144,7 @@ export function Picks() {
       ) : null}
 
       <section class="panel" aria-labelledby="led-h">
-        <div class="row between wrap">
+        <div class="row between wrap picks-ledger-head">
           <h2 id="led-h">Your picks ({picks.length})</h2>
           <div class="row">
             {IS_ARTIFACT ? null : (
