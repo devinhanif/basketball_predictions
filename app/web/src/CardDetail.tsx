@@ -289,7 +289,7 @@ function Body(props: { game_id: string; player_id: number; stat: string }) {
   const market = useLens() === "market";
   const [state, reload] = useLoad(() => api.card(props.game_id, props.player_id, props.stat), [props.game_id, props.player_id, props.stat]);
   return (
-    <View state={state} reload={reload}>
+    <View state={state} reload={reload} errorLevel={2}>
       {(card) => (
         <div class="card-detail-body">
           <p class="small muted">

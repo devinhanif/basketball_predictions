@@ -307,7 +307,7 @@ function PanelInner({ date, checkToday }: { date: string; checkToday: boolean })
           This is a saved copy from earlier, not a fresh load.
         </p>
       ) : null}
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(r) =>
           r.kind === "ok" ? (
             <Body d={r.data} checkToday={checkToday} />
@@ -332,7 +332,7 @@ function PanelInner({ date, checkToday }: { date: string; checkToday: boolean })
 export function LatestTopParlays({ date }: { date: string | null }) {
   const [list, reload] = useLoad(() => api.slates(), []);
   return (
-    <View state={list} reload={reload}>
+    <View state={list} reload={reload} errorLevel={2}>
       {(slates) => {
         const night = date ?? defaultNight(slates);
         return night ? <TopParlaysPanel date={night} checkToday /> : <p>No nights are loaded.</p>;

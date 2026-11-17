@@ -196,7 +196,7 @@ export function PlayerKnowsPanel(props: { gameId: string; playerId: number; stat
   return (
     <section class="panel knows" aria-label="What the game knew">
       <h2>What the game knew, and when</h2>
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(d) => (
           <div class="stack">
             <Timeline d={d} />
@@ -237,7 +237,7 @@ export function GameKnowsPanel(props: { gameId: string }) {
   return (
     <section class="panel knows" aria-label="What the game knew">
       <h2>What the game knew, and when</h2>
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(d) => {
           const groups = groupNews(d.news);
           return (

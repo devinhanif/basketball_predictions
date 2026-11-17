@@ -401,7 +401,7 @@ export function ExplorePanel(props: { gameId: string; playerId: number; stat: st
     <section class="panel explore" aria-label="What if">
       <h2>{props.lens === "market" ? "Price and what-ifs" : "What if?"}</h2>
       <p class="small muted">Everything below is worked out in your browser from the stored forecast. Nothing is saved or scored.</p>
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(card) => (
           <>
             <p class="who explore-who">

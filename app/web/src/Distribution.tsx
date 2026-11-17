@@ -187,7 +187,7 @@ export function DistributionPanel(props: { gameId: string; playerId: number; sta
   return (
     <section class="panel" aria-labelledby="dist-h">
       <h2 id="dist-h">The whole forecast, as stored</h2>
-      <View state={state} reload={reload} what="the stored distribution">
+      <View state={state} reload={reload} errorLevel={2} what="the stored distribution">
         {(m: Maybe<Distribution>) =>
           m.kind === "absent" ? (
             <p>

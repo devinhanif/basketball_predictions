@@ -2019,7 +2019,8 @@ main h2 {
   }
 }
 @supports (animation-timeline: scroll(self inline)) {
-  .tabs {
+  .tabs,
+  .leg-tabs {
     mask-image: linear-gradient(to right, transparent 0, #000 var(--tabs-fade-l), #000 calc(100% - var(--tabs-fade-r)), transparent 100%);
     animation:
       tabs-fade-in linear both,
