@@ -1673,3 +1673,106 @@ details.alt > .alt-body {
 .role-win {
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- What the game knew (Knows): the timeline's events as quiet cards on the rail ---- */
+.panel.knows .kn-rail {
+  border-left-color: var(--line-strong);
+}
+.panel.knows .kn-item {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.panel.knows .kn-item::before {
+  left: -26px;
+  top: 14px;
+}
+.panel.knows .kn-when {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+}
+.panel.knows .kn-change {
+  border-left-color: var(--tonight);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--tonight-soft);
+  padding: var(--sp-1) var(--sp-2);
+}
+
+/* ---- Card detail (Swipe's "the full card"): the same tile and summary as the other disclosures ---- */
+.card-detail {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--elev-1);
+}
+.card-detail > summary {
+  transition: background-color 0.18s;
+}
+.card-detail > summary:hover {
+  background: var(--surface-2);
+}
+.card-detail-body .big-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-title);
+}
+
+/* ---- Viz: chips and the distribution strip ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.chips .chip {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Most confident parlays (TopParlaysPanel) and the verdict strip ---- */
+.panel.verdict.tp .tp-verdict {
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  background: var(--grad-nav-active);
+  padding: var(--sp-3) var(--sp-4);
+}
+.panel.verdict.tp .tp-verdict-text {
+  font-family: var(--display);
+  font-weight: var(--fw-heavy);
+  letter-spacing: var(--track-title);
+}
+.tp-ticket {
+  border-radius: var(--radius-lg);
+  background: var(--grad-tile);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--elev-1);
+}
+.tp-rank {
+  font-variant-numeric: tabular-nums;
+}
+.tp-leg-price {
+  font-variant-numeric: tabular-nums;
+}
+.panel.verdict .notice {
+  border-radius: var(--radius-sm);
+}
+.panel.verdict.strip {
+  border-radius: var(--radius-lg);
+  background: var(--grad-card);
+}
+
+/* ---- tables: sortable and plain column heads read alike (a button does not inherit case or tracking) ---- */
+.ktable th .sort-btn,
+.table-wrap th .sort-btn {
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-align: inherit;
+}
+.ktable td.num,
+.ktable th.num {
+  font-variant-numeric: tabular-nums;
+}
