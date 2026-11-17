@@ -3,9 +3,11 @@
 The kit's `docs/ACCEPTANCE_CHECKLIST.md` (flat copy `kit__docs__ACCEPTANCE_CHECKLIST.md`), every item marked against
 the real app on branch `agent/app-jarvis-verify` (worktree head `850a3cb7`, lanes J1, J2a, J2b-A, J2b-B, J3, J4a and J4b
 merged), 2026-11-17. States: **met** (evidence looked at tonight: a test that ran green tonight, a journey step, or a
-screenshot), **partly**, **not met**, **not applicable** (the app has no such thing, by decision). Strict reading:
+screenshot), **partly**, **not met**, **not applicable** (the app has no such thing, by decision). Refreshed after the Ideas lane (J4c) and the polish lane (J6) merged (`f9874a78`): web vitest 558 passed in 54 files
+with the switch off and on, and `bet-journey.mjs` passed on fixtures (screenshots in
+`/private/tmp/claude-501/-Users-devin-Downloads-nba-prediction/3f32f746-8826-4256-901c-c93a4380dd7f/scratchpad/jv-journey2/`). Strict reading:
 "met" needs evidence seen tonight; a lane report's claim alone is "partly" at most. Rows that depend on unmerged work
-say **pending the Ideas lane** or **pending the polish lane**.
+say **pending the last polish lane**.
 
 Evidence seen tonight by this lane: `app/scripts/check.sh --visual` OFF and `--betting --visual` ON (lint, types, every
 web and API test, builds, flag parity, the visual structural layer; results in
@@ -71,13 +73,13 @@ Test names are quoted as `file` "describe" > "it".
 
 | Item | State | Evidence or gap |
 |---|---|---|
-| Title, thesis, tags, linked selections, and snapshot timestamps save and reload per user. | partly | Logic and the slip's notes exist and persist per device scope (`store.test.ts`); an Ideas screen does not exist in this worktree: **pending the Ideas lane**. |
-| Shared-player and shared-game exposure is visible alongside the thesis; no invented synergy score. | partly | `slipModel.test.ts` "overlaps are words only: no score, weight or probability field" green; shown in the slip. Beside the thesis on an Ideas screen: **pending the Ideas lane**. |
+| Title, thesis, tags, linked selections, and snapshot timestamps save and reload per user. | partly | Saved and reloaded per device scope (no accounts exist, so "per user" cannot be shown): `ideaModel.test.ts` "survives edits to the slip and reloads, and loading gives a copy" green on 2026-11-17 (vitest 558, switch off and on); journey step "saved as an idea with a thesis and two tags"; scopes isolated by `repository.test.ts` "one viewer never sees another viewer's ... data". |
+| Shared-player and shared-game exposure is visible alongside the thesis; no invented synergy score. | met | Idea page "Shared exposure" under the thesis, seen in journey screenshot `25_idea-settled_375_light.png`; `slipModel.test.ts` "overlaps are words only: no score, weight or probability field" green. |
 | Any existing real model correlation/relationship output retains its own provenance, method/version, timestamp, and uncertainty. | not applicable | The export carries no correlation output, and the module computes none. |
 | Saving an idea makes an independent snapshot. | met | `slipModel.test.ts` "legs, ideas and validated copies do not share references with the board or the draft" green. |
-| Loading an idea copies it into the draft and confirms replacement when appropriate; the saved original remains intact. | partly | `loadIdea` logic exists; no screen and no confirmation dialog for it yet: **pending the Ideas lane**. |
-| Recorded results require an outcome for every active market. Results use saved prices and the full grouped-entry payout. | met | `slipModel.test.ts` "a settled idea needs an outcome for every active market" green. |
-| Manual paper outcomes remain distinguishable from provider-verified settlement, including corrections/reopening and audit history. | not met | No outcome screen, no reopening or audit history in this worktree: **pending the Ideas lane**. |
+| Loading an idea copies it into the draft and confirms replacement when appropriate; the saved original remains intact. | met | Journey step "a copy loaded into the slip (cancel returned focus)" (confirmation shown, cancelled once, then loaded); `ideaModel.test.ts` "through the store: save, clear the slip, then loading the idea brings its legs back and keeps the idea" green. |
+| Recorded results require an outcome for every active market. Results use saved prices and the full grouped-entry payout. | met | `slipModel.test.ts` "a settled idea needs an outcome for every active market"; `ideaModel.test.ts` "settling needs every active market; reopening to paper clears the outcomes", "the paper net uses the saved prices only, whatever the slip or typed prices say now" green; journey step "outcomes recorded; paper net shown with its label". |
+| Manual paper outcomes remain distinguishable from provider-verified settlement, including corrections/reopening and audit history. | partly | Labelled as typed by hand, unverified and "not a venue's settlement" (journey screenshot `25_idea-settled_375_light.png`); reopening: `ideaModel.test.ts` "settling needs every active market; reopening to paper clears the outcomes". No audit history of corrections exists. Provider-verified settlement does not exist. |
 | History, P&L, balance, CLV, calibration, and protection status come from the target's actual services or an honest unavailable state. | met | `app/web/src/pages/History.tsx` reads the desk export; `desk.test.ts` "rates carry n and an interval, or say they are not enough to say" and "calibration renders nothing (the honest building state) when there are no bins" green; captures `history`, `record-cal`, `scorecard` tonight. |
 
 ## Identity, Admin, media, and persistence
@@ -98,9 +100,9 @@ Test names are quoted as `file` "describe" > "it".
 |---|---|---|
 | Verify client boundaries/SSR. | not applicable | Client-only SPA, no server render. |
 | Exercise 375 / 768 / 1280+ layouts with a populated slip and long player names/theses. | partly | 375/768/1280, both themes, both modes: captures `bet-slip-demo` and `bet-hedge-demo` (populated with the demo) tonight, plus `bet-journey.mjs` at 375 and 1280. Long names and long theses were not exercised. |
-| Desktop slip stays alongside content; phone/tablet overlay scrollable, including close and placement confirmation. | partly | The journey's dialog steps pass at 375 and 1280. The slip's move onto the shared `SidePanel` rail: **pending the polish lane**. Sheet scrolling with a long slip not checked. |
+| Desktop slip stays alongside content; phone/tablet overlay scrollable, including close and placement confirmation. | partly | Desktop: the slip is a rail beside the page from 1280 px (journey screenshot `35_hedge_1280_dark.png`; `notice.test.ts` "rail when wide and open, the Slip button when wide and hidden, a sheet below 1280 px" green). Phone: the shared sheet (focus trap, Escape) and the placement dialog pass the journey at 375; scrolling a long slip in the sheet was not checked. |
 | Phone keyboard does not cover required actions; inputs can be cleared and retyped. | not met | Not checked: headless Chrome has no on-screen keyboard. |
-| Keyboard navigation, visible focus, dialog focus trapping/restoration, Escape, labels, screen-reader state changes. | partly | Visible focus on the first Tab stop: every visual capture tonight. Dialog focus in and back: `bet-journey.mjs` step 4. Escape and trap: `app/web/src/MenuDrawer.tsx` (lane J2a, not re-tested here). No screen reader used. Touch targets under 44 px at 375 found tonight: see the verify report. |
+| Keyboard navigation, visible focus, dialog focus trapping/restoration, Escape, labels, screen-reader state changes. | partly | Visible focus on the first Tab stop: every visual capture on the first pass. Dialog focus in and back: journey steps "focus returned after Cancel", "typed prices in dialogs; focus back on each row". No screen reader used. Touch targets under 44 px at 375 (first-pass visual check): **pending the last polish lane**. |
 | Preserve `vh` fallback before `dvh`; avoid unguarded `structuredClone`, `crypto.randomUUID`, `Array.at`. | partly | `app/web/src/betting/ids.ts` replaces the donor's id helper (lane J3). Not audited tonight for `dvh` order or `Array.at` across the app. |
 | If distributing standalone HTML, test the actual bundle with blocked localStorage and missing newer APIs; a scripts-disabled preview is honest. | partly | The single-file build passes its forbidden-text scan in both states (`check.sh` artifact step tonight). Blocked storage: prefs fallback test. The artifact's betting pages were never opened in a browser (lane J4b), and no scripts-disabled check exists. |
 
@@ -110,19 +112,19 @@ Test names are quoted as `file` "describe" > "it".
 |---|---|---|
 | Updated gap matrix contains target evidence, implemented/deferred decisions, and preserved target-only features. | met | `docs/jarvis-gap-matrix.md`. |
 | List changed files, adapters and units, services reused, schema/migration decisions, tests run, remaining provider/data limitations. | partly | Per lane in `docs/handoff_2026-11-17/lane_jarvis_*.md`; the overall `REPORT_JARVIS.md` is the main session's. |
-| Demonstrate add-to-slip → select/deselect → record placed / real fill → hedge → saved idea → recorded result. | partly | `bet-journey.mjs` covers add, slip, compare, placed, Hedge Finder, reload. Saved idea and recorded result on screen: **pending the Ideas lane**. Real fills: not applicable. |
+| Demonstrate add-to-slip → select/deselect → record placed / real fill → current-position hedge comparison → saved idea → recorded result. | partly | `bet-journey.mjs` passed on 2026-11-17 (fixtures, 375 and 1280, dark and light): add to slip, compare, typed prices, mark placed, Hedge Finder, reload, save as an idea, outcomes recorded with the paper net, load a copy, export/import. Select/deselect is unit-tested only (`slipModel.test.ts` "switched-off planned legs are excluded, recorded exposure is never hidden"), not in the journey; a real fill is not applicable (no execution). |
 | Report browser/device checks separately from DOM/unit checks. | met | The verify report separates headless-Chrome checks (visual, journey) from vitest; no physical device was used. |
 
 ## Counts by state
 
 | State | Items |
 |---|---|
-| met | 33 |
-| partly | 20 |
-| not met | 2 |
+| met | 35 |
+| partly | 19 |
+| not met | 1 |
 | not applicable | 5 |
 | Total | 60 |
 
-Pending other lanes: 5 items pending the Ideas lane (title/thesis/tags per user, shared exposure beside the thesis,
-loading an idea, manual outcomes and audit history, the full demonstration's saved idea and recorded result) and 1
-pending the polish lane (desktop slip on the shared `SidePanel`). Refresh these after those lanes merge.
+Pending: 1 item pending the last polish lane (keyboard and focus: the 44 px touch targets at 375). The Ideas and
+first-pass polish items were refreshed after `f9874a78`; the one "not met" is the phone on-screen keyboard (headless
+Chrome has none).
