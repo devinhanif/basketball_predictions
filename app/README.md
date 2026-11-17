@@ -127,6 +127,84 @@ routed or cancelled anywhere; no credentials, keys or account access of any kind
 state lives in this browser. `web/src/bettingSafety.test.ts` greps both module directories for credentials, order words,
 off-origin requests and write routes, and the repo's `tests/test_layering.py` keeps the module inside `app/`.
 
+## Betting tools (behind one switch)
+
+**The switch.** One switch, default **off** everywhere (dev, checks, the regular build, the single-file artifact, CI):
+`VITE_PH_BETTING=1` at web build time (read only by `web/src/features.ts`) and `PH_BETTING=1` for the API (read only by
+`api/src/parlayhitters_api/features.py`). Off, the betting screens, the nav entries, the "Add to slip" buttons and the
+`/api/betting/*` routes do not exist, and the module is dropped from the bundle (see "The betting switch" above).
+
+**Run it.** From the repo root:
+
+```
+app/scripts/betting-on.sh                    # API + web dev server with the switch ON, on the fixtures (dev.sh --betting)
+app/scripts/betting-on.sh --export [DIR]     # ON, reading the nightly export read-only (refuses a DIR without manifest.json)
+app/scripts/betting-off.sh                   # the same servers with the switch OFF (an inherited value is removed)
+API_PORT=8140 WEB_PORT=5280 app/scripts/betting-on.sh    # other ports
+```
+
+The screens are in the **Market lens** (`#/bet` hub, `#/bet/slip`, `#/bet/compare`, `#/bet/hedge`); in Learn and Explore
+every `#/bet...` address shows the "is a Market screen" note.
+
+**Where it lives.** Web: `web/src/betting/` (entry `index.ts` with `ROUTES` and `NAV`; seam types `seam.ts`; pure logic
+`slipModel.ts`, `hedgeMath.ts`, `catalog.ts`, `repository.ts`; screens `Home.tsx`, `Slip.tsx`, `Compare.tsx`,
+`Hedge.tsx`; the app reaches it only through `BETTING`-guarded code and `web/src/BetSlots.tsx`). API:
+`api/src/parlayhitters_api/betting/` (GET routes registered by `register(app)` in `routes.py`).
+
+**Money-safety rules** (flag on or off):
+
+- Analysis only, not advice: every screen with a price, cost or hedge shows "Analysis only, not advice: no orders are
+  placed." and, where it applies, that the numbers are arithmetic on the prices you entered.
+- No orders: nothing places, routes, cancels or executes a bet or touches a sportsbook or exchange account; "Mark slip
+  as placed" only writes a local record of a bet you already placed elsewhere.
+- No credentials: no keys, tokens, passwords or account access for any provider, anywhere.
+- No scraping: quotes come only from what you type or from the nightly export's stored snapshots, through this app's
+  own read-only API.
+- Browser-only state: the slip, typed prices and recorded positions stay in this browser (`ph.betting.workspace:device`,
+  versioned), with JSON export and import; an invalid import changes nothing. The API has no write route.
+
+**The quote board** (`/api/betting/providers`, `/api/betting/board/{game}/{player}/{stat}`,
+`/api/betting/slate/{date}`; contract `docs/contracts/betting_board_v1.md`) serves, per line, provider and side, only the
+newest stored snapshot provably from before tip-off, with its snapshot time; fees, settlement rules, liquidity and live
+status are reported as unknown. It never serves a model number (only links to the existing props and record routes,
+whose locks keep applying), never a price for a flagged quote, never season 2025 (the holdout), never PrizePicks, and
+never anything it fetched itself. The fixture replay stores no quote snapshots, so on fixtures every board is empty and
+Compare offers typed prices.
+
+**Check it.** From the repo root (Chrome needed for the last three):
+
+```
+app/scripts/check.sh --betting               # lint, types, every test, builds and flag parity with the switch ON
+cd app/web && node scripts/flag-parity.mjs   # alone: OFF builds carry no betting marker, ON builds carry all
+API_PORT=8140 WEB_PORT=5280 app/scripts/betting-on.sh       # then, in a second terminal:
+cd app/web && node scripts/bet-journey.mjs http://127.0.0.1:5280/ /tmp/ph-journey   # add -> slip -> compare -> placed -> hedge -> reload
+app/scripts/visual.sh --betting              # visual checks with the switch ON (also: app/scripts/visual.sh for OFF)
+```
+
+The visual checks (`web/scripts/visual-check.mjs`, run by `app/scripts/visual.sh`, which starts its own fixture servers on
+8142/5282, override with `VISUAL_API_PORT`/`VISUAL_WEB_PORT`) photograph every screen at 375, 768 and 1280 px, dark and
+light, Simple and Analyst, in each page's lens, with a pinned clock, no motion and initials for avatars. On every capture
+they assert, and fail on: no sideways page scroll, one `h1`, 44 px touch targets at 375 px, no text under 12 px, AA
+contrast, no clipped text, no overlapping controls, a visible focus ring on the first Tab stop, the money-safety note on
+priced betting screens, and no price words in the Learn lens. Pixels are compared with a local baseline only when one
+exists, and gate only with `--strict`:
+
+```
+app/scripts/visual.sh --update               # take the screenshots and make them the baseline (app/web/.visual/off/baseline/)
+app/scripts/visual.sh                        # later: structural checks + pixel delta per capture against that baseline
+app/scripts/visual.sh --strict               # the same, failing a capture above 0.5% changed pixels (--threshold)
+app/scripts/visual.sh --quick                # a representative third of the matrix
+app/scripts/check.sh --visual                # the structural layer as a check.sh step (with --betting: switch ON)
+```
+
+Baselines and screenshots live in `app/web/.visual/` (git-ignored; PNGs are never committed), so each machine makes its
+own baseline: fonts and rendering differ between machines.
+
+**Port more of the kit.** `docs/jarvis-donor-map.md` maps every Jarvis kit file to its place here (or why it was not
+ported) and lists the rules: Preact with no new dependency, behind the switch, CSS scoped under `.ph-bet`, pure logic
+first with the donor's tests, the money-safety grep, and a marker per screen for flag parity. The filled gap matrix and
+acceptance checklist are `docs/jarvis-gap-matrix.md` and `docs/jarvis-acceptance-checklist.md`.
+
 ## Installable build and a phone on the same Wi-Fi
 
 Installable build with the service worker (production only), port 4173:
