@@ -282,8 +282,6 @@ function Body({ g }: { g: GameDetail }) {
       </section>
       ) : null}
 
-      {IS_ARTIFACT ? null : <GameKnowsPanel gameId={g.game_id} />}
-
       <section class="panel">
         <div class="row between wrap">
           <h2>Player lines</h2>
@@ -327,6 +325,9 @@ function Body({ g }: { g: GameDetail }) {
           ))}
         </ul>
       </section>
+
+      {/* Below the players: the page's main business is the player lines; the timeline is the depth behind them. */}
+      {IS_ARTIFACT ? null : <GameKnowsPanel gameId={g.game_id} />}
     </div>
   );
 }
