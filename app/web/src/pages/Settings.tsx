@@ -9,6 +9,7 @@ import { useUserState, setNotify } from "../userState";
 import { stamp } from "../format";
 import { api } from "../api";
 import { useLoad } from "../useLoad";
+import { PageHead } from "../ui";
 
 function Choice<T extends string>(props: {
   legend: string;
@@ -101,14 +102,16 @@ export function Settings() {
   const [name, setName] = useState(id.name);
   const dataLine = meta.status === "ready" ? `Snapshot of ${stamp(meta.data.data_as_of)}` : "Loading";
   return (
-    <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Preferences</div>
-        <h1>Preferences</h1>
-        <p class="muted">These are saved for you only{IS_ARTIFACT ? " (notification choices follow you between devices)" : ", on this device"}. There are no passwords.</p>
-      </header>
+    <div class="stack pb-page pb-prefs">
+      <PageHead
+        kicker="Make it yours"
+        title="Preferences"
+        description={`These are saved for you only${IS_ARTIFACT ? " (notification choices follow you between devices)" : ", on this device"}. There are no passwords.`}
+      />
       <div class="two-col">
         <section class="panel settings" aria-label="Appearance and detail">
+          <div class="kicker">Look and depth</div>
+          <h2>Appearance and detail</h2>
           <Choice legend="Appearance" help="Dark is the default. Match my device follows your system setting." value={p.theme} options={THEMES} onPick={(v) => { setPref("theme", v); }} />
           <Choice legend="Detail level" help="Simple shows plain cards, one line per player. Analyst adds the line ladder, splits, calibration and the edge arithmetic." value={p.mode} options={MODES} onPick={(v) => { setPref("mode", v); }} />
           <Choice legend="Opens on" help="The screen you land on when you open the app without a link." value={p.screen} options={SCREENS.filter((o) => screenAllowed(o.value, lens))} onPick={(v) => { setPref("screen", v); }} />
@@ -118,6 +121,7 @@ export function Settings() {
           ) : null}
         </section>
         <section class="panel settings" aria-label="Notifications">
+          <div class="kicker">The bell</div>
           <h2>Notifications</h2>
           <p class="small muted">Choose what counts toward the bell. Push notifications are not connected: nothing is sent to your phone or browser.</p>
           <Toggle id="n-fouls" label="Fouls and rotation" help="Foul trouble, benchings and returns." on={us.notify.fouls} onChange={(v) => { setNotify({ fouls: v }); }} />
@@ -127,6 +131,7 @@ export function Settings() {
       </div>
       <div class="two-col">
         <section class="panel" aria-label="Your account">
+          <div class="kicker">On this device</div>
           <h2>Your account</h2>
           <div class="acct">
             <Avatar name={id.name || "You"} src={id.avatarUrl} size="lg" />
@@ -163,6 +168,7 @@ export function Settings() {
           ) : null}
         </section>
         <section class="panel" aria-label="Ready to connect">
+          <div class="kicker">Said honestly</div>
           <h2>Ready to connect</h2>
           <p class="small muted">What is connected in this view, said honestly.</p>
           <ul class="status-list">
