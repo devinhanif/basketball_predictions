@@ -1,12 +1,13 @@
+import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { SoWhat } from "../ui";
+import { Badge, PageHead, StateBlock, TabPanel, Tabs } from "../ui";
 import { api } from "../api";
 import { CalTag, Explain, ModelNote, View } from "../components";
 import { plainModel } from "../plain";
 import { longDate, lineText, num, pct, tipTime } from "../format";
 import { TeamTag } from "../components";
-import { legHref, recordHref, type RecordTab } from "../router";
-import { useLens } from "../prefs";
+import { legHref, recordHref, topHref, type RecordTab } from "../router";
+import { useLens, useMode } from "../prefs";
 import { LOCK_NOTE, isLockedNight } from "../record";
 import { STATS, STAT_LABEL, type CalBin, type CalSeries, type PropsPublished, type GameSummary, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
 import { useLoad } from "../useLoad";
@@ -68,7 +69,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
   );
 }
 
-function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
+function ReplayGame({ g, locked, analyst }: { g: GameSummary; locked: boolean; analyst: boolean }) {
   const [want, setWant] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
   const [stat, setStat] = useState<Stat>("pts");
@@ -93,12 +94,12 @@ function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
           <TeamTag abbr={g.home.abbr} big />
         </div>
       </div>
-      <p class="muted small center num">{r ? "Final" : `Tip-off ${tipTime(g.tip_utc)}`}</p>
-      <p class="num">
+      <p class="muted small center num rp-when">{r ? "Final" : `Tip-off ${tipTime(g.tip_utc)}`}</p>
+      <p class="num rp-fav">
         {fav && favP !== null ? (
           <>
             Before tip our model favoured the <b>{fav.name}</b> at <b>{pct(favP)}</b>
-            <span class="small muted"> (game-winner model {g.win_probability.model_name})</span>.
+            {analyst ? <span class="small muted"> (game-winner model {g.win_probability.model_name})</span> : null}.
           </>
         ) : (
           "No win forecast was stored for this game."
@@ -116,19 +117,19 @@ function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
           Tap to reveal the final score
         </button>
       )}
-      <button type="button" class="btn rp-toggle" aria-expanded={showPlayers} onClick={() => { setShowPlayers((v) => !v); }}>
+      <button type="button" class="btn quiet rp-toggle" aria-expanded={showPlayers} onClick={() => { setShowPlayers((v) => !v); }}>
         {showPlayers ? "Hide the player forecasts" : "Show the player forecasts as they stood before tip"}
       </button>
       {showPlayers ? (
         <div class="stack tight">
-          <div class="tabs" role="group" aria-label="Stat">
+          <div class="tabs rp-stats" role="group" aria-label="Stat">
             {STATS.map((s) => (
               <button key={s} type="button" class="tab" aria-current={stat === s ? "true" : undefined} onClick={() => { setStat(s); }}>
                 {STAT_LABEL[s]}
               </button>
             ))}
           </div>
-          {detail.status === "loading" ? <p class="muted">Loading...</p> : null}
+          {detail.status === "loading" ? <StateBlock kind="loading" inline title="Loading the player forecasts" /> : null}
           {detail.status === "error" ? <p role="alert">Could not load the players.</p> : null}
           {d ? (
             <>
@@ -171,10 +172,9 @@ function Replay(props: { date: string | null }) {
         const nights = all.filter((s) => (s.finished ?? 0) > 0).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
         if (nights.length === 0) {
           return (
-            <section class="panel empty">
-              <h2>No finished night to replay yet</h2>
-              <p>This data holds no game with a final score, so there is nothing to look back on. Come back after a night has been played.</p>
-            </section>
+            <StateBlock kind="empty" title="No finished night to replay yet">
+              This data holds no game with a final score, so there is nothing to look back on. Come back after a night has been played.
+            </StateBlock>
           );
         }
         const date = props.date !== null && nights.some((n) => n.date === props.date) ? props.date : (nights[0]?.date ?? "");
@@ -186,10 +186,21 @@ function Replay(props: { date: string | null }) {
 
 function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
   const [slate, reload] = useLoad(() => api.slate(props.date), [props.date]);
+  const analyst = useMode() === "analyst";
   return (
     <div class="stack">
-      <section class="panel">
-        <h2>Pick a night</h2>
+      <section class="panel rp-pick">
+        <div class="card-head">
+          <div class="card-head-text">
+            <div class="kicker">Replay</div>
+            <h2>Pick a night</h2>
+          </div>
+          {isLockedNight(props.date) ? (
+            <div class="card-head-actions">
+              <Badge tone="none" icon="lock" word="Locked test night" />
+            </div>
+          ) : null}
+        </div>
         <p class="small muted">Each forecast below is the last one stored before that game's tip. Results stay hidden until you tap.</p>
         {isLockedNight(props.date) ? <p class="small muted">{LOCK_NOTE}</p> : null}
         <div class="tabs rp-nights" role="group" aria-label="Night">
@@ -203,9 +214,9 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
       </section>
       <View state={slate} reload={reload}>
         {(s) => (
-          <div class="stack">
+          <div class="rp-grid">
             {s.games.map((g) => (
-              <ReplayGame key={g.game_id} g={g} locked={isLockedNight(props.date)} />
+              <ReplayGame key={g.game_id} g={g} locked={isLockedNight(props.date)} analyst={analyst} />
             ))}
           </div>
         )}
@@ -215,6 +226,18 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
 }
 
 /* ------------------------------------------------------------------ calibration */
+/** Simple: method lines behind one "how this is measured" disclosure. Analyst: shown in place. */
+function How(props: { analyst: boolean; children: ComponentChildren }) {
+  return props.analyst ? (
+    <div class="pb-foot">{props.children}</div>
+  ) : (
+    <details class="explain">
+      <summary>How this is measured</summary>
+      <div class="explain-body">{props.children}</div>
+    </details>
+  );
+}
+
 const pc = (x: number): string => `${(x * 100).toFixed(1)}%`;
 
 function BinRow({ b, series }: { b: CalBin; series: CalSeries }) {
@@ -282,13 +305,12 @@ function SourceNote({ s }: { s: CalSeries }) {
 
 function SeriesView({ s }: { s: CalSeries }) {
   const o = s.overall;
+  const analyst = useMode() === "analyst";
   return (
     <div class="stack">
-      <section class="panel">
+      <section class="panel verdict">
+        <div class="kicker">Calibration</div>
         <h2>{s.name}</h2>
-        <p class="small muted">
-          What we said: {s.what_said}. What happened: {s.what_happened}. This is the win model's own chance; it has no calibrated version.
-        </p>
         {o.n === 0 || o.said === null || o.happened === null ? (
           <p class="muted">No settled cases of this kind in the data.</p>
         ) : (
@@ -297,16 +319,22 @@ function SeriesView({ s }: { s: CalSeries }) {
             {o.enough && o.lo95 !== null && o.hi95 !== null ? ` (95% range ${pc(o.lo95)} to ${pc(o.hi95)})` : " (not enough to give a range)"}.
           </p>
         )}
-        <SourceNote s={s} />
-        <p class="small muted num">
-          Left out:{" "}
-          {Object.entries(s.excluded)
-            .map(([k, v]) => `${S(v)} ${k.replace(/_/g, " ")}`)
-            .join(", ")}
-          . {s.interval}.
-        </p>
+        <How analyst={analyst}>
+          <p class="small muted">
+            What we said: {s.what_said}. What happened: {s.what_happened}. This is the win model's own chance; it has no calibrated version.
+          </p>
+          <SourceNote s={s} />
+          <p class="small muted num">
+            Left out:{" "}
+            {Object.entries(s.excluded)
+              .map(([k, v]) => `${S(v)} ${k.replace(/_/g, " ")}`)
+              .join(", ")}
+            . {s.interval}.
+          </p>
+        </How>
       </section>
       <section class="panel">
+        <div class="kicker">Bin by bin</div>
         <h2>Said versus happened</h2>
         <p class="small muted">The dashed tick is what we said; the dot is what happened; the bar is the 95% range. Dot and tick close together means they matched.</p>
         <ul class="plain cal-list">
@@ -331,10 +359,12 @@ const BOOK_ORDER = ["pinnacle", "draftkings"];
  * report (T493); nothing here is computed from this season's games, which are a locked test until it reads. */
 function PublishedProps({ p }: { p: PropsPublished }) {
   const lens = useLens();
+  const analyst = useMode() === "analyst";
   const books = BOOK_ORDER.filter((k) => p.books[k] !== undefined);
   return (
     <div class="stack" data-published="props">
-      <section class="panel">
+      <section class="panel verdict">
+        <div class="kicker">Calibration</div>
         <h2>Player props: the calibrated number's record</h2>
         <p class="lead">
           {p.season_label}, before this season. This is the record the calibrated chances were chosen on; it is not a result for this season.
@@ -342,25 +372,30 @@ function PublishedProps({ p }: { p: PropsPublished }) {
         <p class="small" data-locked-note>
           {p.this_season}
         </p>
-        <p class="small muted num">
-          From our test log {p.ledger_id} (rule {p.rule_sha8}, verdict {p.verdict.toLowerCase()}). That season was partly looked at while the map was
-          built, so read it as the map's own record, not a clean test. {p.interval}.
-        </p>
+        <How analyst={analyst}>
+          <p class="small muted num">
+            From our test log {p.ledger_id} (rule {p.rule_sha8}, verdict {p.verdict.toLowerCase()}). That season was partly looked at while the map was
+            built, so read it as the map's own record, not a clean test. {p.interval}.
+          </p>
+        </How>
       </section>
       {books.map((k) => {
         const b = p.books[k];
         if (b === undefined) return null;
         return (
           <section class="panel" key={k}>
+            <div class="kicker">Line source</div>
             <h2>{lens === "market" ? b.label : k === "pinnacle" ? "Primary line source (pre-registered)" : "Second line source"}</h2>
             <p class="num lead">
               n = {N(b.n)} lines in {N(b.games)} games. Calibrated chances ran {pp(b.mean_cal_minus_realised.mean)} from how often the over happened (95% range{" "}
               {pp(b.mean_cal_minus_realised.lo)} to {pp(b.mean_cal_minus_realised.hi)}).
             </p>
-            <p class="small num muted">
-              Score (log loss, lower is better): {ll(b.log_loss_cal_minus_raw.mean)} better than the unadjusted model, 95% range {ll(b.log_loss_cal_minus_raw.hi)} to{" "}
-              {ll(b.log_loss_cal_minus_raw.lo)} better.
-            </p>
+            <How analyst={analyst}>
+              <p class="small num muted">
+                Score (log loss, lower is better): {ll(b.log_loss_cal_minus_raw.mean)} better than the unadjusted model, 95% range {ll(b.log_loss_cal_minus_raw.hi)} to{" "}
+                {ll(b.log_loss_cal_minus_raw.lo)} better.
+              </p>
+            </How>
             <ul class="plain cal-list">
               {b.bins.map((x) => (
                 <li class="cal-row" key={x.lo}>
@@ -394,7 +429,8 @@ function Calibration() {
     <View state={state} reload={reload}>
       {(c) => (
         <div class="stack">
-          <section class="panel">
+          <section class="panel rp-pick">
+            <div class="kicker">Calibration</div>
             <h2>When we said X%, how often did it happen?</h2>
             <p class="small num">
               {c.n_games_finished === 0
@@ -402,15 +438,20 @@ function Calibration() {
                 : `${S(c.n_games_finished)} finished games, ${longDate(c.date_from ?? "")} to ${longDate(c.date_to ?? "")}.`}{" "}
               {c.note}
             </p>
-            <div class="tabs" role="group" aria-label="What to check">
-              {(["props", "winners"] as const).map((k) => (
-                <button key={k} type="button" class="tab" aria-current={which === k ? "true" : undefined} onClick={() => { setWhich(k); }}>
-                  {k === "props" ? "Player props" : "Game winners"}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              label="What to check"
+              idBase="cal"
+              tabs={[
+                { key: "props", label: "Player props" },
+                { key: "winners", label: "Game winners" },
+              ]}
+              value={which}
+              onChange={setWhich}
+            />
           </section>
-          {which === "props" ? <PublishedProps p={c.props} /> : <SeriesView s={c.winners} />}
+          <TabPanel idBase="cal" value={which}>
+            {which === "props" ? <PublishedProps p={c.props} /> : <SeriesView s={c.winners} />}
+          </TabPanel>
           {which === "winners" ? (
           <Explain label="How the range is worked out">
             <p class="small">
@@ -431,12 +472,27 @@ const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay", calibration: "C
 
 export function Record(props: { tab: RecordTab; date: string | null }) {
   return (
-    <div class="stack record">
-      <header class="page-head">
-        <h1>Track record</h1>
-        <SoWhat>Forecasts as they stood before tip, checked against what happened. A record is how a forecast earns trust; until it is long enough, keep your money.</SoWhat>
-        <p class="muted">How the forecasts did. Replay a finished night, check how often the chances held up, or guess a line yourself.</p>
-      </header>
+    <div class="stack record pb-page">
+      <PageHead
+        kicker="How the forecasts did"
+        title="Track record"
+        description={
+          <>
+            <strong class="pb-sowhat">Forecasts as they stood before tip, checked against what happened. A record is how a forecast earns trust; until it is long enough, keep your money.</strong>{" "}
+            Replay a finished night, check how often the chances held up, or guess a line yourself.
+          </>
+        }
+        actions={
+          <>
+            <a class="btn quiet" href={topHref("scorecard")}>
+              Scorecard
+            </a>
+            <a class="btn quiet" href={topHref("tests")}>
+              Forward tests
+            </a>
+          </>
+        }
+      />
       <nav class="tabs" aria-label="Track record">
         {(Object.keys(TAB_LABEL) as RecordTab[]).map((t) => (
           <a key={t} class="tab" href={recordHref(t, null)} aria-current={props.tab === t ? "true" : undefined}>

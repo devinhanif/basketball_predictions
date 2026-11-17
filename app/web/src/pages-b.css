@@ -259,3 +259,71 @@
     display: inline;
   }
 }
+
+/* ---------------------------------------------------------------- track record */
+.pb-sowhat {
+  display: block;
+  color: var(--ink);
+  font-size: var(--fs-lg);
+  line-height: 1.4;
+  margin-bottom: var(--sp-1);
+}
+.record > nav.tabs {
+  gap: var(--sp-2);
+}
+.rp-pick > h2 {
+  margin-top: 0;
+}
+.rp-pick .card-head {
+  margin-bottom: var(--sp-2);
+}
+.rp-pick .tabs {
+  margin-top: var(--sp-3);
+}
+.rp-grid {
+  display: grid;
+  gap: var(--sp-4);
+}
+@media (min-width: 1100px) {
+  .rp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+.rp-game.panel {
+  gap: var(--sp-3);
+}
+.rp-game .score-row {
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+.rp-game .rp-when {
+  margin: 0;
+}
+.rp-game .rp-fav {
+  margin: 0;
+  line-height: 1.5;
+}
+.rp-game > .btn:not(.rp-toggle) {
+  justify-self: stretch;
+}
+.rp-game .rp-toggle {
+  justify-self: stretch;
+}
+.rp-player {
+  border-radius: var(--radius);
+  padding: var(--sp-3);
+}
+.gs-score .kicker,
+.gs-round {
+  margin: 0;
+}
+/* An opened game (player forecasts shown) takes the full width; its players sit two across on a wide screen. */
+.rp-grid > .rp-game:has(.rp-players) {
+  grid-column: 1 / -1;
+}
+@media (min-width: 900px) {
+  .rp-players {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
