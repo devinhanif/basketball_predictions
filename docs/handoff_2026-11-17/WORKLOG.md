@@ -134,6 +134,9 @@ finished: the terminal resume loop stops on that line.
 - Worktree names keep "nba-wt-1117" so the resume loop's activity check sees them; a keep-awake with that marker runs
   as a background task of the session.
 
+**The follow-up's own worklog is `docs/handoff_2026-11-17/JARVIS_WORKLOG.md` on branch `agent/app-jarvis-followup`
+(worktree `~/Downloads/nba-wt-1117-jarvis`). A resumed session reads that file first.**
+
 ## Auto-resume (Devin started it in a terminal about 19:04 CST on 11-16; if it was the one-shot with `sleep 14700`, it fires about 23:09 CST)
 A terminal command resumes this session headless (`claude --resume ... -p "Continue the autonomous run..."`), either once
 after a fixed wait or hourly until `REPORT.md` contains the line `RUN COMPLETE`. Rules for a resumed copy:
