@@ -13,7 +13,7 @@ describe("desk money is guarded by privacy on screen", () => {
     for (const f of files(__dirname)) {
       const lines = readFileSync(f, "utf8").split("\n");
       lines.forEach((l, i) => {
-        if (/desk\.balance\s*\?|day\.pnl\s*!==/.test(l)) {
+        if (/desk\.balance\s*(\?|&&)|day\.pnl\s*!==/.test(l)) {
           seen += 1;
           expect(l, `${f}:${(i + 1).toString()}`).toMatch(/privacy === "private"/);
         }
