@@ -5,15 +5,16 @@
 // in the address, so a comparison can be shared and Back works.
 import { useState } from "preact/hooks";
 import { api, getJson } from "../api";
+import { ApiError, failureMessage } from "../errors";
 import { Button, Dialog, Skeleton } from "../ui";
-import { lineText, longDate, tipTime } from "../format";
+import { count, lineText, longDate, tipTime } from "../format";
 import { todayET } from "../time";
-import { useLoad } from "../useLoad";
+import { useLoad, type LoadState } from "../useLoad";
 import { STATS, STAT_LABEL, type GameDetail, type Stat } from "../types";
 import type { BetRoute } from "./seam";
-import { ARITHMETIC_NOTE, TITLE_COMPARE } from "./copy";
+import { ARITHMETIC_NOTE, NO_SNAPSHOTS, TITLE_COMPARE } from "./copy";
 import { evaluateDraft } from "./slipModel";
-import { customMarket, sideOf, type ApiSlate } from "./snapshots";
+import { customMarket, isStat, sideOf, type ApiSlate } from "./snapshots";
 import { compareHashFor, knownMarkets, lowestCostCrown, parseCompareQuery, venueCards } from "./viewModel";
 import { CoverageBlock, MarketGate, MoneyNote, OutcomeTable, marketWords, money } from "./parts";
 import { AboutPrices, ExistingBetForm, FeeControl, MarketHead, MarketProblem, TypePriceDialog, VenueBoard, useMarketFromQuery, useStored } from "./board";
@@ -197,6 +198,66 @@ function CustomMarketForm(props: { bet: Ready }) {
   );
 }
 
+const SHOW = 24;
+
+/** The night's props that have stored quotes (from the read-only betting slate), searchable, each a link into Compare. */
+function StoredProps(props: { night: string; state: LoadState<ApiSlate | null> }) {
+  const [query, setQuery] = useState("");
+  const [more, setMore] = useState(false);
+  const st = props.state;
+  if (st.status === "loading") return <Skeleton lines={2} label="Reading the night's stored props" />;
+  if (st.status === "error")
+    return (
+      <p class="small ph-bet-err" role="alert">
+        The night's stored props could not be read: {failureMessage(st.failure)}. Pick a prop from a game below, or type your own market.
+      </p>
+    );
+  if (st.data === null) return <p class="small">{NO_SNAPSHOTS} Pick a prop from a game below, or type your own market.</p>;
+  const slate = st.data;
+  const games = new Map(slate.games.map((g) => [g.game_id, `${g.away} @ ${g.home}`]));
+  const words = query.toLowerCase().split(/\s+/).filter((w) => w !== "");
+  const match = slate.props.filter((p) => {
+    const hay = `${p.player} ${p.team} ${games.get(p.game_id) ?? ""} ${isStat(p.stat) ? STAT_LABEL[p.stat] : p.stat}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+  const shown = more ? match : match.slice(0, SHOW);
+  return (
+    <section aria-labelledby="ph-bet-stored-h">
+      <h2 class="ph-bet-h" id="ph-bet-stored-h">
+        Props with stored prices, {longDate(slate.date)}
+      </h2>
+      <p class="small muted num">
+        {count(slate.props.length)} props across {count(slate.games.length)} games have at least one stored quote. Listed by game, then player; nothing is ranked.
+      </p>
+      <label class="ph-bet-search">
+        <span class="sr">Search the night's props</span>
+        <input type="search" placeholder="Search a player, team or stat" value={query} onInput={(e) => { setQuery(e.currentTarget.value); setMore(false); }} />
+      </label>
+      {match.length ? (
+        <ul class="plain ph-bet-proplist">
+          {shown.map((p) => (
+            <li key={`${p.game_id}-${String(p.player_id)}-${p.stat}`}>
+              <a href={`#/bet/compare?game=${encodeURIComponent(p.game_id)}&player=${String(p.player_id)}&stat=${encodeURIComponent(p.stat)}&side=over`}>
+                <strong>{p.player}</strong> <span class="muted">({p.team})</span> {isStat(p.stat) ? STAT_LABEL[p.stat].toLowerCase() : p.stat}
+              </a>
+              <span class="small muted num">
+                {games.get(p.game_id) ?? p.game_id} · {count(p.n_providers)} {p.n_providers === 1 ? "venue" : "venues"} · {count(p.n_lines)} {p.n_lines === 1 ? "line" : "lines"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="small">No prop matches that search.</p>
+      )}
+      {!more && match.length > SHOW ? (
+        <Button onClick={() => { setMore(true); }}>
+          Show all {count(match.length)}
+        </Button>
+      ) : null}
+    </section>
+  );
+}
+
 function Picker(props: { bet: Ready }) {
   const [list, reloadList] = useLoad(() => api.slates(), []);
   const [date, setDate] = useState<string | null>(null);
@@ -206,7 +267,11 @@ function Picker(props: { bet: Ready }) {
   const [bs] = useLoad(
     () =>
       night
-        ? getJson<ApiSlate>(`/api/betting/slate/${encodeURIComponent(night)}`).catch(() => ({ data: null, fromCache: false }))
+        ? getJson<ApiSlate>(`/api/betting/slate/${encodeURIComponent(night)}`).catch((e: unknown) => {
+            // A typed 404 means this server has no stored snapshots (its switch is off); anything else is an error.
+            if (e instanceof ApiError && e.failure.status === 404) return { data: null, fromCache: false };
+            throw e;
+          })
         : Promise.resolve({ data: null, fromCache: false }),
     [night ?? ""],
   );
@@ -227,8 +292,9 @@ function Picker(props: { bet: Ready }) {
           </ul>
         </section>
       ) : null}
+      {night ? <StoredProps night={night} state={bs} /> : null}
       <section aria-label="Pick a prop">
-        <h2 class="ph-bet-h">Pick a prop from a night's slate</h2>
+        <h2 class="ph-bet-h">Or pick any prop from a night's games</h2>
         {list.status === "loading" ? <Skeleton lines={2} label="Loading the nights" /> : null}
         {list.status === "error" ? (
           <p class="ph-bet-err" role="alert">

@@ -14,7 +14,7 @@ import { KNOWN_PROVIDERS, freshness } from "./catalog";
 import { NO_SNAPSHOTS, PROVENANCE_MEANING, PROVENANCE_WORD, SETTLEMENT_NOTE } from "./copy";
 import { PROV_TONE, PriceForm, marketWords, providerLabel } from "./parts";
 import { sampleCatalog } from "./sample";
-import { marketFromFacts, providerRegistry, storedBoard, type ApiBoard, type ApiProviders, type StoredBoard } from "./snapshots";
+import { isStat, marketFromFacts, providerRegistry, storedBoard, type ApiBoard, type ApiProviders, type StoredBoard } from "./snapshots";
 import { normalisedCost } from "./slipModel";
 import type { BetActions } from "./store";
 import type { Catalog, Market, ProviderInfo, Quote, Side, SlipWorkspace } from "./types";
@@ -149,7 +149,8 @@ export type MarketState = { kind: "none" } | { kind: "loading" } | { kind: "read
 
 /** The market an address names: a typed one from the workspace, a demo one, or one from the export's game data. */
 export function useMarketFromQuery(q: CompareQuery, ws: SlipWorkspace | null): MarketState {
-  const exportish = q.market === null && q.game !== null && !q.game.startsWith("sample-") && q.player !== null && q.stat !== null && q.line !== null;
+  // The line may be left out (a prop picked from the night's list): the game's posted line for that stat is used.
+  const exportish = q.market === null && q.game !== null && !q.game.startsWith("sample-") && q.player !== null && q.stat !== null;
   const [g] = useLoad(() => (exportish && q.game ? api.game(q.game) : Promise.resolve({ data: null, fromCache: false })), [exportish ? q.game : ""]);
   if (q.market !== null) {
     const m = ws ? knownMarkets(ws).find((x) => x.id === q.market) : undefined;
@@ -166,7 +167,10 @@ export function useMarketFromQuery(q: CompareQuery, ws: SlipWorkspace | null): M
   const pid = Number(q.player);
   const p = game?.players.find((x) => x.player_id === pid);
   if (!game || !p) return { kind: "error", text: "That player is not in this game's data." };
-  const built = marketFromFacts({ gameId: game.game_id, date: game.date, playerId: pid, playerName: p.name, stat: q.stat ?? "", line: q.line ?? Number.NaN, eventLabel: `${game.away.abbr} @ ${game.home.abbr}` });
+  const posted = q.stat !== null && isStat(q.stat) ? p.props[q.stat]?.line : undefined;
+  const line = q.line ?? posted ?? null;
+  if (line === null) return { kind: "error", text: "There is no posted line for that prop in the game's data. Pick the prop from the game below and type the line." };
+  const built = marketFromFacts({ gameId: game.game_id, date: game.date, playerId: pid, playerName: p.name, stat: q.stat ?? "", line, eventLabel: `${game.away.abbr} @ ${game.home.abbr}` });
   return built.ok ? { kind: "ready", market: built.market } : { kind: "error", text: built.text };
 }
 

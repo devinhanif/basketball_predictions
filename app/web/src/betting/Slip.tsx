@@ -326,14 +326,16 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
     <div class="ph-bet-slip">
       {save}
       <MoneyNote arithmetic />
-      <p class="small muted num">
-        {count(planned.filter((l) => l.enabled).length)} of {count(planned.length)} planned legs included · {count(recorded.length)} recorded · {count(ws.picks.length)} waiting for a price.
-        {ws.draft.origin === "sample" ? " This slip is the labelled demo: sample prices only." : ""}
-      </p>
+      {empty ? null : (
+        <p class="small muted num">
+          {[planned.length ? `${count(planned.filter((l) => l.enabled).length)} of ${count(planned.length)} planned ${planned.length === 1 ? "leg" : "legs"} included` : "", recorded.length ? `${count(recorded.length)} recorded` : "", ws.picks.length ? `${count(ws.picks.length)} waiting for a price` : ""].filter(Boolean).join(" · ")}.
+          {ws.draft.origin === "sample" ? " This slip is the labelled demo: sample prices only." : ""}
+        </p>
+      )}
       {empty ? (
         <div class="ph-bet-empty">
           <h3>Your slip is empty</h3>
-          <p>Add a player from a game or player page (the Market lens shows an "Add to slip" button), or open Compare to pick a prop from tonight's slate or type your own.</p>
+          <p>Start from a line: on a game or player page (Market lens) press "+ Slip" beside it, or open Compare to pick one of tonight's props with stored prices, or type your own market.</p>
           <div class="row wrap">
             <a class="btn primary" href="#/bet/compare">
               Open Compare
