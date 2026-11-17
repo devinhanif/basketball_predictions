@@ -134,7 +134,7 @@
   --elev-2: 0 12px 40px #00000059;
   --elev-3: 0 20px 70px #00000066;
   /* Gradients: the hero ("feature") card, the quieter header card, the active nav row, the brand tile, the page glow. */
-  --grad-feature: radial-gradient(ellipse at 70% 35%, #8666c7 0%, #5b4993 42%, #332a56 100%);
+  --grad-feature: radial-gradient(ellipse at 70% 35%, #6a52a8 0%, #574590 42%, #332a56 100%);
   --feature-line: #a894e648;
   --on-feature: #f9f5ff;
   --on-feature-muted: #e6def8;

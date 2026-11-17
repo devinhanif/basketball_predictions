@@ -135,6 +135,30 @@ h3 {
 .panel.card-feature > * {
   position: relative;
 }
+/* Inside the hero the page's tokens are re-pointed at the purple: text takes the on-feature inks, and anything with its
+   own surface (tiles, badges, buttons) becomes dark glass carrying the dark theme's status colours. So small and muted
+   text passes AA on the card in both themes, whatever component sits in it (theme.css: the centre stop is #6a52a8). */
+.panel.card-feature {
+  --ink: var(--on-feature);
+  --muted: var(--on-feature-muted);
+  --head: var(--on-feature);
+  --accent-ink: var(--on-feature);
+  --line: #ffffff2e;
+  --surface: #120e26c4;
+  --surface-2: #120e26b0;
+  --surface-3: #120e269c;
+  --grad-tile: linear-gradient(110deg, #120e26c4, #120e26a8);
+  --accent-soft: #120e26b0;
+  --win: #6fdcae;
+  --loss: #f58f9d;
+  --book: #9aa3b8;
+  --mine: #e9b949;
+  --mine-ink: #f2cd73;
+  --edge-thin: #e9b949;
+  --edge-arb: #7cc4ff;
+  --notice-ink: #f4dc9a;
+  color-scheme: dark;
+}
 .panel.card-feature .kicker,
 .panel.card-feature .muted,
 .panel.card-feature .small {
@@ -440,6 +464,11 @@ textarea:focus-visible {
     background: linear-gradient(140deg, #e6e2f0, #f3f0f9);
     color: var(--ink);
   }
+}
+/* On the purple hero the initials stay on the dark disc in both themes (light ink on a light disc otherwise). */
+:root .panel.card-feature .avatar.initials {
+  background: linear-gradient(140deg, #3b4058, #292e40);
+  color: #f4f5fa;
 }
 
 /* ---------------------------------------------------------------- skeleton */

@@ -75,7 +75,7 @@ export function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
     </ul>
   );
   return (
-    <section class={`panel verdict${compact ? "" : " card-header pb-verdict"}`} aria-labelledby="parlay-h">
+    <section class={`panel verdict${compact ? "" : " card-feature pb-verdict"}`} aria-labelledby="parlay-h">
       <div class="kicker">Parlay of the day</div>
       <h2 id="parlay-h">{p.title}</h2>
       <p class="lead">{verdictText(p)}</p>
