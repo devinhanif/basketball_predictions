@@ -111,7 +111,7 @@ const ARTIFACT_ROUTES = [
   ["signals", "#signals", "ok"],
   ["hedge", "#hedge", "ok"],
   ["history", "#history", "ok"],
-  ["record", "#record", "ok"],
+  ["record", "#record", "lock"],
   ["live", "#live", "ok"],
   ["alerts", "#alerts", "ok"],
   ["prefs", "#prefs", "ok"],
@@ -119,7 +119,7 @@ const ARTIFACT_ROUTES = [
   ["record-guess", "#/record?tab=guess", "ok"],
   ["unknown", "#zzz", "notfound"],
 ];
-const ROUTES = SET === "artifact" ? ARTIFACT_ROUTES : FIXTURE_ROUTES;
+const ROUTES = SET === "artifact" ? [...ARTIFACT_ROUTES] : FIXTURE_ROUTES;
 // The Learn lens promise covers these (scripts/learn-dom.mjs); elsewhere hits are reported, not failed.
 const LEARN_CHECKED = /^(discover|game|leg|swipe|picks|parlay|signals|hedge$|history|record)/;
 
@@ -243,7 +243,7 @@ async function readPage() {
   const raw = await ev(`(()=>{
     const m=document.querySelector('main');
     const mainText=m?(m.innerText||'').replace(/\\s+/g,' ').trim():'';
-    const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT); const parts=[]; while(w.nextNode()) parts.push(w.currentNode.nodeValue);
+    const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:(n)=>/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(n.parentElement?n.parentElement.tagName:'')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}); const parts=[]; while(w.nextNode()) parts.push(w.currentNode.nodeValue);
     const attrs=[]; document.querySelectorAll('main [aria-label],main [title],main [alt],main [aria-valuetext]').forEach(e=>{for(const a of ['aria-label','title','alt','aria-valuetext']){const v=e.getAttribute(a); if(v) attrs.push(v)}});
     const err=[...document.querySelectorAll('.panel.error')].map(p=>({code:p.getAttribute('data-code'), text:(p.innerText||'').replace(/\\s+/g,' '), action: !!p.querySelector('button, a[href]')}));
     return JSON.stringify({hash: location.hash, mainText, mainHtmlLen: m?m.innerHTML.length:0, body: parts.join(' ').replace(/\\s+/g,' '), attrs: attrs.join(' | '), overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, err});
@@ -273,8 +273,17 @@ function check(route, lens, page, scen) {
   if (page.mainText.length === 0) v.push("blank page: <main> has no text");
   if (page.overflow > 1) v.push(`horizontal scroll: ${page.overflow}px wider than the viewport`);
   for (const re of MONEY_RE) if (re.test(page.body)) v.push(`private money text in a non-private session: ${re}`);
+  // On a snapshot whose every night is inside the lock window, the replay must carry the lock wording and a finished
+  // game page must hide its per-prop results.
+  if (allLocked && expect === "lock" && !LOCK_WORDS.some((w) => page.mainText.includes(w))) v.push("LINE_CAL lock: locked replay without the lock wording");
+  if (allLocked && /How it ended/.test(page.mainText) && /went (over|under)|\bhit\b.*\d+%/i.test(page.mainText) && !LOCK_WORDS.some((w) => page.mainText.includes(w))) {
+    v.push("LINE_CAL lock: a finished game on a locked night shows results without the lock wording");
+  }
+  if (allLocked) lockChecks.n += 1;
   const locked = lockedNightOnScreen(page.mainText);
-  if (locked && /\bFinal\b|\bwent (over|under)\b/.test(page.mainText) && /\b\d{1,2}%/.test(page.mainText) && !LOCK_WORDS.some((w) => page.mainText.includes(w))) {
+  // "went over" alone is not enough: a leg page lists earlier games' box-score results (history, not the locked night's
+  // own outcome). A finished game says "Final".
+  if (locked && /\bFinal\b/.test(page.mainText) && /\b\d{1,2}%/.test(page.mainText) && !LOCK_WORDS.some((w) => page.mainText.includes(w))) {
     v.push(`LINE_CAL lock: locked night ${locked} shows finished games and a percentage but no lock wording`);
   }
   if (lens === "learn" && LEARN_CHECKED.test(name) && scen === "none") {
@@ -297,6 +306,8 @@ function check(route, lens, page, scen) {
 }
 
 // ------------------------------------------------------------------------------------------------ walk
+let allLocked = false;
+const lockChecks = { n: 0 };
 const LENSES = ["learn", "explore", "market"];
 const SCENARIOS = GARBAGE ? ["garbage-200"] : ["down", "503", "503-new", "mid-503", "slow", "sse-kill"];
 const stats = { steps: 0, violations: 0, byKind: {}, routes: {}, failedRequests: {}, scenarios: {} };
@@ -304,6 +315,20 @@ const log = [];
 async function visitorStart(lens) {
   await send("Page.navigate", { url: base });
   await sleep(600);
+  if (SET === "artifact") {
+    const dates = await ev(`(()=>{try{return JSON.parse(document.getElementById('ph-baked').textContent).dates}catch(e){return null}})()`);
+    allLocked = Array.isArray(dates) && dates.length > 0 && dates.every((d) => d >= LOCK_FROM);
+    if (!ROUTES.some((r) => r[0].startsWith("art-game"))) {
+      // The snapshot's own game pages (ids change nightly, so they are read from Discover, not listed here).
+      await ev(`localStorage.setItem('ph.welcomed','1'); localStorage.setItem('ph.tour','1'); 0`);
+      await send("Page.navigate", { url: `${base}#discover` });
+      await sleep(400);
+      await send("Page.reload");
+      await settle(5000);
+      const hrefs = await ev(`JSON.stringify([...new Set([...document.querySelectorAll('a[href^="#/game/"]')].map(a=>a.getAttribute('href')))].slice(0,4))`);
+      for (const [i, h] of JSON.parse(typeof hrefs === "string" ? hrefs : "[]").entries()) ROUTES.push([`art-game-${i}`, h, "ok"]);
+    }
+  }
   await ev(`localStorage.clear(); sessionStorage.clear(); localStorage.setItem('ph.welcomed','1'); localStorage.setItem('ph.tour','1'); localStorage.setItem('ph.name','Walker'); localStorage.setItem('ph.lens','${lens}'); 0`);
 }
 async function go(hash, how) {
@@ -384,8 +409,15 @@ if (SNAPSHOT) {
   console.log(`route-walk: set=${SET} seed=${SEED} visitors=${VISITORS} steps=${stats.steps} width=${WIDTH} inject=${INJECT}`);
   console.log(`scenarios: ${JSON.stringify(stats.scenarios)}`);
   console.log(`API answers >= 400 seen (informational): ${JSON.stringify(stats.failedRequests)}`);
+  const kinds = {};
+  for (const [r, n] of Object.entries(stats.routes)) {
+    const k = r.startsWith("link:") ? `link:${r.slice(5).replace(/^#\/?/, "").split(/[/?]/)[0] || "discover"}` : r;
+    kinds[k] = (kinds[k] ?? 0) + n;
+  }
+  console.log(`steps by route: ${JSON.stringify(kinds)}`);
   for (const l of log.slice(0, 40)) console.log(`  v${l.visitor} s${l.step} ${l.lens} ${l.how} [${l.scenario}] ${l.route} ${l.hash}\n      ${l.violations.join("\n      ")}`);
   if (log.length > 40) console.log(`  ... ${log.length - 40} more steps with violations`);
+  if (SET === "artifact") console.log(`lock window: every baked night locked = ${allLocked}; lock checks run on ${lockChecks.n} steps`);
   console.log(`violations: ${stats.violations} ${JSON.stringify(stats.byKind)}`);
   if (JSON_OUT) writeFileSync(JSON_OUT, JSON.stringify({ stats, log }, null, 1));
 }
