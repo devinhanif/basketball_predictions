@@ -234,3 +234,46 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ================================================================ Game */
+.game-head.page-heading {
+  margin-bottom: 0;
+}
+.game-head .page-heading-title {
+  font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem);
+}
+/* Each player's stats as cards: one column on phones and tablets, two side by side on a wide screen. */
+.prop-grid {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+@media (min-width: 1180px) {
+  .prop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.prop-grid > .prop-block {
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.player[open] {
+  padding-bottom: var(--sp-4);
+}
+.prop-model {
+  margin: var(--sp-2) 0 0;
+  overflow-wrap: anywhere;
+}
+/* Phones: the stat blocks stay plain rows, so the distribution bar keeps its full width and its 12 px labels. */
+@media (max-width: 599px) {
+  .prop-grid > .prop-block {
+    padding: var(--sp-3) 0;
+    border: 0;
+    border-top: 1px dashed var(--line);
+    border-radius: 0;
+    background: none;
+  }
+}
