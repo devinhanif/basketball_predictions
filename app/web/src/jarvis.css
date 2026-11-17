@@ -411,6 +411,88 @@ textarea:focus-visible {
   background: var(--surface);
   box-shadow: inset 0 -1px 0 var(--line);
 }
+/* Stacked tables (Table stack): below 640 px each row is a labelled block. The header row stays as sort buttons; headers
+   without a sort leave the eye but stay in the accessibility tree (visually hidden, not display: none). */
+.ktable .st-label {
+  display: none;
+}
+@media (max-width: 640px) {
+  .table-wrap.stack {
+    overflow: visible;
+  }
+  .table-wrap.stack.sticky {
+    max-height: none;
+  }
+  .ktable.stack {
+    min-width: 0;
+    display: block;
+  }
+  .ktable.stack caption {
+    display: block;
+    text-align: left;
+    margin-bottom: var(--sp-2);
+  }
+  .ktable.stack thead,
+  .ktable.stack tbody {
+    display: block;
+  }
+  .ktable.stack thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-2);
+    padding-bottom: var(--sp-2);
+  }
+  .ktable.stack thead th,
+  .table-wrap.stack.sticky thead th {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .ktable.stack thead th:not([aria-sort]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .ktable.stack thead .sort-btn {
+    border: 1px solid var(--line);
+    border-radius: var(--pill);
+    padding: 0 var(--sp-3);
+    min-height: var(--target);
+  }
+  .ktable.stack tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-2) var(--sp-3);
+    padding: var(--sp-3) 0;
+    border-top: 1px solid var(--line);
+  }
+  .ktable.stack tbody td,
+  .ktable.stack tbody td.num {
+    display: block;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    min-width: 0;
+  }
+  .ktable.stack tbody td.st-lead,
+  .ktable.stack tbody td.st-wide {
+    grid-column: 1 / -1;
+  }
+  .ktable.stack tbody td.st-lead:first-child {
+    font-weight: var(--fw-bold);
+  }
+  .ktable.stack .st-label {
+    display: block;
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    font-weight: var(--fw-bold);
+  }
+}
 
 /* ---------------------------------------------------------------- dialog */
 .modal-back {

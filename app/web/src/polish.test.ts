@@ -27,3 +27,12 @@ describe("Market-screen note", () => {
     expect(marketOnlyId("Signals")).toBe("mo-signals");
   });
 });
+
+describe("stacked table labels", () => {
+  it("label a cell by its plain-text head, by `label`, and never a lead cell", async () => {
+    const { stackLabel } = await import("./ui/Table");
+    expect(stackLabel({ key: "n", head: "n rows", cell: () => null })).toBe("n rows");
+    expect(stackLabel({ key: "x", head: null, label: "Side", cell: () => null })).toBe("Side");
+    expect(stackLabel({ key: "m", head: "Measure", lead: true, cell: () => null })).toBeNull();
+  });
+});

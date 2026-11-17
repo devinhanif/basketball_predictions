@@ -330,36 +330,10 @@
 .prov-snaptable .mono {
   white-space: nowrap;
 }
-/* The snapshot list: a table from 600 px, short cards below it (same rows, same order; only one is ever displayed). */
-.prov-snapcards {
-  display: none;
-  list-style: none;
-  margin: var(--sp-3) 0;
-  padding: 0;
-  gap: var(--sp-2);
-}
-.prov-snapcards > li {
-  display: grid;
-  gap: var(--sp-1);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--grad-tile);
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.psc-top {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--sp-2);
-}
-@media (max-width: 599px) {
-  .prov-snaptable {
-    display: none;
-  }
-  .prov-snapcards {
-    display: grid;
+/* Below 640 px the snapshot table stacks (Table stack): one labelled block per snapshot; long ids may wrap there. */
+@media (max-width: 640px) {
+  .prov-snaptable .mono {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }

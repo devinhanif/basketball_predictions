@@ -84,10 +84,11 @@ function Mean({ r }: { r: ScoreRow }) {
   );
 }
 
-const MEASURE: Column<ScoreRow> = { key: "target", head: "Measure", cell: (r) => `${targetLabel(r.target)}${r.metric ? `, ${r.metric.toUpperCase()}` : ""}`, sort: (r) => r.target };
+const MEASURE: Column<ScoreRow> = { key: "target", head: "Measure", lead: true, cell: (r) => `${targetLabel(r.target)}${r.metric ? `, ${r.metric.toUpperCase()}` : ""}`, sort: (r) => r.target };
 const ROW: Column<ScoreRow> = {
   key: "row",
   head: "Row",
+  lead: true,
   cell: (r) => (
     <span class="wrap-any">
       <span class="mono">{r.label}</span> <span class="small muted">({r.role.replace(/_/g, " ")})</span>
@@ -98,6 +99,7 @@ const ROW: Column<ScoreRow> = {
 const LOCKED: Column<ScoreRow> = {
   key: "locked",
   head: "Locked dates (hidden until the look)",
+  wide: true,
   cell: (r) => (r.nLocked > 0 ? `${count(r.nLocked)} rows, ${count(r.datesLocked)} dates` : MISSING),
   sort: (r) => r.nLocked,
   num: true,
@@ -106,10 +108,10 @@ const LOCKED: Column<ScoreRow> = {
 const SHOWN_COLS: readonly Column<ScoreRow>[] = [
   MEASURE,
   ROW,
-  { key: "mean", head: "Mean [95% interval]", cell: (r) => <Mean r={r} />, sort: (r) => r.m?.value ?? null },
+  { key: "mean", head: "Mean [95% interval]", wide: true, cell: (r) => <Mean r={r} />, sort: (r) => r.m?.value ?? null },
   { key: "n", head: "n rows", cell: (r) => count(r.m?.n ?? r.n), sort: (r) => r.n, num: true, first: "descending" },
   { key: "d", head: "n dates", cell: (r) => count(r.m?.n_dates ?? r.nDates), sort: (r) => r.nDates, num: true, first: "descending" },
-  { key: "call", head: "Better, worse or same", cell: (r) => <Call r={r} /> },
+  { key: "call", head: "Better, worse or same", wide: true, cell: (r) => <Call r={r} /> },
   LOCKED,
 ];
 
@@ -119,7 +121,7 @@ const HIDDEN_COLS: readonly Column<ScoreRow>[] = [
   { key: "n", head: "n rows", cell: (r) => count(r.n), sort: (r) => r.n, num: true, first: "descending" },
   { key: "d", head: "n dates", cell: (r) => count(r.nDates), sort: (r) => r.nDates, num: true, first: "descending" },
   LOCKED,
-  { key: "why", head: "Hidden until its look, because", cell: (r) => <span class="small">{r.withheld ?? MISSING}</span> },
+  { key: "why", head: "Hidden until its look, because", wide: true, cell: (r) => <span class="small">{r.withheld ?? MISSING}</span> },
 ];
 
 /** Simple: the method behind one "how this is measured" disclosure. Analyst: laid out as its own card. */
@@ -177,7 +179,7 @@ function Body({ s, market, analyst }: { s: Scorecard; market: boolean; analyst: 
             </>
           }
         />
-        <Table caption="Stored scores, lower is better" rows={rows.filter((r) => r.shown)} columns={SHOWN_COLS} rowKey={(r) => r.key} noun="rows" class="sc-table sc-shown" />
+        <Table caption="Stored scores, lower is better" rows={rows.filter((r) => r.shown)} columns={SHOWN_COLS} rowKey={(r) => r.key} noun="rows" class="sc-table sc-shown" stack />
       </section>
       <section class="panel" aria-labelledby="sc-hidden">
         <SectionHead
@@ -197,6 +199,7 @@ function Body({ s, market, analyst }: { s: Scorecard; market: boolean; analyst: 
           noun="rows"
           class="sc-table sc-hidden"
           sticky
+          stack
         />
       </section>
       <section class="panel" aria-labelledby="sc-na">
