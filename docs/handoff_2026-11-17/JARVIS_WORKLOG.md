@@ -48,21 +48,34 @@ retries that once.
 Polish items seen by the main session in the merged betting screens (for the last pass): the slip rail's unit labels wrap
 mid-word ("contra cts", "stak e"); a notice can sit over the middle of the Compare board.
 
-## Running (wave 3, launched about 02:03 CST)
+## Merged after 03:30 CST
+| Lane | Tip | State |
+|---|---|---|
+| J5 verification docs | 925451e4 | merged 03:32 CST (e99a562c): gap matrix (28 rows: 15 match, 7 partial, 5 target-only, 1 deferred, 0 missing), acceptance checklist (60: 35 met, 19 partly, 1 not met, 5 n/a), donor map, README section |
+| J7 last polish | ea01450f | merged 04:44 CST (0e1d18a3): web check OFF and ON 558 tests; api 604 passed, 1 skipped OFF and ON; flag parity passed (OFF js 417,895 / css 124,827 / artifact 4,595,443; ON js 584,063 / artifact 4,761,601); layering 15 passed. Incident it reported: at 03:38 it killed a headless Chrome (PID 38040, profile `scratchpad/pages/ldprof`) that was not its own; no lane was running a learn-dom check at that time, so nothing needed a rerun |
+| main session | e5b789b5, 5b94a4ea | 04:45 and 05:00 CST: the browser bar colour follows a theme picked in the app (test `headColor.test.ts`); the data line says "Forecast data made" and, outside the Market lens, shows only when the data is old (the line above it already gives the age, so a phone's first screen gains a row); one primary button on the slip page; Compare's slip summary counts picks waiting for a price. Web check OFF and ON 559 tests |
+
+Verification of the tree at e5b789b5 (04:45 to 04:57 CST): walk 0 violations at all five settings; visual check quick OFF 120
+captures and ON 148 captures, 0 with a gating finding; journey PASSED on the real export (98 ok steps). The same set was
+rerun on 5b94a4ea (see REPORT_JARVIS.md section 3 for the last numbers).
+
+## Running (wave 4, launched 05:01 CST, hard stop 07:10 CST)
 | Lane | Branch | Worktree | Scope |
 |---|---|---|---|
-| J7 | `agent/app-jarvis-last` | `~/Downloads/nba-wt-1117-jv-last` | launched 03:22 CST: last polish (slip rail labels, notices, floating button, theme-color, the review lane's not-fixed list), the switch-ON shell and the Ideas/Analysis screens reviewed, both single-file artifacts opened as files, first-visit and keyboard passes |
-| J5 | `agent/app-jarvis-verify` | `~/Downloads/nba-wt-1117-jv-verify` | `visual-check.mjs` (structural assertions + local pixel baseline), donor map, filled gap matrix and acceptance checklist, README section |
+| K1 | `agent/app-jarvis-close` | `~/Downloads/nba-wt-1117-jv-close` | betting module only: cross-tab sync, select / deselect / remove in the journey, paper-outcome history, add to slip from Discover's cards, Compare ordering guard, long content, compatibility audit, blocked storage. Ports 8160-8161 / 5310-5311 |
+| K2 | `agent/app-jarvis-friend` | `~/Downloads/nba-wt-1117-jv-friend` | everything except the betting module: a friend's first visit on a phone with the switch off on real data, then desktop; first-screen density, wording, empty states, rhythm. Ports 8170-8171 / 5320-5321 |
 
 ## Next
-1. As each reports: merge into the follow-up branch (J4c and J6 may both touch shell-adjacent files: expect small conflicts),
-   then `npm run check` OFF and ON, artifact build, `flag-parity.mjs`, `app/scripts/walk.sh --widths`, the journey against 5186,
-   layering test, and look at screenshots.
-2. Ask J5 (SendMessage) to refresh the gap matrix and checklist rows that were pending J4c / J6; run its visual check on
-   the final tree.
-3. Final: merge `agent/integration-2026-11-17` into this branch (late docs commits), build the real-data artifact OFF and ON
-   with `app/scripts/artifact.sh --export [--betting]`, restart the previews on 5185 (OFF) and 5186 (ON), write
-   `REPORT_JARVIS.md` and the DECISIONS rows, and only then the completion line in `REPORT.md` on both branches.
+1. When K1 and K2 report (by 07:10 CST): merge each into the follow-up branch (`git merge --no-ff --no-commit`), then the
+   gate: `npm run check` OFF and ON, `flag-parity.mjs`, API tests OFF and ON, layering, `check.sh --browser`,
+   `walk.sh --widths`, `visual.sh --quick` and `--quick --betting`, the journey against 5186. Heavy work ends before
+   08:20 CST (live jobs).
+2. Rebuild the real-data single-file pages into `~/Downloads/parlayhitters-artifacts-2026-11-17/` (`artifact.sh --export`
+   and `--export --betting`), refresh the numbers in `REPORT_JARVIS.md`, add decision rows, refresh the checklist rows K1
+   closed.
+3. Only then the completion line in `REPORT.md` on both branches.
+4. If a lane does not report in time: leave its branch unmerged, say so in the report; the follow-up branch at 5b94a4ea
+   is already verified and complete on its own.
 
 ## Decisions so far (rows go to DECISIONS_ROWS.md at the end)
 - "fast arb" (Devin, about 22:55 CST): JARVIS Polymarket fee uses fast-arb's order. On the integration branch, row 16.
