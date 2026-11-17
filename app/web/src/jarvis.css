@@ -1150,11 +1150,6 @@ h1.answer {
 .today-head .page-heading-actions {
   gap: var(--sp-2);
 }
-/* The nights row reads as the donor's toolbar: pills on a rule. */
-.today-head ~ nav.tabs {
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
-}
 .view-opts {
   border-radius: var(--radius);
 }
