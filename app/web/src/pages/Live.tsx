@@ -1,4 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
+import { SoWhat } from "../ui";
+import { count } from "../format";
 import { Attribution, LiveGame } from "../LiveParts";
 import { ageNow, ageText, clockLabel, etDate, previousDate, type LiveGameSummary } from "../live";
 import { liveHref } from "../router";
@@ -70,6 +72,11 @@ function List({ date }: { date: string | null }) {
   const done = all.filter((x) => x.g.state === "post").sort(byTip);
   return (
     <div class="stack">
+      {all.length > 0 ? (
+        <SoWhat>
+          {count(now.length)} live now, {count(later.length)} later, {count(done.length)} final on the live feed.
+        </SoWhat>
+      ) : null}
       {st.error ? <p role="alert">Could not reach the live feed. Retrying.</p> : null}
       {all.length === 0 && !st.error ? (
         <section class="panel empty">

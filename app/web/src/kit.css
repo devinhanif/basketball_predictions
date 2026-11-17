@@ -346,3 +346,12 @@ kbd {
     flex: none;
   }
 }
+
+/* ---- the "so what" line at the top of a main page ---- */
+.sowhat {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 62ch;
+}

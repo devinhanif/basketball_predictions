@@ -9,6 +9,7 @@ import type { PSource, PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
 import { failureFromMessage, reasonOf, technicalOf, type ApiFailure } from "./errors";
 import { ProblemPanel } from "./Problem";
+import { Skeleton } from "./ui/Skeleton";
 import { Icon } from "./icons";
 import { effectiveDark, setPref, usePrefs } from "./prefs";
 import { FOOTER_DISCLOSURE } from "./config";
@@ -99,8 +100,7 @@ export function Loading(props: { what?: string }) {
           ? "Still loading. The server was idle and is waking up; the first load after a pause can take up to 15 seconds. Nothing is wrong."
           : `Loading ${props.what ?? "the forecasts"} from the nightly export...`}
       </p>
-      <div class="skeleton" />
-      <div class="skeleton" />
+      <Skeleton lines={2} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { SoWhat } from "../ui";
 import { api } from "../api";
 import { Avatar } from "../Avatar";
 import { ErrorPanel, Explain, Loading, ModeToggle } from "../components";
@@ -32,6 +33,9 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
         <Avatar name={data.player} team={data.team} playerId={data.player_id} size="lg" remote />
         {data.player}
       </h1>
+      <SoWhat>
+        {data.player}, {data.label.toLowerCase()} at {lineText(line)}: his recent games and the forecast are below. A forecast is a range, and nothing here is a pick.
+      </SoWhat>
       <p class="muted num" style={{ margin: 0 }}>
         {data.team} {data.home ? "vs" : "at"} {data.opponent} · tip-off {tipTime(data.tip_utc)} · {data.label} {lineText(line)}
       </p>

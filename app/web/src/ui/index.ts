@@ -8,3 +8,4 @@ export { Skeleton } from "./Skeleton";
 export { Table, type Column } from "./Table";
 export { TabPanel, Tabs, type TabDef } from "./Tabs";
 export { Tile } from "./Tile";
+export { SoWhat } from "./SoWhat";

@@ -24,7 +24,11 @@ void startUserStateSync();
 void startWatchSync();
 void startPhotoSync();
 const root = document.getElementById("app");
-if (root) render(<App />, root);
+// The static "Loading..." placeholder is replaced, not left behind under the app (Preact appends to existing children).
+if (root) {
+  root.textContent = "";
+  render(<App />, root);
+}
 
 // Render first, light the capabilities up when they answer (never during this first synchronous run).
 const w = window as unknown as { claude?: ClaudeLike };
