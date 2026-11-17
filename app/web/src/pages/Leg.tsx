@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { SoWhat } from "../ui";
+import { OnThisPage, SoWhat } from "../ui";
 import { api } from "../api";
 import { Avatar } from "../Avatar";
 import { ErrorPanel, Explain, Loading } from "../components";
@@ -178,6 +178,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   return (
     <div class={`stack leg${fresh ? "" : " stale"}`} aria-busy={pending}>
       <Header data={data} line={shown} />
+      <OnThisPage />
       {lens === "explore" ? <LensExplore data={data} modelStat={modelStat} lens={lens} /> : null}
       <LineCard
         data={data}

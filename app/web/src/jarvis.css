@@ -1801,3 +1801,71 @@ details.alt > .alt-body {
 .leg-head-row {
   align-items: flex-start;
 }
+
+/* ---- On this page: the jump list under a long page's heading ---- */
+.otp > details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0 var(--sp-3);
+}
+.otp > details > summary {
+  gap: 6px;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--track-kicker);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.otp > details > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.otp > details[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+.otp ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-2);
+}
+.otp-link {
+  appearance: none;
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.18s, background-color 0.18s;
+}
+.otp-link:hover {
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+}
+.otp-link:active {
+  background: var(--accent-soft);
+}
+@media (max-width: 759px) {
+  .otp-link {
+    min-height: var(--target);
+    white-space: normal;
+    text-align: left;
+  }
+}
+main h2 {
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}

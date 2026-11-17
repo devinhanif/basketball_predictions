@@ -20,7 +20,7 @@ import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../type
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
 import { RESULT_HIDDEN, isLockedNight } from "../record";
 import { chanceSentence, didText, rangeSentence, winSentence } from "../words";
-import { PageHead, SoWhat, Tabs } from "../ui";
+import { OnThisPage, PageHead, SoWhat, Tabs } from "../ui";
 import { count } from "../format";
 import { SourceButton } from "../Provenance";
 import { AddToSlipSlot } from "../BetSlots";
@@ -198,6 +198,7 @@ function Body({ g }: { g: GameDetail }) {
           : `${g.away.name} at ${g.home.name}: by our model, ${winSentence(modelHome, g.home.name, g.away.name).replace(/^Close/, "close")}.`}{" "}
         {`${count(g.players.length)} ${g.players.length === 1 ? "player has" : "players have"} a forecast. Nothing here is a pick.`}
       </SoWhat>
+      <OnThisPage />
       <section class="panel scoreboard">
         <div class="score-row">
           <div class="score-team">

@@ -10,7 +10,7 @@ import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
 import { stamp } from "../time";
-import { Card, CompareBadge, PageHead, SectionHead, StateBlock, Table, Tile, type Column } from "../ui";
+import { Card, CompareBadge, OnThisPage, PageHead, SectionHead, StateBlock, Table, Tile, type Column } from "../ui";
 import { useLoad } from "../useLoad";
 
 const TARGET_LABEL: Record<string, string> = { pts: "Points", reb: "Rebounds", ast: "Assists", fg3m: "Threes", win_prob_home: "Game winner" };
@@ -272,6 +272,7 @@ export function ScorecardPage() {
         description="Lower scores are better. A row we may not show yet keeps its counts and says when it opens; nothing is filled in."
         actions={<PageControls lens />}
       />
+      <OnThisPage />
       <View state={state} reload={reload} what="the scorecard">
         {(m: Maybe<Scorecard>) =>
           m.kind === "absent" ? (

@@ -8,7 +8,7 @@ import { PageControls } from "../Lens";
 import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
-import { Badge, PageHead, StateBlock } from "../ui";
+import { Badge, OnThisPage, PageHead, StateBlock } from "../ui";
 import { useLoad } from "../useLoad";
 
 /** Is everything a test says free of price words (so it may show in the Learn lens)? */
@@ -147,6 +147,7 @@ export function TestsPage() {
         }
         actions={<PageControls lens />}
       />
+      <OnThisPage />
       <View state={state} reload={reload} what="the forward tests">
         {(m: Maybe<ForwardTests>) =>
           m.kind === "absent" ? (

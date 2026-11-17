@@ -36,3 +36,14 @@ describe("stacked table labels", () => {
     expect(stackLabel({ key: "m", head: "Measure", lead: true, cell: () => null })).toBeNull();
   });
 });
+
+describe("on this page", () => {
+  it("keeps a short heading whole and cuts a long one at a word", async () => {
+    const { chipLabel } = await import("./ui/OnThisPage");
+    expect(chipLabel("The model")).toBe("The model");
+    const long = chipLabel("Rows under a frozen test keep their counts and say why they are hidden");
+    expect(long.endsWith("…")).toBe(true);
+    expect(long.length).toBeLessThanOrEqual(43);
+    expect(long).not.toMatch(/\s…$/);
+  });
+});

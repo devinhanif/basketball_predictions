@@ -5,6 +5,7 @@ export { Card } from "./Card";
 export { ChartFrame } from "./ChartFrame";
 export { FilterChips, type ChipOption } from "./Chips";
 export { Dialog } from "./Dialog";
+export { OnThisPage } from "./OnThisPage";
 export { PageHead, SectionHead } from "./PageHead";
 export { SidePanelHost } from "./SidePanel";
 export { clearSidePanel, setSidePanel, type SidePanelDef } from "./sidePanelStore";
