@@ -399,6 +399,32 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
     </a>
   );
   const crumb = crumbs(props.route);
+  const crumbKey = crumb.join("/");
+  // The tab's title names the page ("Scorecard · parlayhitters"); a game or a player adds its own name once it loads.
+  useEffect(() => {
+    const label = crumb[crumb.length - 1] ?? "Discover";
+    const named = props.route.name === "game" || props.route.name === "leg";
+    const set = (): void => {
+      let t = "";
+      const h = named ? document.querySelector("main h1") : null;
+      if (h) {
+        const copy = h.cloneNode(true) as HTMLElement;
+        copy.querySelectorAll('[aria-hidden="true"]').forEach((e) => {
+          e.remove();
+        });
+        t = copy.textContent.replace(/\s+/g, " ").trim();
+      }
+      const next = t ? `${t} · ${label} · parlayhitters` : `${label} · parlayhitters`;
+      if (document.title !== next) document.title = next;
+    };
+    set();
+    const main = document.getElementById("main");
+    const mo = named && main ? new MutationObserver(set) : null;
+    if (mo && main) mo.observe(main, { childList: true, subtree: true, characterData: true });
+    return () => {
+      mo?.disconnect();
+    };
+  }, [props.route, crumbKey]);
   // The betting module's nav entries (none in a build with the switch off).
   const betNav: readonly BettingNavEntry[] = BETTING ? BETTING_MODULE.nav.filter((n) => lens === "market" || !n.marketOnly) : [];
   const betLink = (n: BettingNavEntry) => (
