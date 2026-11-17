@@ -21,6 +21,7 @@ import type { LegEdges } from "./edges";
 import type { TopParlays, TpResult } from "./topParlays";
 import { getRaw, warmGames, type Raw } from "./transport";
 import { parseDesk, type Desk } from "./desk";
+import { clearMiss, missedRecently, noteMiss } from "./missMemo";
 import type { LiveList, Play } from "./live";
 import type { ScenariosView } from "./sits";
 
@@ -56,8 +57,14 @@ export async function getJson<T>(path: string): Promise<Loaded<T>> {
 /** Top-parlays file for a date. 404 means no file (a first-class state); 422 means the API refused it. */
 export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
   const path = `/api/top-parlays/${encodeURIComponent(date)}`;
+  const key = `tp:${date}`;
+  if (missedRecently(key)) return { data: { kind: "missing" }, fromCache: false };
   const r = await answer(path);
-  if (r.status === 404) return { data: { kind: "missing" }, fromCache: r.fromCache };
+  if (r.status === 404) {
+    noteMiss(key);
+    return { data: { kind: "missing" }, fromCache: r.fromCache };
+  }
+  clearMiss(key);
   if (r.status === 422) {
     const detail = (r.body as { detail?: string } | null)?.detail;
     return { data: { kind: "refused", detail: detail ?? "refused" }, fromCache: r.fromCache };
@@ -185,8 +192,13 @@ export type DeskState = { kind: "absent" } | { kind: "refused"; detail: string }
 
 /** The Jarvis Desk export. 404 means this API does not serve one (public API, or none written yet): a normal state. */
 export async function getDesk(): Promise<DeskState> {
+  if (missedRecently("desk")) return { kind: "absent" };
   const r = await getRaw("/api/desk");
-  if (r.status === 404) return { kind: "absent" };
+  if (r.status === 404) {
+    noteMiss("desk");
+    return { kind: "absent" };
+  }
+  clearMiss("desk");
   if (r.status === 422) return { kind: "refused", detail: (r.body as { detail?: string } | null)?.detail ?? "refused" };
   if (r.status < 200 || r.status >= 300) return { kind: "absent" };
   const desk = parseDesk(r.body);
