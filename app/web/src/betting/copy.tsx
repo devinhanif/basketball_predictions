@@ -1,3 +1,11 @@
+// WORDS (settled 2026-11-17, one set on every screen and notice):
+//   slip      the one working list a viewer builds ("Your rolling slip" is only the page title); never "rolling slip" in body text.
+//   pick      a prop saved from a game or player page that has no venue price yet ("Waiting for a price").
+//   leg       one priced line in the slip: a "planned leg" (not yet placed) or a "recorded position" (placed elsewhere, noted here).
+//   position  only a recorded one; never call a planned leg a position.
+//   venue     where a price comes from (sportsbook, exchange or entry): never "provider" or "book" in user-visible text.
+//   idea      a slip saved with a thesis; "paper net" is its arithmetic, never "profit".
+//   stored    a snapshot from the export (provenance "delayed"); typed prices are "manual"; the demo is "sample".
 // The betting screens' fixed sentences, in one place. Every screen that shows prices, cost or hedge output prints
 // MONEY_NOTE; where arithmetic on typed prices is shown it also prints ARITHMETIC_NOTE. Tests and the browser journey look
 // for these exact strings.

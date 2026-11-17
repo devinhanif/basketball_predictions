@@ -145,22 +145,29 @@ export function AboutPrices(props: { st: Stored; cards: readonly VenueCard[]; no
       </>
     );
   return (
-    <ul class="ph-bet-about small" aria-label="About these prices">
-      <li>{where}</li>
-      {staleStored.length ? (
-        <li>
-          A price older than {ageMinutes} minutes counts as out of date, so the slip shows no coverage figure while it is in a planned leg
-          {staleStored.length === stored.length ? ": every stored snapshot on this board is older than that." : "; each row shows its age."} Type a current
-          price to use one.
-        </li>
-      ) : null}
-      {anyUnknownFee ? <li>Cost per $1 of payout is blank where a venue's fee is unknown. The export carries no fees; set one below if you know it.</li> : null}
-      <li>{SETTLEMENT_NOTE}</li>
-      <li>
-        Venues are listed by name in two groups, priced then unavailable, never by price.
-        {props.crownText ? ` ${props.crownText}` : ""}
-      </li>
-    </ul>
+    <div class="ph-bet-aboutbox">
+      <ul class="ph-bet-about small" aria-label="Where these prices come from">
+        <li>{where}</li>
+        <li>{SETTLEMENT_NOTE}</li>
+      </ul>
+      <details class="ph-bet-disclose">
+        <summary>About these prices</summary>
+        <ul class="ph-bet-about small">
+          {staleStored.length ? (
+            <li>
+              A price older than {ageMinutes} minutes counts as out of date, so the slip shows no coverage figure while it is in a planned leg
+              {staleStored.length === stored.length ? ": every stored snapshot on this board is older than that." : "; each row shows its age."} Type a current
+              price to use one.
+            </li>
+          ) : null}
+          {anyUnknownFee ? <li>Cost per $1 of payout is blank where a venue's fee is unknown. The export carries no fees; set one below if you know it.</li> : null}
+          <li>
+            Venues are listed by name in two groups, priced then unavailable, never by price.
+            {props.crownText ? ` ${props.crownText}` : ""}
+          </li>
+        </ul>
+      </details>
+    </div>
   );
 }
 
@@ -450,7 +457,8 @@ export function FeeControl(props: { cards: readonly VenueCard[]; fees: Readonly<
   const chosen = venue || unknown[0]?.provider.id || "";
   const label = (id: string): string => props.cards.find((c) => c.provider.id === id)?.provider.label ?? id;
   return (
-    <div class="ph-bet-feebar">
+    <details class="ph-bet-feebar ph-bet-disclose" open={set.length > 0}>
+      <summary>Venue fees ({unknown.length ? `${String(unknown.length)} ${unknown.length === 1 ? "venue" : "venues"} without one` : "all entered"})</summary>
       {unknown.length ? (
         <form
           class="ph-bet-feeform"
@@ -510,7 +518,7 @@ export function FeeControl(props: { cards: readonly VenueCard[]; fees: Readonly<
           ))}
         </p>
       ) : null}
-    </div>
+    </details>
   );
 }
 

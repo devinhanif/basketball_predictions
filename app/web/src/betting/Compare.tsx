@@ -396,6 +396,7 @@ export function Comparison(props: { bet: Ready; market: Market; side: Side }) {
       <div class="ph-bet-toolbar row wrap">
         {st.source === "export" ? (
           <Button
+            class="small"
             onClick={() => {
               st.reload();
               say({ ok: true, text: "Stored prices read again. Legs in your slip and saved ideas keep the price they were saved at." }, "Prices");
@@ -404,10 +405,10 @@ export function Comparison(props: { bet: Ready; market: Market; side: Side }) {
             Refresh stored prices
           </Button>
         ) : null}
-        <Button onClick={() => { setDialog({ kind: "existing" }); }}>Log a bet you already placed</Button>
+        <Button class="small" onClick={() => { setDialog({ kind: "existing" }); }}>Log a bet you placed</Button>
         {market.origin === "export" ? (
-          <a class="btn" href={compareHashFor(market, side, "analysis")}>
-            Model and record for this prop
+          <a class="btn small" href={compareHashFor(market, side, "analysis")}>
+            Model and record
           </a>
         ) : null}
       </div>
