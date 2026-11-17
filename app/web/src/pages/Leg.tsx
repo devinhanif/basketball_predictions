@@ -101,11 +101,18 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
         api.breakdown(props.gameId, props.playerId, props.stat, line, side).then(
           (r) => {
             if (!live) return;
+            const body = r.data as LegBreakdown | null;
+            if (body === null || typeof body !== "object" || !Array.isArray(body.ladder)) {
+              // An answer of the wrong shape is a failure on screen, not a spinner forever or a thrown error.
+              setError(failureOf(new Error("the breakdown answer was not in the expected form")));
+              setPending(false);
+              return;
+            }
             setData(r.data);
             setError(null);
             setPending(false);
             onStale(r.fromCache);
-            const ladder = Array.isArray(r.data.ladder) ? r.data.ladder : [];
+            const ladder = r.data.ladder;
             const first = ladder[0];
             const last = ladder[ladder.length - 1];
             if (first && last) setBounds((b) => b ?? { min: first.line, max: last.line });
