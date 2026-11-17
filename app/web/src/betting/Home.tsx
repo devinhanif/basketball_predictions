@@ -53,7 +53,7 @@ export function BetHome() {
               <div>
                 <strong>{s.title}</strong>
                 <p class="small">{s.text}</p>
-                <a class="small" href={s.href}>
+                <a class="small tap" href={s.href}>
                   {s.link}
                 </a>
               </div>

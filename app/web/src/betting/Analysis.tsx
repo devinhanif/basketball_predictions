@@ -19,7 +19,7 @@ import { DistributionPanel } from "../Distribution";
 import { Headline } from "../pages/LegLine";
 import { ModelPanel } from "../pages/LegHistory";
 import type { BetRoute } from "./seam";
-import { TITLE_ANALYSIS } from "./copy";
+import { NO_SNAPSHOTS, TITLE_ANALYSIS } from "./copy";
 import { MarketGate, MoneyNote, providerLabel } from "./parts";
 import { MarketHead, MarketProblem, useMarketFromQuery, useRawBoard } from "./board";
 import { ideaHref } from "./Ideas";
@@ -201,7 +201,7 @@ function AnalysisScreen(props: { route: BetRoute }) {
             Stored snapshots could not be read: {failureMessage(board.failure)}
           </p>
         ) : board.kind === "off" ? (
-          <p class="small">Stored snapshots are not available from this server.</p>
+          <p class="small">{NO_SNAPSHOTS}</p>
         ) : (
           <BoardSummary board={board.data} market={m} now={now} />
         )}

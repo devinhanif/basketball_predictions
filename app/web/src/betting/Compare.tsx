@@ -487,7 +487,7 @@ export function CompareScreen(props: { route: BetRoute }) {
       ) : (
         <>
           <p class="small">
-            <a href="#/bet/compare">Pick another prop</a>
+            <a class="tap" href="#/bet/compare">Pick another prop</a>
           </p>
           <Comparison bet={bet} market={ms.market} side={sideOf(q.side)} />
         </>

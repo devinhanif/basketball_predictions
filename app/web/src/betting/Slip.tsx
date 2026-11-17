@@ -417,9 +417,38 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
 }
 
 /** #/bet/slip */
+/** True while the slip page is on screen (the single-file snapshot keeps detail routes in memory, so the hash cannot say). */
+let slipPageShown = false;
+let slipPageListeners: Set<() => void> | null = null;
+function slipPageSet(on: boolean): void {
+  slipPageShown = on;
+  for (const l of slipPageListeners ?? []) l();
+}
+function useSlipPageShown(): boolean {
+  const [on, setOn] = useState(slipPageShown);
+  useEffect(() => {
+    slipPageListeners ??= new Set();
+    const l = (): void => {
+      setOn(slipPageShown);
+    };
+    slipPageListeners.add(l);
+    l();
+    return () => {
+      slipPageListeners?.delete(l);
+    };
+  }, []);
+  return on;
+}
+
 export function SlipPage() {
   ensureBetStyles();
   const bet = useBet();
+  useEffect(() => {
+    slipPageSet(true);
+    return () => {
+      slipPageSet(false);
+    };
+  }, []);
   return (
     <MarketGate name="The rolling slip" what="The rolling slip holds prices, costs and payouts.">
       <section class="ph-bet stack" aria-labelledby="ph-bet-slip-h">
@@ -523,7 +552,8 @@ export function SlipPanel() {
   const hash = useHash();
   const launcher = useRef<HTMLButtonElement>(null);
   const ready = bet.ready && (bet.view.workspace !== null || bet.view.phase === "error");
-  const plan = slipPanelPlan({ lens, ready, wide, open, onSlipPage: isSlipPage(hash) });
+  const onSlipPage = useSlipPageShown();
+  const plan = slipPanelPlan({ lens, ready, wide, open, onSlipPage: isSlipPage(hash) || onSlipPage });
   const n = bet.ready && bet.view.workspace ? slipCount(bet.view.workspace) : 0;
   const unsaved = bet.ready && bet.view.dirty;
   const was = useRef(plan);

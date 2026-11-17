@@ -728,12 +728,13 @@
   align-items: center;
 }
 @container phbetboard (max-width: 700px) {
+  /* Visually hidden, still read as the table's heads; clipped by clip-path (not overflow) so no text is cut mid-glyph. */
   .ph-bet .ph-bet-board thead {
     position: absolute;
     width: 1px;
     height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .ph-bet .ph-bet-board,
   .ph-bet .ph-bet-board tbody {
@@ -1049,4 +1050,29 @@
   .ph-bet .ph-bet-facts > div {
     grid-template-columns: 1fr;
   }
+}
+
+/* Phones: every small button and standalone link in the module is a 44 px target (J7). */
+@media (max-width: 767px) {
+  .ph-bet .btn.small {
+    min-height: 44px;
+  }
+}
+
+/* Every disclosure in the module shows that it opens (the app's summaries are flex rows, which drop the browser's
+   marker): the same chevron as the rest of the app (J7). */
+.ph-bet details > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  opacity: 0.75;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.18s;
+}
+.ph-bet details[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
 }
