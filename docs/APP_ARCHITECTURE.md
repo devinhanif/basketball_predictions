@@ -1,8 +1,14 @@
-# App architecture (design only, 2026-10-11; nothing is built, no accounts exist)
+# App architecture (designed 2026-10-11; status corrected 2026-11-16)
+
+**Status 2026-11-16.** Built and run locally (no deployment): the read-only API (`app/api`, FastAPI), the PWA (`app/web`, Vite + Preact),
+the single-file artifact, the swipe deck, a browser-local paper ledger (`localStorage`), the parlay-of-the-day page, track record,
+live play-by-play and the desk screens. **Planned, not built:** accounts and magic links, a server-side ledger and app DB, slip ingestion,
+leagues, grounded chat, social adapters, customer-service agent, payments, and any deployment (Cloudflare, Oracle VM, domain).
+Sections below say "PLANNED" where they describe something not built. How to run what is built: `app/README.md`; the code map: `app/ARCHITECTURE.md`.
 
 Source decisions: DECISIONS 2026-10-11 ~15:10 (parlayhitters.ai), `docs/BUSINESS_DRAFT_2026-10-11.md`, CLAUDE.md.
-Companion: `docs/APP_SECURITY_BASELINE.md`. Status: DRAFT for Devin; every account or purchase is listed in the
-security baseline checklist, section 12.
+Companion: `docs/APP_SECURITY_BASELINE.md`. Every account or purchase is listed in the security baseline checklist,
+section 12 (all still Devin's decisions; none made by the app).
 
 ## 1. What the app is
 A props assistance tool with paper trading, not a picks service. Users see the local props model's forecasts, track
@@ -15,42 +21,46 @@ nba/ (pipeline, models, truth)  --never imports-->  app/
 app/ (API, jobs, adapters)      --imports nba only via-->  nba/export/   (read-only)
 nba/export/                     --reads-->  nba.duckdb opened read_only=True
 ```
-- `app/` is a separate top-level package with its own `pyproject` extras, lockfile section and tests (`tests/app/`).
-- `nba/export/` is small and pure: functions returning plain dicts/dataclasses for (a) forward predictions,
-  (b) settled scores, (c) explainer data, (d) the props model's forecast grids (integer-support quantile and
-  probability grids per player-stat, as stored by the daily run; no model is fit or loaded at serve time).
-  It has no write path, no network, and imports no `app`.
-- `tests/test_layering.py` gains two rules: `nba/` never imports `app.*`; `app/` imports `nba.*` only as `nba.export.*`.
-  Same both-ways rule as KNOWN_EDGES: a new edge is a regression, a vanished edge means a stale list.
-- The live path (`ops/*.sh` closure) must not import `app/`. The export job is a new entrypoint added to the closure
-  with its edge listed. Hands-off window 10-18 to 10-20: nothing under `nba/`, `ops/`, `configs/`, `uv.lock` changes.
+- `app/` is a separate top-level tree with two projects of its own: `app/api` (uv: `pyproject.toml`, `uv.lock`, tests in `app/api/tests/`) and
+  `app/web` (npm: `package.json`, `package-lock.json`, vitest tests beside the sources). The root `pyproject.toml` and `uv.lock` are untouched.
+- `nba/export/` exists (`python -m nba.export build --date <d> --out <dir>`). It reads forward predictions, settled scores,
+  explainer data, prop lines and the props model's forecast grids from `nba.duckdb` opened `read_only=True` and writes
+  `export.duckdb`, `parlay_of_day.json` and `manifest.json` atomically; no model is fit or loaded at serve time. It has no
+  write path to `nba.duckdb`, no network, and imports no `app`. The app reads only those output files (`APP_EXPORT_DIR`).
+- `tests/test_layering.py` (repo root) has the two rules: `nba/` never imports `app.*`; `app/` imports `nba.*` only as `nba.export.*`.
+  Same both-ways rule as KNOWN_EDGES: a new edge is a regression, a vanished edge means a stale list. Today `KNOWN_APP_EDGES`
+  is empty: the app imports nothing from `nba`.
+- The live path (`ops/*.sh` closure) must not import `app/`, and the nightly export job is not part of that closure
+  (`nba/export/__init__.py`). (The 10-18 to 10-20 hands-off window is over.)
 - The API never opens the live `nba.duckdb`. It reads a nightly-copied file (section 5).
 
 ## 3. Components
-1. **PWA** (Cloudflare Pages). Static TypeScript build (Vite, no UI framework unless a page proves it needs one; Preact
-   is the ceiling). Service worker caches the shell and the last-fetched forecast pages so it works offline and is
-   installable. Talks only to the API origin. Pages: today's slate and forecasts, explainer per game, paper ledger,
-   slip upload, my calibration, "parlay of the day", about/method/responsible-gambling, privacy, terms.
-2. **API** (Oracle VM, Python, FastAPI; Starlette-only if the footprint matters). Two read sources: the nightly
-   `export.duckdb` (opened `read_only=True`) and the app DB (SQLite in WAL mode, user data only, separate file from
-   anything nba). Rate-limited (per IP and per account), CORS pinned to `https://parlayhitters.ai`, no wildcard.
-3. **Slip ingestion.** Upload -> object store bucket with a 24-hour lifecycle TTL -> nightly bulk read by a vision LLM
+1. **PWA** (built; runs locally, hosting on Cloudflare Pages is PLANNED). Static TypeScript build (Vite, Preact). Service worker caches the shell and the last-fetched forecast pages so it works offline and is
+   installable. Talks only to its own origin (Vite proxies `/api`). Built pages: Discover (the night's slate), game, leg breakdown, swipe, My picks
+   (browser-local paper ledger), parlay of the day, track record, live, signals, hedge finder, model history, alerts, preferences.
+   PLANNED, not built: slip upload, privacy and terms pages, the per-user calibration page.
+2. **API** (built: Python, FastAPI, GET only, binds 127.0.0.1; the Oracle VM is PLANNED). It reads the nightly `export.duckdb`
+   (`read_only=True`) or the committed fixtures. PLANNED, not built: the app DB (SQLite in WAL mode, user data only), rate limiting
+   (per IP and per account) and CORS pinned to `https://parlayhitters.ai`; today CORS allows localhost origins only and there is no
+   rate limit in code.
+3. **Slip ingestion (PLANNED, not built).** Upload -> object store bucket with a 24-hour lifecycle TTL -> nightly bulk read by a vision LLM
    (API key from the VM secrets store, hard monthly cap, section 8) -> extracted fields written to the app DB ->
    image deleted -> deletion verified (object HEAD returns 404) and a line logged (slip id hash, time, result; no PII).
    If the cap is reached the batch stops and slips wait; any image reaching 24 h is deleted unread and the user is
    asked to re-upload. OCR is the fallback if it parses more reliably (DECISIONS wording); extraction output schema is
    identical either way. First 20 slips are reviewed by Devin (phase 1 gate).
-4. **Paper-trading ledger** per user. Email magic-link accounts, no passwords. Rows: leg, line, price, book, stated
+4. **Paper-trading ledger** per user (PLANNED as a server-side ledger with email magic-link accounts, no passwords; today the
+   ledger lives in this browser's `localStorage`, no accounts). Rows: leg, line, price, book, stated
    time, source (typed / slip), stake (paper), settlement, and the model and market numbers at that minute (from the
    forward log, never the close).
-5. **Settlement** from our box scores: after the morning job ingests final games, the nightly app job resolves legs
+5. **Settlement (PLANNED server-side; the web app grades local picks from the export's settled rows)** from our box scores: after the morning job ingests final games, the nightly app job resolves legs
    against `export` settled scores. Unresolvable legs (name mismatch, voided, unknown market) are marked `needs_review`,
    never guessed.
-6. **Parlay of the day.** Artifact produced by the existing shadow engine (`nba/parlay`) during the pretip job and
+6. **Parlay of the day (built: `/api/parlay-of-the-day`).** Artifact produced by the existing shadow engine (`nba/parlay`) during the pretip job and
    exported as JSON by `nba/export`. Its deferral gate and the `no_positive_ev_found` verdict are first-class: the
    page renders the verdict string verbatim, with "no parlay today" as a normal state, not an error. App code does not
    recompute, reorder or soften it.
-7. **Social adapters** (`app/social/`): X, Discord, TikTok, Instagram, each a thin adapter with one method,
+7. **Social adapters (PLANNED, not built; `app/social/` does not exist)** (`app/social/`): X, Discord, TikTok, Instagram, each a thin adapter with one method,
    `publish(approved_item)`. Content agents write drafts into the approval queue (a table plus files under
    `app/queue/`). Devin clears items; the poster reads only approved items. A **kill switch file**
    (`data/ops/SOCIAL_KILL`, presence = stop) is checked before every publish and by the watchdog.
@@ -62,13 +72,13 @@ nba/export/                     --reads-->  nba.duckdb opened read_only=True
      Page, a Meta app, and App Review for `instagram_content_publish`; image/video must be at a public URL. FLAGGED.
    - Each platform's terms on automated posting are checked before the first post (DECISIONS reversal condition).
    Until TikTok/Instagram approvals exist, those two stay in "manual: agent drafts, Devin posts by hand".
-8. **Customer service.** Discord support channel plus a support inbox. The scribe agent answers from a canned
+8. **Customer service (PLANNED, not built).** Discord support channel plus a support inbox. The scribe agent answers from a canned
    knowledge base (`app/support/kb/*.md`, reviewed by Devin). Escalation rule: anything about money, refunds, legal,
    privacy requests, account deletion disputes, harassment, self-harm or gambling-harm language, press, a security
    report, or any question the KB does not answer goes to Devin with the thread, unanswered. The agent never promises
    outcomes, never gives picks, and always includes responsible-gambling resources on harm language.
 
-## 4. What runs where
+## 4. What runs where (PLANNED deployment shape; today everything runs on the Mac via `app/scripts/dev.sh`)
 | Where | What |
 |---|---|
 | Mac (launchd, Devin's) | `ops/nba_daily.sh` pretip/morning, watchdog, `nba.export` job, rsync push, approval queue UI, 1Password/Keychain |
@@ -77,7 +87,7 @@ nba/export/                     --reads-->  nba.duckdb opened read_only=True
 | Object store | Slip bucket (24 h lifecycle). Choice open: Cloudflare R2 or OCI Object Storage; see checklist |
 | External APIs | Vision LLM (capped), email sender (magic links), X/Discord/TikTok/Instagram |
 
-## 5. Data flow (text)
+## 5. Data flow (text; the VM, slip, settlement and social lines are PLANNED; the export build and the API reading it are built)
 ```
 [pretip :20/:50] nba.daily run -> forward_predictions (nba.duckdb)  -> nba.parlay evaluate (shadow log)
 [08:00 morning ] settle, report, ingest, backup                      (existing; unchanged)
@@ -95,14 +105,14 @@ non-zero the export is skipped and the site shows "data as of <timestamp>". A se
 uploads after 03:00 so no image nears the 24 h TTL. Export is cheap (<1 min); it can never delay a pretip run since it
 takes no write lock and reads read-only.
 
-## 6. Failure behaviour
+## 6. Failure behaviour (PLANNED except the stale-banner and the 503-on-refused-export behaviour, which are built)
 - VM down: PWA serves its cached shell and last forecasts, labelled stale; nothing on the Mac depends on the VM.
 - Export fails: yesterday's file stays, banner shows its age; alert to `data/ops/ALERTS.md`; watchdog checks the new
   `app-export` heartbeat (start and end, per the "a job that cannot start cannot alert" rule).
 - LLM cap hit or provider down: slips queue, user sees "processing"; no fallback that stores images longer.
 - Posting error: item stays approved-unposted; no retries past two; kill switch wins over everything.
 
-## 7. Cost table against the $30/month ceiling
+## 7. Cost table against the $30/month ceiling (PLANNED; nothing is bought)
 Rates are placeholders to be confirmed against real invoices and then recorded in `configs/cost.yaml` (the only source
 of rates; nothing here is an invented price to be relied on).
 | Item | Estimate / month | Cap or note |
@@ -120,14 +130,17 @@ of rates; nothing here is an invented price to be relied on).
 Target total: about $15-20; the ceiling is $30 and the build halts feature work, not safety work, if forecast spend
 passes $25. The cost monitor reports month-to-date; a cleanup or plan change is a recommendation, never auto-run.
 
-## 8. Build order (each step has a gate; Devin raises or cuts)
-0. Now to 10-20: nothing under `nba/`, `ops/`. Only these two docs and the Devin checklist.
+## 8. Build order (each step has a gate; Devin raises or cuts). Status 2026-11-16: steps 1 and 2 built; 3 only as a browser-local ledger; 4 to 8 not built
+0. (Past.) Until 10-20: nothing under `nba/`, `ops/`. Only these two docs and the Devin checklist.
 1. `nba/export/` + layering rules + fixture-DB tests (after 10-20). Replay oracle unaffected (read-only addition).
 2. API read-only pages + PWA shell on fixtures. 3. Accounts + paper ledger. 4. Slip ingest (gate: 20 slips by hand).
 5. Parlay-of-day page. 6. Social adapters behind the approval queue (gate: zero errors in 20 posts).
 7. Support KB. 8. Payments only in phase 4, per the draft.
 
 ## 9. Gameplan to the PWA (2026-10-13; adds the features agreed today; weeks are estimates, each step keeps its gate)
+Status 2026-11-16: the over/under swipe and a browser-local ledger (with the `saw_model` flag) are built, and the written dissection is
+a template scaffold with no model call. Leagues, post-mortems, grounded chat, accounts, the VM cutover and everything in the weeks 3 to 6+
+rows beyond that are PLANNED, not built here (the plan's dates have passed without them).
 Production moves to the Oracle VM first (DECISIONS VM item), so section 4's "Mac" column becomes the VM; the wall in
 section 2 is unchanged. New features, all on one ledger stamped before tip:
 - **Ledger schema (designed before any code):** one row per leg; `made_at` (refused after tip, like forecasts); line and
