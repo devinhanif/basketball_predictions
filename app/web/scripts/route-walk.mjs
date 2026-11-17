@@ -1,7 +1,7 @@
 // Route walker: seeded simulated visitors over every hash route in headless Chrome, with optional failure injection.
 //
 //   node scripts/route-walk.mjs <base url> [--seed 1] [--visitors 6] [--steps 25] [--inject] [--width 390]
-//                               [--set fixtures|artifact] [--snapshot out.json] [--json out.json]
+//                               [--garbage] [--set fixtures|artifact] [--snapshot out.json] [--json out.json]
 //
 // <base url> is a dev server over the fixtures API (see app/README.md: API on 8020 with APP_LIVE_DIR=app/fixtures/live,
 // `API_ORIGIN=http://127.0.0.1:8020 npx vite --port 5190`), or `file://.../dist-artifact/parlayhitters.html` with
@@ -13,6 +13,7 @@
 // that for (the same set as scripts/learn-dom.mjs); routes that should be "not found" say so; a failure panel always
 // offers a way on (a button or a link). With --inject, steps randomly run under API down, a 503 with a reason (old and new
 // body shapes), a 503 that starts mid-step, slow answers, or a killed live stream; a shown 503 panel must show the reason.
+// --garbage instead answers 200 with bodies of the wrong shape (the error boundary must hold; no blank page).
 //
 // Exit code 1 on any violation. Not part of `npm run check`: it needs Chrome and servers. No dependency: plain Node + CDP.
 import { spawn } from "node:child_process";
@@ -33,7 +34,8 @@ const SEED = Number(opt("seed", "1"));
 const VISITORS = Number(opt("visitors", "6"));
 const STEPS = Number(opt("steps", "25"));
 const WIDTH = Number(opt("width", "390"));
-const INJECT = flag("inject");
+const GARBAGE = flag("garbage");
+const INJECT = flag("inject") || GARBAGE;
 const SET = opt("set", base.startsWith("file:") ? "artifact" : "fixtures");
 const SNAPSHOT = opt("snapshot", null);
 const JSON_OUT = opt("json", null);
@@ -183,6 +185,11 @@ async function onPaused(p) {
   injected.set(s, (injected.get(s) ?? 0) + 1);
   if (s === "down") return send("Fetch.failRequest", { requestId: p.requestId, errorReason: "ConnectionRefused" });
   if (s === "sse-kill") return isStream ? send("Fetch.failRequest", { requestId: p.requestId, errorReason: "ConnectionReset" }) : go();
+  if (s === "garbage-200") {
+    // A well-formed answer of the wrong shape: the error boundary, not a blank page, must catch what breaks.
+    const body = pick(['{"unexpected":true}', "[]", "null", '{"games":"nope","counts":null}', "not json"]);
+    return send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: "Content-Type", value: "application/json" }], body: b64(body) });
+  }
   if (s === "slow") {
     await sleep(2500);
     return go();
@@ -291,7 +298,7 @@ function check(route, lens, page, scen) {
 
 // ------------------------------------------------------------------------------------------------ walk
 const LENSES = ["learn", "explore", "market"];
-const SCENARIOS = ["down", "503", "503-new", "mid-503", "slow", "sse-kill"];
+const SCENARIOS = GARBAGE ? ["garbage-200"] : ["down", "503", "503-new", "mid-503", "slow", "sse-kill"];
 const stats = { steps: 0, violations: 0, byKind: {}, routes: {}, failedRequests: {}, scenarios: {} };
 const log = [];
 async function visitorStart(lens) {

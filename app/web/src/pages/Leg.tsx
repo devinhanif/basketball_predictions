@@ -877,8 +877,9 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
             setError(null);
             setPending(false);
             onStale(r.fromCache);
-            const first = r.data.ladder[0];
-            const last = r.data.ladder[r.data.ladder.length - 1];
+            const ladder = Array.isArray(r.data.ladder) ? r.data.ladder : [];
+            const first = ladder[0];
+            const last = ladder[ladder.length - 1];
             if (first && last) setBounds((b) => b ?? { min: first.line, max: last.line });
           },
           (e: unknown) => {
