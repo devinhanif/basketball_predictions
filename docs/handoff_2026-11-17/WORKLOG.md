@@ -100,7 +100,8 @@ for the replay oracle, for the end of the game window about 22:00 CST).
 - Holdout row logged first: commit 694ae69b (`docs/HOLDOUT_ACCESS_LOG.md`, logged 21:12 CST).
 - Worktree `~/Downloads/nba-wt-1117-oracle` (detached at 694ae69b), `data` is a symlink to the main checkout's `data/`
   (the tracked `data/` was moved to `~/Downloads/nba-scratch-1117/oracle_wt_data_aside`). Read use only.
-- BASELINE run scheduled as a background job of the session: waits until 22:15 CST, then
+- **BASELINE result: IDENTICAL `89889f6d`** (46,658 predictions, 44,562 scores, 20 of 20 dates, failures 0), ran 22:15 to 22:27 CST (12.5 min). Result row appended to the holdout log.
+- How the baseline was run (a background job of the session): waits until 22:15 CST, then
   `nba.daily.replay_season --season 2025 --source <main>/nba.duckdb --db ~/Downloads/nba-scratch-1117/oracle_base.duckdb
   --out-dir ~/Downloads/nba-scratch-1117/oracle_base --max-dates 20 --no-lock`, then `nba.daily.canonical_dump`.
   Output: `~/Downloads/nba-scratch-1117/oracle_base.log`, `.hash`, `.start`, `.end`. Expected `89889f6d`.
