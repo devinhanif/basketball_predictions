@@ -7,6 +7,7 @@
 # optional locks off, ls, du) and prints, for every candidate, its size and the exact command
 # that would remove it. It takes no lock, writes nothing, touches no database.
 # `--really` runs those same printed commands, one at a time, and stops at the first failure.
+# (Must stay parseable by `sh -n`: tests/ops/test_vm_scripts.py parses every ops/*.sh.)
 #
 # Not touched by design: data/ (except the two named pretip logs), nba.duckdb, any ledger,
 # ~/Library/LaunchAgents/*.plist that launchd has loaded, heavy.lock, the main checkout.
@@ -55,7 +56,7 @@ echo
 echo "== 1. worktrees with a fully merged branch (git worktree remove, then git branch -d) =="
 wt=""
 br=""
-while IFS= read -r line || [ -n "$line" ]; do
+{ git worktree list --porcelain; echo; } | while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     "worktree "*) wt=${line#worktree }; br="" ;;
     "branch "*) br=${line#branch refs/heads/} ;;
@@ -81,7 +82,7 @@ while IFS= read -r line || [ -n "$line" ]; do
       wt=""
       ;;
   esac
-done < <(git worktree list --porcelain; echo)
+done
 
 # ---- 2. the registered .team/worktrees (all at the old 90b1cb9f; included by the loop above if merged) ----
 # (listed by section 1 when merged; nothing separate to do)
@@ -116,4 +117,4 @@ echo "== 6. launchd backup =="
 item "daily-morning plist backup from 2026-10-11 (this does not unload anything)" "$HOME/Library/LaunchAgents/local.nba.daily-morning.plist.bak_20261011" rm -- "$HOME/Library/LaunchAgents/local.nba.daily-morning.plist.bak_20261011"
 
 echo
-echo "$total_n candidate commands listed. mode=$MODE. Nothing was executed unless --really was given."
+echo "done listing. mode=$MODE. Nothing was executed unless --really was given."
