@@ -1,0 +1,249 @@
+{
+ "version": 1,
+ "note": "One registry of error codes for the API and the web app. The API answers every refusal as {ok:false, code, text, field, request_id, detail}; the web app shows title, what, why and todo for the code. Owner: app/api lane. Add a code here first, then use it.",
+ "codes": [
+  {
+   "code": "bad_request",
+   "status": 422,
+   "side": "api",
+   "title": "That request was not understood",
+   "what": "One part of the address or its options was not in the form this page expects.",
+   "why": "A value was missing, too long, or not the kind of value that field takes. The reply names the field.",
+   "todo": "Go back and open the page from a link inside the app."
+  },
+  {
+   "code": "not_a_date",
+   "status": 404,
+   "side": "api",
+   "title": "That is not a date we can read",
+   "what": "The night in the address is not a calendar date.",
+   "why": "Dates look like 2026-11-16.",
+   "todo": "Pick a night from the list on the home screen."
+  },
+  {
+   "code": "unknown_slate",
+   "status": 404,
+   "side": "api",
+   "title": "No games stored for that night",
+   "what": "There is no slate for that date in the data we hold.",
+   "why": "The night is outside the stored range, or no games were played.",
+   "todo": "Pick a night from the list on the home screen."
+  },
+  {
+   "code": "unknown_game",
+   "status": 404,
+   "side": "api",
+   "title": "We could not find that game",
+   "what": "No game with that id is in the data we hold.",
+   "why": "The link is old or mistyped, or the game is outside the stored nights.",
+   "todo": "Open the game from tonight's list."
+  },
+  {
+   "code": "unknown_player",
+   "status": 404,
+   "side": "api",
+   "title": "That player is not in that game",
+   "what": "The player id is not on either team's list for that game.",
+   "why": "The link is old or mistyped, or the player was not forecast for that game.",
+   "todo": "Open the player from the game page."
+  },
+  {
+   "code": "unknown_stat",
+   "status": 404,
+   "side": "api",
+   "title": "That stat is not one we forecast",
+   "what": "The stat in the address is not one of the stats we store.",
+   "why": "We forecast points, rebounds, assists and threes; some pages add a few more.",
+   "todo": "Open the stat from the player's page."
+  },
+  {
+   "code": "no_forecast",
+   "status": 404,
+   "side": "api",
+   "title": "No forecast for that player and stat",
+   "what": "We hold no stored forecast for that combination.",
+   "why": "The model did not forecast that player that night (for example he was listed out), or no line was posted.",
+   "todo": "Choose another player or stat from the game page."
+  },
+  {
+   "code": "no_posted_line",
+   "status": 404,
+   "side": "api",
+   "title": "No finished prop with a posted line",
+   "what": "There is no settled prop with a line for that player and stat.",
+   "why": "The game has not finished, or no book posted a line.",
+   "todo": "Try another player, or come back after the game."
+  },
+  {
+   "code": "game_not_played",
+   "status": 404,
+   "side": "api",
+   "title": "That game has not been played yet",
+   "what": "Results exist only for finished games.",
+   "why": "The game is still to come or in progress.",
+   "todo": "Come back after the final whistle."
+  },
+  {
+   "code": "no_history",
+   "status": 404,
+   "side": "api",
+   "title": "History is not loaded",
+   "what": "The history this page needs is not part of the data being served.",
+   "why": "The export being served does not carry it.",
+   "todo": "Nothing to do; the rest of the app still works."
+  },
+  {
+   "code": "no_live_capture",
+   "status": 404,
+   "side": "api",
+   "title": "No live feed for that game",
+   "what": "We have no live capture for that game.",
+   "why": "The capture did not run for it, or the game is not on tonight's feed.",
+   "todo": "Go back to the Live list."
+  },
+  {
+   "code": "no_desk",
+   "status": 404,
+   "side": "api",
+   "title": "No desk file yet",
+   "what": "The desk export has not been written.",
+   "why": "The desk is written by a separate job and only on the owner's machine.",
+   "todo": "Nothing to do."
+  },
+  {
+   "code": "desk_refused",
+   "status": 422,
+   "side": "api",
+   "title": "The desk file failed its checks",
+   "what": "The desk file exists but was not served.",
+   "why": "It did not match the allowed shape, so it was refused rather than shown.",
+   "todo": "Rebuild the desk export."
+  },
+  {
+   "code": "no_top_parlays",
+   "status": 404,
+   "side": "api",
+   "title": "No ticket list for that night",
+   "what": "There is no top-parlays file for that date.",
+   "why": "The ticket job did not run for that night.",
+   "todo": "Pick another night."
+  },
+  {
+   "code": "top_parlays_refused",
+   "status": 422,
+   "side": "api",
+   "title": "The ticket list failed its checks",
+   "what": "The file exists but was not served.",
+   "why": "It did not match the contract, so it was refused rather than shown.",
+   "todo": "Rebuild the ticket file."
+  },
+  {
+   "code": "top_parlays_unavailable",
+   "status": 503,
+   "side": "api",
+   "title": "The ticket list cannot be read right now",
+   "what": "The file could not be opened.",
+   "why": "It may be mid-write.",
+   "todo": "Try again in a minute."
+  },
+  {
+   "code": "export_refused",
+   "status": 503,
+   "side": "api",
+   "title": "Today's data failed its checks",
+   "what": "We are not showing the nightly data until it passes its checks.",
+   "why": "The manifest or a file's checksum did not match, or the file is incomplete. Nothing shown elsewhere is stale or made up.",
+   "todo": "Try again in a few minutes; the next export replaces it."
+  },
+  {
+   "code": "too_many_viewers",
+   "status": 503,
+   "side": "api",
+   "title": "Too many live viewers right now",
+   "what": "The live feed has reached its limit of open streams.",
+   "why": "Each open Live page holds one stream.",
+   "todo": "Close other Live tabs and try again shortly."
+  },
+  {
+   "code": "not_found",
+   "status": 404,
+   "side": "api",
+   "title": "There is nothing at that address",
+   "what": "The API has no route at that path.",
+   "why": "The link is old or mistyped.",
+   "todo": "Go back to the home screen."
+  },
+  {
+   "code": "method_not_allowed",
+   "status": 405,
+   "side": "api",
+   "title": "This service is read-only",
+   "what": "Only GET requests are answered.",
+   "why": "The app never writes anything.",
+   "todo": "Nothing to do."
+  },
+  {
+   "code": "internal_error",
+   "status": 500,
+   "side": "api",
+   "title": "Something went wrong on our side",
+   "what": "The server hit an error it did not expect.",
+   "why": "This is a bug. The reference id identifies it in the log.",
+   "todo": "Try again; if it repeats, note the reference id."
+  },
+  {
+   "code": "network_unreachable",
+   "status": null,
+   "side": "web",
+   "title": "We can't reach our data right now",
+   "what": "The app could not reach its data service.",
+   "why": "The service is not running, or the connection dropped.",
+   "todo": "Try again in a minute. A saved copy may still open."
+  },
+  {
+   "code": "offline",
+   "status": null,
+   "side": "web",
+   "title": "You are offline",
+   "what": "Showing the last copy saved on this device.",
+   "why": "No connection.",
+   "todo": "Reconnect to see newer data."
+  },
+  {
+   "code": "stale_data",
+   "status": null,
+   "side": "web",
+   "title": "This data is old",
+   "what": "The data being shown was made a while ago; its age is shown.",
+   "why": "No newer export has arrived.",
+   "todo": "Check back after the next daily run."
+  },
+  {
+   "code": "live_feed_stopped",
+   "status": null,
+   "side": "web",
+   "title": "The live feed stopped",
+   "what": "No new update has arrived for a while.",
+   "why": "The capture stopped growing, the game ended, or the connection dropped.",
+   "todo": "The page retries by itself; you can also press Retry."
+  },
+  {
+   "code": "bad_route",
+   "status": null,
+   "side": "web",
+   "title": "We could not find that page",
+   "what": "The address does not match any page in the app.",
+   "why": "The link is old or mistyped.",
+   "todo": "Use the menu to go to a page."
+  },
+  {
+   "code": "unexpected_error",
+   "status": null,
+   "side": "web",
+   "title": "This page hit a problem",
+   "what": "Something broke while drawing this page.",
+   "why": "This is a bug. The reference id identifies it.",
+   "todo": "Go back to the home screen, or reload."
+  }
+ ]
+}
