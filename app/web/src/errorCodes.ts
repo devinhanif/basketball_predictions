@@ -49,3 +49,15 @@ export function knownCode(code: string): boolean {
 export function allCodes(): string[] {
   return [...BY_CODE.keys()];
 }
+
+/** Every code's copy, in registry order (the help page). */
+export function allCopies(): CodeCopy[] {
+  return [...BY_CODE.values()];
+}
+
+/** Codes whose words contain the search text (code, title, what, why or todo); empty text matches all. */
+export function searchCodes(list: readonly CodeCopy[], q: string): CodeCopy[] {
+  const t = q.trim().toLowerCase();
+  if (t === "") return [...list];
+  return list.filter((c) => [c.code, c.title, c.what, c.why, c.todo].some((s) => s.toLowerCase().includes(t)));
+}

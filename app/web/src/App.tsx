@@ -19,6 +19,7 @@ import { Terms } from "./pages/Terms";
 import { SourcePage } from "./Provenance";
 import { ScorecardPage } from "./pages/Scorecard";
 import { TestsPage } from "./pages/Tests";
+import { ErrorHelp } from "./pages/ErrorHelp";
 import { Tour } from "./Tour";
 import { MarketOnly } from "./Lens";
 import { useLens } from "./prefs";
@@ -105,8 +106,10 @@ export function App() {
       page = <TestsPage />;
       break;
     case "help":
+      page = <ErrorHelp code={route.code} q={route.q} />;
+      break;
     case "notfound":
-      page = <NotFound hash={window.location.hash} />;
+      page = <NotFound hash={route.hash} />;
       break;
     default:
       page = <Today date={route.date} onStale={setStale} />;

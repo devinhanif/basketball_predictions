@@ -130,3 +130,14 @@ describe("forward tests in the Learn lens", async () => {
     expect(learnSafeTest({ ...base, title: "Calibration at Pinnacle's line" })).toBe(false);
   });
 });
+
+describe("error help search", async () => {
+  const { allCopies, searchCodes } = await import("./errorCodes");
+  it("lists every registry code and finds by any of its words", () => {
+    const all = allCopies();
+    expect(all.length).toBeGreaterThan(20);
+    expect(searchCodes(all, "").length).toBe(all.length);
+    expect(searchCodes(all, "stale_data").map((c) => c.code)).toContain("stale_data");
+    expect(searchCodes(all, "zzzz-nothing")).toEqual([]);
+  });
+});
