@@ -6,7 +6,7 @@ import { useIdentity } from "../identity";
 import { readKey, writeKey } from "../prefs";
 import BET_CSS from "./betting.css?inline";
 import { createNoticeStore, placeAwayFrom, type Notice, type NoticeStore, type NoticeTone } from "./notice";
-import { scopeForViewer, scopeId, storageKey, type StorageLike, type WorkspaceScope } from "./repository";
+import { scopeForViewer, scopeId, type StorageLike, type WorkspaceScope } from "./repository";
 import { betActions, createBetStore, type BetActions, type BetStore, type BetView, type Done } from "./store";
 
 /** Puts the betting stylesheet in the page once. It ships inside the betting module, so a build without it has none. */
@@ -65,9 +65,10 @@ export function useBet(): BetHook {
     const off = entry.store.subscribe(() => {
       setTick((t) => t + 1);
     });
-    // Another tab saved: pick it up unless this tab holds an unsaved edit (that stays, and a save then says "conflict").
+    // Another tab saved: the store takes the newer copy unless this tab holds an unsaved edit (that stays, and a save then
+    // says "conflict").
     const onStorage = (e: StorageEvent): void => {
-      if (e.key === storageKey(entry.store.scope) && !entry.store.get().dirty) void entry.store.load();
+      void entry.store.externalChange(e.key);
     };
     window.addEventListener("storage", onStorage);
     return () => {

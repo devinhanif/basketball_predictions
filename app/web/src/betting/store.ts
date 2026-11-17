@@ -4,7 +4,7 @@
 // import changes nothing. No network: every action here writes to the injected browser storage and nowhere else.
 import { addPick, addQuote, addRecordedLeg, loadIdea, markPlaced, putManualQuote, recordOutcomes, removeIdea, removeLeg, removePick, replacePlannedQuote, saveIdea, setEntry, setLegAmount, setNotes, settlePicks, toggleLeg } from "./slipModel";
 import { mergeIdeasFile } from "./ideaModel";
-import { createSlipSession, LocalWorkspacePort, scopeId, SLIP_CODEC, type RepoCode, type StorageLike, type WorkspaceScope, type WorkspaceSession } from "./repository";
+import { createSlipSession, LocalWorkspacePort, scopeId, storageKey, SLIP_CODEC, type RepoCode, type StorageLike, type WorkspaceScope, type WorkspaceSession } from "./repository";
 import { sampleWorkspace } from "./sample";
 import type { EntryTerms, IdeaStatus, Market, Quote, Side, SlipDraft, SlipWorkspace } from "./types";
 import { localId } from "./ids";
@@ -15,6 +15,11 @@ export interface BetView {
   /** True while an edit is on screen that the browser has not stored (a failed save). */
   readonly dirty: boolean;
   readonly error: { readonly code: RepoCode | "not_loaded"; readonly text: string } | null;
+  /**
+   * True when the browser would not let the page read its storage at all, so the slip lives in this tab's memory only: it
+   * works, but is gone when the tab closes or reloads (export keeps it).
+   */
+  readonly memoryOnly: boolean;
 }
 
 export type Done = { readonly ok: true; readonly text: string } | { readonly ok: false; readonly code: string; readonly text: string };
@@ -35,6 +40,12 @@ export interface BetStore {
   load(opts?: { discardLocal?: boolean }): Promise<boolean>;
   /** Runs one edit on the newest workspace and saves it. */
   edit(fn: (ws: SlipWorkspace) => Step): Promise<Done>;
+  /**
+   * Another tab of this browser wrote storage: re-read this viewer's workspace. Only this scope's key counts (a null key,
+   * as when storage was cleared, counts too). It waits behind any edit or save in flight, and an unsaved edit on screen is
+   * never overwritten (a later save then reports the conflict). Returns whether a newer copy was taken.
+   */
+  externalChange(key: string | null): Promise<boolean>;
   retry(): Promise<Done>;
   discard(): void;
   exportJson(): Promise<{ ok: true; json: string; filename: string } | { ok: false; code: string; text: string }>;
@@ -42,12 +53,36 @@ export interface BetStore {
 }
 
 export function createBetStore(deps: BetStoreDeps): BetStore {
-  const port = new LocalWorkspacePort<SlipWorkspace>({ storage: deps.storage, scope: deps.scope, codec: SLIP_CODEC, now: deps.nowIso });
+  // A browser that refuses the very first read (blocked storage, some private modes) gets this tab's memory instead of a dead
+  // slip. It is never silent: the view says memoryOnly and every screen says so. A store that has read fine once is never
+  // swapped for memory (that would hide what is saved).
+  const mem = new Map<string, string>();
+  let memoryOnly = false;
+  let readOnce = false;
+  const storage: StorageLike = {
+    getItem(k) {
+      if (memoryOnly) return mem.get(k) ?? null;
+      try {
+        const v = deps.storage.getItem(k);
+        readOnce = true;
+        return v;
+      } catch (e) {
+        if (readOnce) throw e;
+        memoryOnly = true;
+        return mem.get(k) ?? null;
+      }
+    },
+    setItem(k, v) {
+      if (memoryOnly) mem.set(k, v);
+      else deps.storage.setItem(k, v);
+    },
+  };
+  const port = new LocalWorkspacePort<SlipWorkspace>({ storage, scope: deps.scope, codec: SLIP_CODEC, now: deps.nowIso });
   const session: WorkspaceSession<SlipWorkspace> = createSlipSession(port);
   let queue: Promise<unknown> = Promise.resolve();
   const view = (): BetView => {
     const s = session.getSnapshot();
-    return { phase: s.phase, workspace: s.document, dirty: s.dirty, error: s.error };
+    return { phase: s.phase, workspace: s.document, dirty: s.dirty, error: s.error, memoryOnly };
   };
   let snapshot = view();
   const listeners = new Set<() => void>();
@@ -86,6 +121,14 @@ export function createBetStore(deps: BetStoreDeps): BetStore {
         }
         if (await session.save()) return { ok: true, text: step.text ?? "" };
         return { ok: false, code: session.getSnapshot().error?.code ?? "save_failed", text: session.getSnapshot().error?.text ?? "Not saved." };
+      });
+    },
+    externalChange(key) {
+      if (key !== null && key !== storageKey(deps.scope)) return Promise.resolve(false);
+      return serial(async () => {
+        const s = session.getSnapshot();
+        if (s.dirty || s.document === null) return false;
+        return session.load();
       });
     },
     retry() {
@@ -201,7 +244,7 @@ export function betActions(store: BetStore, nowIso: () => string) {
     /** The viewer's own paper outcomes (never a venue's settlement); "settled" needs every market. */
     recordOutcomes: (ideaId: string, outcomes: Readonly<Record<string, Side>>, voids: readonly string[], status: IdeaStatus) =>
       store.edit((ws) => {
-        const r = recordOutcomes(ws, ideaId, outcomes, status, voids);
+        const r = recordOutcomes(ws, ideaId, outcomes, status, voids, nowIso());
         return r.ok ? { ok: true, workspace: r.workspace, text: status === "settled" ? "Paper result recorded from the outcomes you entered." : "Saved. The idea stays open." } : fail(r);
       }),
     /** Adds the ideas from an ideas file; an invalid file changes nothing and says why. */
