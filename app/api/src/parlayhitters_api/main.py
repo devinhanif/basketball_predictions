@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -22,6 +22,14 @@ from .desk_shared import load_shared_desk
 from .dissect.providers import default_router
 from .dissect.service import dissect_leg
 from .edges import leg_edges, top_contracts
+from .errors import (
+    ApiError,
+    RequestContext,
+    configure_logging,
+    error_response,
+    install_error_handlers,
+    request_id_of,
+)
 from .export_store import ExportRefused
 from .forecast import (
     TAUS,
@@ -187,10 +195,16 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ExportRefused)
     async def export_refused(request: Request, exc: ExportRefused) -> JSONResponse:
-        return JSONResponse({"detail": f"the data export was refused: {exc}"}, status_code=503)
+        return error_response(
+            "export_refused", f"the data export was refused: {exc}", request_id_of(request)
+        )
 
+    install_error_handlers(app)
     register(app)
     register_live(app, LiveHub())
+    # Outermost: the request id is on every response, including the last-resort 500.
+    app.add_middleware(RequestContext)
+    configure_logging()
     return app
 
 
@@ -244,15 +258,37 @@ def _wp(g: Json) -> WinProbability:
 def _need_slate(store: AnyStore, date: str) -> Json:
     s = store.slate(date)
     if s is None:
-        raise HTTPException(404, "no such slate")
+        raise ApiError("unknown_slate", "no such slate", field="date")
     return s
 
 
 def _need_game(store: AnyStore, game_id: str) -> Json:
     g = store.game(game_id)
     if g is None:
-        raise HTTPException(404, "no such game")
+        raise ApiError("unknown_game", "no such game", field="game_id")
     return g
+
+
+def _no_forecast(g: Json, player_id: int) -> ApiError:
+    """ "No forecast for that player and stat", naming the player when he is not in the game and the
+    stat when he is but has no forecast for it."""
+    known = any(p["player_id"] == player_id for p in g["players"])
+    return ApiError(
+        "no_forecast",
+        "no forecast for that player and stat",
+        field="stat" if known else "player_id",
+    )
+
+
+def _guess_field(store: AnyStore, game_id: str, player_id: int, stat: str) -> str | None:
+    """Which part of a guess-reveal address has no finished prop behind it (None: all exist)."""
+    g = store.game(game_id)
+    if g is None or g.get("result") is None:
+        return "game_id"
+    pl = next((p for p in g["players"] if p["player_id"] == player_id), None)
+    if pl is None:
+        return "player_id"
+    return "stat" if stat not in pl["props"] else None
 
 
 def _game_notes(store: AnyStore) -> list[str]:
@@ -403,7 +439,7 @@ def register(app: FastAPI) -> None:
     def game_result(game_id: str, store: StoreDep) -> dict[str, Any]:
         g = _need_game(store, game_id)
         if g.get("result") is None:
-            raise HTTPException(404, "that game has not been played yet")
+            raise ApiError("game_not_played", "that game has not been played yet", field="game_id")
         return {
             "game_id": game_id,
             "label": "result (replay)" if store.mode == "fixture_replay" else "final",
@@ -435,7 +471,7 @@ def register(app: FastAPI) -> None:
     ) -> ProbAtLine:
         g = _need_game(store, game_id)
         if stat not in STATS:
-            raise HTTPException(404, "unknown stat")
+            raise ApiError("unknown_stat", "unknown stat", field="stat")
         for pl in g["players"]:
             if pl["player_id"] == player_id and stat in pl["props"]:
                 forecast = pl["props"][stat]["forecast"]
@@ -464,7 +500,7 @@ def register(app: FastAPI) -> None:
                     over_price=int(posted["over_price"]) if is_main and priced else None,
                     under_price=int(posted["under_price"]) if is_main and priced else None,
                 )
-        raise HTTPException(404, "no forecast for that player and stat")
+        raise _no_forecast(g, player_id)
 
     @app.get("/api/card/{game_id}/{player_id}/{stat}", response_model=CardView)
     def card(game_id: str, player_id: int, stat: str, store: StoreDep) -> CardView:
@@ -472,10 +508,10 @@ def register(app: FastAPI) -> None:
         the user opens it, so the blind swipe deck itself never carries a forecast."""
         g = _need_game(store, game_id)
         if stat not in STATS:
-            raise HTTPException(404, "unknown stat")
+            raise ApiError("unknown_stat", "unknown stat", field="stat")
         pl = next((p for p in g["players"] if p["player_id"] == player_id), None)
         if pl is None or stat not in pl["props"]:
-            raise HTTPException(404, "no forecast for that player and stat")
+            raise _no_forecast(g, player_id)
         pr = pl["props"][stat]
         view = _prop_view(stat, pr)
         me, opp = (g["home"], g["away"]) if pl["side"] == "home" else (g["away"], g["home"])
@@ -552,10 +588,10 @@ def register(app: FastAPI) -> None:
         as wide as it is, in words built from fields the data holds."""
         g = _need_game(store, game_id)
         if stat not in STATS:
-            raise HTTPException(404, "unknown stat")
+            raise ApiError("unknown_stat", "unknown stat", field="stat")
         pl = next((p for p in g["players"] if p["player_id"] == player_id), None)
         if pl is None or stat not in pl["props"]:
-            raise HTTPException(404, "no forecast for that player and stat")
+            raise _no_forecast(g, player_id)
         return player_knows(store, g, pl, stat)
 
     @app.get("/api/track-record/calibration", response_model=Calibration)
@@ -583,7 +619,11 @@ def register(app: FastAPI) -> None:
         """What happened and what the model said, for one finished prop."""
         out = guess_reveal(store, f"{game_id}:{player_id}:{stat}")
         if out is None:
-            raise HTTPException(404, "no finished prop with a posted line for that player and stat")
+            raise ApiError(
+                "no_posted_line",
+                "no finished prop with a posted line for that player and stat",
+                field=_guess_field(store, game_id, player_id, stat),
+            )
         return out
 
     @app.get("/api/breakdown/{game_id}/{player_id}/{stat}", response_model=Breakdown)
@@ -598,12 +638,12 @@ def register(app: FastAPI) -> None:
         """Everything checked before a leg, as of before tip. Deterministic; no model is run."""
         g = _need_game(store, game_id)
         if store.history is None:
-            raise HTTPException(404, "no breakdown history loaded")
+            raise ApiError("no_history", "no breakdown history loaded")
         if stat not in store.history.stats:
-            raise HTTPException(404, "unknown stat")
+            raise ApiError("unknown_stat", "unknown stat", field="stat")
         player = next((p for p in g["players"] if p["player_id"] == player_id), None)
         if player is None:
-            raise HTTPException(404, "no such player in that game")
+            raise ApiError("unknown_player", "no such player in that game", field="player_id")
         b = build_breakdown(store.history, g, player, stat, line, side)
         for c in b.chips:
             c.linkable = store.game(c.game_id) is not None
@@ -724,7 +764,7 @@ def register(app: FastAPI) -> None:
         """Stored single-contract rows for one player and stat: model chance with its
         interval, the ask, the fee and the engine's own edge after fees. Copied, not recomputed."""
         if stat not in STATS:
-            raise HTTPException(404, "unknown stat")
+            raise ApiError("unknown_stat", "unknown stat", field="stat")
         rows = leg_edges(getattr(store, "parlay_records", []), game_id, player_id, stat)
         return {
             "report_date": store.parlay.get("report_date"),
@@ -752,20 +792,22 @@ def register(app: FastAPI) -> None:
         try:
             return load_desk() if private else load_shared_desk()
         except DeskMissing:
-            raise HTTPException(404, "no desk export has been written yet") from None
+            raise ApiError("no_desk", "no desk export has been written yet") from None
         except DeskRefused as e:
-            raise HTTPException(422, f"desk export refused: {e}") from None
+            raise ApiError("desk_refused", f"desk export refused: {e}") from None
 
     @app.get("/api/top-parlays/{date}")
     def top_parlays(date: str) -> Json:
         try:
             return load_top_parlays(date)
         except TopParlaysMissing:
-            raise HTTPException(status_code=404, detail=f"no top parlays file for {date}") from None
+            raise ApiError(
+                "no_top_parlays", f"no top parlays file for {date}", field="date"
+            ) from None
         except TopParlaysUnavailable as e:
-            raise HTTPException(status_code=503, detail=f"top parlays unavailable: {e}") from None
+            raise ApiError("top_parlays_unavailable", f"top parlays unavailable: {e}") from None
         except TopParlaysRefused as e:
-            raise HTTPException(status_code=422, detail=f"top parlays file refused: {e}") from None
+            raise ApiError("top_parlays_refused", f"top parlays file refused: {e}") from None
 
     @app.get("/api/evidence")
     def evidence(store: StoreDep) -> Json:

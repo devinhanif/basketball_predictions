@@ -8,9 +8,10 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse
 
+from .errors import ApiError
 from .live import (
     ATTRIBUTION,
     DATE_RE,
@@ -28,7 +29,7 @@ from .live import (
 
 def _need_event(event_id: str) -> str:
     if not EVENT_RE.fullmatch(event_id):
-        raise HTTPException(404, "unknown game")
+        raise ApiError("unknown_game", "unknown game", field="game_id")
     return event_id
 
 
@@ -39,7 +40,7 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
     async def live_games(date: str) -> dict[str, Any]:
         """Every game the capture holds for a slate date with its latest state and how old it is."""
         if not DATE_RE.fullmatch(date):
-            raise HTTPException(404, "not a date")
+            raise ApiError("not_a_date", "not a date", field="date")
         return await asyncio.to_thread(games_on, hub.root, date)
 
     @app.get("/api/live/{game_id}/snapshot")
@@ -47,7 +48,7 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
         """The same first message the stream sends, for clients that cannot hold a stream."""
         gs = await hub.current(_need_event(game_id))
         if gs is None:
-            raise HTTPException(404, "no live capture for that game")
+            raise ApiError("no_live_capture", "no live capture for that game", field="game_id")
         gw = hub.games.get(game_id)
         return snapshot_payload(gs, 0 if gw is None else gw.seq, datetime.now(UTC))
 
@@ -60,7 +61,7 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
         """Older plays, for 'load earlier' (the stream and snapshot carry only the newest)."""
         gs = await hub.current(_need_event(game_id))
         if gs is None:
-            raise HTTPException(404, "no live capture for that game")
+            raise ApiError("no_live_capture", "no live capture for that game", field="game_id")
         rows = plays_before(gs, before, limit)
         return {
             "game_id": game_id,
@@ -84,9 +85,13 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
         try:
             sub, first, final = await hub.subscribe(game_id)
         except UnknownGame:
-            raise HTTPException(404, "no live capture for that game") from None
+            raise ApiError(
+                "no_live_capture", "no live capture for that game", field="game_id"
+            ) from None
         except HubFull:
-            raise HTTPException(503, "too many viewers right now; try again shortly") from None
+            raise ApiError(
+                "too_many_viewers", "too many viewers right now; try again shortly"
+            ) from None
 
         async def body() -> AsyncIterator[str]:
             try:
