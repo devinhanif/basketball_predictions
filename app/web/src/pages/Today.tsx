@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "preact/hooks";
 import { api, warmGames } from "../api";
-import { CalTag, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { CalTag, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
 import { headline, learnHeadline } from "../headline";
-import { LENS_LABEL, LensSwitch } from "../Lens";
+import { PageControls } from "../Lens";
 import { liveHref } from "../router";
 import { clockLabel, type LiveGameSummary } from "../live";
 import { useLiveList } from "../useLiveData";
@@ -261,11 +261,10 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           )}
         </div>
         <div class="page-heading-actions">
-          <span class="small muted">Detail</span>
-          <ModeToggle />
+          <PageControls lens detail />
         </div>
       </header>
-      {/* The page's toolbar: which night, and which lens. Navigation sits above the content it changes. */}
+      {/* The page's toolbar: which night. Navigation sits above the content it changes; the lens is in the heading. */}
       <div class="disc-toolbar">
         <nav class="tabs" aria-label="Choose a night" ref={tabsRef}>
           {props.nights.map((d) => (
@@ -274,10 +273,6 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
             </a>
           ))}
         </nav>
-        <details class="view-opts">
-          <summary>View: {LENS_LABEL[lens]} lens (change)</summary>
-          <LensSwitch />
-        </details>
       </div>
       <LiveStrip date={date} games={liveGames} />
       {market ? (

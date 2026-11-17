@@ -5,7 +5,7 @@ import type { ComponentChildren } from "preact";
 import { View } from "../components";
 import { count, decimal, MISSING } from "../format";
 import { hasPriceWords, honestyApi, type Maybe, type Metric, type ScoreTarget, type Scorecard } from "../honesty";
-import { LensSwitch } from "../Lens";
+import { PageControls } from "../Lens";
 import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
@@ -270,7 +270,7 @@ export function ScorecardPage() {
         kicker="Track record"
         title="Scorecard: the model against its baseline"
         description="Lower scores are better. A row we may not show yet keeps its counts and says when it opens; nothing is filled in."
-        actions={<LensSwitch compact />}
+        actions={<PageControls lens />}
       />
       <View state={state} reload={reload} what="the scorecard">
         {(m: Maybe<Scorecard>) =>

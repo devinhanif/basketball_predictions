@@ -1392,3 +1392,100 @@ h1.answer {
   font-size: var(--fs-xs);
   letter-spacing: 0.01em;
 }
+
+/* ================================================================ finishing pass (lane J6) */
+/* ---- grouped navigation: labelled sections in the sidebar and the phone drawer ---- */
+.side-groups {
+  gap: 0;
+}
+.side-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar .side-group .side-label {
+  padding: 14px 12px 6px;
+}
+.sidebar .side-group:first-child .side-label {
+  padding-top: 6px;
+}
+/* The sidebar only shows from desktop widths (pointer, not touch): rows a little tighter so every section fits. */
+@media (min-width: 1024px) and (pointer: fine) {
+  .sidebar .side-link {
+    min-height: 38px;
+    padding: 7px 12px;
+  }
+}
+
+/* ---- page controls: the lens and Simple/Analyst switches, in the same place on every page that has them ---- */
+.page-controls {
+  display: grid;
+  gap: var(--sp-2);
+  justify-items: end;
+}
+.pc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.pc-label {
+  min-width: 3.4rem;
+  text-align: right;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--track-kicker);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.page-controls .lens {
+  display: block;
+}
+.page-controls .seg.wide {
+  width: auto;
+}
+.pc-say {
+  margin: 0;
+  max-width: 36ch;
+  text-align: right;
+}
+@media (max-width: 759px) {
+  .page-heading-actions,
+  .page-controls {
+    width: 100%;
+  }
+  .page-controls {
+    justify-items: stretch;
+  }
+  .pc-row > :last-child {
+    flex: 1;
+  }
+  .pc-row .seg {
+    display: flex;
+    width: 100%;
+  }
+  .pc-row .seg-btn {
+    flex: 1;
+  }
+  .pc-label {
+    text-align: left;
+  }
+  .pc-say {
+    max-width: none;
+    text-align: left;
+  }
+}
+/* The Leg page: the player's name on the left, the same controls on the right. */
+.leg-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-5);
+}
+.leg-head-row .who {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+.who-photo {
+  display: inline-flex;
+}

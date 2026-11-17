@@ -4,7 +4,7 @@
 import { View } from "../components";
 import { count, MISSING } from "../format";
 import { hasPriceWords, honestyApi, type ForwardTest, type ForwardTests, type Maybe } from "../honesty";
-import { LensSwitch } from "../Lens";
+import { PageControls } from "../Lens";
 import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
@@ -145,7 +145,7 @@ export function TestsPage() {
             <a href={topHref("scorecard")}>Scorecard</a>
           </>
         }
-        actions={<LensSwitch compact />}
+        actions={<PageControls lens />}
       />
       <View state={state} reload={reload} what="the forward tests">
         {(m: Maybe<ForwardTests>) =>

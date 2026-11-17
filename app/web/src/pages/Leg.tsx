@@ -2,11 +2,11 @@ import { useEffect, useState } from "preact/hooks";
 import { SoWhat } from "../ui";
 import { api } from "../api";
 import { Avatar } from "../Avatar";
-import { ErrorPanel, Explain, Loading, ModeToggle } from "../components";
+import { ErrorPanel, Explain, Loading } from "../components";
 import { failureMessage, failureOf, type ApiFailure } from "../errors";
 import { IS_ARTIFACT } from "../env";
 import { useLens, useMode, type Lens } from "../prefs";
-import { LensSwitch } from "../Lens";
+import { PageControls } from "../Lens";
 import { ExplorePanel } from "../Explore";
 import { PlayerKnowsPanel } from "../Knows";
 import { OnItChip } from "../SharedUI";
@@ -32,10 +32,15 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
           Back to the game
         </a>
       </p>
-      <h1 class="who">
-        <Avatar name={data.player} team={data.team} playerId={data.player_id} size="lg" remote />
-        {data.player}
-      </h1>
+      <div class="leg-head-row">
+        <h1 class="who">
+          <span class="who-photo" aria-hidden="true">
+            <Avatar name={data.player} team={data.team} playerId={data.player_id} size="lg" remote />
+          </span>
+          {data.player}
+        </h1>
+        <PageControls lens detail />
+      </div>
       <SoWhat>
         {data.player}, {data.label.toLowerCase()} at {lineText(line)}: his recent games and the forecast are below. A forecast is a range, and nothing here is a pick.
       </SoWhat>
@@ -60,9 +65,6 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
         A dot means no model forecast yet for that stat.
       </p>
       <OnItChip propId={`${data.game_id}:${data.player_id.toString()}:${data.stat}`} />
-      <div class="head-tools">
-        <ModeToggle />
-      </div>
     </header>
   );
 }
@@ -176,7 +178,6 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
   return (
     <div class={`stack leg${fresh ? "" : " stale"}`} aria-busy={pending}>
       <Header data={data} line={shown} />
-      <LensSwitch />
       {lens === "explore" ? <LensExplore data={data} modelStat={modelStat} lens={lens} /> : null}
       <LineCard
         data={data}

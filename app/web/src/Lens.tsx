@@ -1,3 +1,4 @@
+import { ModeToggle } from "./components";
 import { LENSES, setPref, useLens, type Lens } from "./prefs";
 
 export const LENS_LABEL: Record<Lens, string> = { learn: "Learn", explore: "Explore", market: "Market" };
@@ -34,6 +35,39 @@ export function LensSwitch(props: { compact?: boolean }) {
           {LENS_SAY[lens]}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * The page's view controls, always in the same place: the right of the page heading (under it on a phone). The lens
+ * switch (with its one-line meaning) and the Simple/Analyst switch, each with its label. Pages pass what they have.
+ */
+export function PageControls(props: { lens?: boolean; detail?: boolean }) {
+  const lens = useLens();
+  return (
+    <div class="page-controls">
+      {props.lens ? (
+        <div class="pc-row">
+          <span class="pc-label" aria-hidden="true">
+            Lens
+          </span>
+          <LensSwitch compact />
+        </div>
+      ) : null}
+      {props.detail ? (
+        <div class="pc-row">
+          <span class="pc-label" aria-hidden="true">
+            Detail
+          </span>
+          <ModeToggle />
+        </div>
+      ) : null}
+      {props.lens ? (
+        <p class="small muted lens-say pc-say" aria-live="polite">
+          {LENS_SAY[lens]}
+        </p>
+      ) : null}
     </div>
   );
 }
