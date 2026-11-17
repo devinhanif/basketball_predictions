@@ -13,13 +13,13 @@ export interface Column<T> {
   num?: boolean;
 }
 
-/** A table with a caption, its row count, and sortable headers that say their state (`aria-sort`). */
-export function Table<T>(props: { caption: ComponentChildren; rows: readonly T[]; columns: readonly Column<T>[]; rowKey: (r: T) => string; initial?: SortState | null; noun?: string; class?: string }) {
+/** A table with a caption, its row count, and sortable headers that say their state (`aria-sort`). `sticky` keeps the header row in view inside a scrolling frame (long tables). */
+export function Table<T>(props: { caption: ComponentChildren; rows: readonly T[]; columns: readonly Column<T>[]; rowKey: (r: T) => string; initial?: SortState | null; noun?: string; class?: string; sticky?: boolean }) {
   const [sort, setSort] = useState<SortState | null>(props.initial ?? null);
   const col = sort ? props.columns.find((c) => c.key === sort.key) : undefined;
   const rows = sort && col?.sort ? sortRows(props.rows, col.sort, sort.dir) : [...props.rows];
   return (
-    <div class="table-wrap">
+    <div class={`table-wrap${props.sticky ? " sticky" : ""}`}>
       <table class={`ktable${props.class ? ` ${props.class}` : ""}`}>
         <caption>
           {props.caption} <span class="muted small num">({count(props.rows.length)} {props.noun ?? (props.rows.length === 1 ? "row" : "rows")})</span>

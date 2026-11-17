@@ -111,6 +111,53 @@
   --target: 44px;
   --gutter: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+
+  /* ---- Jarvis finish (donor kit ui/src/styles.css, reconciled). The donor's --panel/--panel2/--panel3/--border/--text/
+     --sidebar are this file's --surface/--surface-2/--surface-3/--line/--ink/--head; its --purple is --accent-ink. The
+     donor's --subtle (#636d85) fails AA as text, so it is a rule/decoration colour only; text that is "quieter than
+     muted" stays --muted. ---- */
+  --subtle: #636d85;
+  --line-strong: #3a4258;
+  --accent-line: #a08dff40;
+  --cyan: #6bd6eb;
+  --cyan-soft: #12303a;
+  --amber: #efc080;
+  --amber-soft: #3a2f1c;
+  /* Radii: --radius-xs 6 (badges), --radius-sm 9 (buttons, inputs), --radius 14 (tiles), --radius-lg 16 (cards),
+     --radius-xl 18 (dialogs, hero). */
+  --radius-2xs: 4px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+  /* Elevation: 0 flat, 1 a resting card, 2 a popover or sheet, 3 a dialog. */
+  --elev-0: none;
+  --elev-1: 0 1px 2px #0000002e;
+  --elev-2: 0 12px 40px #00000059;
+  --elev-3: 0 20px 70px #00000066;
+  /* Gradients: the hero ("feature") card, the quieter header card, the active nav row, the brand tile, the page glow. */
+  --grad-feature: radial-gradient(ellipse at 70% 35%, #8666c7 0%, #5b4993 42%, #332a56 100%);
+  --feature-line: #a894e648;
+  --on-feature: #f9f5ff;
+  --on-feature-muted: #e6def8;
+  --grad-card: radial-gradient(ellipse at 90% 0%, #2a2843 0%, var(--surface) 70%);
+  --grad-tile: linear-gradient(110deg, var(--surface), #1b202d);
+  --grad-nav-active: linear-gradient(90deg, #9180ff2e, #9180ff12);
+  --grad-brand: linear-gradient(140deg, #d0b8ff, #9d8aff 50%, #786be9);
+  --on-brand: #211639;
+  --grad-page: radial-gradient(ellipse at 50% 0%, #785fb31f, transparent 65%);
+  --focus-ring: 0 0 0 3px #a59aff40;
+  /* Type: weights bundled are 400/500/700 (DM Sans) and 700/800 (Manrope). Page titles 28 px, section titles 17 px. */
+  --fs-3xl: 1.75rem;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+  --fw-heavy: 800;
+  --track-title: -0.035em;
+  --track-head: -0.02em;
+  --track-kicker: 0.14em;
+  /* Shell geometry. */
+  --sidebar-w: 240px;
+  --topbar-h: 64px;
+  --sidepanel-w: 360px;
   color-scheme: dark;
 }
 
@@ -147,6 +194,21 @@
     --edge-strong-soft: #e1f3ea;
     --edge-thin: #8a5a00;
     --edge-thin-soft: #fbefd2;
+    --subtle: #9a97ad;
+    --line-strong: #c9c6da;
+    --accent-line: #7561c440;
+    --cyan: #1d6f7e;
+    --cyan-soft: #e0f3f6;
+    --amber: #8a5a00;
+    --amber-soft: #fbefd2;
+    --elev-1: 0 1px 2px #38304a14;
+    --elev-2: 0 12px 40px #38304a1f;
+    --elev-3: 0 20px 70px #38304a2e;
+    --grad-card: radial-gradient(ellipse at 100% 0%, #efe9fa, #ffffff 80%);
+    --grad-tile: linear-gradient(110deg, #ffffff, #faf9fd);
+    --grad-nav-active: linear-gradient(90deg, #7561c41f, #7561c40d);
+    --grad-page: radial-gradient(ellipse at 50% 0%, #7561c414, transparent 65%);
+    --focus-ring: 0 0 0 3px #6b56c833;
     color-scheme: light;
   }
 }
@@ -188,6 +250,21 @@
   --edge-strong-soft: #e1f3ea;
   --edge-thin: #8a5a00;
   --edge-thin-soft: #fbefd2;
+  --subtle: #9a97ad;
+  --line-strong: #c9c6da;
+  --accent-line: #7561c440;
+  --cyan: #1d6f7e;
+  --cyan-soft: #e0f3f6;
+  --amber: #8a5a00;
+  --amber-soft: #fbefd2;
+  --elev-1: 0 1px 2px #38304a14;
+  --elev-2: 0 12px 40px #38304a1f;
+  --elev-3: 0 20px 70px #38304a2e;
+  --grad-card: radial-gradient(ellipse at 100% 0%, #efe9fa, #ffffff 80%);
+  --grad-tile: linear-gradient(110deg, #ffffff, #faf9fd);
+  --grad-nav-active: linear-gradient(90deg, #7561c41f, #7561c40d);
+  --grad-page: radial-gradient(ellipse at 50% 0%, #7561c414, transparent 65%);
+  --focus-ring: 0 0 0 3px #6b56c833;
   color-scheme: light;
 }
 

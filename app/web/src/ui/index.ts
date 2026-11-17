@@ -1,10 +1,15 @@
 export { Banner } from "./Banner";
-export { Badge, CompareBadge, EdgeBadge, SideBadge } from "./Badge";
+export { Badge, CompareBadge, EdgeBadge, FreshnessBadge, ProvenanceBadge, SideBadge } from "./Badge";
 export { Button } from "./Button";
 export { Card } from "./Card";
 export { ChartFrame } from "./ChartFrame";
+export { FilterChips, type ChipOption } from "./Chips";
 export { Dialog } from "./Dialog";
+export { PageHead, SectionHead } from "./PageHead";
+export { SidePanelHost } from "./SidePanel";
+export { clearSidePanel, setSidePanel, type SidePanelDef } from "./sidePanelStore";
 export { Skeleton } from "./Skeleton";
+export { StateBlock } from "./State";
 export { Table, type Column } from "./Table";
 export { TabPanel, Tabs, type TabDef } from "./Tabs";
 export { Tile } from "./Tile";

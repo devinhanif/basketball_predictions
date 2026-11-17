@@ -19,6 +19,8 @@ import { HealthStrip } from "./HealthStrip";
 import { BETTING } from "./features";
 import { BETTING_MODULE, betCrumbs, betHref, type BettingNavEntry } from "./betting";
 import { BetShellPanel } from "./BetSlots";
+import { MenuDrawer } from "./MenuDrawer";
+import { SidePanelHost } from "./ui/SidePanel";
 
 interface NavDef {
   name: TopName;
@@ -380,7 +382,10 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
       <aside class="sidebar" aria-label="Sidebar">
         <a class="brand" href={topHref("today")} aria-label="parlayhitters, home">
           <Logo />
-          parlayhitters
+          <span class="brand-words">
+            parlayhitters
+            <small>NBA forecasts</small>
+          </span>
         </a>
         <button
           type="button"
@@ -448,7 +453,9 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
               <span class="muted">Workspace</span>
               {crumb.map((c, i) => (
                 <span key={c}>
-                  <span class="muted"> / </span>
+                  <span class="crumb-sep" aria-hidden="true">
+                    <Icon name="chevron" />
+                  </span>
                   <span aria-current={i === crumb.length - 1 ? "page" : undefined}>{c}</span>
                 </span>
               ))}
@@ -493,10 +500,23 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
           </div>
           {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} onAbout={() => { setAboutOpen(true); }} onKeys={() => { setKeysOpen(true); }} /> : null}
           {menuOpen ? (
-            <nav class="nav-sheet" aria-label="All screens">
-              {[...visible, ...mgmt].map((n) => link(n, "side-link"))}
+            <MenuDrawer
+              onClose={() => {
+                setMenuOpen(false);
+              }}
+              note={
+                <div class="side-card">
+                  <strong class="small">Paper only</strong>
+                  <p class="small muted">Nothing here places an order. Every number is from a stored row.</p>
+                </div>
+              }
+            >
+              <div class="side-label">Workspace</div>
+              {visible.map((n) => link(n, "side-link"))}
               {BETTING ? betNav.map(betLink) : null}
-            </nav>
+              <div class="side-label">Management</div>
+              {mgmt.map((n) => link(n, "side-link"))}
+            </MenuDrawer>
           ) : null}
         </header>
         {props.meta.text ? (
@@ -538,6 +558,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
         {BETTING ? <BetShellPanel onBetRoute={props.route.name === "bet"} /> : null}
         <Footer />
       </div>
+      <SidePanelHost />
       <nav class="nav-bottom" aria-label="Main">
         {tabs.map((t) => {
           const n = visible.find((w) => w.name === t) as NavDef;

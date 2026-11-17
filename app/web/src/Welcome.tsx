@@ -1,5 +1,6 @@
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { Button } from "./ui";
+import { setPref, usePrefs, type Mode } from "./prefs";
 import { IS_ARTIFACT } from "./env";
 import { cleanName, hasWelcomed, markWelcomed, setLocalName, useIdentity } from "./identity";
 import { Icon } from "./icons";
@@ -8,25 +9,146 @@ import { recordHref } from "./router";
 import { termsHref } from "./terms";
 import { openTour } from "./tourState";
 
+/** What each view does today (the pages that read the preference: Discover, Game, Leg). No price words. */
+const MODE_COPY: Record<Mode, { name: string; says: string; tag: string }> = {
+  simple: {
+    name: "Simple",
+    says: "The short answer first. One line per player on Discover, and the deeper sections fold away until you open them.",
+    tag: "Clear and quick to read.",
+  },
+  analyst: {
+    name: "Analyst",
+    says: "Everything opened up. Each forecast with its typical night and range, every player row in a game open, and the deeper sections on a player page shown in full.",
+    tag: "More context, already open.",
+  },
+};
+
 /**
- * First visit: five plain points at the top of whatever page was opened. It does not cover the page or take focus, and
- * once dismissed it stays dismissed on this device. The longer tour is one tap away (and in the profile menu).
- * No price words: it shows in every lens.
+ * Step one of the first visit: Simple or Analyst, as two cards (a radio group: arrows move, Enter or the button starts).
+ * It sits in the page like the intro; it never covers the page or takes focus. Skipping keeps Simple.
+ */
+function ModeChooser(props: { onPick: (m: Mode) => void; onSkip: () => void }) {
+  const [sel, setSel] = useState<Mode>(usePrefs().mode);
+  const group = useRef<HTMLDivElement>(null);
+  const order: readonly Mode[] = ["simple", "analyst"];
+  const move = (m: Mode): void => {
+    setSel(m);
+    group.current?.querySelector<HTMLElement>(`[data-mode="${m}"]`)?.focus();
+  };
+  return (
+    <section class="intro firstrun panel" aria-labelledby="fr-title">
+      <div class="intro-head">
+        <div class="fr-titles">
+          <span class="fr-spark" aria-hidden="true">
+            <Icon name="spark" />
+          </span>
+          <div class="eyebrow">One app, two ways to read it</div>
+          <h2 id="fr-title">How do you like to see the game?</h2>
+          <p class="muted fr-sub">Pick a starting view. You can switch any time from the profile menu or Preferences.</p>
+        </div>
+        <button type="button" class="icon-btn" aria-label="Skip the introduction and start in Simple" onClick={props.onSkip}>
+          <Icon name="close" />
+        </button>
+      </div>
+      <div class="fr-options" role="radiogroup" aria-label="Choose your starting view" ref={group}>
+        {order.map((m, i) => {
+          const c = MODE_COPY[m];
+          const on = sel === m;
+          return (
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              data-mode={m}
+              tabIndex={on ? 0 : -1}
+              class={`fr-option${on ? " fr-on" : ""}`}
+              onClick={() => {
+                setSel(m);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  move(order[(i + 1) % order.length] as Mode);
+                }
+              }}
+            >
+              <span class="fr-top">
+                <span class="fr-icon" aria-hidden="true">
+                  <Icon name={m === "simple" ? "layout" : "sliders"} />
+                </span>
+                <span class="fr-radio" aria-hidden="true">
+                  {on ? <Icon name="check" /> : null}
+                </span>
+              </span>
+              <span class={`fr-preview fr-preview-${m}`} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              <span class="fr-name">{c.name}</span>
+              <span class="fr-says">{c.says}</span>
+              <span class="fr-tag">{c.tag}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div class="row wrap intro-actions">
+        <Button
+          kind="primary"
+          onClick={() => {
+            props.onPick(sel);
+          }}
+        >
+          Start in {MODE_COPY[sel].name} <Icon name="arrow" />
+        </Button>
+        <Button kind="quiet" onClick={props.onSkip}>
+          Skip, just let me look
+        </Button>
+      </div>
+      <p class="small muted fr-note">Your choice is remembered on this device.</p>
+    </section>
+  );
+}
+
+/**
+ * First visit, one flow in the page: step one picks Simple or Analyst (above), step two is five plain points. Neither
+ * covers the page or takes focus, and once dismissed (at either step) it stays dismissed on this device. The longer tour
+ * is one tap away (and in the profile menu). No price words: it shows in every lens.
  */
 export function Welcome() {
   const id = useIdentity();
   const [name, setName] = useState("");
+  const [step, setStep] = useState<"choose" | "intro">("choose");
+  const introTitle = useRef<HTMLHeadingElement>(null);
+  const picked = useRef(false);
+  useEffect(() => {
+    // After a pick the chooser's button is gone: focus goes to the next step's heading, not to the top of the page.
+    if (step === "intro" && picked.current) introTitle.current?.focus();
+  }, [step]);
   if (hasWelcomed()) return null;
   const done = (): void => {
     if (!IS_ARTIFACT && cleanName(name) !== "") setLocalName(name);
     markWelcomed();
   };
+  if (step === "choose")
+    return (
+      <ModeChooser
+        onPick={(m) => {
+          setPref("mode", m);
+          picked.current = true;
+          setStep("intro");
+        }}
+        onSkip={done}
+      />
+    );
   return (
     <section class="intro panel" aria-labelledby="intro-title">
       <div class="intro-head">
         <div>
           <div class="kicker">New here? Five things first</div>
-          <h2 id="intro-title">See how tonight's NBA games could go</h2>
+          <h2 id="intro-title" tabIndex={-1} ref={introTitle}>See how tonight's NBA games could go</h2>
         </div>
         <button type="button" class="icon-btn" aria-label="Dismiss the introduction" onClick={done}>
           <Icon name="close" />
