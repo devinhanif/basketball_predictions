@@ -56,7 +56,7 @@ function Tiles({ desk }: { desk: Desk }) {
         </div>
         <div class="tile-n muted">Win rate is not the measure of edge: price matters more than hits.</div>
       </div>
-      {desk.balance ? (
+      {desk.balance && desk.privacy === "private" ? (
         <div class="tile big">
           <div class="label">Paper balance (private)</div>
           <div class="tile-v num">{`$${desk.balance.current_usd.toFixed(2)}`}</div>
@@ -183,7 +183,7 @@ function DaysCard({ desk }: { desk: Desk }) {
               </h3>
               <p class="small muted num">
                 {day.n} settled, {day.won}-{day.n - day.won} won-lost
-                {day.pnl !== null ? `, net ${usd(day.pnl)}` : ""}. A single day is a small sample; it says little by itself.
+                {day.pnl !== null && desk.privacy === "private" ? `, net ${usd(day.pnl)}` : ""}. A single day is a small sample; it says little by itself.
               </p>
               {plays.length > 0 ? (
                 <ul class="plain small">

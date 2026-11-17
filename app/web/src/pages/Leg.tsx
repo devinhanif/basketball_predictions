@@ -796,7 +796,7 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
   return (
     <header class="leg-title">
       <p class="back-row">
-        <a class="back-link" href={`#/game/${data.game_id}`}>
+        <a class="back-link" href={gameHref(data.game_id)}>
           Back to the game
         </a>
       </p>
