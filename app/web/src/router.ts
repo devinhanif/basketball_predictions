@@ -3,6 +3,7 @@ import { ScrollNav, restoreScroll } from "./scrollNav";
 import { isLegStat, type LegStat, type Side } from "./legTypes";
 import { IS_ARTIFACT } from "./env";
 import { isIsoDate } from "./time";
+import { STATS } from "./types";
 import { getPrefs, type Screen } from "./prefs";
 
 export type RecordTab = "replay" | "calibration" | "guess";
@@ -84,8 +85,6 @@ function playerId(raw: string | null | undefined): number | null {
 }
 
 
-const HEDGE_STATS: readonly string[] = ["pts", "reb", "ast", "fg3m"];
-
 /**
  * The route for a hash. Anything the app could not have linked to (an unknown path, a broken id, an impossible date)
  * is the explicit not-found route, which keeps the hash so the screen can say what was asked for. Never throws.
@@ -155,7 +154,7 @@ export function parse(hash: string): Route {
       const s = q.get("stat");
       const game = g !== null && okId(g) ? g : null;
       const player = p === null ? null : playerId(p);
-      if ((g !== null && game === null) || (p !== null && player === null) || (s !== null && !HEDGE_STATS.includes(s))) return notFound;
+      if ((g !== null && game === null) || (p !== null && player === null) || (s !== null && !(STATS as readonly string[]).includes(s))) return notFound;
       return { name: "hedge", game, player, stat: s };
     }
     case "record": {
