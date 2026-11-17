@@ -4,7 +4,7 @@
 /* ---- lens switch ---- */
 .lens {
   display: grid;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 .lens-seg {
   width: 100%;
@@ -37,7 +37,7 @@
 }
 .xp-share {
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -45,11 +45,11 @@
 }
 .xp-share h4 {
   font-family: var(--display);
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
 }
 .xp-bar {
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--pill);
   background: var(--surface-3);
   overflow: hidden;
 }
@@ -63,7 +63,7 @@
   gap: 10px;
   align-items: flex-start;
   min-height: 44px;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 .xp-check input {
   width: 22px;
@@ -88,7 +88,7 @@
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .xp-read {
   padding: 12px;
@@ -120,7 +120,7 @@
 .sits-pick {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--sp-2);
   margin: 8px 0;
 }
 .sits-btn {
@@ -142,7 +142,7 @@
   margin: 6px 0 0;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 .sits-mates li {
   display: flex;
@@ -172,7 +172,7 @@
 .kn-item {
   position: relative;
   display: grid;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 .kn-item::before {
   content: "";
@@ -197,13 +197,13 @@
   background: var(--ink);
 }
 .kn-when {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--ink);
   font-weight: 700;
 }
 .kn-what {
   display: grid;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 .kn-what p {
   margin: 0;
@@ -235,7 +235,7 @@
   bottom: 0;
   background: var(--accent-soft);
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
 }
 .kn-mid {
   position: absolute;
@@ -260,14 +260,14 @@
 }
 .kn-why-list {
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .kn-movers {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .kn-movers a {
   display: grid;
@@ -313,7 +313,7 @@
 }
 .rp-player {
   display: grid;
-  gap: 4px;
+  gap: var(--sp-1);
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -387,17 +387,17 @@
 }
 .gs-score {
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .gs-card {
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .gs-q {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--sp-2);
   margin: 0;
 }
 .gs-q .line-out {
@@ -420,13 +420,13 @@
   white-space: normal;
   text-align: center;
   text-transform: none;
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 .gs-reveal {
   display: grid;
-  gap: 4px;
+  gap: var(--sp-1);
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -452,14 +452,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: #080a1099;
+  background: var(--scrim-soft);
 }
 .tour {
   width: min(520px, 100%);
   max-height: 92dvh;
   overflow-y: auto;
   display: grid;
-  gap: 12px;
+  gap: var(--sp-3);
   padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
   background: var(--surface);
   color: var(--ink);
@@ -489,7 +489,7 @@
 }
 .tour-body {
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .tour-body p {
   margin: 0;
@@ -515,7 +515,7 @@
 .tour-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--sp-2);
   justify-content: flex-end;
 }
 .tour-actions .btn {
