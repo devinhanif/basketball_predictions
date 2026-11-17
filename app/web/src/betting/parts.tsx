@@ -14,7 +14,7 @@ import { ARITHMETIC_NOTE, MONEY_NOTE, PROVENANCE_MEANING, PROVENANCE_WORD, REMOV
 import { legCost, legPayout, legProblem, normalisedCost, type Coverage, type SlipEvaluation, type SlipRow } from "./slipModel";
 import type { BetActions } from "./store";
 import type { Market, ProviderInfo, Quote, Side, SlipLeg } from "./types";
-import { typedQuote } from "./viewModel";
+import { compareHashFor, typedQuote } from "./viewModel";
 import { say } from "./useBet";
 
 // ------------------------------------------------------------------------------------------------ text
@@ -286,6 +286,14 @@ export function LegCard(props: { leg: SlipLeg; actions: BetActions; now: number;
       <p class="ph-bet-leg-what">
         {words}
         <span class="small muted"> · {leg.market.eventLabel || leg.market.eventId}</span>
+        {leg.market.origin === "export" && !props.compact ? (
+          <>
+            {" "}
+            <a class="small" href={compareHashFor(leg.market, leg.quote.side, "analysis")}>
+              Model and record
+            </a>
+          </>
+        ) : null}
       </p>
       <p class="small num">{priceWords(leg.quote)}</p>
       <Provenance quote={leg.quote} now={props.now} label={recorded ? "price when recorded" : "price when added"} />

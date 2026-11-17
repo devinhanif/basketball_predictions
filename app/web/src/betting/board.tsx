@@ -56,6 +56,12 @@ export interface Stored {
   reload: () => void;
 }
 
+/** The whole stored board for one player and stat (every line and side), as the API serves it; never sample. */
+export function useRawBoard(gameId: string, playerId: string, stat: string): [Snap<ApiBoard>, () => void] {
+  const [b, reload] = useLoad<Snap<ApiBoard>>(() => betting<ApiBoard>(`/api/betting/board/${encodeURIComponent(gameId)}/${encodeURIComponent(playerId)}/${encodeURIComponent(stat)}`), [gameId, playerId, stat]);
+  return [unwrap(b), reload];
+}
+
 /** The stored board for an export market (none for typed markets; the demo's own invented board for sample markets). */
 export function useStored(market: Market | null, side: Side): Stored {
   const source = market === null ? "manual" : market.origin === "sample" ? "sample" : market.origin === "manual" ? "manual" : "export";

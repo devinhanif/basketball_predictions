@@ -405,6 +405,11 @@ export function Comparison(props: { bet: Ready; market: Market; side: Side }) {
           </Button>
         ) : null}
         <Button onClick={() => { setDialog({ kind: "existing" }); }}>Log a bet you already placed</Button>
+        {market.origin === "export" ? (
+          <a class="btn" href={compareHashFor(market, side, "analysis")}>
+            Model and record for this prop
+          </a>
+        ) : null}
       </div>
       <AboutPrices st={st} cards={cards} now={now} crownText={crown.shown ? null : `No venue is marked cheapest: ${crown.reasons[0] ?? "the comparison is not like-for-like."}`} />
       <FeeControl cards={cards} fees={fees} onFees={setFees} />

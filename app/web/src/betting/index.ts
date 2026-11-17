@@ -12,6 +12,7 @@ import { ComparePage } from "./Compare";
 import { HedgePage } from "./Hedge";
 import { SlipPage, SlipPanel } from "./Slip";
 import { IdeasPage } from "./Ideas";
+import { AnalysisPage } from "./Analysis";
 import { BET_PREFIX, type BetRoute, type BettingModule, type BettingNavEntry, type BettingRouteDef } from "./seam";
 
 export type { AddToSlipProps, BetRoute, BettingModule, BettingNavEntry, BettingRouteDef, ShellPanelProps } from "./seam";
@@ -28,6 +29,7 @@ const ROUTES: readonly BettingRouteDef[] = [
   { path: "compare", title: "Compare venues", render: (r) => h(ComparePage, { route: r }) },
   { path: "hedge", title: "Slip Hedge Finder", render: (r) => h(HedgePage, { route: r }) },
   { path: "ideas", title: "Saved ideas", param: true, render: (r) => h(IdeasPage, { route: r }) },
+  { path: "analysis", title: "Prop analysis", render: (r) => h(AnalysisPage, { route: r }) },
 ];
 
 const NAV: readonly BettingNavEntry[] = [

@@ -35,7 +35,7 @@ export function parseCompareQuery(query: string): CompareQuery {
 }
 
 /** The hash for Compare (or Hedge Finder) on one market and side. Parameters are plain ids and numbers. */
-export function compareHash(path: "compare" | "hedge", q: Partial<CompareQuery>): string {
+export function compareHash(path: "compare" | "hedge" | "analysis", q: Partial<CompareQuery>): string {
   const p = new URLSearchParams();
   if (q.market) p.set("market", q.market);
   else {
@@ -51,7 +51,7 @@ export function compareHash(path: "compare" | "hedge", q: Partial<CompareQuery>)
 }
 
 /** The Compare address for a market (export and sample markets by their facts, a typed market by its id). */
-export function compareHashFor(market: Market, side: Side, path: "compare" | "hedge" = "compare", leg: string | null = null): string {
+export function compareHashFor(market: Market, side: Side, path: "compare" | "hedge" | "analysis" = "compare", leg: string | null = null): string {
   const s = side === "yes" ? "over" : "under";
   if (market.origin === "manual") return compareHash(path, { market: market.id, side: s, leg });
   return compareHash(path, { game: market.eventId, player: market.playerId, stat: market.stat, line: market.line, side: s, leg });
