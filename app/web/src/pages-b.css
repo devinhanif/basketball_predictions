@@ -492,3 +492,71 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------------------------------------------------------------- failure screen and error help */
+.pb-problem {
+  display: grid;
+  gap: var(--sp-2);
+}
+.pb-problem > p {
+  margin: 0;
+}
+.pb-problem-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.pb-problem-head h1,
+.pb-problem-head h2 {
+  margin: 0;
+}
+.pb-problem-head .state-mark {
+  flex: none;
+  color: var(--loss);
+}
+.pb-problem-what {
+  font-size: var(--fs-lg);
+}
+.pb-problem-code {
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.pb-problem-actions {
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.pb-codes .terms-search {
+  flex: 1 1 18rem;
+  max-width: 32rem;
+}
+@media (min-width: 1100px) {
+  .pb-codes .code-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pb-code-rows {
+  margin: var(--sp-2) 0 0;
+}
+.pb-code-rows > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 8rem) 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--line);
+}
+.pb-code-rows dt {
+  color: var(--muted);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+}
+.pb-code-rows dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .pb-code-rows > div {
+    grid-template-columns: 1fr;
+    gap: var(--sp-1);
+  }
+}
