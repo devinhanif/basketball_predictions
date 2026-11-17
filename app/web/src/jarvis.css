@@ -1571,7 +1571,18 @@ h1.answer {
 }
 
 /* ---- disclosures: every plain <details> shows that it opens (a summary set to flex loses the browser's marker) ---- */
-details:not(.explain):not(.player):not(.hs-details):not(.card-detail):not([class*="ph-bet"]) > summary::after {
+details.role-section > summary::after,
+details.sits-notes > summary::after,
+details.alt > summary::after,
+details.needs-field > summary::after,
+details.tp-more > summary::after,
+details.kn-first > summary::after,
+details.prov-sha > summary::after,
+details.prov-more > summary::after,
+details.dist-more > summary::after,
+details.chart-numbers > summary::after,
+details.panel > summary::after,
+details:not([class]) > summary::after {
   content: "";
   flex: none;
   width: 7px;
@@ -1583,7 +1594,18 @@ details:not(.explain):not(.player):not(.hs-details):not(.card-detail):not([class
   transform: translateY(-2px) rotate(45deg);
   transition: transform 0.18s;
 }
-details:not(.explain):not(.player):not(.hs-details):not(.card-detail):not([class*="ph-bet"])[open] > summary::after {
+details.role-section[open] > summary::after,
+details.sits-notes[open] > summary::after,
+details.alt[open] > summary::after,
+details.needs-field[open] > summary::after,
+details.tp-more[open] > summary::after,
+details.kn-first[open] > summary::after,
+details.prov-sha[open] > summary::after,
+details.prov-more[open] > summary::after,
+details.dist-more[open] > summary::after,
+details.chart-numbers[open] > summary::after,
+details.panel[open] > summary::after,
+details:not([class])[open] > summary::after {
   transform: translateY(2px) rotate(-135deg);
 }
 details > summary:hover {
