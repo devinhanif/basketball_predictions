@@ -76,6 +76,8 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
 | C1 | `agent/app-1117-design` | `~/Downloads/nba-wt-1117-design` | launched 20:02 CST: tokens, `src/ui/` components, one formatter, edge-label language, states, data-as-of line, Key terms page, intro, palette and shortcuts | `docs/handoff_2026-11-17/lane_design.md` |
 | C2a | `agent/app-1117-menu-api` | `~/Downloads/nba-wt-1117-menu-api` | launched 20:21 CST: read-only routes for prediction record, distribution, scorecard, forward-test tracker, parlay diagnostics, error-code help, health strip fields; export-field proposals | `docs/handoff_2026-11-17/lane_menu_api.md` |
 | C2b | `agent/app-1117-pages` | `~/Downloads/nba-wt-1117-pages` | launched about 21:09 CST: the pages (prediction record, health strip, distribution view, scorecard, forward-test tracker, error-code help, parlay diagnostics), honesty labels on browser-computed numbers, artifact bake of the new routes | `docs/handoff_2026-11-17/lane_pages.md` |
+| E2a | `agent/steward-1117-live-daily` | `~/Downloads/nba-wt-1117-live-daily` | launched about 21:11 CST: one lead constant, context-residual config guard, forward DDL in one place, stubs, finished research out of `nba/`, `pipeline.py` split; one commit per task for oracle bisecting | `docs/handoff_2026-11-17/lane_live_daily.md` |
+| E2b | `agent/market-1117-live-markets` | `~/Downloads/nba-wt-1117-live-markets` | launched about 21:11 CST: fee map and one fee module proven bit-identical, Polymarket client duplicate, legacy odds vendor banner, comment drift, long-file splits | `docs/handoff_2026-11-17/lane_live_markets.md` |
 | E1 | `agent/steward-1117-ci-health` | `~/Downloads/nba-wt-1117-ci` | lint truth, `slow` marker, flaky tests, generated outputs out of git, launchd plist files (not installed), cleanup script (not run) | `docs/handoff_2026-11-17/lane_ci.md` |
 | F | `agent/scribe-1117-docs` | `~/Downloads/nba-wt-1117-docs` | `README.md`, `docs/PROJECT_STATUS.md`, drift fixes in DAILY_PIPELINE and PARLAY_ENGINE, root `NEXT_SESSION.md` removed on the branch | `docs/handoff_2026-11-17/lane_docs.md` |
 
@@ -85,11 +87,24 @@ lane C2 (candidate menu: prediction record, scorecard, health strip, distributio
 for the replay oracle, for the end of the game window about 22:00 CST).
 
 ## Next three steps
-1. When C2b (pages) reports: verify on its branch, merge, run `app/scripts/check.sh --browser` and `app/scripts/walk.sh --widths`
-   on the integration branch.
-2. When E1 (CI health) reports: verify, merge. Then launch E2 (live-path refactors), which needs the replay oracle: holdout
-   row first, DB copy and out-dir under a scratch directory, hash must be `89889f6d`.
-3. Then Phase 6 (math diagnostics, analysis and proposals only) if budget remains, and `REPORT.md`.
+1. As lanes report (C2b pages, E1 CI health, E2a daily, E2b markets): verify each on its branch, merge into integration,
+   run the matching gate (`app/scripts/check.sh --browser` for app lanes; layering test and touched test directories for
+   repo lanes).
+2. Read the baseline oracle hash (after about 22:50 CST). Then the E2 oracle on the merged tip (holdout row first).
+3. Phase 6 (math diagnostics, analysis and proposals only) if budget remains, then `REPORT.md` ending in `RUN COMPLETE`.
+
+## Replay oracle (state at 21:12 CST)
+- Holdout row logged first: commit 694ae69b (`docs/HOLDOUT_ACCESS_LOG.md`, logged 21:12 CST).
+- Worktree `~/Downloads/nba-wt-1117-oracle` (detached at 694ae69b), `data` is a symlink to the main checkout's `data/`
+  (the tracked `data/` was moved to `~/Downloads/nba-scratch-1117/oracle_wt_data_aside`). Read use only.
+- BASELINE run scheduled as a background job of the session: waits until 22:15 CST, then
+  `nba.daily.replay_season --season 2025 --source <main>/nba.duckdb --db ~/Downloads/nba-scratch-1117/oracle_base.duckdb
+  --out-dir ~/Downloads/nba-scratch-1117/oracle_base --max-dates 20 --no-lock`, then `nba.daily.canonical_dump`.
+  Output: `~/Downloads/nba-scratch-1117/oracle_base.log`, `.hash`, `.start`, `.end`. Expected `89889f6d`.
+- If the session died before 22:15 the job died with it: check for `oracle_base.start`; if absent, run the command by hand
+  from the oracle worktree (the row is already logged).
+- After E2a and E2b merge: log a second row, `git checkout --detach <integration tip>` in the oracle worktree, run again
+  into `oracle_e2.duckdb`. A different hash means bisecting E2a's commits (one per task) and reverting the offender.
 
 ## Auto-resume (Devin started it in a terminal about 19:04 CST on 11-16; if it was the one-shot with `sleep 14700`, it fires about 23:09 CST)
 A terminal command resumes this session headless (`claude --resume ... -p "Continue the autonomous run..."`), either once
