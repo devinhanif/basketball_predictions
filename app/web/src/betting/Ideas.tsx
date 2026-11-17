@@ -228,9 +228,9 @@ function NewestStored(props: { leg: SlipLeg; now: number }) {
   if (leg.market.origin === "sample") return <span class="small muted">Demo market: no stored prices</span>;
   if (st.state.kind === "loading") return <span class="small muted">Reading...</span>;
   if (st.state.kind === "error") return <span class="small ph-bet-err">Could not be read</span>;
-  if (st.state.kind === "off" || !st.stored) return <span class="small muted">Not available from this server</span>;
+  if (st.state.kind === "off" || !st.stored) return <span class="small muted">not available from this server</span>;
   const slot = quoteSlot(st.stored, leg.market.id, leg.quote.provider, leg.quote.side);
-  if (slot.state !== "available") return <span class="small muted">No stored price now</span>;
+  if (slot.state !== "available") return <span class="small muted">none stored now</span>;
   return (
     <span class="ph-bet-now">
       <span class="num">{nativePrice(slot.quote)}</span> <SourceCell quote={slot.quote} now={props.now} />
@@ -521,7 +521,7 @@ function IdeaPage(props: { bet: Ready; id: string }) {
       <OutcomeForm key={`${idea.id}-${idea.status}-${JSON.stringify(idea.outcomes)}-${(idea.voids ?? []).join(",")}`} bet={props.bet} idea={idea} now={now} />
       <h2 class="ph-bet-h">Every listed outcome at the saved prices</h2>
       <p class="small muted">{ARITHMETIC_NOTE} These are the prices saved with the idea, not today's.</p>
-      {ev.rows.length ? <OutcomeTable evaluation={ev} caption="Every listed outcome at the saved prices" /> : <p class="small">No outcome table: {ev.warnings[0] ?? "a leg is incomplete."}</p>}
+      {ev.rows.length ? <OutcomeTable evaluation={ev} caption="Outcomes" /> : <p class="small">No outcome table: {ev.warnings[0] ?? "a leg is incomplete."}</p>}
       <p class="small muted">
         Side words: {sideWord("yes")} is the stat finishing above the line, {sideWord("no")} below it.
       </p>
