@@ -50,7 +50,7 @@ const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
   terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
-  // A betting screen has no TopName of its own (the module brings its own nav); crumbs() names it.
+  // A betting screen has no TopName of its own (the module brings its own nav); crumbs() names it and `here` is null.
   bet: "today",
 };
 const TITLES: Record<TopName, string> = {
@@ -316,7 +316,8 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
   const lens = useLens();
   const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
   const tabs = TABS.filter((t) => visible.some((w) => w.name === t));
-  const here = ROUTE_TOP[props.route.name];
+  // On a betting screen no top-level view is current (the module's own nav entry is).
+  const here: TopName | null = BETTING && props.route.name === "bet" ? null : ROUTE_TOP[props.route.name];
   const ready = deskOf(desk);
   const workspace = ready?.privacy === "private" ? "Jarvis Desk (private)" : "Public";
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
