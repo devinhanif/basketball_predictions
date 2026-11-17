@@ -1906,3 +1906,49 @@ main h2 {
     padding-bottom: var(--sp-1);
   }
 }
+
+/* ---- print (Scorecard, Forward tests and any page): the page's content and its footer on white, no app chrome ---- */
+@media print {
+  .sidebar,
+  .topbar,
+  .nav-bottom,
+  .skip-link,
+  .otp,
+  .page-controls,
+  .intro,
+  .toasts,
+  .hs-details,
+  .side-panel-host {
+    display: none !important;
+  }
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f4f4f7;
+    --ink: #111111;
+    --muted: #444444;
+    --line: #cccccc;
+  }
+  body,
+  .shell,
+  .content {
+    background: #ffffff !important;
+    color: #111111;
+  }
+  .shell {
+    display: block !important;
+  }
+  .panel,
+  .pb-test {
+    break-inside: avoid;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+  .table-wrap.sticky {
+    max-height: none;
+    overflow: visible;
+  }
+  details > :not(summary) {
+    display: block;
+  }
+}
