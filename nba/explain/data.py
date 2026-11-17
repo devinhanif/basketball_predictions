@@ -21,11 +21,13 @@ from zoneinfo import ZoneInfo
 import duckdb
 import numpy as np
 
+from nba.leadtime import LEAD_MINUTES as _LEAD_MINUTES
+
 ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
 
 #: The T-60 rule shared with the settle step: a row is usable if made_at <= tipoff - 60 min.
-LEAD_MINUTES = 60
+LEAD_MINUTES = _LEAD_MINUTES  # 60, nba.leadtime
 PRIMARY_PROPS = "props_context_residual"
 BASELINE_PROPS = "props_recency_v1"
 WIN_MODELS = ("rung0_injury_elo", "rung0_mov_elo")

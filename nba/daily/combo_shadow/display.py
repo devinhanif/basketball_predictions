@@ -12,7 +12,9 @@ from typing import Any
 
 import duckdb
 
-LEAD = 60
+from nba.leadtime import LEAD_MINUTES
+
+LEAD = LEAD_MINUTES  # 60, nba.leadtime
 TARGETS = ("blk", "stl", "pra", "pr", "pa", "ra", "bs")
 
 
