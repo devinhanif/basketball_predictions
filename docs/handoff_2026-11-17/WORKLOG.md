@@ -3,7 +3,17 @@
 Integration branch `agent/integration-2026-11-17`, worktree `/Users/devin/Downloads/nba-wt-int-1117`. Nothing is merged
 to `main`, nothing is pushed. Times are Central.
 
-## Quickstart (verified 2026-11-16 18:48–18:56 CST)
+## Quickstart: one command (verified 19:13 CST from the integration worktree)
+
+```
+app/scripts/dev.sh                         # API on fixtures + web; prints the URL; Ctrl-C stops both
+app/scripts/dev.sh --export                # the nightly export, read-only (data/export/latest of this checkout, or --export <dir>)
+API_PORT=8040 WEB_PORT=5196 app/scripts/dev.sh   # when 8000/5173 are busy (they were tonight)
+app/scripts/check.sh                       # every local app check with a pass/fail table (--fast, --bake, --browser)
+app/scripts/artifact.sh [--export [DIR]]   # bake + build the single-file artifact
+```
+
+## The same by hand (verified 2026-11-16 18:48–18:56 CST)
 
 ```
 # API on fixtures (two 2024-25 nights)
@@ -46,6 +56,7 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
+- Lane D (DX) merged 19:11 CST as 545ab163. I ran `dev.sh` on 8040/5196 from the integration worktree: health 200 through the web port, the busy-port message works, a terminate signal stops both servers with nothing left running. `check.sh` was run by the lane (all passed, 164 s), not yet by me on the merged branch. Report `lane_dx.md`.
 - Lane F (docs) merged 19:06 CST as 60713af7: README, PROJECT_STATUS as of 11-16, drift fixes, root NEXT_SESSION.md removed. Markdown only; report `lane_docs.md`. Its drift list for code-adjacent files goes to lane E2.
 - Phase 0 (above), commit 72924903. Shared error-code registry seeded (`app/error_codes.json`), commit d5d9b058.
 
