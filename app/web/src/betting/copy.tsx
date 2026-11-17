@@ -2,6 +2,7 @@
 //   slip      the one working list a viewer builds ("Your rolling slip" is only the page title); never "rolling slip" in body text.
 //   pick      a prop saved from a game or player page that has no venue price yet ("Waiting for a price").
 //   leg       one priced line in the slip: a "planned leg" (not yet placed) or a "recorded position" (placed elsewhere, noted here).
+//   item      picks and legs counted together ("Slip · 3"); only ever a count, never a thing you can point at.
 //   position  only a recorded one; never call a planned leg a position.
 //   venue     where a price comes from (sportsbook, exchange or entry): never "provider" or "book" in user-visible text.
 //   idea      a slip saved with a thesis; "paper net" is its arithmetic, never "profit".

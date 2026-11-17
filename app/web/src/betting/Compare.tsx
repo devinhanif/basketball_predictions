@@ -478,7 +478,7 @@ export function CompareScreen(props: { route: BetRoute }) {
         id="ph-bet-cmp-h"
         kicker="Betting tools"
         title={TITLE_COMPARE}
-        description="One prop's price at each venue, side by side, with where each price came from, how old it is and its fee."
+        description="One prop's price at each venue, with its source, age and fee."
       />
       <MoneyNote arithmetic />
       {!bet.ready || bet.view.workspace === null ? (

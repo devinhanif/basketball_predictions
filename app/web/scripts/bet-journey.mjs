@@ -303,6 +303,7 @@ async function ideasJourney(w, theme) {
   await until(`document.querySelectorAll('main .ph-bet-leg.recorded').length === ${rec0 - 1}`, "the recorded position to go");
   console.log("  ok  removing a recorded position shows its wording first and removes the note only after confirming");
   await longContent(w, theme);
+  await eightLegSheet(w, theme);
 
   // export every idea (a real browser download)
   const dl = join(outDir, `dl_${w}_${theme}`);
@@ -385,6 +386,39 @@ async function longContent(w, theme) {
   await check("long-idea", w, theme, true);
   console.log("  ok  long name, thesis and tags: no sideways scroll, no control outside the viewport");
   // put the workspace back as it was, so the steps after this one are unchanged
+  await ev(`const [k, v] = ${original}; localStorage.setItem(k, v); return 0;`);
+  await send("Page.reload");
+  await sleep(1500);
+}
+
+// The slip sheet on a phone with eight legs: it scrolls inside itself, and its actions are reachable by scrolling it.
+async function eightLegSheet(w, theme) {
+  if (w >= 600) return;
+  const original = await ev(`const k = Object.keys(localStorage).find((x) => x.startsWith('ph.betting.workspace')); return JSON.stringify([k, localStorage.getItem(k)]);`);
+  await ev(`const k = Object.keys(localStorage).find((x) => x.startsWith('ph.betting.workspace'));
+    const env = JSON.parse(localStorage.getItem(k));
+    const legs = env.document.draft.legs;
+    const planned = legs.find((l) => l.role === 'planned') ?? legs[0];
+    const out = legs.filter((l) => l.role === 'existing');
+    for (let i = 0; i < 8; i++) { const c = JSON.parse(JSON.stringify(planned)); c.id = 'sheet-leg-' + i; c.role = 'planned'; c.enabled = true; c.placedAt = null; out.push(c); }
+    env.document.draft.legs = out;
+    localStorage.setItem(k, JSON.stringify(env)); return 0;`);
+  await send("Page.reload");
+  await sleep(1500);
+  await go("#/");
+  await until(`[...document.querySelectorAll('button')].find((b) => b.getClientRects().length > 0 && /^Slip/.test(T(b)))`, "the Slip button");
+  await ev(`${H} [...document.querySelectorAll('button')].find((b) => b.getClientRects().length > 0 && /^Slip/.test(T(b))).click(); return 0;`);
+  await until(`document.querySelector('[role=dialog][aria-modal=true]')`, "the slip sheet");
+  await sleep(500);
+  const m = await ev(`const d = document.querySelector('[role=dialog][aria-modal=true]'); const sc = [d, ...d.querySelectorAll('*')].find((e) => e.scrollHeight > e.clientHeight + 20 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)); const vh = window.innerHeight; const r = d.getBoundingClientRect(); return { scrolls: !!sc, inside: r.bottom <= vh + 1 && r.top >= 0, legs: d.querySelectorAll('.ph-bet-leg, article').length };`);
+  if (!m.scrolls || !m.inside) await check("sheet-8-legs-problem", w, theme, false);
+  if (!m.inside) throw new Error("8-leg sheet: the sheet is taller than the screen");
+  if (!m.scrolls) throw new Error(`8-leg sheet: nothing inside the sheet scrolls (${JSON.stringify(m)})`);
+  const reach = await ev(`const d = document.querySelector('[role=dialog][aria-modal=true]'); const b = [...d.querySelectorAll('button')].find((x) => /^Mark slip as placed/.test((x.textContent || '').trim())); if (!b) return 'missing'; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight ? 'ok' : 'out of view';`);
+  if (reach !== "ok") throw new Error(`8-leg sheet: Mark slip as placed is ${reach}`);
+  await check("sheet-8-legs", w, theme, true);
+  await ev(`document.querySelector('[role=dialog][aria-modal=true]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return 0;`);
+  console.log("  ok  eight-leg sheet: scrolls inside, actions reachable");
   await ev(`const [k, v] = ${original}; localStorage.setItem(k, v); return 0;`);
   await send("Page.reload");
   await sleep(1500);
