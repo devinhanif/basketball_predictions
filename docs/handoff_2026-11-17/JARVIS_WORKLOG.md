@@ -63,7 +63,8 @@ rerun on 5b94a4ea (see REPORT_JARVIS.md section 3 for the last numbers).
 | Lane | Branch | Worktree | Scope |
 |---|---|---|---|
 | K1 | `agent/app-jarvis-close` | `~/Downloads/nba-wt-1117-jv-close` | betting module only: cross-tab sync, select / deselect / remove in the journey, paper-outcome history, add to slip from Discover's cards, Compare ordering guard, long content, compatibility audit, blocked storage. Ports 8160-8161 / 5310-5311 |
-| K2 | `agent/app-jarvis-friend` | `~/Downloads/nba-wt-1117-jv-friend` | everything except the betting module: a friend's first visit on a phone with the switch off on real data, then desktop; first-screen density, wording, empty states, rhythm. Ports 8170-8171 / 5320-5321 |
+| K2 | `agent/app-jarvis-friend` | `~/Downloads/nba-wt-1117-jv-friend` | DONE, merged 05:39 CST (29aef787): tighter phone first screen, one-line hints, no result request for unfinished games, one h1 when the data service is down, plain empty states, search lists a player once; web check OFF and ON 559 tests. Left for Devin: whether Explore shows Today's picks above the games; Learn Scorecard prose |
+| K3 | `agent/app-jarvis-depth` | `~/Downloads/nba-wt-1117-jv-depth` | launched 05:41 CST from 29aef787: the game and prop pages read top to bottom in every lens and mode, phone and desktop, then the record pages; night-chip scroll cue; what-if slider gap. Ports 8180-8181 / 5330-5331. Same files as K2 (everything except the betting module and `TodaysPicks.tsx`) |
 
 ## Next
 1. When K1 and K2 report (by 07:10 CST): merge each into the follow-up branch (`git merge --no-ff --no-commit`), then the
