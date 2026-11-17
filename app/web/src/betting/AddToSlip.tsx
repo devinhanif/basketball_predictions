@@ -6,12 +6,11 @@ import { api } from "../api";
 import { failureMessage, failureOf } from "../errors";
 import { lineText } from "../format";
 import { useLens } from "../prefs";
-import { pushToast } from "../toast";
 import { STAT_SHORT } from "../types";
 import type { AddToSlipProps } from "./seam";
 import { slipCount } from "./Slip";
 import { isStat, marketFromFacts, sideOf } from "./snapshots";
-import { ensureBetStyles, useBet } from "./useBet";
+import { ensureBetStyles, notify, useBet } from "./useBet";
 
 export function AddToSlip(props: AddToSlipProps) {
   ensureBetStyles();
@@ -29,16 +28,16 @@ export function AddToSlip(props: AddToSlipProps) {
       const team = p.side === "home" ? g.home.abbr : g.away.abbr;
       const built = marketFromFacts({ gameId: g.game_id, date: g.date, playerId, playerName: p.name, stat, line, eventLabel: `${g.away.abbr} @ ${g.home.abbr}` });
       if (!built.ok) {
-        pushToast("Not added", built.text, 8000);
+        notify({ kind: "slip", title: "Not added", text: built.text, tone: "failed" });
         return;
       }
       const d = await bet.actions.addPick(built.market, sideOf(side), props.from);
       const ws = bet.store.get().workspace;
       const n = ws ? slipCount(ws) : 0;
-      if (d.ok) pushToast(`${p.name} (${team}) ${side} ${lineText(line)} ${STAT_SHORT[stat]}`, `${d.text} Slip: ${String(n)} ${n === 1 ? "item" : "items"}.`);
-      else pushToast("Not added", d.text, 8000);
+      if (d.ok) notify({ kind: "slip", title: `${p.name} (${team}) ${side} ${lineText(line)} ${STAT_SHORT[stat]}`, text: `${d.text} Slip: ${String(n)} ${n === 1 ? "item" : "items"}.` });
+      else notify({ kind: "slip", title: "Not added", text: d.text, tone: "failed" });
     } catch (e) {
-      pushToast("Not added", `The game could not be read: ${failureMessage(failureOf(e))}`, 8000);
+      notify({ kind: "slip", title: "Not added", text: `The game could not be read: ${failureMessage(failureOf(e))}`, tone: "failed" });
     } finally {
       setBusy(false);
     }

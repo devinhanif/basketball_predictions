@@ -67,7 +67,7 @@ export const BETTING_MODULE: BettingModule = {
   routes: ROUTES,
   nav: NAV,
   AddToSlip: (props) => h(AddToSlip, props),
-  ShellPanel: (props) => h(SlipPanel, props),
+  ShellPanel: () => h(SlipPanel, null),
 };
 
 /** The registered screen for a route, if there is one. */
