@@ -31,3 +31,11 @@ uv.lock.tmp
 
 # os / editor
 .DS_Store
+
+# daily-generated outputs (written by ops/nba_daily.sh; regenerated every run, read from the
+# working tree, never from git). Files already tracked stay tracked: git ignores only untracked
+# paths. Evidence a prereg pins is added by hand with `git add -f`. 2026-11-16, lane CI.
+/reports/briefing/
+/reports/forward_scorecard/20??-??-??.*
+/reports/props_analysis/20??-??-??.*
+/reports/parlay/evaluate_20??-??-??.json
