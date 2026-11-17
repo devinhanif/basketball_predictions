@@ -5,7 +5,7 @@
 #   app/scripts/check.sh --fast       pytest without the three slow files (test_live, test_links, test_last10_links)
 #   app/scripts/check.sh --bake       bake the artifact data from the fixtures first (else the artifact step is
 #                                     skipped when app/web/artifact-data/baked.json is absent)
-#   app/scripts/check.sh --browser    also run app/web/scripts/route-walk.mjs when that file exists
+#   app/scripts/check.sh --browser    also run the browser route walk (app/scripts/walk.sh: own servers on spare ports, needs Chrome)
 #
 # Output of each step streams unpiped. Exit code is non-zero if any step failed. A failure does not stop later steps.
 set -uo pipefail
@@ -69,7 +69,7 @@ fi
 
 if [ "$browser" = 1 ]; then
   if [ -f "$APP_DIR/web/scripts/route-walk.mjs" ]; then
-    run "browser route walk" web node scripts/route-walk.mjs
+    run "browser route walk" . "$APP_DIR/scripts/walk.sh"
   else
     skip "browser route walk" "app/web/scripts/route-walk.mjs does not exist yet"
   fi

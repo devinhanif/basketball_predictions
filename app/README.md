@@ -76,7 +76,8 @@ Ports in use: 8000 API, 5173 dev server, 4173 `npm run preview`. All are bound t
 app/scripts/check.sh              # everything, in order, with a pass/fail table and seconds per step
 app/scripts/check.sh --fast       # pytest without test_live, test_links, test_last10_links (the slow files)
 app/scripts/check.sh --bake       # bake the artifact data from the fixtures first
-app/scripts/check.sh --browser    # also run web/scripts/route-walk.mjs once that file exists
+app/scripts/check.sh --browser    # also the browser route walk: scripts/walk.sh starts its own servers, needs Chrome (about 2.5 min)
+app/scripts/walk.sh --widths      # the walk alone, plus 360, 768 and 1180 px
 ```
 
 Or by hand:
