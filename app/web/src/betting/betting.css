@@ -254,6 +254,16 @@
   max-width: 100%;
   overflow-x: auto;
 }
+/* On phones the outcome table stacks (one labelled block per outcome). None of its columns sort, so its header row is
+   visually empty there: take back the room the shared stacked table keeps for sort buttons. */
+@media (max-width: 640px) {
+  .ph-bet .ph-bet-outcomes .ktable.stack caption {
+    margin-bottom: 0;
+  }
+  .ph-bet .ph-bet-outcomes .ktable.stack thead tr {
+    padding-bottom: 0;
+  }
+}
 .ph-bet .ph-bet-notes,
 .ph-bet .ph-bet-tools {
   margin: var(--sp-4, 16px) 0;

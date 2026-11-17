@@ -125,14 +125,14 @@ export function OutcomeTable(props: { evaluation: SlipEvaluation; caption?: stri
   const shown = props.limit !== undefined ? rows.slice(0, props.limit) : rows;
   const hasExisting = rows.some((r) => r.existingNet !== null) && props.evaluation.groups.some((g) => g.legs.some((l) => l.role === "existing"));
   const cols: Column<SlipRow>[] = [
-    { key: "o", head: "Outcome", cell: (r) => r.label },
+    { key: "o", head: "Outcome", lead: true, cell: (r) => r.label },
     { key: "p", head: "Gross payout", num: true, cell: (r) => money(r.payout) },
     ...(hasExisting ? [{ key: "b", head: "Net, recorded only", num: true, cell: (r: SlipRow) => signedMoney(r.existingNet) }] : []),
     { key: "n", head: hasExisting ? "Net, with planned legs" : "Net", num: true, cell: (r) => <span class={r.net < 0 ? "ph-bet-neg" : r.net > 0 ? "ph-bet-pos" : ""}>{signedMoney(r.net)}</span> },
   ];
   return (
     <div class="ph-bet-outcomes">
-      <Table caption={props.caption ?? "Every listed outcome at these prices"} rows={shown} columns={cols} rowKey={(r) => r.id} noun={shown.length === 1 ? "outcome" : "outcomes"} />
+      <Table caption={props.caption ?? "Every listed outcome at these prices"} rows={shown} columns={cols} rowKey={(r) => r.id} noun={shown.length === 1 ? "outcome" : "outcomes"} stack />
       {shown.length < rows.length ? <p class="small muted">Showing {count(shown.length)} of {count(rows.length)} outcomes; the full slip page lists them all.</p> : null}
     </div>
   );

@@ -98,7 +98,7 @@ export function TodaysPicks(props: { date: string; engine: ParlayState | null; o
               <p class={`tp-head ${head.kind}`} role="status">
                 {head.text}
               </p>
-              {engine ? <p class="small muted">Morning run, prices as of {stamp(engine.as_of)}.</p> : null}
+              {engine ? <p class="small muted">Prices as of {stamp(engine.as_of)}.</p> : null}
               {shown.length > 0 ? (
                 <ol class="tp-list">
                   {shown.map((c, i) => (
