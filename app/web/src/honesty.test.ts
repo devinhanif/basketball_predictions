@@ -80,3 +80,19 @@ describe("health strip age marks", async () => {
     expect(OLD_AFTER_HOURS.export).toBe(30);
   });
 });
+
+describe("distribution lookups (no arithmetic on probabilities)", async () => {
+  const { overK, survivalAt } = await import("./Distribution");
+  it("the over side of a half line is the next whole number; a whole line needs one more", () => {
+    expect(overK(24.5)).toBe(25);
+    expect(overK(25)).toBe(26);
+    expect(overK(0.5)).toBe(1);
+  });
+  it("reads the stored count, or null outside the table", () => {
+    const c = [10, 8, 5, 1];
+    expect(survivalAt(c, 1)).toBe(10);
+    expect(survivalAt(c, 4)).toBe(1);
+    expect(survivalAt(c, 5)).toBeNull();
+    expect(survivalAt(c, 0)).toBeNull();
+  });
+});

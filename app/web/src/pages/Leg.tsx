@@ -16,6 +16,7 @@ import { gameHref, legHref } from "../router";
 import { LEG_SHORT, type LegBreakdown, type LegStat, type Side } from "../legTypes";
 import { Headline, LineCard, NoHistory } from "./LegLine";
 import { Books, Games, InWords, Ladder, ModelPanel } from "./LegHistory";
+import { DistributionPanel } from "../Distribution";
 import { EdgePanel, HeadsUp, Opponent, RolePanel, Splits, Teammates } from "./LegContext";
 
 const S = (n: number): string => n.toString();
@@ -198,6 +199,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
           <HeadsUp data={data} />
           <Games data={data} side={side} line={shown} row={row} />
           <ModelPanel data={data} side={side} line={shown} row={row} />
+          {modelStat ? <DistributionPanel gameId={data.game_id} playerId={data.player_id} stat={data.stat} line={shown} /> : null}
           {modelStat && !IS_ARTIFACT ? <PlayerKnowsPanel gameId={data.game_id} playerId={data.player_id} stat={data.stat} /> : null}
           {mode === "analyst" ? (
             depth
