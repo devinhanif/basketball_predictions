@@ -232,7 +232,8 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           <h1 class="answer pending">Reading the night&hellip;</h1>
         )}
       </header>
-      <TodaysPicks date={date} engine={engine} onStale={props.onStale} />
+      {/* Prices, fees and a book's name: never in the Learn lens (scripts/learn-dom.mjs). */}
+      {lens === "learn" ? null : <TodaysPicks date={date} engine={engine} onStale={props.onStale} />}
       <LiveStrip date={date} games={liveGames} />
       <nav class="tabs" aria-label="Choose a night">
         {props.nights.map((d) => (
