@@ -68,6 +68,7 @@ from .models import (
     Team,
     WinProbability,
 )
+from .params import GameId, SlateDate, Stat, TopParlaysDate
 from .role import player_role
 from .scenarios import ScenariosView, game_scenarios
 from .store import AnyStore, Json, load_store, store_key
@@ -378,7 +379,7 @@ def register(app: FastAPI) -> None:
         ]
 
     @app.get("/api/slates/{date}", response_model=SlateView)
-    def slate(date: str, store: StoreDep) -> SlateView:
+    def slate(date: SlateDate, store: StoreDep) -> SlateView:
         s = _need_slate(store, date)
         games = [
             GameSummary(
@@ -403,7 +404,7 @@ def register(app: FastAPI) -> None:
         )
 
     @app.get("/api/games/{game_id}", response_model=GameView)
-    def game(game_id: str, store: StoreDep) -> GameView:
+    def game(game_id: GameId, store: StoreDep) -> GameView:
         g = _need_game(store, game_id)
         players = [
             PlayerView(
@@ -430,13 +431,13 @@ def register(app: FastAPI) -> None:
         )
 
     @app.get("/api/games/{game_id}/scenarios", response_model=ScenariosView)
-    def game_scenarios_route(game_id: str, store: StoreDep) -> ScenariosView:
+    def game_scenarios_route(game_id: GameId, store: StoreDep) -> ScenariosView:
         """'If a teammate sits' for one game (read-only): points direction and a team-level size,
         rebounds direction only, nothing else. Says why when it has nothing."""
         return game_scenarios(store, _need_game(store, game_id))
 
     @app.get("/api/games/{game_id}/result")
-    def game_result(game_id: str, store: StoreDep) -> dict[str, Any]:
+    def game_result(game_id: GameId, store: StoreDep) -> dict[str, Any]:
         g = _need_game(store, game_id)
         if g.get("result") is None:
             raise ApiError("game_not_played", "that game has not been played yet", field="game_id")
@@ -463,9 +464,9 @@ def register(app: FastAPI) -> None:
 
     @app.get("/api/props/{game_id}/{player_id}/{stat}", response_model=ProbAtLine)
     def prop_at_line(
-        game_id: str,
+        game_id: GameId,
         player_id: int,
-        stat: str,
+        stat: Stat,
         store: StoreDep,
         line: Annotated[float, Query(ge=0, le=200)],
     ) -> ProbAtLine:
@@ -503,7 +504,7 @@ def register(app: FastAPI) -> None:
         raise _no_forecast(g, player_id)
 
     @app.get("/api/card/{game_id}/{player_id}/{stat}", response_model=CardView)
-    def card(game_id: str, player_id: int, stat: str, store: StoreDep) -> CardView:
+    def card(game_id: GameId, player_id: int, stat: Stat, store: StoreDep) -> CardView:
         """Quick stats and the full distribution for one prop, as of before tip. Fetched only when
         the user opens it, so the blind swipe deck itself never carries a forecast."""
         g = _need_game(store, game_id)
@@ -578,12 +579,12 @@ def register(app: FastAPI) -> None:
         )
 
     @app.get("/api/knows/{game_id}", response_model=GameKnows)
-    def knows_game(game_id: str, store: StoreDep) -> GameKnows:
+    def knows_game(game_id: GameId, store: StoreDep) -> GameKnows:
         """The game's tip-off timeline: news on the injury report and the biggest forecast moves."""
         return game_knows(store, _need_game(store, game_id))
 
     @app.get("/api/knows/{game_id}/{player_id}/{stat}", response_model=PlayerKnows)
-    def knows_player(game_id: str, player_id: int, stat: str, store: StoreDep) -> PlayerKnows:
+    def knows_player(game_id: GameId, player_id: int, stat: Stat, store: StoreDep) -> PlayerKnows:
         """One prop's forecast snapshots before tip, the news beside them, and why the range is
         as wide as it is, in words built from fields the data holds."""
         g = _need_game(store, game_id)
@@ -615,7 +616,9 @@ def register(app: FastAPI) -> None:
         return guess_deck(store, seed, n)
 
     @app.get("/api/track-record/guess/{game_id}/{player_id}/{stat}", response_model=GuessReveal)
-    def track_guess_reveal(game_id: str, player_id: int, stat: str, store: StoreDep) -> GuessReveal:
+    def track_guess_reveal(
+        game_id: GameId, player_id: int, stat: Stat, store: StoreDep
+    ) -> GuessReveal:
         """What happened and what the model said, for one finished prop."""
         out = guess_reveal(store, f"{game_id}:{player_id}:{stat}")
         if out is None:
@@ -628,9 +631,9 @@ def register(app: FastAPI) -> None:
 
     @app.get("/api/breakdown/{game_id}/{player_id}/{stat}", response_model=Breakdown)
     def breakdown(
-        game_id: str,
+        game_id: GameId,
         player_id: int,
-        stat: str,
+        stat: Stat,
         store: StoreDep,
         line: Annotated[float | None, Query(ge=0, le=200)] = None,
         side: Annotated[Side, Query()] = "over",
@@ -652,7 +655,7 @@ def register(app: FastAPI) -> None:
 
     @app.get("/api/slates/{date}/swipe", response_model=SwipeDeck)
     def swipe(
-        date: str,
+        date: SlateDate,
         store: StoreDep,
         seed: Annotated[int, Query(ge=0, le=2**31 - 1)] = 0,
         n: Annotated[int, Query(ge=1, le=60)] = 24,
@@ -720,7 +723,7 @@ def register(app: FastAPI) -> None:
         )
 
     @app.get("/api/slates/{date}/results")
-    def results(date: str, store: StoreDep) -> dict[str, Any]:
+    def results(date: SlateDate, store: StoreDep) -> dict[str, Any]:
         """Outcomes plus the book probability at the time, for settling paper picks. No model chance
         is served beside an outcome: that pairing is the calibration's locked live test
         (LINE_CAL_LIVE), read once, not before."""
@@ -760,7 +763,7 @@ def register(app: FastAPI) -> None:
         return store.parlay
 
     @app.get("/api/edges/{game_id}/{player_id}/{stat}")
-    def edges(game_id: str, player_id: int, stat: str, store: StoreDep) -> Json:
+    def edges(game_id: GameId, player_id: int, stat: Stat, store: StoreDep) -> Json:
         """Stored single-contract rows for one player and stat: model chance with its
         interval, the ask, the fee and the engine's own edge after fees. Copied, not recomputed."""
         if stat not in STATS:
@@ -797,7 +800,7 @@ def register(app: FastAPI) -> None:
             raise ApiError("desk_refused", f"desk export refused: {e}") from None
 
     @app.get("/api/top-parlays/{date}")
-    def top_parlays(date: str) -> Json:
+    def top_parlays(date: TopParlaysDate) -> Json:
         try:
             return load_top_parlays(date)
         except TopParlaysMissing:

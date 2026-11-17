@@ -14,8 +14,6 @@ from fastapi.responses import StreamingResponse
 from .errors import ApiError
 from .live import (
     ATTRIBUTION,
-    DATE_RE,
-    EVENT_RE,
     HEARTBEAT_S,
     HubFull,
     LiveHub,
@@ -25,28 +23,21 @@ from .live import (
     read_checkpoint,
     snapshot_payload,
 )
-
-
-def _need_event(event_id: str) -> str:
-    if not EVENT_RE.fullmatch(event_id):
-        raise ApiError("unknown_game", "unknown game", field="game_id")
-    return event_id
+from .params import EventId, LiveDate
 
 
 def register_live(app: FastAPI, hub: LiveHub) -> None:
     app.state.live_hub = hub
 
     @app.get("/api/live/{date}")
-    async def live_games(date: str) -> dict[str, Any]:
+    async def live_games(date: LiveDate) -> dict[str, Any]:
         """Every game the capture holds for a slate date with its latest state and how old it is."""
-        if not DATE_RE.fullmatch(date):
-            raise ApiError("not_a_date", "not a date", field="date")
         return await asyncio.to_thread(games_on, hub.root, date)
 
     @app.get("/api/live/{game_id}/snapshot")
-    async def live_snapshot(game_id: str) -> dict[str, Any]:
+    async def live_snapshot(game_id: EventId) -> dict[str, Any]:
         """The same first message the stream sends, for clients that cannot hold a stream."""
-        gs = await hub.current(_need_event(game_id))
+        gs = await hub.current(game_id)
         if gs is None:
             raise ApiError("no_live_capture", "no live capture for that game", field="game_id")
         gw = hub.games.get(game_id)
@@ -54,12 +45,12 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
 
     @app.get("/api/live/{game_id}/plays")
     async def live_plays(
-        game_id: str,
+        game_id: EventId,
         before: Annotated[int, Query(ge=0)] = 1_000_000,
         limit: Annotated[int, Query(ge=1, le=200)] = 100,
     ) -> dict[str, Any]:
         """Older plays, for 'load earlier' (the stream and snapshot carry only the newest)."""
-        gs = await hub.current(_need_event(game_id))
+        gs = await hub.current(game_id)
         if gs is None:
             raise ApiError("no_live_capture", "no live capture for that game", field="game_id")
         rows = plays_before(gs, before, limit)
@@ -71,17 +62,16 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
         }
 
     @app.get("/api/live/{game_id}/checkpoint")
-    async def live_checkpoint(game_id: str) -> dict[str, Any]:
+    async def live_checkpoint(game_id: EventId) -> dict[str, Any]:
         """In-game checkpoint model numbers, only when the JARVIS store exists and holds rows."""
-        gs = await hub.current(_need_event(game_id))
+        gs = await hub.current(game_id)
         state = "pre" if gs is None else gs.state
         return await asyncio.to_thread(read_checkpoint, game_id, state)
 
     @app.get("/api/live/{game_id}/stream")
-    async def live_stream(game_id: str) -> StreamingResponse:
+    async def live_stream(game_id: EventId) -> StreamingResponse:
         """Server-Sent Events: a snapshot, then deltas as new capture bodies land; a heartbeat
         comment every 15 s; closes after the final event."""
-        _need_event(game_id)
         try:
             sub, first, final = await hub.subscribe(game_id)
         except UnknownGame:
