@@ -64,6 +64,22 @@ each other's browser).
 **Docs (section 6).** `app/README.md` section "Betting tools (behind one switch)"; `docs/jarvis-donor-map.md` (all 54 kit
 files); `docs/jarvis-gap-matrix.md`; `docs/jarvis-acceptance-checklist.md`; `docs/contracts/betting_board_v1.md`.
 
+**The last wave (04:40 to 07:10 CST), five short lanes, each merged only after its checks passed.**
+- Last polish: whole-word units in the slip rail, notices off the board, 44 px targets, heading links that never split,
+  staleness said once above the Compare board, the first-run chooser folds to one line off Discover.
+- A friend's first visit on a phone (switch off): a tighter first screen (the first game's forecast bar is now on it),
+  one-line hints, no request for results of unfinished games, one main heading when the data service is down, plain
+  empty states (Live, Alerts, My picks), search lists a player once with readable dates.
+- The game and prop pages read top to bottom in every lens and mode: Analyst opens three players per team instead of
+  all (38,000 px to 10,700 px on a phone), the Scorecard folds its kept-back rows and drops source file paths in Simple
+  (13,500 px to 6,300 px), internal words are out of Simple on the prop page, locked replay rows are one line each
+  (nothing unhidden), chip rows show a scroll cue, jump links open folds and land under the header.
+- Betting checklist gaps: cross-tab sync, select / deselect / remove in the scripted journey, a history of every
+  paper-outcome change (workspace schema 2 with a migration; older files still load), a guard so a board fetched for
+  another prop is never shown against the new one, long names and theses, a slip that works in memory and says so when
+  the browser blocks storage, the outcome table stacks on phones.
+- Betting tools used as on a game night on a phone: see `lane_jarvis_night.md`.
+
 ## 3. Numbers
 
 | What | Before the follow-up | Now, switch OFF | Now, switch ON |
@@ -114,6 +130,19 @@ sidebar and fixed bottom tabs; the first-run chooser inside the intro; betting p
 - **Fonts and photos:** fonts are the two self-hosted OFL families the app already had; no kit PNG was copied; headshots
   stay the existing NBA-hosted images on served pages and initials in the artifact (your earlier decision).
 - **Publishing:** the artifacts are built locally (section 7) and not published anywhere.
+- **Product calls the lanes left in the code on purpose** (each is one line to change; details in `lane_jarvis_friend.md`
+  and `lane_jarvis_depth.md`):
+  - Whether Explore shows Today's picks (prices and EV, about 1,500 px on a phone) above the games, after them, or only
+    in Market.
+  - Today's picks says "this morning" while its prices can be as of the evening (tonight: 8:35 PM ET). I removed "Morning
+    run" from the small line; the headings are pinned by tests and are yours to reword.
+  - The prop page: two separate lines (line card and what-if lab); in Explore the what-if lab sits above the line card,
+    so the last-10 record starts about 1,600 px down on a phone; the stored plain-words paragraph, the "Heads up" and the
+    headline say the same thing.
+  - The Scorecard's Learn prose (CRPS, "production minus baseline") and "Public / this machine" in the sidebar: plain
+    wording for a stranger.
+  - "Add to slip" on Discover's pick cards needs the line on that contract: the card has an integer threshold ("N or
+    more"), and the app does not derive a line from it.
 - **Merging:** this branch contains both runs. The first run's merge plan (`REPORT.md` section 4) still applies; the
   follow-up adds `app/` changes, `tests/test_layering.py`, and docs.
 
