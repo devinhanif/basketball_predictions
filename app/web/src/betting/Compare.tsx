@@ -447,7 +447,11 @@ export function Comparison(props: { bet: Ready; market: Market; side: Side }) {
             {!ev.rows.length ? <p class="small">No outcome table yet: {ev.warnings[0] ?? "a leg is incomplete."}</p> : null}
           </details>
         ) : (
-          <p class="small">Nothing in the slip yet. Add a venue above, or log a bet you already placed.</p>
+          <p class="small">
+            {ws.picks.length
+              ? `${ws.picks.length === 1 ? "1 pick is" : `${String(ws.picks.length)} picks are`} waiting for a price and no leg is priced yet. Add a venue above, or log a bet you already placed.`
+              : "Nothing in the slip yet. Add a venue above, or log a bet you already placed."}
+          </p>
         )}
       </section>
       {dialog?.kind === "type" ? <TypePriceDialog provider={dialog.provider} market={market} side={side} actions={bet.actions} onClose={() => { setDialog(null); }} /> : null}

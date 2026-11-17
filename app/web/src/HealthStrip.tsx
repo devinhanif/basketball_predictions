@@ -1,5 +1,5 @@
-// The system health strip under the data line (health_strip_v1): how old the export is, its schema, and, in the Market
-// lens only, the newest stored quote per book (Pinnacle called out), the stale-model marks and what the export does not
+// The system health strip under the data line (health_strip_v1): how old the export is (outside the Market lens only when
+// it is old, since the data line already says its age), its format version, and, in the Market lens only, the newest stored quote per book (Pinnacle called out), the stale-model marks and what the export does not
 // report yet. A dead quote feed must look dead ("Newest Pinnacle quote: 3 days ago"), never like a quiet night.
 // One compact line (a disclosure); the detail opens under it. The Pinnacle age stays on the line in the Market lens.
 import { useEffect, useState } from "preact/hooks";
@@ -92,6 +92,9 @@ export function StripBody(props: { h: Health; market: boolean; now?: Date }) {
   const missing = h.strip_missing ?? [];
   const schema = h.export?.schema_version;
   const exportOld = isOld(h.data_made_at, OLD_AFTER_HOURS.export, now);
+  // Outside the Market lens the data line above already gives the export's time and age, so a fresh export adds no second
+  // line; an old one keeps its amber line here, where a dead feed must look dead.
+  if (!market && !exportOld) return null;
   if (!market)
     return (
       <div class="hstrip" role="status" aria-label="System health">
