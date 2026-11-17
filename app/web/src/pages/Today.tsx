@@ -218,19 +218,25 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
       : null;
   return (
     <>
-      <header class="page-head today-head">
-        <div class="kicker">
-          <span class="tonight-dot" aria-hidden="true" />
-          {longDate(date)} · NBA
+      <header class="page-head today-head page-heading">
+        <div class="page-heading-text">
+          <div class="kicker">
+            <span class="tonight-dot" aria-hidden="true" />
+            {longDate(date)} · NBA
+          </div>
+          {head ? (
+            <>
+              <h1 class={`answer ${head.verdict}`}>{head.text}</h1>
+              <p class="muted answer-src">{head.source}</p>
+            </>
+          ) : (
+            <h1 class="answer pending">Reading the night&hellip;</h1>
+          )}
         </div>
-        {head ? (
-          <>
-            <h1 class={`answer ${head.verdict}`}>{head.text}</h1>
-            <p class="muted answer-src">{head.source}</p>
-          </>
-        ) : (
-          <h1 class="answer pending">Reading the night&hellip;</h1>
-        )}
+        <div class="page-heading-actions">
+          <span class="small muted">Detail</span>
+          <ModeToggle />
+        </div>
       </header>
       {/* Prices, fees and a book's name: never in the Learn lens (scripts/learn-dom.mjs). */}
       {lens === "learn" ? null : <TodaysPicks date={date} engine={engine} onStale={props.onStale} />}
@@ -243,14 +249,8 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
         ))}
       </nav>
       <details class="view-opts">
-        <summary>
-          View: {LENS_LABEL[lens]} lens, {mode === "analyst" ? "Analyst" : "Simple"} detail (change)
-        </summary>
+        <summary>View: {LENS_LABEL[lens]} lens (change)</summary>
         <LensSwitch />
-        <div class="row wrap between">
-          <span class="small muted">Detail</span>
-          <ModeToggle />
-        </div>
       </details>
       {market ? (
         <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
