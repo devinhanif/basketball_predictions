@@ -33,10 +33,12 @@ if (artifact) {
   slate = baked.simple[`/api/slates/${NIGHT}`]?.b ?? nightShard[`/api/slates/${NIGHT}`]?.b;
 } else {
   const get = async (p) => (await fetch(new URL(p, base))).json();
-  const nights = await get("/api/slates");
+  // With the API down (to photograph the failure screen) there are no nights: placeholders keep the run going.
+  const nights = await get("/api/slates").catch(() => []);
+  if (!Array.isArray(nights) || nights.length === 0) nights.push({ date: "2024-11-20", down: true });
   const withGames = [];
   for (const n of [...nights].sort((a, b) => b.date.localeCompare(a.date))) {
-    const sl = await get(`/api/slates/${n.date}`);
+    const sl = n.down ? { games: [{ game_id: "none", key_props: [{ player_id: 1, stat: "pts" }] }] } : await get(`/api/slates/${n.date}`);
     if (sl.games?.some((g) => g.key_props?.length)) withGames.push([n.date, sl]);
     if (withGames.length) break;
   }
@@ -156,7 +158,7 @@ async function shoot(name, w, h, theme, mode, hash, action, full) {
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
   await send("Page.navigate", { url: base });
   await sleep(900);
-  await ev(`localStorage.clear(); localStorage.setItem('ph.theme', '${theme}'); localStorage.setItem('ph.mode', '${mode}'); localStorage.setItem('ph.welcomed', '${name === "welcome" ? "" : "1"}'); localStorage.setItem('ph.name', 'Devin'); localStorage.setItem('ph.ledger.v1', ${JSON.stringify(JSON.stringify(ledger))}); 0`);
+  await ev(`localStorage.clear(); localStorage.setItem('ph.theme', '${theme}'); localStorage.setItem('ph.mode', '${mode}'); localStorage.setItem('ph.welcomed', '${name === "welcome" ? "" : "1"}'); localStorage.setItem('ph.name', 'Devin'); localStorage.setItem('ph.lens', '${process.env.LENS ?? "learn"}'); localStorage.setItem('ph.ledger.v1', ${JSON.stringify(JSON.stringify(ledger))}); 0`);
   await send("Page.navigate", { url: base + hash });
   await sleep(250);
   await send("Page.reload");

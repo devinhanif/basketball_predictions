@@ -355,3 +355,27 @@ kbd {
   margin: 0;
   max-width: 62ch;
 }
+
+/* A "model only" tag in a narrow table cell drops under its number instead of widening the table (12 px floor). */
+@media (max-width: 480px) {
+  .table-wrap td:has(.cal-tag) {
+    white-space: normal;
+  }
+  .table-wrap td .cal-tag {
+    margin-left: 0;
+  }
+}
+
+/* Discover's one-line props: on a phone the forecast wraps under a long name instead of squeezing it letter by letter
+   (Market lens adds the book's chance to the line). */
+@media (max-width: 480px) {
+  .props.one-line li {
+    flex-wrap: wrap;
+  }
+  .props.one-line .ol-name {
+    flex: 1 1 9em;
+  }
+  .props.one-line .ol-say {
+    margin-left: auto;
+  }
+}
