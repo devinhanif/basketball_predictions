@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "preact/hooks";
 import { api } from "../api";
 import { CardDetail } from "../CardDetail";
 import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
-import { american, bookName, lineText, longDate, tipTime } from "../format";
+import { priceText, bookName, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
 import { IS_ARTIFACT } from "../env";
 import { ShareNote } from "../SharedUI";
@@ -45,7 +45,7 @@ function Card(props: {
   const [drag, setDrag] = useState(false);
   const start = useRef<number | null>(null);
   const label = market
-    ? `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}. Over pays ${american(card.over_price)}, under pays ${american(card.under_price)}.`
+    ? `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}. Over pays ${priceText(card.over_price)}, under pays ${priceText(card.under_price)}.`
     : `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}.`;
   const lean = dx > 40 ? "over" : dx < -40 ? "under" : null;
   return (
@@ -183,13 +183,13 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
               <span class="btn-top">
                 <Arrow up={false} /> Under
               </span>
-              <span class="btn-sub num">{market ? american(card.under_price) : sideText(card.stat, card.line, "under")}</span>
+              <span class="btn-sub num">{market ? priceText(card.under_price) : sideText(card.stat, card.line, "under")}</span>
             </button>
             <button type="button" class="btn big over" onClick={() => { choose("over"); }}>
               <span class="btn-top">
                 <Arrow up /> Over
               </span>
-              <span class="btn-sub num">{market ? american(card.over_price) : sideText(card.stat, card.line, "over")}</span>
+              <span class="btn-sub num">{market ? priceText(card.over_price) : sideText(card.stat, card.line, "over")}</span>
             </button>
           </div>
           <button type="button" class="btn skip" onClick={() => { choose("skip"); }}>

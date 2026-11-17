@@ -1,7 +1,7 @@
 // Leg page, top: the line card, the headline and the no-history state (split from Leg.tsx; behaviour unchanged).
 import { CalTag } from "../components";
 import { IS_ARTIFACT } from "../env";
-import { american, lineText, longDate, pct } from "../format";
+import { priceText, lineText, longDate, pct } from "../format";
 import { bookChance, clampLine, modelPct, nText, ofText, rangeText, chanceSource, rowHits, rowModel, snapHalf } from "../leg";
 import { type LadderRow, type LegBreakdown, type Side } from "../legTypes";
 
@@ -190,9 +190,9 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
       <p class="small num leg-price">
         {price !== null ? (
           <>
-            {side === "over" ? "Over" : "Under"} <b>{american(price)}</b> at {lineText(line)}
+            {side === "over" ? "Over" : "Under"} <b>{priceText(price)}</b> at {lineText(line)}
             {row && row.over_price !== null && row.under_price !== null
-              ? ` (over ${american(row.over_price)}, under ${american(row.under_price)})`
+              ? ` (over ${priceText(row.over_price)}, under ${priceText(row.under_price)})`
               : ""}
             . {data.line === line ? data.prices.say : ""}
           </>
@@ -237,7 +237,7 @@ export function NoHistory({ data, side, line, row, market }: { data: LegBreakdow
       <p class="small num leg-price">
         {price !== null ? (
           <>
-            {side === "over" ? "Over" : "Under"} <b>{american(price)}</b> at {lineText(line)}.
+            {side === "over" ? "Over" : "Under"} <b>{priceText(price)}</b> at {lineText(line)}.
           </>
         ) : (
           <span class="muted">No price is stored for this line.</span>

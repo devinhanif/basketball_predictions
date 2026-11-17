@@ -1,6 +1,6 @@
 import { useMemo } from "preact/hooks";
 import { Explain, RecordBoard, ResetPicks } from "../components";
-import { american, lineText, longDate, pct } from "../format";
+import { priceText, lineText, longDate, pct } from "../format";
 import { IS_ARTIFACT } from "../env";
 import { PICKS_NOTE, summarize, viewTag, type Pick, type Settled } from "../ledger";
 import { FriendsPicks, ShareNote, useLedger } from "../SharedUI";
@@ -41,7 +41,7 @@ function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: bo
           {viewTag(p) ? <span class={`tag view-${viewTag(p) === "blind" ? "blind" : "saw"}`}>{viewTag(p)}</span> : null}
         </div>
         <div class="pick-sub num">
-          {skipped ? "" : `You took ${p.side} ${lineText(p.line)}${market ? ` (${american(p.side === "over" ? p.over_price : p.under_price)})` : ""}. `}
+          {skipped ? "" : `You took ${p.side} ${lineText(p.line)}${market ? ` (${priceText(p.side === "over" ? p.over_price : p.under_price)})` : ""}. `}
           {p.team} vs {p.opponent}, {longDate(p.slate_date)}
         </div>
       </div>

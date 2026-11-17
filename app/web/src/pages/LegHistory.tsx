@@ -2,7 +2,7 @@
 import { CalTag, Explain } from "../components";
 import { IS_ARTIFACT } from "../env";
 import { plainModelSentence } from "../plain";
-import { american, bookName, lineText, longDate, num } from "../format";
+import { priceText, bookName, lineText, longDate, num } from "../format";
 import { ladderAt, modelPct, nText, ofText, chanceSource, rowHits, rowModel, rowPrice } from "../leg";
 import { gameHref } from "../router";
 import { type Chip, type LadderRow, type LegBreakdown, type Side } from "../legTypes";
@@ -200,7 +200,7 @@ export function Ladder(props: { data: LegBreakdown; line: number; side: Side; on
                       <span class="muted">none yet</span>
                     )}
                   </td>
-                  {props.market ? <td>{px !== null ? american(px) : <span class="muted">none</span>}</td> : null}
+                  {props.market ? <td>{px !== null ? priceText(px) : <span class="muted">none</span>}</td> : null}
                 </tr>
               );
             })}
@@ -232,7 +232,7 @@ export function Books({ data, line }: { data: LegBreakdown; line: number }) {
   const books = data.prices.books;
   if (books.length === 0 || data.line !== line) return null;
   const cell = (price: number | null, unusable: boolean) =>
-    unusable ? <span class="muted">not usable</span> : price !== null ? american(price) : <span class="muted">none</span>;
+    unusable ? <span class="muted">not usable</span> : price !== null ? priceText(price) : <span class="muted">none</span>;
   return (
     <section class="panel" aria-label="Prices by book">
       <h2>Prices by book at {lineText(line)}</h2>

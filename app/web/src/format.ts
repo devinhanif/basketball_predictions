@@ -1,4 +1,5 @@
 // Times and dates live in time.ts (one module for every conversion); re-exported here for existing imports.
+import { getPrefs } from "./prefs";
 export { STALE_AFTER_HOURS, ageNote, deskStamp, longDate, stamp, tipTime } from "./time";
 
 export function pct(p: number, digits = 0): string {
@@ -118,4 +119,9 @@ export function odds(price: number | null | undefined, format: OddsFormat = "ame
   if (format === "american") return price > 0 ? `+${Math.round(price).toString()}` : `${MINUS}${Math.abs(Math.round(price)).toString()}`;
   const dec = price > 0 ? 1 + price / 100 : 1 + 100 / -price;
   return dec.toFixed(2);
+}
+
+/** A posted American price in the format chosen in Preferences (American by default). */
+export function priceText(price: number | null | undefined): string {
+  return odds(price, getPrefs().odds);
 }

@@ -2,7 +2,7 @@ import { useState } from "preact/hooks";
 import { api } from "./api";
 import { Avatar } from "./Avatar";
 import { Explain, View } from "./components";
-import { american, lineText, pct } from "./format";
+import { priceText, lineText, pct } from "./format";
 import type { Lens } from "./prefs";
 import { evVerdict } from "./plain";
 import { hideBook, modelLine, calibratedLine, percentAlong, quantile, read, sliderRange, snapHalf } from "./slider";
@@ -153,7 +153,7 @@ function PriceBlock(props: { card: CardView; q: number | null; side: "over" | "u
             setUnder(fmt(card.under_price));
           }}
         >
-          Use the stored posted prices ({american(card.over_price ?? 0)} / {american(card.under_price ?? 0)} at {lineText(card.line)})
+          Use the stored posted prices ({priceText(card.over_price ?? 0)} / {priceText(card.under_price ?? 0)} at {lineText(card.line)})
         </button>
       ) : null}
       <div class="seg wide" role="group" aria-label="Which side is the price for">

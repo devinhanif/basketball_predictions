@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "./api";
-import { american, lineText, pctBounded } from "./format";
+import { priceText, lineText, pctBounded } from "./format";
 import type { ProbAtLine, PropView, Stat } from "./types";
 import { STAT_LABEL } from "./types";
 import { doesText, inTen } from "./words";
@@ -133,7 +133,7 @@ export function AltLine(props: { gameId: string; playerId: number; player: strin
             {props.showPrices === false ? null : (
               <p class="small num">
                 {onMain && ready && prop.over_price !== null && prop.under_price !== null
-                  ? `Posted prices: over ${american(prop.over_price)}, under ${american(prop.under_price)}.`
+                  ? `Posted prices: over ${priceText(prop.over_price)}, under ${priceText(prop.under_price)}.`
                   : "No price for this line."}
               </p>
             )}
