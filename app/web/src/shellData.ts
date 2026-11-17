@@ -52,11 +52,14 @@ export const SCREEN_ITEMS: SearchItem[] = [
   { kind: "screen", label: "My picks", sub: "Your paper picks and your friends'", href: topHref("picks") },
   { kind: "screen", label: "Preferences", sub: "Theme, detail level, odds format, density, notifications", href: topHref("settings"), words: "settings theme mode odds decimal american compact" },
   { kind: "screen", label: "Key terms", sub: "Plain definitions of every word used here", href: topHref("terms"), words: "glossary definitions help" },
+  { kind: "screen", label: "Error codes", sub: "What each failure screen's code means, and what to do", href: topHref("help"), words: "error problem help code" },
   ...(IS_ARTIFACT
     ? []
     : [
         { kind: "screen" as const, label: "Live", sub: "Scores, plays and player stats while games are on", href: topHref("live"), words: "in game score" },
         { kind: "screen" as const, label: "Track record", sub: "Replay, calibration and guess the line", href: topHref("record"), words: "history replay calibration guess" },
+        { kind: "screen" as const, label: "Scorecard", sub: "The model against its baseline, with n and intervals", href: topHref("scorecard"), words: "scores crps baseline record" },
+        { kind: "screen" as const, label: "Forward tests", sub: "What is being tested, and when each result reads", href: topHref("tests"), words: "frozen rule prereg holdout" },
         { kind: "screen" as const, label: "Parlay of the day", sub: "The engine's verdict for the newest night", href: "#/parlay", words: "parlay combo ticket" },
       ]),
   // The betting module's screens (none in a build with the switch off).

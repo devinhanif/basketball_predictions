@@ -1398,6 +1398,9 @@ h1.answer {
 .side-groups {
   gap: 0;
 }
+.sidebar .side-groups {
+  margin-top: var(--sp-3);
+}
 .side-group {
   display: flex;
   flex-direction: column;
@@ -1892,5 +1895,14 @@ main h2 {
     border-width: 1px 0 0;
     border-radius: 0;
     background: none;
+  }
+}
+
+/* Track record's night picker on a phone: one scrolling row (newest first), not a column of seven pills. */
+@media (max-width: 599px) {
+  .tabs.rp-nights {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: var(--sp-1);
   }
 }
