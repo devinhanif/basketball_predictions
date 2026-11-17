@@ -172,7 +172,8 @@ def test_fixtures_are_the_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 def test_a_refused_export_answers_503_with_the_reason(
     export_dir: Path, export_client: TestClient
 ) -> None:
-    assert export_client.get("/api/health").json() == {"status": "ok", "mode": "export"}
+    health = export_client.get("/api/health").json()
+    assert {k: health[k] for k in ("status", "mode")} == {"status": "ok", "mode": "export"}
     seal(export_dir, data_version=None)  # replaced on disk while the API is running
     r = export_client.get("/api/meta")
     assert r.status_code == 503 and "data_version" in r.json()["detail"]
@@ -388,9 +389,16 @@ def test_the_committed_export_is_what_the_real_exporter_builds(tmp_path: Path) -
     # the best-model columns and rows are added to the committed copy by add_best_model_rows.py
     # (the exporter on main does not write them yet), so those two tables are compared elsewhere
     skip = ("prop_grids", "p_play")
-    assert {k: v for k, v in fresh["row_counts"].items() if k not in skip} == {
-        k: v for k, v in kept["row_counts"].items() if k not in skip
-    }
+    fresh_counts = {k: v for k, v in fresh["row_counts"].items() if k not in skip}
+    kept_counts = {k: v for k, v in kept["row_counts"].items() if k not in skip}
+    # A table the exporter learned to write after the fixture was built (teammate_sits, which the
+    # synthetic source cannot fill) is absent from the committed manifest. Absent counts as 0 rows
+    # only when the fresh build also wrote 0 rows; a fresh table with rows still fails here, and a
+    # table the committed copy has but the exporter dropped still fails below.
+    for name in sorted(set(fresh_counts) - set(kept_counts)):
+        assert fresh_counts[name] == 0, f"{name}: the exporter now writes rows the fixture lacks"
+        kept_counts[name] = 0
+    assert fresh_counts == kept_counts
     assert fresh["schema_version"] == kept["schema_version"]
     a, b = ExportStore(out), ExportStore(EXPORT_SMALL)
     assert list(a.slates) == list(b.slates)

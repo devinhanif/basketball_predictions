@@ -24,6 +24,8 @@ from pydantic import (
     model_validator,
 )
 
+from .params import contained
+
 SCHEMA = "top_parlays/2"
 ENV = "APP_TOP_PARLAYS_DIR"
 DEFAULT_DIR = Path(__file__).resolve().parents[3] / "fixtures" / "top_parlays"
@@ -230,7 +232,7 @@ def load_top_parlays(date: str, directory: Path | None = None) -> dict[str, obje
         raise TopParlaysMissing(date)
     base = directory or top_parlays_dir()
     path = base / f"top_parlays_{date}.json"
-    if not path.is_file() or not path.resolve().is_relative_to(base.resolve()):
+    if not path.is_file() or not contained(base, path):
         raise TopParlaysMissing(date)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
