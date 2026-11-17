@@ -60,10 +60,25 @@ src = ["nba", "research", "tests"]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = []
 
+# Frozen-evidence scripts: preregs (docs/prereg/LINE_MOVE_TOWARD_MODEL*.md, STAR_FLOOR_PAPER.md)
+# cite these by path as the run that produced a gate result. They are left byte-identical; lint
+# is silenced per file with the exact codes found on 2026-11-16 (none of them can hide a bug that
+# changes a result: layout, one-liners, import order, open() without a context manager).
+[tool.ruff.lint.per-file-ignores]
+"research/scratch/gate_line_move_fav_dip_2026_10_21.py" = ["E401", "E501", "E701", "E702", "E703", "E731", "I001", "UP017", "B007", "B905", "SIM115"]
+"research/scratch/star_floor_gate_2026_10_21.py" = ["E401", "E501", "E701", "E702", "E703", "E731", "I001", "UP017", "B007", "B905", "SIM115"]
+"research/scratch/gate_line_move_dnp_fair_2026_10_23.py" = ["E401", "E501", "E701", "E702", "E703", "E731", "I001", "UP017", "B007", "B905", "SIM115"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["nba", "research"]
 
 [tool.ruff.format]
+# Same three frozen-evidence scripts as the per-file-ignores above: not reformatted.
+exclude = [
+  "research/scratch/gate_line_move_fav_dip_2026_10_21.py",
+  "research/scratch/star_floor_gate_2026_10_21.py",
+  "research/scratch/gate_line_move_dnp_fair_2026_10_23.py",
+]
 quote-style = "double"
 indent-style = "space"
 
@@ -105,3 +120,12 @@ strict = true
 [[tool.mypy.overrides]]
 module = "nba.markets.*"
 strict = true
+
+# Frozen-evidence scripts cited by path in preregs (see [tool.ruff.lint.per-file-ignores]); untouched.
+[[tool.mypy.overrides]]
+module = [
+  "research.scratch.gate_line_move_fav_dip_2026_10_21",
+  "research.scratch.star_floor_gate_2026_10_21",
+  "research.scratch.gate_line_move_dnp_fair_2026_10_23",
+]
+ignore_errors = true
