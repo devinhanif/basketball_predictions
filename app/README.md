@@ -1,66 +1,85 @@
-# parlayhitters app (local, fixtures only)
+# parlayhitters app
 
-First milestone of the parlayhitters.ai PWA. Nothing is deployed, nothing is public, no accounts, no credentials,
-no orders. It shows two historical 2024-25 slates (2024-11-12 and 2024-11-20) from stored, out-of-fold data. Design:
-`docs/APP_ARCHITECTURE.md`, `docs/APP_CONTENT_SPEC.md`, `docs/APP_SECURITY_BASELINE.md`.
+## Quickstart
 
 ```
-app/
-  fixtures/   build_fixtures.py + the committed fixture JSON (season <= 2024 only)
-  api/        FastAPI, read-only, own uv project (pyproject.toml, uv.lock, exact pins)
-  web/        Vite + TypeScript + Preact PWA, own npm project (package-lock.json, exact pins)
+app/scripts/dev.sh                     # from the repo root: API on fixtures + web dev server, then open the URL it prints
 ```
 
-The wall: nothing here imports `nba/`, and `nba/` never imports `app/`. The app meets `nba.export` only through the
-files it writes (`export.duckdb`, `parlay_of_day.json`, `manifest.json`); see "Reading the nightly export" below.
+It installs what is missing (`uv sync`, `npm ci`), starts the read-only API on 127.0.0.1:8000 and the web server on
+5173, waits for `/api/health`, and stops both on Ctrl-C. Variations: `--export` (the real nightly export, read-only),
+`--lan` (a phone on the same Wi-Fi), `--private` (the private desk), `API_PORT=8030 WEB_PORT=5195 app/scripts/dev.sh`
+when a port is taken. Everything else is below. The three scripts: `scripts/dev.sh` (run), `scripts/check.sh` (every
+check, with a table), `scripts/artifact.sh` (the single-file page).
 
-## Run it (two terminals, from the repo root)
+Design: `docs/APP_ARCHITECTURE.md` (the plan; not all of it is built), `docs/APP_CONTENT_SPEC.md`,
+`docs/APP_SECURITY_BASELINE.md`. One screen of how the code fits together: `app/ARCHITECTURE.md`.
 
-API (binds 127.0.0.1 only):
+## What the app is, and is not
 
-```
-cd app/api
-uv sync
-uv run uvicorn parlayhitters_api.main:app --app-dir src --host 127.0.0.1 --port 8000
-```
+The parlayhitters.ai PWA, run locally. Nothing is deployed or public; no accounts, credentials or orders.
 
-Web, development server with hot reload (port 5173):
+- It is **read-only**: the API answers GET only; the export is opened `read_only=True`. It never writes to the repo's data.
+- It **never computes expected value**. Chances, ranges, prices and edges are stored fields copied from the engine's
+  export; the app shows them with their n or interval. A missing number is shown as missing.
+- "No positive EV found" / "keep your money" is a normal screen, not an error.
+- The **private desk** (`/api/desk`, the Jarvis Desk) answers the private file only when the API runs with
+  `PH_PRIVATE=1` and the request reaches the machine directly (not through a tunnel or proxy). Otherwise it serves the
+  shared cut, which the API refuses if it carries any money field. `scripts/dev.sh` never sets `PH_PRIVATE` unless `--private` is passed.
+- **Display locks** (what the screens may show): only the calibrated chance is displayed where the export has one, else
+  the raw model number labelled "model only" (`forecast.shown_probs`, `tests/test_calibrated_only.py`); the swipe card face
+  is blind (no model number before the pick); written text passes the number guard; a stored contract is never called a
+  lock, a guarantee or a best bet; no season prop calibration is served.
+- Responsible-gambling resources are in every page footer.
 
-```
-cd app/web
-npm ci
-npm run dev
-```
+## Fixture mode and real export
 
-Open http://localhost:5173. The browser only talks to its own origin; Vite proxies `/api` to the API on 127.0.0.1:8000.
+| | Fixture mode (default) | Export mode |
+|---|---|---|
+| Switch | `APP_EXPORT_DIR` unset (or a directory with no `manifest.json`: a warning is logged) | `APP_EXPORT_DIR=<dir with manifest.json>`, or `scripts/dev.sh --export [DIR]` |
+| Data | two real 2024-25 nights (2024-11-12, 2024-11-20) from stored out-of-fold data, season <= 2024 | the nightly `nba.export` files: `export.duckdb`, `parlay_of_day.json`, `manifest.json` |
+| `/api/health` | `{"status":"ok","mode":"fixture_replay"}` | `{"status":"ok","mode":"export"}` |
+| A bad export | n/a | the manifest and both sha256 are checked first; a failure answers 503 on every route (never a silent fall back to fixtures) |
 
-Installable build with the service worker (the service worker is production-only), port 4173:
+The real export on this Mac is `data/export/latest` under the main checkout; `--export` with no directory uses
+`$APP_EXPORT_DIR`, else `<repo>/data/export/latest`, and refuses with a plain message if there is no `manifest.json`.
+See "Reading the nightly export" below for the exact rules.
 
-```
-cd app/web
-npm run build
-npm run preview
-```
+## Ports and environment variables
 
-Open http://localhost:4173, then use the browser's Install / Add to Home Screen. Offline, it serves the shell and the last
-data fetched, with an "offline" banner.
+| Variable | Read by | Default | Meaning |
+|---|---|---|---|
+| `API_PORT` | `scripts/dev.sh` | 8000 | API port (127.0.0.1 only) |
+| `WEB_PORT` | `scripts/dev.sh` | 5173 | web dev server port (Vite `--port`, strict) |
+| `API_ORIGIN` | `web/vite.config.ts` (dev and preview proxy) | `http://127.0.0.1:8000` | where `/api` is proxied; set by `dev.sh` from `API_PORT` |
+| `APP_EXPORT_DIR` | API (`store.py`), `bake_artifact`, scripts | unset = fixtures | directory holding the export's `manifest.json` |
+| `APP_FIXTURES_DIR` | API (`store.py`) | `app/fixtures` | fixture directory |
+| `PH_PRIVATE` | API (`main.py`) | unset | `1` lets `/api/desk` answer the private file to a direct local request |
+| `APP_DESK_FILE` | API (`desk.py`) | `<repo>/data/export_private/desk.json` | private desk file |
+| `APP_DESK_SHARED_FILE` | API (`desk.py`) | `<repo>/data/export_private/desk_shared.json` | shared desk cut |
+| `APP_DESK_DIR` | `bake_artifact` | `<repo>/data/export_private` | where the bake looks for `desk_shared.json` |
+| `APP_TOP_PARLAYS_DIR` | API (`top_parlays.py`) | `app/fixtures/top_parlays` | top-parlays files; set but not a directory = 503 |
+| `APP_LIVE_DIR` | API (`live.py`) | `<repo>/data/raw` | live capture bodies read from disk |
+| `APP_LIVE_POLL_S` | API (`live.py`) | 0.2 | live poll interval, seconds |
+| `APP_CHECKPOINT_SNAPSHOT` | API (`live.py`) | `<repo>/data/jarvis/ingame_checkpoints_latest.json` | in-game checkpoint snapshot |
+| `ANTHROPIC_API_KEY` | `dissect/providers.py` | unset | only enables a stub provider; no call is ever made (`NotWired`) |
+| `PARLAYHITTERS_MODEL_CHEAP`, `_STRONG` | `dissect/providers.py` | unset | model names for the stub provider's tiers |
+| `NBA_PYTHON` | one API test | unset | interpreter that rebuilds `fixtures/export_small`; the test skips without it |
+| `VITE_ARTIFACT` | `web/vite.config.artifact.ts` (`env.ts`) | unset | `1` only in the artifact build: swaps `transport.ts` for `transport.static.ts` |
+| `ONLY`, `W` | `web/scripts/shots.mjs` | unset | screenshot filters |
 
-## On a phone on the same Wi-Fi (no public exposure)
-
-Start the API as above (it stays on 127.0.0.1; the phone never talks to it directly), then serve the web app on the LAN:
-
-```
-cd app/web
-npm run dev:lan        # or: npm run build && npm run preview:lan
-```
-
-Find the Mac's address (`ipconfig getifaddr en0`; it was 10.50.2.136 when this was written) and open
-`http://<that address>:5173` (or `:4173` for the preview) on the phone. Notes: both devices must be on the same network
-and the router must not isolate clients; macOS may ask to allow incoming connections for node. A service worker and
-"Add to Home Screen" need HTTPS or localhost, so on a phone over plain HTTP you get the app but not the install or offline
-support. Stop the server when you are done; the API itself is never exposed.
+Ports in use: 8000 API, 5173 dev server, 4173 `npm run preview`. All are bound to 127.0.0.1 except the `:lan` scripts.
 
 ## Checks (run unpiped)
+
+```
+app/scripts/check.sh              # everything, in order, with a pass/fail table and seconds per step
+app/scripts/check.sh --fast       # pytest without test_live, test_links, test_last10_links (the slow files)
+app/scripts/check.sh --bake       # bake the artifact data from the fixtures first
+app/scripts/check.sh --browser    # also run web/scripts/route-walk.mjs once that file exists
+```
+
+Or by hand:
 
 ```
 cd app/api
@@ -70,6 +89,74 @@ uv run ruff check ../fixtures/build_fixtures.py --config ../fixtures/ruff.toml
 cd ../web
 npm run check          # eslint, tsc, vitest, build
 ```
+
+The layering rule (nothing in `nba/` imports `app/`; `app/` meets `nba` only through `nba.export`) is checked by the repo's
+`tests/test_layering.py`, at the root, not under `app/`.
+
+## The artifact (one self-contained page)
+
+```
+app/scripts/artifact.sh                  # bake from the fixtures, build, print the path and size
+app/scripts/artifact.sh --export [DIR]   # bake from the nightly export (read-only)
+```
+
+Output: `app/web/dist-artifact/parlayhitters.html` (plus `preview.html` for local viewing). By hand: `cd app/api &&
+APP_EXPORT_DIR=<export dir> PYTHONPATH=src uv run python -m parlayhitters_api.bake_artifact --out ../web/artifact-data/baked.json`,
+then `cd ../web && npm run build:artifact`; the build needs `artifact-data/baked.json` and says so if it is missing. With
+`APP_EXPORT_DIR` unset the bake reads the fixtures (the two 2024-25 nights). Details are in "The artifact" below.
+
+## Installable build and a phone on the same Wi-Fi
+
+Installable build with the service worker (production only), port 4173:
+
+```
+cd app/web && npm run build && npm run preview
+```
+
+Open http://localhost:4173, then Install / Add to Home Screen. Offline it serves the shell and the last data fetched, with an "offline" banner.
+
+For a phone: `app/scripts/dev.sh --lan` (the API stays on 127.0.0.1; the phone reaches it only through the web server's
+proxy). It prints the Mac's address; by hand it is `npm run dev:lan` (or `npm run build && npm run preview:lan`) and
+`ipconfig getifaddr en0`. Both devices must be on the same network and the router must not isolate clients; macOS may ask
+to allow incoming connections for node. A service worker and "Add to Home Screen" need HTTPS or localhost, so over plain
+HTTP the phone gets the app but not install or offline support. Stop the server when done.
+
+## Checklists
+
+The 2026-11-17 hardening work (a shared error-code registry, one error screen, an explicit not-found route, a time helper)
+is on other branches. Steps marked "after the 2026-11-17 hardening merge" depend on it; do not follow them before then.
+
+### Add a page
+
+1. `web/src/router.ts`: add a `{ name: "x" }` variant to `Route`, a case in `parse()` (and `plainName()` if it is a
+   top-level view), and a `TopName` plus an `ARTIFACT_NAME` entry if it is in the nav.
+2. `web/src/pages/X.tsx`: the page. Load data through `useLoad`/`api` and show an honest empty state.
+3. `web/src/App.tsx`: a `case "x"` in the route switch.
+4. `web/src/Shell.tsx`: `ROUTE_TOP`, `TITLES`, and `ALL_WORKSPACE` (nav) or `TABS` (bottom bar); add the name to
+   `MARKET_ONLY` if its subject is prices and edges, and decide whether the artifact keeps it (the `WORKSPACE` filter).
+5. A test in `web/src/routes.test.ts` for `parse` and the href; then `app/scripts/check.sh`.
+6. After the 2026-11-17 hardening merge: unknown paths go to the explicit not-found route, so a new path needs no extra
+   handling there; add its title to whatever table the merge leaves for titles.
+
+### Add an API route
+
+1. `api/src/parlayhitters_api/models.py`: a pydantic response model (a `response_model` keeps the shape checked).
+2. `api/src/parlayhitters_api/main.py`: a GET handler inside `register(app)` taking `store: StoreDep`; read from the
+   store, never compute a price or EV. (`live_routes.py` holds the live routes the same way.)
+3. A failure is a refusal with a registered code (see "Add an error code"). Until the hardening merge a refusal is
+   `HTTPException(status, detail)`; after it, every refusal is `{ok:false, code, text, field, request_id, detail}`.
+4. `web/src/api.ts`: a function in the `api` object (`getJson<T>` with `encodeURIComponent` on path parts) and its type
+   in `types.ts`. If the page must work in the artifact, add the path to `bake_artifact.py` and `bakedStore.ts` (`shardOf`).
+5. A test in `api/tests/` (the `client` fixture serves the fixtures, `export_client` the small export), then check.sh.
+
+### Add an error code
+
+1. `app/error_codes.json` first: `code`, `status` (null for web-only), `side` (`api` or `web`), `title`, `what`, `why`,
+   `todo`, in plain words. The registry is the single source for both sides.
+2. API side, after the 2026-11-17 hardening merge: raise or return the new code from the handler; the merge's tests check
+   that every code used is in the registry. Before the merge there is no code field on a refusal.
+3. Web side, after the merge: the one error screen looks the code up in the registry; nothing else to add.
+4. Run `app/scripts/check.sh`.
 
 ## Rebuild the fixtures
 
@@ -95,9 +182,10 @@ any game from a later season. `fixtures/manifest.json` records the verbatim quer
 
 ## API (read-only; GET only; CORS allows localhost origins only)
 
-`/api/meta`, `/api/slates`, `/api/slates/{date}`, `/api/games/{id}`, `/api/games/{id}/result`,
+`/api/health`, `/api/meta`, `/api/slates`, `/api/slates/{date}`, `/api/games/{id}`, `/api/games/{id}/result`, `/api/games/{id}/scenarios`,
 `/api/props/{game_id}/{player_id}/{stat}?line=`, `/api/breakdown/{game_id}/{player_id}/{stat}?line=&side=`, `/api/slates/{date}/swipe?seed=&n=`, `/api/slates/{date}/results`,
-`/api/card/{game_id}/{player_id}/{stat}` (swipe-card stats and the full distribution grid, fetched only when the user opens it), `/api/parlay-of-the-day`, `/api/evidence`. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
+`/api/card/{game_id}/{player_id}/{stat}` (swipe-card stats and the full distribution grid, fetched only when the user opens it), `/api/parlay-of-the-day`, `/api/evidence`,
+`/api/knows/{game_id}[/{player_id}/{stat}]`, `/api/track-record/{calibration,guess}` (and `guess/{game_id}/{player_id}/{stat}`), `/api/edges/{game_id}/{player_id}/{stat}`, `/api/contracts/top`, `/api/top-parlays/{date}`, `/api/desk`, and the live routes below. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
 quantiles by interpolation with a continuity correction for integer counts: an approximation, labelled as one.
 
 ## Reading the nightly export (`APP_EXPORT_DIR`)
@@ -247,13 +335,9 @@ Settings (theme, mode, opens-on) are per-device preferences in localStorage (`pr
 `node scripts/shots.mjs` (see its header) screenshots every screen at 390 and 1440, dark and light, and audits text size
 (>= 12 px), contrast (>= 4.5:1; 3:1 for large text) and sideways overflow.
 
-## The artifact (one self-contained page)
+## The artifact: how the page is built
 
-```
-cd app/api && APP_EXPORT_DIR=<export dir> PYTHONPATH=src uv run python -m parlayhitters_api.bake_artifact \
-    --out ../web/artifact-data/baked.json          # the API's own code over the export, read-only; newest 3 nights
-cd ../web && npm run build:artifact                 # -> dist-artifact/parlayhitters.html (+ preview.html for local viewing)
-```
+Commands are in "The artifact" near the top. The bake is the API's own code over the export, read-only, newest 3 nights.
 
 `web/vite.config.artifact.ts` swaps `transport.ts` (fetch) for `transport.static.ts`, so the page asks nothing of any
 server: answers come from the baked data, gzip shards opened on first use. Page content only (no doctype/html/head/body),
