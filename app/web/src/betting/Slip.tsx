@@ -146,7 +146,6 @@ function SaveIdea(props: { bet: Ready; ws: SlipWorkspace }) {
           </select>
         </label>
         <Button
-          kind="primary"
           onClick={() => {
             const id = localId("idea");
             void props.bet.actions.saveIdea({ id, status }).then((d) => {

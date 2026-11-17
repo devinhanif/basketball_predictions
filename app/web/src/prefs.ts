@@ -91,6 +91,18 @@ export function applyTheme(theme: Theme): void {
   if (typeof document === "undefined") return;
   if (theme === "system") delete document.documentElement.dataset["theme"];
   else document.documentElement.dataset["theme"] = theme;
+  applyHeadColor(theme);
+}
+
+/** The browser bar's colour per theme: the same two values index.html declares for the system's light and dark. */
+export const HEAD_COLOR = { light: "#ffffff", dark: "#0c0f18" } as const;
+
+/** A theme picked in the app also colours the browser bar; "system" puts back the two media-keyed defaults. */
+function applyHeadColor(theme: Theme): void {
+  for (const meta of Array.from(document.querySelectorAll('meta[name="theme-color"]'))) {
+    const forDark = (meta.getAttribute("media") ?? "").includes("dark");
+    meta.setAttribute("content", theme === "system" ? (forDark ? HEAD_COLOR.dark : HEAD_COLOR.light) : HEAD_COLOR[theme]);
+  }
 }
 
 /** Puts the density on the root element; comfortable is the default and leaves no attribute. */

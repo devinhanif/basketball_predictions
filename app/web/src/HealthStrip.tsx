@@ -98,8 +98,7 @@ export function StripBody(props: { h: Health; market: boolean; now?: Date }) {
         <div class="hs-line">
           <span class={`hs-dot${exportOld ? " old" : ""}`} aria-hidden="true" />
           <span class="hs-items">
-            Export made {h.data_made_at ? <Age at={h.data_made_at} old={exportOld} /> : "at a time not reported"}
-            {schema !== undefined ? `, schema ${schema.toString()}` : ""}
+            Forecast data made {h.data_made_at ? <Age at={h.data_made_at} old={exportOld} /> : "at a time not reported"}
           </span>
         </div>
       </div>
@@ -145,7 +144,7 @@ export function StripBody(props: { h: Health; market: boolean; now?: Date }) {
             ) : (
               "at a time not reported"
             )}
-            {schema !== undefined ? `, schema ${schema.toString()}` : ""}.
+            {schema !== undefined ? `, data format version ${schema.toString()}` : ""}.
           </p>
           {marks !== null ? (
             <>
