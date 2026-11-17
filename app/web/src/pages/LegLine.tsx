@@ -178,6 +178,9 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
             <div class="label">{book.book}</div>
             <div class="leg-big num">{pct(book.p)}</div>
             <div class="leg-sub">to go {side}, margin removed</div>
+            {data.line === line && data.prices.market_p_over != null ? null : (
+              <span class="browser-note">Computed in your browser from the two stored prices at this line (one pair, n = 1), not by the engine.</span>
+            )}
           </div>
         ) : null}
       </div>
