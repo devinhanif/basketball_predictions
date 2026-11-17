@@ -24,6 +24,7 @@ import { openTour, tourSeen } from "./tourState";
 import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
 import { IS_ARTIFACT } from "./env";
+import { NotFound } from "./Problem";
 
 export function App() {
   const route = useRoute();
@@ -106,6 +107,9 @@ export function App() {
       break;
     case "admin":
       page = <Admin />;
+      break;
+    case "notfound":
+      page = <NotFound hash={route.hash} />;
       break;
     default:
       page = <Today date={route.date} onStale={setStale} />;

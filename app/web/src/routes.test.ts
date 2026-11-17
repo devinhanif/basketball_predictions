@@ -16,9 +16,9 @@ describe("every leg link opens the leg route", () => {
     }
   });
 
-  it("falls back to Today for a malformed leg link rather than a blank page", () => {
-    expect(parse("#/leg/g1/notanumber/pts").name).toBe("today");
-    expect(parse("#/leg/g1/1/zzz").name).toBe("today");
+  it("opens the not-found screen for a malformed leg link rather than a blank page", () => {
+    expect(parse("#/leg/g1/notanumber/pts").name).toBe("notfound");
+    expect(parse("#/leg/g1/1/zzz").name).toBe("notfound");
   });
 });
 
