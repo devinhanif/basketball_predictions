@@ -1776,3 +1776,28 @@ details.alt > .alt-body {
 .ktable th.num {
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- first run on a deep link: the intro waits as one slim line above the page ---- */
+.intro.intro-slim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+}
+.intro-slim .fr-spark {
+  flex: none;
+}
+.intro-slim-text {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+.intro-slim-actions {
+  gap: var(--sp-2);
+  align-items: center;
+}
+/* A heading with the view controls lines its title up with their top, not their bottom (no empty band above the title). */
+.page-heading:has(.page-controls),
+.leg-head-row {
+  align-items: flex-start;
+}

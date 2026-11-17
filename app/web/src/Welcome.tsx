@@ -117,10 +117,12 @@ function ModeChooser(props: { onPick: (m: Mode) => void; onSkip: () => void }) {
  * covers the page or takes focus, and once dismissed (at either step) it stays dismissed on this device. The longer tour
  * is one tap away (and in the profile menu). No price words: it shows in every lens.
  */
-export function Welcome() {
+export function Welcome(props: { deep?: boolean }) {
   const id = useIdentity();
   const [name, setName] = useState("");
   const [step, setStep] = useState<"choose" | "intro">("choose");
+  // A friend who opens a shared link to a game or a player sees that page first: the intro waits as one slim line.
+  const [open, setOpen] = useState(props.deep !== true);
   const introTitle = useRef<HTMLHeadingElement>(null);
   const picked = useRef(false);
   useEffect(() => {
@@ -132,6 +134,30 @@ export function Welcome() {
     if (!IS_ARTIFACT && cleanName(name) !== "") setLocalName(name);
     markWelcomed();
   };
+  if (!open)
+    return (
+      <section class="intro intro-slim panel" aria-label="Introduction">
+        <span class="fr-spark" aria-hidden="true">
+          <Icon name="spark" />
+        </span>
+        <p class="intro-slim-text">
+          <strong>New here?</strong> NBA forecasts with the working shown. A forecast is a range, not a promise, and nothing here is a pick.
+        </p>
+        <div class="row wrap intro-slim-actions">
+          <Button
+            kind="primary"
+            onClick={() => {
+              setOpen(true);
+            }}
+          >
+            Start the short intro
+          </Button>
+          <button type="button" class="icon-btn" aria-label="Dismiss the introduction" onClick={done}>
+            <Icon name="close" />
+          </button>
+        </div>
+      </section>
+    );
   if (step === "choose")
     return (
       <ModeChooser
