@@ -486,6 +486,10 @@ textarea:focus-visible {
   .ktable.stack tbody td.st-lead:first-child {
     font-weight: var(--fw-bold);
   }
+  /* A cell that holds only a dash (no comparison on that row) is left out of the stacked block. */
+  .ktable.stack tbody td:has(> .st-none) {
+    display: none;
+  }
   .ktable.stack .st-label {
     display: block;
     font-size: var(--fs-xs);
