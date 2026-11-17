@@ -22,6 +22,7 @@ import { RESULT_HIDDEN, isLockedNight } from "../record";
 import { chanceSentence, didText, rangeSentence, winSentence } from "../words";
 import { SoWhat, Tabs } from "../ui";
 import { count } from "../format";
+import { SourceButton } from "../Provenance";
 
 function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens }) {
   const { prop, player, actual } = props;
@@ -220,6 +221,11 @@ function Body({ g }: { g: GameDetail }) {
         </p>
         <WinBars wp={g.win_probability} home={g.home} away={g.away} showBook={lens === "market"} />
         <WinLegend showBook={lens === "market"} />
+        {modelHome !== null ? (
+          <p class="small center">
+            <SourceButton gameId={g.game_id} what="the win chance" />
+          </p>
+        ) : null}
         <Explain label="Where did this forecast come from?">
           <p>
             Forecast stamp: <span class="mono">{g.win_probability.model_stamp ?? "none"}</span>. In plain terms, the model was

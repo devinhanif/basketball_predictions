@@ -43,12 +43,13 @@ export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
-  terms: "terms", notfound: "today",
+  terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
 };
 const TITLES: Record<TopName, string> = {
   today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
+  scorecard: "Scorecard", tests: "Forward tests", help: "Error help",
 };
-const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found" };
+const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };
 
 function crumbs(route: Route): string[] {
   const top = TITLES[ROUTE_TOP[route.name]];

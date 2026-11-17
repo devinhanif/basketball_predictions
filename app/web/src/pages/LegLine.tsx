@@ -4,6 +4,7 @@ import { IS_ARTIFACT } from "../env";
 import { priceText, lineText, longDate, pct } from "../format";
 import { bookChance, clampLine, modelPct, nText, ofText, rangeText, chanceSource, rowHits, rowModel, snapHalf } from "../leg";
 import { type LadderRow, type LegBreakdown, type Side } from "../legTypes";
+import { SourceButton } from "../Provenance";
 
 const S = (n: number): string => n.toString();
 
@@ -161,6 +162,9 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
               <div class="leg-big num">{modelPct(p)}</div>
               <div class="leg-sub">
                 to go {side} <CalTag source={chanceSource(row, data.model)} />
+              </div>
+              <div class="leg-sub">
+                <SourceButton gameId={data.game_id} playerId={data.player_id} stat={data.stat} what="this forecast" />
               </div>
             </>
           ) : (
