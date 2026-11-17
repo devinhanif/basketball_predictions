@@ -141,3 +141,13 @@ describe("error help search", async () => {
     expect(searchCodes(all, "zzzz-nothing")).toEqual([]);
   });
 });
+
+describe("the artifact finds record and distribution answers in the game's shard", async () => {
+  const { shardOf } = await import("./bakedStore");
+  it("by rule", () => {
+    expect(shardOf("/api/record/G1/5/pts")).toBe("g:G1");
+    expect(shardOf("/api/record/G1")).toBe("g:G1");
+    expect(shardOf("/api/distribution/G1/5/pts")).toBe("g:G1");
+    expect(shardOf("/api/scorecard")).toBeNull();
+  });
+});

@@ -81,6 +81,29 @@ def test_bake_dumps_what_the_pages_ask_for(export_client: TestClient) -> None:
     )
 
 
+def test_bake_carries_the_honesty_answers(export_client: TestClient) -> None:
+    baked = bake(export_client, n_dates=1, players_per_team=1)
+    for path in ("/api/scorecard", "/api/forward-tests", "/api/errors", "/api/health"):
+        assert path in baked["simple"], path
+        assert baked["simple"][path]["s"] == 200
+    assert "newest_quote" in baked["simple"]["/api/health"]["b"]
+    found = set()
+    for name, blob in baked["shards"].items():
+        if not name.startswith("g:"):
+            continue
+        gid = name[2:]
+        entries = json.loads(gzip.decompress(base64.b64decode(blob)))
+        assert f"/api/record/{gid}" in entries
+        for p in entries:
+            if p.startswith(f"/api/record/{gid}/"):
+                found.add("record")
+                assert p.replace("/api/record/", "/api/distribution/", 1) in entries
+    assert "record" in found
+    assert baked["counts"]["records"] >= 0
+    without = bake(export_client, n_dates=1, players_per_team=1, with_records=False)
+    assert "/api/scorecard" in without["simple"]
+
+
 def test_the_baked_file_holds_no_path_email_or_dollar_amount(
     export_client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
