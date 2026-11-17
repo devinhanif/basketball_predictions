@@ -28,22 +28,34 @@ Merge notes: both J1 and J3 created `betting/types.ts`; the seam's types now liv
 both `BetShellPanel` (J1's slot) and `SidePanelHost` (J2a's shared panel): the slip panel should move onto `SidePanel`
 (`setSidePanel` / `clearSidePanel`) once the screens lane lands.
 
-## Running (launched about 00:40–01:00 CST)
+## Also merged (02:03 CST; tip 850a3cb7 + this worklog)
+| Lane | Merge | Verified by the main session on the merged tree |
+|---|---|---|
+| J4b betting screens | 811634d5 | journey `scripts/bet-journey.mjs` against the switch-on preview on tonight's real export: PASSED at 375 and 1280, dark and light; I looked at Compare and the Slip Hedge Finder |
+| J2b-A pages (Discover, Leg, Game, source, picks, swipe) | b90f8200 | web check OFF and ON 530 tests; walk 0 violations at 390, 390 injected, 360, 768, 1180 |
+| J2b-B pages (record, scorecard, tests, live, parlay, signals, history, alerts, prefs, terms, admin) | 850a3cb7 | web check OFF and ON 530 tests; artifact checks passed; flag parity passed (OFF js 412,331 / css 115,705 / artifact 4,581,111; ON js 524,165 / artifact 4,692,938); walk 0 violations at all five settings |
+
+Walker fix (4f92c2f7): `route-walk.mjs` derived its devtools port from the seed, so two walkers with the same seed drove each
+other's browser. That was the cause of tonight's hangs and of the "flaky" not-found and blank-page violations lanes saw
+under load. It now takes a free port from the system, stops with exit 3 if the browser stalls for 90 s, and `walk.sh`
+retries that once.
+
+## Running (wave 3, launched about 02:03 CST)
 | Lane | Branch | Worktree | Scope |
 |---|---|---|---|
-| J4b | `agent/app-jarvis-betting-screens` | `~/Downloads/nba-wt-1117-jv-screens` | rolling slip, add-to-slip, Compare, Hedge Finder, `#/bet` hub, journey script |
-| J2b-A | `agent/app-jarvis-pages-a` | `~/Downloads/nba-wt-1117-jv-pagesA` | restyle Discover, Game, Leg family, Swipe, My picks; Analyst detail |
-| J2b-B | `agent/app-jarvis-pages-b` | `~/Downloads/nba-wt-1117-jv-pagesB` | restyle Track record, Scorecard, Forward tests, Live, Parlay, Signals, History, Alerts, Preferences, Key terms, Error help, Admin |
+| J4c | `agent/app-jarvis-ideas` | `~/Downloads/nba-wt-1117-jv-ideas` | betting polish (slip onto shared SidePanel, compact Compare and Hedge Finder, toasts, hub, dollars formatter), Ideas, minimal real Analysis, extended journey |
+| J6 | `agent/app-jarvis-polish` | `~/Downloads/nba-wt-1117-jv-polish` | shared-component inbox (card-feature contrast, Table stacked layout, MarketOnly headings, palette lens filter), unrestyled components, whole-product design review (first run, consistency, navigation grouping) |
+| J5 | `agent/app-jarvis-verify` | `~/Downloads/nba-wt-1117-jv-verify` | `visual-check.mjs` (structural assertions + local pixel baseline), donor map, filled gap matrix and acceptance checklist, README section |
 
 ## Next
-1. As each reports: merge into the follow-up branch (expect small conflicts in `Leg.tsx` / `Game.tsx` between J4b's slots and
-   J2b-A, and in `main.tsx` / `main.artifact.tsx` imports between J2b-A and J2b-B), then `app/scripts/check.sh --browser` OFF and
-   `--betting` ON, `app/scripts/walk.sh --widths`, layering test, and look at screenshots.
-2. After J4a + J4b: verify the screens against the real board routes; move the slip panel onto `SidePanel`; then J4c (Ideas,
-   minimal Analysis view on real export fields, import/export UI) and the kit tests that still apply.
-3. J5: screenshot-based checks at 375/768/1280 in both themes and modes; `docs/jarvis-donor-map.md` and the filled GAP matrix;
-   README section; `REPORT_JARVIS.md`. Then merge the integration branch's late docs commits into this branch, build the
-   real-data artifact with `app/scripts/artifact.sh --export`, and only then write the completion line in `REPORT.md`.
+1. As each reports: merge into the follow-up branch (J4c and J6 may both touch shell-adjacent files: expect small conflicts),
+   then `npm run check` OFF and ON, artifact build, `flag-parity.mjs`, `app/scripts/walk.sh --widths`, the journey against 5186,
+   layering test, and look at screenshots.
+2. Ask J5 (SendMessage) to refresh the gap matrix and checklist rows that were pending J4c / J6; run its visual check on
+   the final tree.
+3. Final: merge `agent/integration-2026-11-17` into this branch (late docs commits), build the real-data artifact OFF and ON
+   with `app/scripts/artifact.sh --export [--betting]`, restart the previews on 5185 (OFF) and 5186 (ON), write
+   `REPORT_JARVIS.md` and the DECISIONS rows, and only then the completion line in `REPORT.md` on both branches.
 
 ## Decisions so far (rows go to DECISIONS_ROWS.md at the end)
 - "fast arb" (Devin, about 22:55 CST): JARVIS Polymarket fee uses fast-arb's order. On the integration branch, row 16.
