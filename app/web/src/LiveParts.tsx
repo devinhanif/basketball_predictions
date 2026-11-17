@@ -29,6 +29,7 @@ import { STAT_SHORT } from "./types";
 import { liveHref } from "./router";
 import { useLiveGame, type LiveConn } from "./useLive";
 import { ProblemPanel } from "./Problem";
+import { StateBlock, TabPanel, Tabs } from "./ui";
 import { useLiveFor } from "./useLiveData";
 
 /** How old the data on screen is. Keeps its own one-second clock so nothing else re-renders on a tick. */
@@ -73,6 +74,13 @@ export function Attribution(props: { note?: string }) {
 function PhaseNote({ conn }: { conn: LiveConn & { retry?: () => void } }) {
   if (conn.phase === "live" || conn.phase === "connecting" || conn.phase === "final") return null;
   if (conn.phase === "stopped") return <ProblemPanel code="live_feed_stopped" level={2} retry={conn.retry ?? null} />;
+  if (conn.phase === "reconnecting") {
+    return (
+      <StateBlock kind="reconnecting" inline title={conn.message ?? "Reconnecting."}>
+        The score and plays below are the last copy received.
+      </StateBlock>
+    );
+  }
   return (
     <p class={`live-phase ${conn.phase}`} role="status">
       {conn.message ?? (conn.phase === "error" ? "Could not reach the live feed." : "")}
@@ -394,7 +402,7 @@ export function CheckpointPanel(props: { eventId: string; state: GameState }) {
 export function LiveScoreHead(props: { live: LiveState }) {
   const { live } = props;
   return (
-    <section class="panel live-head">
+    <section class="panel card-header live-head">
       <div class="live-score num">
         <div class="ls-team">
           <span class="ls-abbr">{live.away.abbr}</span>
@@ -432,26 +440,23 @@ export function LiveGame(props: { eventId: string; game: GameDetail | null; game
       <LiveScoreHead live={live} />
       <AsOf meta={live.meta} receivedMs={conn.receivedMs} state={live.state} />
       <PhaseNote conn={conn} />
-      <div class="tabs live-tabs" role="tablist" aria-label="Live views">
-        {(["plays", "box", "props"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            class="tab"
-            aria-selected={view === t}
-            aria-current={view === t ? "true" : undefined}
-            onClick={() => {
-              setView(t);
-            }}
-          >
-            {t === "plays" ? "Plays" : t === "box" ? "Box score" : "Prop trackers"}
-          </button>
-        ))}
-      </div>
-      {view === "plays" ? <PlayFeed live={live} /> : null}
-      {view === "box" ? <BoxScore live={live} game={props.game} /> : null}
-      {view === "props" ? <Trackers live={live} game={props.game} loading={props.gameLoading} /> : null}
+      <Tabs
+        label="Live views"
+        idBase="live"
+        class="live-tabs"
+        tabs={[
+          { key: "plays", label: "Plays" },
+          { key: "box", label: "Box score" },
+          { key: "props", label: "Prop trackers" },
+        ]}
+        value={view}
+        onChange={setView}
+      />
+      <TabPanel idBase="live" value={view}>
+        {view === "plays" ? <PlayFeed live={live} /> : null}
+        {view === "box" ? <BoxScore live={live} game={props.game} /> : null}
+        {view === "props" ? <Trackers live={live} game={props.game} loading={props.gameLoading} /> : null}
+      </TabPanel>
       <CheckpointPanel eventId={live.gameId} state={live.state} />
       <Attribution />
     </div>
