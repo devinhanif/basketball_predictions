@@ -1460,6 +1460,18 @@ h1.answer {
 .page-controls .seg.wide {
   width: auto;
 }
+/* The what-if's own choices (which side the price is for, the fee): equal columns, never a ragged wrapped row. */
+.explore .seg.wide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+}
+.explore .seg.wide .seg-btn {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  padding-left: 6px;
+  padding-right: 6px;
+}
 @media (min-width: 760px) {
   .pc-row .seg {
     min-width: 13.5rem;
