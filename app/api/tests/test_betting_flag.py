@@ -5,6 +5,7 @@ states."""
 
 from __future__ import annotations
 
+import json
 import random
 from collections.abc import Iterator
 from pathlib import Path
@@ -12,6 +13,7 @@ from typing import Any
 from urllib.parse import quote
 
 import pytest
+from conftest import seal
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from hostile_gen import BETTING_ROUTES, FIXED_BAD, random_values
@@ -174,6 +176,22 @@ def test_on_writes_are_refused_typed(on_client: TestClient) -> None:
         headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "POST"},
     )
     assert pre.status_code == 400
+
+
+def test_on_status_refuses_with_a_refused_export(
+    export_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fails closed: with the export refused (sha mismatch) the betting route is 503 like every
+    store route (tests/test_route_contracts.py walks them all in an ON run)."""
+    seal(export_dir)
+    m = json.loads((export_dir / "manifest.json").read_text())
+    m["files"]["parlay_of_day.json"]["sha256"] = "0" * 64
+    (export_dir / "manifest.json").write_text(json.dumps(m))
+    monkeypatch.setenv("APP_EXPORT_DIR", str(export_dir))
+    reset_store()
+    with TestClient(create_app(betting=True), raise_server_exceptions=False) as c:
+        _typed(c.get("/api/betting/status"), 503, "export_refused")
+    reset_store()
 
 
 def test_on_unregistered_betting_paths_are_typed_404(on_client: TestClient) -> None:
