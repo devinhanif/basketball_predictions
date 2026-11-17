@@ -6,6 +6,8 @@
 #   app/scripts/check.sh --bake       bake the artifact data from the fixtures first (else the artifact step is
 #                                     skipped when app/web/artifact-data/baked.json is absent)
 #   app/scripts/check.sh --browser    also run the browser route walk (app/scripts/walk.sh: own servers on spare ports, needs Chrome)
+#   app/scripts/check.sh --visual     also the visual checks' structural layer (app/scripts/visual.sh --no-pixels: own
+#                                     servers on spare ports, needs Chrome; with --betting it runs with the switch ON)
 #   app/scripts/check.sh --betting    run every step with the betting switch ON (VITE_PH_BETTING=1 for the web build and
 #                                     tests, PH_BETTING=1 for the API). Without it both are removed from the environment,
 #                                     so an inherited value never turns the default (OFF) check into an ON one.
@@ -16,14 +18,15 @@
 set -uo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fast=0; bake=0; browser=0; betting=0
+fast=0; bake=0; browser=0; betting=0; visual=0
 for a in "$@"; do
   case "$a" in
     --fast) fast=1 ;;
     --bake) bake=1 ;;
     --browser) browser=1 ;;
     --betting) betting=1 ;;
-    -h|--help) sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --visual) visual=1 ;;
+    -h|--help) sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "check.sh: unknown option '$a' (try --help)" >&2; exit 2 ;;
   esac
 done
@@ -87,6 +90,14 @@ if [ "$browser" = 1 ]; then
     run "browser route walk" . "$APP_DIR/scripts/walk.sh"
   else
     skip "browser route walk" "app/web/scripts/route-walk.mjs does not exist yet"
+  fi
+fi
+
+if [ "$visual" = 1 ]; then
+  if [ "$betting" = 1 ]; then
+    run "visual (structural)" . "$APP_DIR/scripts/visual.sh" --no-pixels --betting
+  else
+    run "visual (structural)" . "$APP_DIR/scripts/visual.sh" --no-pixels
   fi
 fi
 
