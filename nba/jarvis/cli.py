@@ -1,7 +1,10 @@
 """``python -m nba.jarvis {slate,watch,ask,book,test-send}``. Paper-only, alert-only, read-only.
 
-No command places an order or holds a credential. The one secret JARVIS reads is the iMessage
-recipient, from the environment variable named in configs/jarvis.yaml (``JARVIS_IMESSAGE_TO``).
+No command places an order or holds a credential. Delivery secrets are read at send time only from
+the variables named in configs/jarvis.yaml: the Discord webhook (``JARVIS_DISCORD_WEBHOOK``, the
+default sink), the per-team card webhooks (``team_cards.env_var``, or the optional
+``team_cards.keychain_service`` when that variable is unset) and, for the optional iMessage sink,
+the recipient (``JARVIS_IMESSAGE_TO``).
 """
 
 from __future__ import annotations
