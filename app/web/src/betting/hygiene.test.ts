@@ -38,4 +38,28 @@ describe("betting module hygiene", () => {
       }
     }
   });
+
+  it("older-browser rules: every dvh has a vh fallback before it; no unguarded structuredClone, randomUUID or Array.at", () => {
+    const sources = readdirSync(here).filter((f) => /\.(tsx?|css)$/.test(f) && !f.endsWith(".test.ts"));
+    for (const f of sources) {
+      const text = readFileSync(join(here, f), "utf8");
+      if (f.endsWith(".css")) {
+        // Each declaration list that uses a dvh length must declare the same property in vh first.
+        for (const block of text.matchAll(/\{([^{}]*)\}/g)) {
+          const decls = (block[1] ?? "").split(";").map((d) => d.trim()).filter((d) => d !== "");
+          decls.forEach((d, i) => {
+            if (!/\bdvh\b/.test(d)) return;
+            const prop = d.split(":")[0]?.trim() ?? "";
+            const fallback = decls.slice(0, i).some((p) => p.startsWith(`${prop}:`) && /\bvh\b/.test(p) && !/\bdvh\b/.test(p));
+            expect(fallback, `${f}: ${d} has no vh fallback before it`).toBe(true);
+          });
+        }
+        continue;
+      }
+      expect(/\bstructuredClone\b/.test(text), `${f} uses structuredClone`).toBe(false);
+      expect(/\.at\(\s*-?\d/.test(text), `${f} uses Array.prototype.at`).toBe(false);
+      if (f !== "ids.ts") expect(text.includes(w("random", "UUID")), `${f} uses ${w("random", "UUID")}`).toBe(false);
+      else expect(/typeof\s+\w+\.randomUUID\s*===\s*"function"/.test(text), "ids.ts must guard randomUUID").toBe(true);
+    }
+  });
 });

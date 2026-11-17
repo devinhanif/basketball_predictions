@@ -56,3 +56,8 @@ export const PROVENANCE_MEANING = {
   manual: "A price you typed. It is your entry, not a verified quote.",
   sample: "An invented demo price. Not a real quote.",
 } as const;
+
+/** Said on every betting screen when the browser will not let the page store anything. */
+export const MEMORY_ONLY_TITLE = "This browser cannot save your slip.";
+export const MEMORY_ONLY_TEXT =
+  "Storage is blocked here (a private window or a strict setting), so what you add stays in this tab only. It is gone when you close or reload the tab. Use Export on the slip page to keep a copy, or allow storage for this site.";

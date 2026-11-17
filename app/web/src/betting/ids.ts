@@ -21,7 +21,7 @@ export function localId(prefix?: string): string {
   return prefix === undefined ? id : `${prefix}-${id}`;
 }
 
-/** A JSON deep copy (the stored shapes are plain JSON; structuredClone is not assumed on old Safari). */
+/** A JSON deep copy (the stored shapes are plain JSON; the newer built-in deep copy is not assumed on old Safari). */
 export function jsonCopy<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
