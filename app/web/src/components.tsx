@@ -145,10 +145,13 @@ export function ModelNote(props: { items: readonly { source: string; label: stri
   const sources = [...bySource.keys()];
   const [first, ...rest] = sources;
   if (first === undefined) return null;
+  // Two stored sources can read the same in plain words (stale and missing fall back to one model): say each once.
+  const firstWords = plainModel(first);
+  const restWords = [...new Set(rest.map(plainModel))].filter((w) => w !== firstWords);
   const sentence =
-    rest.length === 0
+    restWords.length === 0
       ? plainModelSentence(first)
-      : `Forecasts come from ${plainModel(first)}; for some players, from ${rest.map(plainModel).join(" and ")}.`;
+      : `Forecasts come from ${firstWords}; for some players, from ${restWords.join(" and ")}.`;
   return (
     <div class="model-note">
       <p class="small muted">{sentence}</p>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { PageHead, SectionHead, SoWhat, StateBlock } from "../ui";
 import { count } from "../format";
+import { longDate } from "../time";
 import { Attribution, LiveGame } from "../LiveParts";
 import { ageNow, ageText, clockLabel, etDate, previousDate, type LiveGameSummary } from "../live";
 import { liveHref } from "../router";
@@ -92,7 +93,7 @@ function List({ date }: { date: string | null }) {
             </a>
           }
         >
-          Nothing was captured for {dates.join(" or ")}. Games appear here a few minutes before tip-off and stay after the final.
+          No live feed was stored for {dates.map(longDate).join(" or ")}. Games appear here a few minutes before tip-off and stay after the final.
         </StateBlock>
       ) : null}
       <Section title="Live now" games={now} receivedMs={st.receivedMs} />

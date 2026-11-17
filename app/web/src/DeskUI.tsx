@@ -13,7 +13,7 @@ export function DeskGate(props: { title: string; children: (desk: Desk) => Compo
   if (d) return <>{props.children(d)}</>;
   return (
     <div class="stack">
-      <PageHead kicker="The desk" title={props.title} />
+      <PageHead kicker="Analysis notes" title={props.title} />
       <StateBlock
         kind={h.kind === "refused" ? "partial" : "empty"}
         title={h.kind === "refused" ? "We are holding this screen back" : "Nothing to show here yet"}
@@ -25,7 +25,7 @@ export function DeskGate(props: { title: string; children: (desk: Desk) => Compo
       >
         {h.kind === "refused"
           ? `Its data did not pass our safety checks, so we are not showing it. Reason: ${h.detail}`
-          : "The desk has not published its numbers yet. The game forecasts and your picks are not affected."}
+          : "Nothing has been published for this screen yet. The game forecasts and your picks are not affected."}
       </StateBlock>
     </div>
   );

@@ -6,7 +6,7 @@ import { deskOf, useDesk } from "./deskStore";
 import { canSeeAdmin, useIdentity } from "./identity";
 import { gameHref, legHref, topHref, type TopName } from "./router";
 import type { SearchItem } from "./search";
-import { tipTime } from "./format";
+import { longDate, tipTime } from "./format";
 import { useUserState } from "./userState";
 import { IS_ARTIFACT } from "./env";
 import { useLens } from "./prefs";
@@ -82,7 +82,8 @@ export function useSearchIndex(active: boolean, isAdmin: boolean): SearchItem[] 
       const out: SearchItem[] = [];
       const seen = new Set<string>();
       const add = (i: SearchItem): void => {
-        const k = `${i.kind}|${i.href}|${i.label}`;
+        // One row per player (the newest game, since nights are read newest first); a game or screen is one row per address.
+        const k = i.kind === "player" ? `player|${i.label}` : `${i.kind}|${i.href}|${i.label}`;
         if (!seen.has(k)) {
           seen.add(k);
           out.push(i);
@@ -94,8 +95,8 @@ export function useSearchIndex(active: boolean, isAdmin: boolean): SearchItem[] 
         for (const n of newest) {
           const s = (await api.slate(n.date)).data;
           for (const g of s.games) {
-            add({ kind: "game", label: `${g.away.abbr} at ${g.home.abbr}`, sub: `${n.date} · ${tipTime(g.tip_utc)}`, href: gameHref(g.game_id), words: `${g.away.city} ${g.away.name} ${g.home.city} ${g.home.name}` });
-            for (const p of g.key_props) add({ kind: "player", label: p.name, sub: `${p.team} · ${n.date}`, href: legHref(g.game_id, p.player_id, "pts"), words: g.away.name + " " + g.home.name });
+            add({ kind: "game", label: `${g.away.abbr} at ${g.home.abbr}`, sub: `${longDate(n.date)} · ${tipTime(g.tip_utc)}`, href: gameHref(g.game_id), words: `${g.away.city} ${g.away.name} ${g.home.city} ${g.home.name}` });
+            for (const p of g.key_props) add({ kind: "player", label: p.name, sub: `${p.team} · ${longDate(n.date)}`, href: legHref(g.game_id, p.player_id, "pts"), words: g.away.name + " " + g.home.name });
           }
         }
         if (run.live) setItems([...out]);
@@ -107,7 +108,7 @@ export function useSearchIndex(active: boolean, isAdmin: boolean): SearchItem[] 
               const d = (await api.game(g.game_id)).data;
               for (const p of d.players) {
                 const stat = Object.keys(p.props)[0] ?? "pts";
-                add({ kind: "player", label: p.name, sub: `${p.side === "home" ? d.home.abbr : d.away.abbr} · ${first.date}`, href: isLegStat(stat) ? legHref(g.game_id, p.player_id, stat) : gameHref(g.game_id) });
+                add({ kind: "player", label: p.name, sub: `${p.side === "home" ? d.home.abbr : d.away.abbr} · ${longDate(first.date)}`, href: isLegStat(stat) ? legHref(g.game_id, p.player_id, stat) : gameHref(g.game_id) });
               }
             } catch {
               /* a game page that is not loaded simply adds no players */
