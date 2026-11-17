@@ -5,10 +5,10 @@ import { View } from "./components";
 import { count, decimal, lineText, MISSING, percent } from "./format";
 import { hasPriceWords, honestyApi, type Distribution, type Maybe } from "./honesty";
 import type { LegStat } from "./legTypes";
-import { useLens } from "./prefs";
+import { useLens, useMode } from "./prefs";
 import { termHref } from "./terms";
 import { stamp } from "./time";
-import { ChartFrame, Table } from "./ui";
+import { ChartFrame, Table, Tile } from "./ui";
 import { useLoad } from "./useLoad";
 
 const W = 360;
@@ -58,8 +58,8 @@ function Fan(props: { q: readonly number[]; line: number }) {
   );
 }
 
-function Body(props: { d: Distribution; line: number; market: boolean }) {
-  const { d, line, market } = props;
+function Body(props: { d: Distribution; line: number; market: boolean; analyst: boolean }) {
+  const { d, line, market, analyst } = props;
   const learnOk = (t: string | null | undefined): boolean => !!t && (market || !hasPriceWords(t));
   if (d.locked) {
     return (
@@ -79,40 +79,13 @@ function Body(props: { d: Distribution; line: number; market: boolean }) {
   const tau = (i: number): string => percent(d.taus[i] ?? null);
   const c2 = d.conditional;
   const thresholds = c2?.p_ge_given_plays ? Object.keys(c2.p_ge_given_plays) : [];
-  return (
-    <>
-      {q !== null && q.length === 19 ? (
-        <ChartFrame
-          title="The stored forecast range"
-          takeaway={`Half of the stored range sits between ${decimal(q[4], 1)} and ${decimal(q[14], 1)} (the ${tau(4)} and ${tau(14)} points); the middle (${tau(9)}) is ${decimal(q[9], 1)}.`}
-          table={{ head: ["Point", "Value"], rows: d.taus.map((t, i) => [percent(t), decimal(q[i], 2)]), caption: "The 19 stored quantiles" }}
-        >
-          <Fan q={q} line={line} />
-        </ChartFrame>
-      ) : (
-        <p>The stored quantile grid is not stored for this forecast.</p>
-      )}
+  // The stored pieces behind the headline numbers: laid out in Analyst, one tap away in Simple.
+  const stored = (
+    <div class="dist-stored">
       <p class="small">
         Mean {decimal(d.mean, 2)}, spread (standard deviation) {decimal(d.std, 2)}, as stored.{" "}
         {d.support?.words ?? "Whether the values are whole numbers is not stored."}{" "}
         <a href={termHref("quantile-grid")}>Quantile grid</a>
-      </p>
-      <h3>At the line</h3>
-      {surv ? (
-        <p>
-          <strong class="num">
-            {c === null ? "none" : count(c)} of {count(surv.n)}
-          </strong>{" "}
-          stored samples reach {k.toString()} or more (the over side of {lineText(line)}). <span class="small muted">n = {count(surv.n)} samples; whole-number support.</span>
-        </p>
-      ) : (
-        <p>The whole-number survival table is not stored for this forecast.</p>
-      )}
-      <h3>Playing at all</h3>
-      <p>
-        Chance to play shown on the site: <strong class="num">{percent(d.p_play?.value ?? null, 1)}</strong>{" "}
-        {d.p_play?.source ? <span class="small muted">(source {d.p_play.source}{d.p_play.detail ? `, ${d.p_play.detail}` : ""})</span> : null}. Projected minutes{" "}
-        {decimal(d.proj_minutes, 1)}. <a href={termHref("p-play")}>p_play</a>
       </p>
       {c2 ? (
         <>
@@ -139,25 +112,75 @@ function Body(props: { d: Distribution; line: number; market: boolean }) {
       ) : (
         <p class="small">The pieces given he plays are not stored for this forecast.</p>
       )}
-      {d.missing.length > 0 ? (
-        <p class="small">
-          <strong>Not stored:</strong> {d.missing.join(", ")}.
-        </p>
-      ) : null}
-      {market && d.kalshi_dnp_note ? (
-        <p class="small">
-          <strong>If he is ruled out before tip-off:</strong> {d.kalshi_dnp_note} <a href={termHref("dnp-rule")}>DNP rule</a>
-        </p>
-      ) : null}
-      <p class="small muted">
-        Model <span class="mono">{d.model_name ?? MISSING}</span>, made {d.made_at ? stamp(d.made_at) : MISSING}.
-      </p>
+    </div>
+  );
+  return (
+    <>
+      {q !== null && q.length === 19 ? (
+        <ChartFrame
+          title="The stored forecast range"
+          takeaway={`Half of the stored range sits between ${decimal(q[4], 1)} and ${decimal(q[14], 1)} (the ${tau(4)} and ${tau(14)} points); the middle (${tau(9)}) is ${decimal(q[9], 1)}.`}
+          table={{ head: ["Point", "Value"], rows: d.taus.map((t, i) => [percent(t), decimal(q[i], 2)]), caption: "The 19 stored quantiles" }}
+        >
+          <Fan q={q} line={line} />
+        </ChartFrame>
+      ) : (
+        <p>The stored quantile grid is not stored for this forecast.</p>
+      )}
+      <div class="dist-tiles">
+        <Tile
+          label={`stored samples reach ${k.toString()} or more (the over side of ${lineText(line)})`}
+          value={surv ? `${c === null ? "none" : count(c)} of ${count(surv.n)}` : MISSING}
+          n={surv ? `n = ${count(surv.n)} samples; whole-number support` : "The whole-number survival table is not stored for this forecast."}
+        />
+        <Tile
+          label="chance to play shown on the site"
+          value={percent(d.p_play?.value ?? null, 1)}
+          note={
+            <>
+              {d.p_play?.source ? `Source ${d.p_play.source}${d.p_play.detail ? `, ${d.p_play.detail}` : ""}. ` : ""}
+              <a href={termHref("p-play")}>p_play</a>
+            </>
+          }
+        />
+        <Tile label="projected minutes" value={decimal(d.proj_minutes, 1)} />
+      </div>
+      {analyst ? stored : (
+        <details class="dist-more">
+          <summary>More detail: mean, spread and the chances if he plays</summary>
+          {stored}
+        </details>
+      )}
+      <dl class="dist-facts">
+        {market && d.kalshi_dnp_note ? (
+          <div>
+            <dt>If he is ruled out before tip-off</dt>
+            <dd>
+              {d.kalshi_dnp_note} <a href={termHref("dnp-rule")}>DNP rule</a>
+            </dd>
+          </div>
+        ) : null}
+        {d.missing.length > 0 ? (
+          <div>
+            <dt>Not stored</dt>
+            <dd>{d.missing.join(", ")}.</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt>Model</dt>
+          <dd>
+            <span class="mono">{d.model_name ?? MISSING}</span>
+            {analyst && d.version ? <> (version <span class="mono">{d.version}</span>)</> : null}, made {d.made_at ? stamp(d.made_at) : MISSING}.
+          </dd>
+        </div>
+      </dl>
     </>
   );
 }
 
 export function DistributionPanel(props: { gameId: string; playerId: number; stat: LegStat; line: number }) {
   const market = useLens() === "market";
+  const mode = useMode();
   const [state, reload] = useLoad(() => honestyApi.distribution(props.gameId, props.playerId, props.stat), [props.gameId, props.playerId, props.stat]);
   return (
     <section class="panel" aria-labelledby="dist-h">
@@ -169,7 +192,7 @@ export function DistributionPanel(props: { gameId: string; playerId: number; sta
               <strong>Not in this snapshot.</strong> {m.why}
             </p>
           ) : (
-            <Body d={m.data} line={props.line} market={market} />
+            <Body d={m.data} line={props.line} market={market} analyst={mode === "analyst"} />
           )
         }
       </View>
