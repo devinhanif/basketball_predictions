@@ -58,11 +58,20 @@ PROP_LINE_COLS = (
 )  # fmt: skip
 
 
+#: The one stored column read beside PROP_LINE_COLS, when the table has it, for the betting
+#: module's quote board: the raw implied probability the exporter stored (vig included). Kept
+#: per prop as a compact float array aligned with the quotes (``ExportStore.quote_implied``);
+#: never folded into a quote dict, so no existing response gains a key.
+IMPLIED_COL = "implied_prob_raw"
+
+
 def _prop_lines_for(
-    con: duckdb.DuckDBPyConnection, props: dict[tuple[str, int, str], Json]
+    con: duckdb.DuckDBPyConnection,
+    props: dict[tuple[str, int, str], Json],
+    extra: tuple[str, ...] = (),
 ) -> list[Json]:
     """Only the prop_lines rows a shown prop uses: its quote run (``lines_run_id``, else its own
-    run_id) and its game, player and stat; only the columns the app reads.
+    run_id) and its game, player and stat; only the columns the app reads (plus ``extra``).
 
     The same rows ``_quotes_by_prop`` would pick out of the whole table, selected in DuckDB
     instead: the real table has about a million rows, and reading all of them as Python dicts
@@ -71,7 +80,7 @@ def _prop_lines_for(
     if not keys:
         return []
     runs, gids, pids, stats = (list(col) for col in zip(*keys, strict=True))
-    cols = ", ".join(f'p."{c}"' for c in PROP_LINE_COLS)
+    cols = ", ".join(f'p."{c}"' for c in (*PROP_LINE_COLS, *extra))
     cur = con.execute(
         f"SELECT {cols} FROM prop_lines p JOIN ("  # noqa: S608 - fixed column names
         "  SELECT unnest(?::VARCHAR[]) AS r, unnest(?::VARCHAR[]) AS g,"

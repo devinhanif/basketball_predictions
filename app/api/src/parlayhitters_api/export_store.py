@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import logging
+from array import array
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -38,6 +39,7 @@ from typing import Any
 import duckdb
 
 from .export_rows import (
+    IMPLIED_COL,
     PROP_LINE_COLS,
     _book_rank,
     _display_name,
@@ -132,7 +134,15 @@ class ExportStore:
             self.scores: Scores = load_scores(con, have, self.manifest)
             self.strip: StripFacts = load_strip(con, have)
             if "prop_lines" in have:
-                tables["prop_lines"] = _prop_lines_for(con, props)
+                line_cols = {
+                    r[0]
+                    for r in con.execute(
+                        "SELECT column_name FROM information_schema.columns"
+                        " WHERE table_name = 'prop_lines'"
+                    ).fetchall()
+                }
+                extra = (IMPLIED_COL,) if IMPLIED_COL in line_cols else ()
+                tables["prop_lines"] = _prop_lines_for(con, props, extra)
             elif self.manifest["schema_version"] >= 2:
                 raise ExportRefused("a schema 2 export has no prop_lines table")
             else:
@@ -225,6 +235,7 @@ class ExportStore:
             if pr.get("team_id") is not None:
                 self.team_pk[(gid_, pid_)] = int(pr["team_id"])
         self.quotes = self._quotes_by_prop(tables["prop_lines"], props)
+        self.quote_implied = self._implied_by_prop(tables["prop_lines"], props)
         self.has_lines = any(main_line(q) is not None for q in self.quotes.values())
         self.has_stl_blk = any(b.get("stl") is not None or b.get("blk") is not None for b in played)
         self.history = self._history(games, played, tables["injury_report"])
@@ -330,6 +341,27 @@ class ExportStore:
             rows = by_run.get((pr.get("lines_run_id") or pr["run_id"], *key))
             if rows:
                 out[key] = [_quote(r) for r in rows]
+        return out
+
+    @staticmethod
+    def _implied_by_prop(
+        lines: list[Json], props: dict[tuple[str, int, str], Json]
+    ) -> dict[tuple[str, int, str], array[float]]:
+        """The stored ``implied_prob_raw`` of each quote in ``quotes``, same keys, same order (NaN
+        where the export stored none or predates the column). Read only by the betting module's
+        quote board; a plain float array, so it costs about 8 bytes a quote."""
+        by_run: dict[tuple[str, str, int, str], list[Json]] = defaultdict(list)
+        for r in lines:
+            by_run[(r["run_id"], r["game_id"], int(r["player_id"]), r["stat"])].append(r)
+        out: dict[tuple[str, int, str], array[float]] = {}
+        nan = float("nan")
+        for key, pr in props.items():
+            rows = by_run.get((pr.get("lines_run_id") or pr["run_id"], *key))
+            if rows:
+                out[key] = array(
+                    "d",
+                    (nan if r.get(IMPLIED_COL) is None else float(r[IMPLIED_COL]) for r in rows),
+                )
         return out
 
     def _latest_props(self, rows: list[Json]) -> dict[tuple[str, int, str], Json]:
