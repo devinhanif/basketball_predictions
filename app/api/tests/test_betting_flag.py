@@ -1,7 +1,7 @@
 """The betting switch on the API (features.py, the betting package): read at app creation, off by
 default; with it off /api/betting/* is the ordinary typed 404 and nothing else changes; with it on
-one GET route answers and the service stays read-only. Hostile input on the new paths in both
-states."""
+the betting GET routes (hostile_gen.BETTING_ROUTES) answer and the service stays read-only.
+Hostile input on the new paths in both states."""
 
 from __future__ import annotations
 
@@ -124,7 +124,7 @@ def test_off_adds_no_route(monkeypatch: pytest.MonkeyPatch) -> None:
     off = _paths(False)
     assert off == _paths(None)
     assert not any(p.startswith("/api/betting") for p in off)
-    assert _paths(True) - off == {"/api/betting/status"}
+    assert _paths(True) - off == {t for t, _, _ in BETTING_ROUTES}
 
 
 def test_off_betting_paths_are_the_ordinary_typed_404(off_client: TestClient) -> None:
@@ -237,7 +237,7 @@ def test_hostile_paths_and_queries_never_crash(
                             problems.append(f"untyped {r.status_code} {url[:100]}")
                         elif REGISTRY[body["code"]]["status"] != r.status_code:
                             problems.append(f"code/status {body['code']} {url[:100]}")
-                    elif not betting or body != STATUS_BODY:
+                    elif not betting or (template == "/api/betting/status" and body != STATUS_BODY):
                         problems.append(f"unexpected {r.status_code} {url[:100]}")
     reset_store()
     assert n > 400

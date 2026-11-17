@@ -73,6 +73,9 @@ ROUTES: list[tuple[str, tuple[str, ...], dict[str, str]]] = [
 #: them in both states explicitly.
 BETTING_ROUTES: list[tuple[str, tuple[str, ...], dict[str, str]]] = [
     ("/api/betting/status", (), {}),
+    ("/api/betting/providers", (), {}),
+    ("/api/betting/board/{game_id}/{player_id}/{stat}", ("game_id", "player_id", "stat"), {}),
+    ("/api/betting/slate/{date}", ("date",), {}),
 ]
 if betting_enabled():
     ROUTES = ROUTES + BETTING_ROUTES
