@@ -103,5 +103,5 @@ export function buildDemoDraft(): SlipDraft {
  * itself; the caller decides (with the viewer's confirmation) whether to stage it over their own draft.
  */
 export function sampleWorkspace(): SlipWorkspace {
-  return { draft: buildNBASampleDraft(), ideas: [], manualQuotes: [] };
+  return { draft: buildNBASampleDraft(), ideas: [], manualQuotes: [], picks: [] };
 }

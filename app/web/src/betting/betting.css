@@ -1,0 +1,527 @@
+/* The betting tools' only stylesheet. Every rule is under .ph-bet and built on the app's design variables (theme.css), so it
+   cannot restyle anything outside the module. It ships as a string inside the betting module (imported with ?inline and
+   put in the page by ensureBetStyles), so a build with the switch off carries none of it. */
+
+.ph-bet {
+  --bet-gap: var(--sp-3, 12px);
+}
+.ph-bet h1 {
+  margin: 0 0 var(--sp-2, 8px);
+}
+.ph-bet .ph-bet-h {
+  font-size: var(--fs-md, 1rem);
+  margin: var(--sp-4, 16px) 0 var(--sp-2, 8px);
+}
+.ph-bet .ph-bet-lede {
+  max-width: 62ch;
+}
+
+/* ------------------------------------------------------------ notes, badges, states */
+.ph-bet .ph-bet-note {
+  margin: 0 0 var(--bet-gap);
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: var(--radius-xs, 4px);
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-prov {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ph-bet .ph-bet-err {
+  color: var(--loss);
+}
+.ph-bet .ph-bet-neg {
+  color: var(--loss);
+  font-weight: 700;
+}
+.ph-bet .ph-bet-pos {
+  color: var(--win);
+  font-weight: 700;
+}
+.ph-bet .ph-bet-warn {
+  margin: var(--sp-2, 8px) 0;
+  padding-left: 1.2em;
+  color: var(--muted);
+}
+.ph-bet .ph-bet-warn li + li,
+.ph-bet .ph-bet-overlaps li + li {
+  margin-top: 4px;
+}
+.ph-bet .ph-bet-overlaps {
+  padding-left: 1.2em;
+}
+.ph-bet .ph-bet-coverage {
+  margin: var(--bet-gap) 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+}
+.ph-bet .ph-bet-coverage.off {
+  border-left-color: var(--muted);
+  background: var(--surface-2);
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-coverage p {
+  margin: 0 0 4px;
+}
+.ph-bet .ph-bet-empty {
+  padding: var(--sp-4, 16px);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius, 10px);
+  background: var(--surface-2);
+}
+.ph-bet .ph-bet-empty h3,
+.ph-bet .ph-bet-empty h2 {
+  margin-top: 0;
+}
+.ph-bet .ph-bet-save {
+  margin-bottom: var(--bet-gap);
+}
+
+/* ------------------------------------------------------------ forms */
+.ph-bet .ph-bet-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-2, 8px);
+  margin: var(--sp-2, 8px) 0;
+}
+.ph-bet label > span {
+  display: block;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.ph-bet input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.ph-bet select,
+.ph-bet textarea {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+}
+.ph-bet input:focus-visible,
+.ph-bet select:focus-visible,
+.ph-bet textarea:focus-visible {
+  outline: 2px solid var(--focus, var(--accent));
+  outline-offset: 1px;
+}
+.ph-bet .ph-bet-form {
+  margin: var(--sp-2, 8px) 0;
+}
+.ph-bet fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+  padding: var(--sp-3, 12px);
+  margin: var(--bet-gap) 0;
+  min-width: 0;
+}
+.ph-bet legend {
+  font-weight: 700;
+  padding: 0 4px;
+}
+.ph-bet .ph-bet-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ph-bet .ph-bet-seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------ slip legs and picks */
+.ph-bet .ph-bet-leg {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  padding: 10px 12px;
+  margin: 0 0 var(--sp-2, 8px);
+  overflow-wrap: anywhere;
+}
+.ph-bet .ph-bet-leg.recorded {
+  border-left: 3px solid var(--mine, var(--accent));
+}
+.ph-bet .ph-bet-leg.off {
+  opacity: 0.7;
+  border-style: dashed;
+}
+.ph-bet .ph-bet-leg p {
+  margin: 4px 0;
+}
+.ph-bet .ph-bet-leg-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ph-bet .ph-bet-venue {
+  flex: 1;
+  min-width: 0;
+}
+.ph-bet .ph-bet-leg-what {
+  font-weight: 600;
+}
+.ph-bet .ph-bet-leg-nums {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+.ph-bet .ph-bet-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ph-bet .ph-bet-amount input {
+  width: 7.5em;
+}
+.ph-bet .ph-bet-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+.ph-bet .ph-bet-x {
+  font-size: 1.25rem;
+  line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+}
+.ph-bet .ph-bet-confirm {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: var(--radius-xs, 4px);
+  background: var(--notice-bg, var(--surface-2));
+  color: var(--notice-ink, var(--ink));
+}
+.ph-bet .ph-bet-picks li.ph-bet-pick {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.ph-bet .ph-bet-totals dl {
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-totals dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ph-bet .ph-bet-totals dl > div.total {
+  font-weight: 700;
+  border-bottom: 0;
+}
+.ph-bet .ph-bet-totals dd {
+  margin: 0;
+}
+.ph-bet .ph-bet-actions {
+  display: grid;
+  gap: var(--sp-2, 8px);
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-outcomes {
+  margin: var(--bet-gap) 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.ph-bet .ph-bet-notes,
+.ph-bet .ph-bet-tools {
+  margin: var(--sp-4, 16px) 0;
+}
+.ph-bet .ph-bet-notes label {
+  display: block;
+  margin: 8px 0;
+}
+.ph-bet .ph-bet-tools h2 {
+  font-size: var(--fs-md, 1rem);
+}
+
+/* ------------------------------------------------------------ the persistent panel */
+.ph-bet .ph-bet-launcher {
+  position: fixed;
+  right: 12px;
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.ph-bet .ph-bet-launcher svg {
+  width: 20px;
+  height: 20px;
+}
+.ph-bet .ph-bet-launcher:focus-visible,
+.ph-bet .ph-bet-panel-close:focus-visible {
+  outline: 3px solid var(--focus, var(--ink));
+  outline-offset: 2px;
+}
+.ph-bet .ph-bet-count {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: center;
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--loss);
+}
+.ph-bet .ph-bet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: var(--scrim, rgba(0, 0, 0, 0.45));
+}
+.ph-bet .ph-bet-panel {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.ph-bet .ph-bet-panel.sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 88vh;
+  max-height: 88dvh;
+  border-radius: var(--radius, 12px) var(--radius, 12px) 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.ph-bet .ph-bet-panel.side {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(400px, 92vw);
+  border-width: 0 0 0 1px;
+}
+.ph-bet .ph-bet-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--head, var(--surface));
+}
+.ph-bet .ph-bet-panel-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg, 1.125rem);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ph-bet .ph-bet-panel-head .ph-bet-count {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.ph-bet .ph-bet-panel-close {
+  min-width: 44px;
+  min-height: 44px;
+}
+.ph-bet .ph-bet-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 16px 16px;
+}
+.ph-bet .ph-bet-panel-foot {
+  margin: 0;
+  padding: 6px 16px 10px;
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 1024px) {
+  .ph-bet .ph-bet-launcher {
+    bottom: 24px;
+    right: 24px;
+  }
+}
+
+/* ------------------------------------------------------------ add to slip (on game and player pages) */
+.ph-bet.ph-bet-add {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ph-bet.ph-bet-add .btn {
+  min-height: 44px;
+}
+.ph-bet.ph-bet-add-row {
+  display: flex;
+  margin: 6px 0;
+}
+
+/* ------------------------------------------------------------ compare and hedge */
+.ph-bet .ph-bet-market {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-market h2 {
+  margin: 0;
+  font-size: var(--fs-xl, 1.25rem);
+  overflow-wrap: anywhere;
+}
+.ph-bet .ph-bet-market > div {
+  min-width: 0;
+  flex: 1;
+}
+.ph-bet .ph-bet-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: var(--bet-gap);
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 10px);
+  background: var(--surface);
+  padding: 12px 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ph-bet .ph-bet-card.unavailable {
+  background: var(--surface-2);
+  border-style: dashed;
+}
+.ph-bet .ph-bet-card h3 {
+  margin: 0;
+  font-size: var(--fs-lg, 1.125rem);
+}
+.ph-bet .ph-bet-card .ph-bet-price {
+  font-size: var(--fs-xl, 1.25rem);
+  font-weight: 700;
+  margin: 0;
+}
+.ph-bet .ph-bet-card p {
+  margin: 0;
+}
+.ph-bet .ph-bet-card .ph-bet-kind {
+  color: var(--muted);
+  font-size: var(--fs-xs, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ph-bet .ph-bet-crown {
+  font-weight: 700;
+  color: var(--accent-ink, var(--accent));
+}
+.ph-bet .ph-bet-held {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: var(--sp-2, 8px) 0;
+}
+.ph-bet .ph-bet-held button {
+  text-align: left;
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
+.ph-bet .ph-bet-held button[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.ph-bet .ph-bet-picker {
+  display: grid;
+  gap: var(--sp-2, 8px);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  align-items: end;
+}
+.ph-bet .ph-bet-hub {
+  display: grid;
+  gap: var(--bet-gap);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-hub a {
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 10px);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+.ph-bet .ph-bet-hub a:hover,
+.ph-bet .ph-bet-hub a:focus-visible {
+  border-color: var(--accent);
+}
+.ph-bet .ph-bet-hub strong {
+  display: block;
+  font-size: var(--fs-lg, 1.125rem);
+  margin-bottom: 4px;
+}
+.ph-bet .ph-bet-split {
+  display: grid;
+  gap: var(--bet-gap);
+}
+@media (min-width: 900px) {
+  .ph-bet .ph-bet-split {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ph-bet .ph-bet-panel.sheet {
+    animation: ph-bet-rise 160ms ease-out;
+  }
+}
+@keyframes ph-bet-rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -6,7 +6,7 @@ import { checkMarket, checkQuote, DEFAULT_MAX_QUOTE_AGE_MS, freshness, isFiniteI
 import { enumerateOutcomes, grossPayoutOf, MAX_ENUMERATED_MARKETS, round6, sizeHedge, validNativeAmount, type OutcomeMap } from "./hedgeMath";
 import { instantMs } from "../time";
 import { deepFreeze, frozenCopy, jsonCopy, localId } from "./ids";
-import type { EntryTerms, IdeaStatus, Market, ProviderId, Quote, Result, SavedIdea, Side, SlipDraft, SlipLeg, SlipWorkspace } from "./types";
+import type { EntryTerms, IdeaStatus, Market, ProviderId, Quote, Result, SavedIdea, Side, SlipDraft, SlipLeg, SlipPick, SlipWorkspace } from "./types";
 
 export const MAX_LEGS = 64;
 export const MAX_IDEAS = 500;
@@ -86,7 +86,7 @@ export function makeLeg(quote: Quote, market: Market, role: SlipLeg["role"] = "p
   };
 }
 
-export const DEFAULT_ENTRY: EntryTerms = Object.freeze({ stake: 10, multiplier: 3 });
+export const DEFAULT_ENTRY: EntryTerms = /* @__PURE__ */ Object.freeze({ stake: 10, multiplier: 3 });
 
 export function emptyDraft(): SlipDraft {
   return { legs: [], entry: { ...DEFAULT_ENTRY }, title: "", thesis: "", tags: [], origin: "user" };
@@ -94,7 +94,7 @@ export function emptyDraft(): SlipDraft {
 
 /** An empty workspace. Nothing is seeded: the sample loads only through `sample.ts`, on an explicit action. */
 export function createSlipWorkspace(): SlipWorkspace {
-  return { draft: emptyDraft(), ideas: [], manualQuotes: [] };
+  return { draft: emptyDraft(), ideas: [], manualQuotes: [], picks: [] };
 }
 
 /** Recorded positions always count; planned legs count only while switched on. */
@@ -595,7 +595,88 @@ export function validateSlipWorkspace(value: unknown): WorkspaceCheck {
   }
   if (new Set(manualQuotes.map((q) => q.id)).size !== manualQuotes.length) return fail("manualQuotes", "duplicate quote ids");
   if (new Set(manualQuotes.map((q) => `${q.marketId}|${q.provider}|${q.side}`)).size !== manualQuotes.length) return fail("manualQuotes", "two typed prices for the same market, provider and side");
-  return { ok: true, workspace: deepFreeze(jsonCopy({ draft: d.value, ideas, manualQuotes })) };
+  // Picks arrived after version 1 was first written; a document without them reads as an empty list.
+  const rawPicks = value["picks"] ?? [];
+  if (!Array.isArray(rawPicks) || rawPicks.length > MAX_LEGS) return fail("picks", `must be a list of at most ${MAX_LEGS}`);
+  const picks: SlipPick[] = [];
+  for (const [i, raw] of (rawPicks as unknown[]).entries()) {
+    const r = checkPick(raw, `picks[${i}]`);
+    if (!r.ok) return fail(r.path, r.reason);
+    picks.push(r.value);
+  }
+  if (new Set(picks.map((p) => p.id)).size !== picks.length) return fail("picks", "duplicate pick ids");
+  if (new Set(picks.map((p) => `${p.market.id}|${p.side}`)).size !== picks.length) return fail("picks", "two picks for the same market and side");
+  return { ok: true, workspace: deepFreeze(jsonCopy({ draft: d.value, ideas, manualQuotes, picks })) };
+}
+
+function checkPick(v: unknown, path: string): Check<SlipPick> {
+  const bad = (reason: string, sub = ""): Check<SlipPick> => ({ ok: false, path: `${path}${sub}`, reason });
+  if (!isObject(v)) return bad("not an object");
+  if (!isId(v["id"])) return bad("id missing", ".id");
+  const m = checkMarket(v["market"]);
+  if (!m.ok) return bad(m.reason, ".market");
+  if (!isSide(v["side"])) return bad("side must be yes or no", ".side");
+  if (!isText(v["from"], 24)) return bad("from must be short text", ".from");
+  if (!isInstant(v["addedAt"])) return bad("addedAt must be an ISO instant", ".addedAt");
+  return { ok: true, value: { id: v["id"], market: deepFreeze(m.value), side: v["side"], from: v["from"], addedAt: v["addedAt"] } };
+}
+
+// ------------------------------------------------------------------------------------------------ picks (no price)
+
+export type PickEdit = Result<{ workspace: SlipWorkspace; outcome: "added" | "already" | "reenabled" }, "too_many_legs">;
+
+/**
+ * Adds an unpriced pick for this market and side. A planned leg already on the same market and side is switched back on
+ * instead ("reenabled"); a pick already there is left alone ("already"). Nothing is duplicated and nothing is priced.
+ */
+export function addPick(ws: SlipWorkspace, market: Market, side: Side, opts: { id?: string; from: string; now: string }): PickEdit {
+  const leg = ws.draft.legs.find((l) => l.role === "planned" && l.market.id === market.id && l.quote.side === side);
+  if (leg) {
+    if (leg.enabled) return { ok: true, workspace: ws, outcome: "already" };
+    return { ok: true, workspace: { ...ws, draft: { ...ws.draft, legs: ws.draft.legs.map((l) => (l.id === leg.id ? { ...l, enabled: true } : l)) } }, outcome: "reenabled" };
+  }
+  if (ws.picks.some((p) => p.market.id === market.id && p.side === side)) return { ok: true, workspace: ws, outcome: "already" };
+  if (ws.picks.length >= MAX_LEGS) return { ok: false, code: "too_many_legs", text: `At most ${MAX_LEGS} picks can wait for a price.` };
+  const pick: SlipPick = frozenCopy({ id: opts.id ?? localId("pick"), market, side, from: opts.from.slice(0, 24), addedAt: opts.now });
+  return { ok: true, workspace: { ...ws, picks: [...ws.picks, pick] }, outcome: "added" };
+}
+
+export function removePick(ws: SlipWorkspace, pickId: string): SlipWorkspace {
+  return { ...ws, picks: ws.picks.filter((p) => p.id !== pickId) };
+}
+
+/** Drops picks on this market and side (they now have a priced leg). */
+export function settlePicks(ws: SlipWorkspace, marketId: string, side: Side): SlipWorkspace {
+  return { ...ws, picks: ws.picks.filter((p) => !(p.market.id === marketId && p.side === side)) };
+}
+
+/**
+ * Replaces a planned leg's price snapshot with one the viewer typed (a new manual snapshot). A recorded position's entry
+ * price is a fact of the record and is not edited here. The quote must be on the same market and side.
+ */
+export function replacePlannedQuote(draft: SlipDraft, legId: string, quote: Quote): DraftEdit {
+  const leg = draft.legs.find((l) => l.id === legId);
+  if (!leg) return { ok: false, code: "not_found", text: "That leg is not in the slip." };
+  if (leg.role !== "planned") return { ok: false, code: "not_planned", text: "A recorded position keeps the price it was recorded at." };
+  const q = checkQuote(quote);
+  if (!q.ok || q.value.marketId !== leg.market.id || q.value.side !== leg.quote.side || q.value.price.kind !== leg.quote.price.kind) {
+    return { ok: false, code: "invalid_amount", text: q.ok ? "The new price must be for the same market, side and kind of venue." : `That price is not valid: ${q.reason}.` };
+  }
+  return { ok: true, draft: { ...draft, legs: draft.legs.map((l) => (l.id === legId ? { ...l, quote: frozenCopy(q.value) } : l)) } };
+}
+
+/** Appends a position the viewer already holds elsewhere (a local record; nothing is sent anywhere). */
+export function addRecordedLeg(draft: SlipDraft, quote: Quote, market: Market, amount: number, placedAt: string, opts: { id?: string } = {}): DraftEdit {
+  if (draft.legs.length >= MAX_LEGS) return { ok: false, code: "too_many_legs", text: `A slip holds at most ${MAX_LEGS} legs.` };
+  if (quote.price.kind === "entry-pick") return { ok: false, code: "invalid_amount", text: "Record an entry by adding its picks to the slip and marking the slip as placed." };
+  if (!validNativeAmount(quote.price, amount)) return { ok: false, code: "invalid_amount", text: quote.price.kind === "binary" ? "Use a whole number of contracts." : "Use a stake to the cent." };
+  return { ok: true, draft: { ...draft, legs: [...draft.legs, makeLeg(quote, market, "existing", { ...opts, amount, placedAt })] } };
+}
+
+/** Sets the draft's note fields (kept with the draft; the Ideas screen saves them with an idea). */
+export function setNotes(draft: SlipDraft, notes: { title?: string; thesis?: string; tags?: readonly string[] }): SlipDraft {
+  const tags = notes.tags === undefined ? draft.tags : notes.tags.map((t) => t.trim().slice(0, 60)).filter((t) => t !== "").slice(0, MAX_TAGS);
+  return { ...draft, title: (notes.title ?? draft.title).slice(0, 200), thesis: (notes.thesis ?? draft.thesis).slice(0, 5000), tags };
 }
 
 /** Type guard form of `validateSlipWorkspace`, for generic code. */

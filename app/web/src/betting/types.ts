@@ -131,11 +131,27 @@ export interface SavedIdea extends SlipDraft {
   readonly outcomes: Readonly<Record<string, Side>>;
 }
 
-/** What the browser keeps per scope: the rolling slip, saved ideas, and quotes the viewer typed. */
+/**
+ * A pick added from a game or player page before any price is chosen: the market and side exactly as the page showed
+ * them. It carries no price and no amount; it becomes a slip leg only when the viewer picks a venue price (Compare) or
+ * types one. It is never counted in cost, outcomes or coverage.
+ */
+export interface SlipPick {
+  readonly id: string;
+  readonly market: Market;
+  readonly side: Side;
+  /** Which page added it ("leg", "game", "compare", "custom"). */
+  readonly from: string;
+  readonly addedAt: string;
+}
+
+/** What the browser keeps per scope: the rolling slip, saved ideas, quotes the viewer typed, and picks awaiting a price. */
 export interface SlipWorkspace {
   readonly draft: SlipDraft;
   readonly ideas: readonly SavedIdea[];
   readonly manualQuotes: readonly Quote[];
+  /** Absent in documents written before picks existed; read as an empty list. */
+  readonly picks: readonly SlipPick[];
 }
 
 /** The app's error style: a stable snake_case code plus one line of plain text. */
