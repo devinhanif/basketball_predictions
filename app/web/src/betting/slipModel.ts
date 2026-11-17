@@ -30,7 +30,7 @@ export function normalisedCost(quote: Quote): NormalisedCost {
   if (!q.ok) return { ok: false, code: "invalid_price", text: `No cost shown, because the quote is invalid: ${q.reason}.` };
   const p = q.value.price;
   if (p.kind === "entry-pick") return { ok: false, code: "entry_only", text: "No per-pick price: the entry's payout rule prices the whole entry." };
-  if (p.fee.status === "unknown") return { ok: false, code: "fee_unknown", text: "No cost shown, because this provider's fee is unknown." };
+  if (p.fee.status === "unknown") return { ok: false, code: "fee_unknown", text: "No cost shown, because this venue's fee is unknown." };
   if (p.kind === "binary") return { ok: true, cents: round6(p.askCents + p.fee.centsPerDollarPayout) };
   const o = p.americanOdds;
   return { ok: true, cents: round6((o > 0 ? 10000 / (o + 100) : (-o * 100) / (-o + 100)) + p.fee.centsPerDollarPayout) };
@@ -189,7 +189,7 @@ export function describeOverlaps(legs: readonly SlipLeg[]): SlipOverlap[] {
       marketIds: [m.id],
       label: opposite ? "Opposite sides, same line" : "Repeated market exposure",
       detail: opposite
-        ? `${m.playerName}: YES and NO share one outcome here. What each pays depends on the amounts and each provider's rules.`
+        ? `${m.playerName}: YES and NO share one outcome here. What each pays depends on the amounts and each venue's rules.`
         : `${m.playerName}: ${matched.length} legs win or lose together; they are not spread out.`,
     });
   }
@@ -338,7 +338,7 @@ export function evaluateDraft(draft: SlipDraft, opts: EvaluateOptions): SlipEval
   const warnings: string[] = [];
   const problems = legs.map(legProblem).filter((p): p is string => p !== null);
   if (!legs.length) warnings.push("Add a planned leg or a recorded position to evaluate the slip.");
-  if (problems.some((p) => p === "fee unknown")) warnings.push("A provider fee is unknown, so cost and outcomes are not shown. Enter the fee to continue.");
+  if (problems.some((p) => p === "fee unknown")) warnings.push("A venue's fee is unknown, so cost and outcomes are not shown. Enter the fee to continue.");
   if (problems.some((p) => p !== "fee unknown")) warnings.push("One or more active legs has an invalid amount, price or odds. Fix it before evaluating outcomes.");
   const picks = legs.filter((l) => l.quote.price.kind === "entry-pick");
   const entryNotes = entryCheck(picks, draft.entry);
@@ -346,7 +346,7 @@ export function evaluateDraft(draft: SlipDraft, opts: EvaluateOptions): SlipEval
   if (picks.length) warnings.push("The entry uses one all-correct multiplier, stake included. Eligibility, pushes, voids, flex payouts and promotions are not modelled.");
   if (legs.some((l) => l.quote.provenance === "sample")) warnings.push("Sample prices only. They are not live or verified.");
   if (legs.some((l) => l.quote.provenance === "manual")) warnings.push("Manual prices are what you typed: assumptions, not verified fills or a live feed.");
-  if (new Set(legs.map((l) => l.quote.provider)).size > 1) warnings.push("Cross-provider settlement and void rules must match. Matching player names and lines alone do not prove it.");
+  if (new Set(legs.map((l) => l.quote.provider)).size > 1) warnings.push("The venues' settlement and void rules must match. Matching player names and lines alone do not prove it.");
   const complete = legs.length > 0 && problems.length === 0 && entryNotes.length === 0;
 
   const providers = [...new Set(legs.map((l) => l.quote.provider))];
@@ -411,7 +411,7 @@ function coverageGate(x: {
     const onMarket = x.legs.filter((l) => l.market.id === m.id);
     const rules = new Set(onMarket.map((l) => l.market.settlementRuleId));
     if (new Set(onMarket.map((l) => l.quote.provider)).size > 1 && (rules.has(null) || rules.size > 1)) {
-      return no("unverified_settlement", `Not shown, because ${m.playerName}'s market is on more than one provider and their settlement rules (DNP, void, overtime) are not verified to match.`);
+      return no("unverified_settlement", `Not shown, because ${m.playerName}'s market is on more than one venue and their settlement rules (DNP, void, overtime) are not verified to match.`);
     }
   }
   const lines = new Map<string, Set<number>>();

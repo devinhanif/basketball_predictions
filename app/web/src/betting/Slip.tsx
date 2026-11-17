@@ -327,7 +327,7 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
       <MoneyNote arithmetic />
       {empty ? null : (
         <p class="small muted num">
-          {[planned.length ? `${count(planned.filter((l) => l.enabled).length)} of ${count(planned.length)} planned ${planned.length === 1 ? "leg" : "legs"} included` : "", recorded.length ? `${count(recorded.length)} recorded` : "", ws.picks.length ? `${count(ws.picks.length)} waiting for a price` : ""].filter(Boolean).join(" · ")}.
+          {[planned.length ? `${count(planned.filter((l) => l.enabled).length)} of ${count(planned.length)} planned ${planned.length === 1 ? "leg" : "legs"} included` : "", recorded.length ? `${count(recorded.length)} recorded ${recorded.length === 1 ? "position" : "positions"}` : "", ws.picks.length ? `${count(ws.picks.length)} waiting for a price` : ""].filter(Boolean).join(" · ")}.
           {ws.draft.origin === "sample" ? " This slip is the labelled demo: sample prices only." : ""}
         </p>
       )}
@@ -392,9 +392,14 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
         </>
       ) : null}
       <div class="ph-bet-actions">
+        {ws.picks.length && !planned.length ? (
+          <a class="btn primary wide" href="#/bet/compare">
+            Compare venues to price {ws.picks.length === 1 ? "this pick" : "these picks"}
+          </a>
+        ) : null}
         <PlaceButton bet={bet} ws={ws} ev={ev} onPlaced={() => { setPlaced((n) => n + 1); }} />
         {recorded.length ? (
-          <a ref={hedgeLink} class="btn wide" href="#/bet/hedge">
+          <a ref={hedgeLink} class={planned.some((l) => l.enabled) ? "btn wide" : "btn primary wide"} href="#/bet/hedge">
             Open Hedge Finder with these positions
           </a>
         ) : null}

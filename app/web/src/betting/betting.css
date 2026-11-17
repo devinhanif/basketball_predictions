@@ -1109,3 +1109,36 @@
   overflow-wrap: break-word;
   min-width: 0;
 }
+
+.ph-bet .ph-bet-glance {
+  margin: var(--sp-2, 8px) 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 12px);
+  background: var(--surface);
+}
+.ph-bet .ph-bet-hub a {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  column-gap: 12px;
+}
+.ph-bet .ph-bet-hub a > .ph-bet-hub-icon {
+  grid-row: 1 / span 3;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-bold, 700);
+}
+.ph-bet .ph-bet-hub a > .ph-bet-hub-next {
+  padding-top: 2px;
+}
+.ph-bet .ph-bet-aboutbox {
+  margin: 0 0 var(--sp-3, 12px);
+}
+.ph-bet .ph-bet-aboutbox summary,
+.ph-bet .ph-bet-feebar > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
