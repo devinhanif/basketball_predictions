@@ -162,7 +162,13 @@ every `#/bet...` address shows the "is a Market screen" note.
 - No scraping: quotes come only from what you type or from the nightly export's stored snapshots, through this app's
   own read-only API.
 - Browser-only state: the slip, typed prices and recorded positions stay in this browser (`ph.betting.workspace:device`,
-  versioned), with JSON export and import; an invalid import changes nothing. The API has no write route.
+  schema version 2; a version 1 file loads through a migration, and a build older than version 2 refuses a newer file),
+  with JSON export and import; an invalid import changes nothing. The API has no write route. A change made in another
+  tab of the same browser appears without a reload, unless this tab holds an unsaved edit. If the browser refuses the
+  first storage read (blocked storage, some private modes), the slip runs in that tab's memory and every betting screen
+  says "This browser cannot save your slip."; export keeps it.
+- Paper outcomes are yours, not a venue's: each time you record, correct or reopen an idea's outcomes the idea keeps a
+  line in "History of this record".
 
 **The quote board** (`/api/betting/providers`, `/api/betting/board/{game}/{player}/{stat}`,
 `/api/betting/slate/{date}`; contract `docs/contracts/betting_board_v1.md`) serves, per line, provider and side, only the
