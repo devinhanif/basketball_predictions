@@ -75,6 +75,7 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
 
 | C1 | `agent/app-1117-design` | `~/Downloads/nba-wt-1117-design` | launched 20:02 CST: tokens, `src/ui/` components, one formatter, edge-label language, states, data-as-of line, Key terms page, intro, palette and shortcuts | `docs/handoff_2026-11-17/lane_design.md` |
 | C2a | `agent/app-1117-menu-api` | `~/Downloads/nba-wt-1117-menu-api` | launched 20:21 CST: read-only routes for prediction record, distribution, scorecard, forward-test tracker, parlay diagnostics, error-code help, health strip fields; export-field proposals | `docs/handoff_2026-11-17/lane_menu_api.md` |
+| C2b | `agent/app-1117-pages` | `~/Downloads/nba-wt-1117-pages` | launched about 21:09 CST: the pages (prediction record, health strip, distribution view, scorecard, forward-test tracker, error-code help, parlay diagnostics), honesty labels on browser-computed numbers, artifact bake of the new routes | `docs/handoff_2026-11-17/lane_pages.md` |
 | E1 | `agent/steward-1117-ci-health` | `~/Downloads/nba-wt-1117-ci` | lint truth, `slow` marker, flaky tests, generated outputs out of git, launchd plist files (not installed), cleanup script (not run) | `docs/handoff_2026-11-17/lane_ci.md` |
 | F | `agent/scribe-1117-docs` | `~/Downloads/nba-wt-1117-docs` | `README.md`, `docs/PROJECT_STATUS.md`, drift fixes in DAILY_PIPELINE and PARLAY_ENGINE, root `NEXT_SESSION.md` removed on the branch | `docs/handoff_2026-11-17/lane_docs.md` |
 
@@ -84,11 +85,11 @@ lane C2 (candidate menu: prediction record, scorecard, health strip, distributio
 for the replay oracle, for the end of the game window about 22:00 CST).
 
 ## Next three steps
-1. When C1 (design) and C2a (feature routes) report: verify each on its branch, merge into the integration branch, run
-   `app/scripts/check.sh --browser` there. Then launch C2b (the pages: prediction record, distribution fan, scorecard,
-   forward-test tracker, error-code help, parlay diagnostics, health strip), which needs both.
-2. When E1 (CI health) reports: verify, merge. Then launch E2 (live-path refactors) no earlier than 22:00 CST.
-3. Replay oracle for E2: holdout row first, DB copy and out-dir under a scratch directory, hash must be `89889f6d`.
+1. When C2b (pages) reports: verify on its branch, merge, run `app/scripts/check.sh --browser` and `app/scripts/walk.sh --widths`
+   on the integration branch.
+2. When E1 (CI health) reports: verify, merge. Then launch E2 (live-path refactors), which needs the replay oracle: holdout
+   row first, DB copy and out-dir under a scratch directory, hash must be `89889f6d`.
+3. Then Phase 6 (math diagnostics, analysis and proposals only) if budget remains, and `REPORT.md`.
 
 ## Auto-resume (Devin started it in a terminal about 19:04 CST on 11-16; if it was the one-shot with `sleep 14700`, it fires about 23:09 CST)
 A terminal command resumes this session headless (`claude --resume ... -p "Continue the autonomous run..."`), either once
