@@ -138,7 +138,9 @@ Learn), 5 (not-found screen), 8 (intro replaces the welcome modal), 15 (forward 
 
 ## 10. Status of this report
 
-The first run (SUPER PROMPT v3) is finished as of 00:35 CST on 2026-11-17: every lane is merged into the integration branch
-and the gates above were run on the merged tree. The follow-up run (Jarvis look and betting tools behind one switch) is in
-progress on `agent/app-jarvis-followup`; its report will be `REPORT_JARVIS.md`. The completion line that the terminal resume
-loop waits for is written only when that follow-up is finished too.
+The first run (SUPER PROMPT v3) finished at 00:35 CST on 2026-11-17: every lane is merged into the integration branch and
+the gates above were run on the merged tree. The follow-up run (Jarvis look and betting tools behind one switch) finished
+at 07:23 CST on `agent/app-jarvis-followup`, which contains everything in this report plus the follow-up; its report is
+`REPORT_JARVIS.md` on that branch. Nothing was merged to `main` and nothing was pushed.
+
+RUN COMPLETE

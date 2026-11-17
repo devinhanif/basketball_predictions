@@ -67,14 +67,19 @@ rerun on 5b94a4ea (see REPORT_JARVIS.md section 3 for the last numbers).
 | K3 | `agent/app-jarvis-depth` | `~/Downloads/nba-wt-1117-jv-depth` | DONE, merged 06:33 CST (8d5bf91b): Analyst opens three players per team, Scorecard folds kept-back rows and strips source paths in Simple, plain words on the prop page, locked replay rows are one line, scroll cue on chip rows, section failures are h2, jump links open folds. Web check OFF and ON 573; parity 18 markers. Main session after it (f539d623): a failed Today's picks section is an h2 |
 | K4 | `agent/app-jarvis-night` | `~/Downloads/nba-wt-1117-jv-night` | DONE, merged 06:44 CST (8a614f48): Compare folds its secondary notes and fee form, the hub is four numbered steps with the slip's state, one glossary, one primary action per slip stage, 8-leg phone sheet step in the journey. Web check OFF and ON 573; parity 18 markers; layering 15 |
 
-## Next
-1. The final gate on 8a614f48 started 06:46 CST (`scratchpad/final/gate.log`): `check.sh --browser`, `walk.sh --widths`,
-   `visual.sh --quick` and `--quick --betting`, the journey against 5186, API tests with `PH_BETTING=1`.
-   A walk that ran while a merge changed the working tree showed two false violations (the dev server reloaded the page
-   mid-step); do not edit `app/web` while a walk runs.
-2. Then: rebuild the real-data single-file pages into `~/Downloads/parlayhitters-artifacts-2026-11-17/`, put the last
-   numbers in `REPORT_JARVIS.md`, and write the completion line in `REPORT.md` on both branches. Heavy work ends before
-   08:20 CST (live jobs).
+## Finished (07:23 CST)
+- Final gate on 8a614f48, 06:45 to 07:07 CST, all green: `check.sh --browser` (api 604 passed, 1 skipped; web 573; flag
+  parity 18 markers; walk 0 violations on both seeds), `walk.sh --widths` 0 violations at all five settings, visual quick
+  set 120 captures off and 148 on with 0 gating findings, journey PASSED on the real export (142 steps), API with
+  `PH_BETTING=1` 604 passed, 1 skipped. Layering 15 passed.
+- Full visual set, 07:07 to 07:22 CST: 360 captures off, 444 on, 0 with a gating finding.
+- Real-data single-file pages rebuilt 07:22 CST into `~/Downloads/parlayhitters-artifacts-2026-11-17/` (6,501,900 B off,
+  6,672,736 B on); both opened from disk. Not published.
+- Commits after 8a614f48 are documents only (`git diff --stat 8a614f48..HEAD`).
+- `REPORT_JARVIS.md` is final; decision rows 18 to 41 are in `DECISIONS_ROWS.md`; retro in
+  `docs/reviews/retro_2026-11-17.md`. The completion line is in `REPORT.md` on both branches.
+- Still running from this session, safe to stop: the previews (API 8012 + web 5185 switch off; API 8013 + web 5186
+  switch on). `lsof -nP -tiTCP:5185 -sTCP:LISTEN` gives the PID to stop; the same for 5186, 8012, 8013.
 
 ## Decisions so far (rows go to DECISIONS_ROWS.md at the end)
 - "fast arb" (Devin, about 22:55 CST): JARVIS Polymarket fee uses fast-arb's order. On the integration branch, row 16.
