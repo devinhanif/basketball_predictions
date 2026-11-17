@@ -141,6 +141,7 @@ export function ParlayCard({ compact, date }: { compact: boolean; date?: string 
 
 export function ParlayPage(props: { date: string | null }) {
   const market = useLens() === "market";
+  const analyst = useMode() === "analyst";
   return (
     <div class="stack pb-page">
       <PageHead
@@ -152,7 +153,9 @@ export function ParlayPage(props: { date: string | null }) {
       {market ? (
         <ParlayCard compact={false} date={props.date} />
       ) : null}
-      {market ? <ParlayDiagnostics date={props.date} /> : null}
+      {/* The stored per-record joint chances name files and export fields: Analyst detail only. */}
+      {market && analyst ? <ParlayDiagnostics date={props.date} /> : null}
+      {market && !analyst ? <p class="small muted">The stored joint chances behind this card, record by record, are in Analyst detail (switch Detail at the top).</p> : null}
       {market ? (
         <LatestTopParlays date={props.date} />
       ) : (
