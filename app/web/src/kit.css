@@ -1,0 +1,348 @@
+/* The component set in src/ui/ and the shell pieces added with it. Tokens only (theme.css); loaded last so the shared
+   classes it reuses (.panel, .tile, .tabs, .btn, .modal) take their density and focus rules from here. */
+
+/* ---- tones: one place where a role becomes a colour pair ---- */
+.tone-model {
+  --tone: var(--model-ink);
+  --tone-bg: var(--model-soft);
+}
+.tone-mine {
+  --tone: var(--mine-ink);
+  --tone-bg: var(--mine-soft);
+}
+.tone-base,
+.tone-side {
+  --tone: var(--ink);
+  --tone-bg: var(--surface-2);
+}
+.tone-better {
+  --tone: var(--better);
+  --tone-bg: var(--edge-strong-soft);
+}
+.tone-worse {
+  --tone: var(--worse);
+  --tone-bg: var(--surface-2);
+}
+.tone-same {
+  --tone: var(--same);
+  --tone-bg: var(--surface-2);
+}
+.tone-arb {
+  --tone: var(--edge-arb);
+  --tone-bg: var(--edge-arb-soft);
+}
+.tone-strong {
+  --tone: var(--edge-strong);
+  --tone-bg: var(--edge-strong-soft);
+}
+.tone-thin {
+  --tone: var(--edge-thin);
+  --tone-bg: var(--edge-thin-soft);
+}
+.tone-none {
+  --tone: var(--edge-none);
+  --tone-bg: var(--edge-none-soft);
+}
+.tile.tone-model {
+  border-left: 4px solid var(--model);
+}
+.tile.tone-mine {
+  border-left: 4px solid var(--mine);
+}
+.tile.tone-base {
+  border-left: 4px solid var(--base);
+}
+
+/* ---- badge: colour + icon + word ---- */
+.kbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px 8px 2px 6px;
+  border-radius: var(--pill);
+  border: 1px solid var(--tone, var(--line));
+  background: var(--tone-bg, var(--surface-2));
+  color: var(--tone, var(--ink));
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.kbadge svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.kbadge-link {
+  text-decoration: none;
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+}
+.kbadge-link:hover .kbadge {
+  text-decoration: underline;
+}
+
+/* ---- banner: data line, notices, newer data ---- */
+.kbanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+  padding: 8px var(--gutter-r) 8px var(--gutter);
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  text-align: center;
+}
+.kbanner > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.kbanner-text {
+  min-width: 0;
+}
+.kbanner.tone-info {
+  background: var(--surface-2);
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.kbanner.tone-fresh {
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-bottom: 1px solid var(--accent);
+}
+p.kbanner {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  justify-content: flex-start;
+  text-align: left;
+}
+.btn.small {
+  min-height: 36px;
+  padding: 4px 12px;
+  font-size: var(--fs-sm);
+}
+@media (pointer: coarse) {
+  .btn.small {
+    min-height: var(--target);
+  }
+}
+.btn.quiet {
+  background: transparent;
+  border-color: transparent;
+}
+.btn.wide {
+  width: 100%;
+}
+
+/* ---- tiles ---- */
+.tile-u {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  margin-left: 3px;
+  color: var(--muted);
+}
+.tile-note {
+  margin-top: 4px;
+}
+.skel-tile {
+  height: 72px;
+}
+.kskel {
+  display: grid;
+  gap: var(--row-gap);
+}
+
+/* ---- tabs: roving tabindex list ---- */
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.tabpanel:focus-visible {
+  outline-offset: 4px;
+}
+
+/* ---- table ---- */
+.ktable {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ktable caption {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: var(--sp-2);
+}
+.ktable th,
+.ktable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.ktable th.num,
+.ktable td.num {
+  text-align: right;
+}
+.sort-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.sort-mark {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+/* ---- chart frame ---- */
+.chart-frame {
+  margin: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.chart-frame figcaption {
+  display: grid;
+  gap: 2px;
+}
+.chart-numbers summary {
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  color: var(--accent-ink);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---- first-visit intro (never covers the page) ---- */
+.intro {
+  margin-bottom: var(--sp-4);
+  border-left: 4px solid var(--accent);
+}
+.intro-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+.intro-list {
+  margin: var(--sp-3) 0;
+  padding-left: 1.3em;
+  display: grid;
+  gap: var(--sp-2);
+}
+.intro-name {
+  max-width: 360px;
+  margin-bottom: var(--sp-3);
+}
+.intro-actions {
+  gap: var(--sp-2);
+}
+
+/* ---- key terms ---- */
+.terms-search input {
+  width: 100%;
+  max-width: 480px;
+}
+.terms-dl {
+  margin: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.term {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3) var(--pad);
+  scroll-margin-top: 80px;
+}
+.term.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.term dt {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.term-name {
+  color: var(--ink);
+}
+.term dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* ---- shortcut sheet ---- */
+.keys-list {
+  margin: 0 0 var(--sp-3);
+  display: grid;
+  gap: var(--sp-2);
+}
+.keys-row {
+  display: grid;
+  grid-template-columns: minmax(0, 11em) minmax(0, 1fr);
+  gap: var(--sp-3);
+  align-items: baseline;
+}
+.keys-row dd {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .keys-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+/* ---- every number lines up ---- */
+.num,
+td,
+th,
+.tile-v,
+.big-num,
+kbd {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---- phones: 44 px targets for the controls this sheet adds ---- */
+@media (max-width: 760px) {
+  .sort-btn,
+  .chart-numbers summary,
+  .kbadge-link {
+    min-height: var(--target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .kbanner {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .kbanner .btn {
+    flex: none;
+  }
+}

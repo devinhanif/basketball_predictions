@@ -31,6 +31,14 @@ export const ICONS = {
   arrow: "M7 17L17 7M9 7h8v8",
   live: "M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14",
   record: "M4 20h16M7 20v-9M12 20V5M17 20v-6",
+  up: "M12 5l8 13H4z",
+  dn: "M12 19L4 6h16z",
+  same: "M5 9.5h14M5 14.5h14",
+  swap: "M4 8h14l-4-4M20 16H6l4 4",
+  rise: "M6 15l6-6 6 6",
+  none: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8",
+  book: "M5 5a2 2 0 0 1 2-2h12v16H7a2 2 0 0 0-2 2zM5 21V5M9 7h6",
+  keys: "M3 7h18v10H3zM7 10.5h.01M11 10.5h.01M15 10.5h.01M8 14h8",
 } as const;
 export type IconName = keyof typeof ICONS;
 

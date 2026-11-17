@@ -22,14 +22,31 @@ const auditSrc = readFileSync(join(root, "scripts", "audit-dom.js"), "utf8");
 
 // ---- data for seeded picks: cards of a played night, from the baked file ----
 const baked = JSON.parse(readFileSync(join(root, "artifact-data", "baked.json"), "utf8"));
-const NIGHT = baked.swipe_nights.at(-1);
-const nightShard = JSON.parse(gunzipSync(Buffer.from(baked.shards[`d:${NIGHT}`], "base64")).toString("utf8"));
-const cards = nightShard[`/api/slates/${NIGHT}/swipe`].b.cards;
-const results = nightShard[`/api/slates/${NIGHT}/results`].b.rows;
-const slate = baked.simple[`/api/slates/${NIGHT}`].b;
-const GAME = slate.games[0].game_id;
+// The regular build reads its nights from the API it is pointed at (the fixtures are not the baked export); the artifact
+// reads the baked file. A night without a swipe deck simply seeds no picks.
+let NIGHT, cards, results, slate;
+if (artifact) {
+  NIGHT = baked.swipe_nights.at(-1) ?? baked.dates.at(-1);
+  const nightShard = JSON.parse(gunzipSync(Buffer.from(baked.shards[`d:${NIGHT}`], "base64")).toString("utf8"));
+  cards = nightShard[`/api/slates/${NIGHT}/swipe`]?.b?.cards ?? [];
+  results = nightShard[`/api/slates/${NIGHT}/results`]?.b?.rows ?? [];
+  slate = baked.simple[`/api/slates/${NIGHT}`]?.b ?? nightShard[`/api/slates/${NIGHT}`]?.b;
+} else {
+  const get = async (p) => (await fetch(new URL(p, base))).json();
+  const nights = await get("/api/slates");
+  const withGames = [];
+  for (const n of [...nights].sort((a, b) => b.date.localeCompare(a.date))) {
+    const sl = await get(`/api/slates/${n.date}`);
+    if (sl.games?.some((g) => g.key_props?.length)) withGames.push([n.date, sl]);
+    if (withGames.length) break;
+  }
+  [NIGHT, slate] = withGames[0];
+  cards = (await get(`/api/slates/${NIGHT}/swipe`).catch(() => ({ cards: [] }))).cards ?? [];
+  results = (await get(`/api/slates/${NIGHT}/results`).catch(() => ({ rows: [] }))).rows ?? [];
+}
+const GAME = slate.games.find((g) => g.key_props?.length)?.game_id ?? slate.games[0].game_id;
 // a played prop with a baked breakdown: first key prop of the first game
-const kp = slate.games[0].key_props[0];
+const kp = slate.games.find((g) => g.game_id === GAME).key_props[0];
 const picked = results.filter((r) => cards.some((c) => c.prop_id === r.prop_id)).slice(0, 14);
 const mk = (c, side, i) => ({
   prop_id: c.prop_id, slate_date: NIGHT, game_id: c.game_id, player: c.player, team: c.team, opponent: c.opponent, stat: c.stat,
@@ -92,6 +109,7 @@ const SCREENS = artifact
       ["search", "#discover", KEY],
       ["about", "#discover", `document.querySelector('.workspace').click()`],
       ["welcome", "#discover", ""],
+      ["terms", "#terms", ""],
     ]
   : [
       ["today", "#/", ""],
@@ -110,6 +128,13 @@ const SCREENS = artifact
       ["search", "#/", KEY],
       ["about", "#/", `document.querySelector('.workspace').click()`],
       ["welcome", "#/", ""],
+      ["record", "#/record", ""],
+      ["live", "#/live", ""],
+      ["terms", "#/terms", ""],
+      ["term-anchor", "#/terms?t=holdout", ""],
+      ["notfound", "#/zzz", ""],
+      ["badgame", "#/game/nope", ""],
+      ["keys", "#/", `document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))`],
     ];
 
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;

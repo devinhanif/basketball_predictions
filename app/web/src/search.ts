@@ -1,6 +1,6 @@
 // Search (Ctrl/Cmd+K): screens, games and players. The index is built from what the page already holds; nothing is looked up
 // elsewhere. Matching is plain: every word typed must appear (start of a word scores higher).
-export type SearchKind = "screen" | "game" | "player";
+export type SearchKind = "screen" | "game" | "player" | "term";
 
 export interface SearchItem {
   kind: SearchKind;
@@ -11,7 +11,7 @@ export interface SearchItem {
   words?: string;
 }
 
-export const KIND_LABEL: Record<SearchKind, string> = { screen: "Screens", game: "Games", player: "Players" };
+export const KIND_LABEL: Record<SearchKind, string> = { screen: "Screens", game: "Games", player: "Players", term: "Key terms" };
 
 function norm(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -35,12 +35,12 @@ export function scoreItem(item: SearchItem, query: string): number {
 /** Best matches first; at most `limit`, at most `perKind` of each kind. An empty query lists the screens. */
 export function search(index: readonly SearchItem[], query: string, limit = 12, perKind = 6): SearchItem[] {
   const q = query.trim();
-  if (q === "") return index.filter((i) => i.kind === "screen").slice(0, limit);
+  if (q === "") return index.filter((i) => i.kind === "screen").slice(0, Math.max(limit, 16));
   const scored = index
     .map((item, order) => ({ item, s: scoreItem(item, q), order }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s || a.order - b.order);
-  const counts: Record<SearchKind, number> = { screen: 0, game: 0, player: 0 };
+  const counts: Record<SearchKind, number> = { screen: 0, game: 0, player: 0, term: 0 };
   const out: SearchItem[] = [];
   for (const { item } of scored) {
     if (counts[item.kind] >= perKind) continue;

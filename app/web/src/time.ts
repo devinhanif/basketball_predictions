@@ -141,3 +141,14 @@ export function before(a: string | null | undefined, b: string | null | undefine
   const y = instantMs(b);
   return !Number.isNaN(x) && !Number.isNaN(y) && x < y;
 }
+
+/** "just now", "12 min ago", "3 h ago", "2 days ago": how old a stored instant is. Null when unreadable or in the future by more than a minute. */
+export function agoText(stored: string, now: Date = new Date()): string | null {
+  const hours = ageHours(stored, now);
+  if (hours === null || hours < -1 / 60) return null;
+  const min = Math.floor(hours * 60);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min.toString()} min ago`;
+  if (hours < 48) return `${Math.floor(hours).toString()} h ago`;
+  return `${Math.floor(hours / 24).toString()} days ago`;
+}
