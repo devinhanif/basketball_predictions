@@ -148,7 +148,7 @@
   background: var(--surface);
   padding: 10px 12px;
   margin: 0 0 var(--sp-2, 8px);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ph-bet .ph-bet-leg.recorded {
   border-left: 3px solid var(--mine, var(--accent));
@@ -188,6 +188,10 @@
 .ph-bet .ph-bet-amount input {
   width: 7.5em;
 }
+/* The unit after an amount ("contracts", "stake") never breaks inside the word, however narrow the rail. */
+.ph-bet .ph-bet-amount > span:not(.sr) {
+  white-space: nowrap;
+}
 .ph-bet .ph-bet-check {
   display: inline-flex;
   align-items: center;
@@ -195,7 +199,7 @@
   min-height: 44px;
   font-size: var(--fs-sm, 0.875rem);
 }
-.ph-bet .ph-bet-check input {
+.ph-bet .ph-bet-check input:not(.tap-check) {
   width: 20px;
   height: 20px;
   accent-color: var(--accent);
@@ -221,7 +225,7 @@
   gap: 6px;
   padding: 8px 0;
   border-bottom: 1px solid var(--line);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ph-bet .ph-bet-totals dl {
   margin: var(--bet-gap) 0;
@@ -357,18 +361,25 @@
   border-left-color: var(--loss);
 }
 .ph-bet .ph-bet-toast .icon-btn {
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
 }
+/* Wide screens: notices sit at the foot of the sidebar, never over the page being read, the board, the rail or the
+   control just used (all of which are to the right of the sidebar). */
 @media (min-width: 1024px) {
-  .ph-bet.ph-bet-toasts {
-    left: calc(var(--sidebar-w, 240px) + 24px);
-    right: auto;
-    width: 420px;
-    justify-items: start;
-  }
+  .ph-bet.ph-bet-toasts,
+  .ph-bet.ph-bet-toasts.top,
   .ph-bet.ph-bet-toasts.bottom {
-    bottom: 24px;
+    top: auto;
+    left: 12px;
+    right: auto;
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    width: calc(var(--sidebar-w, 240px) - 24px);
+    justify-items: stretch;
+  }
+  .ph-bet.ph-bet-toasts .ph-bet-toast {
+    width: 100%;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -403,7 +414,7 @@
 .ph-bet .ph-bet-market h2 {
   margin: 0;
   font-size: var(--fs-xl, 1.25rem);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ph-bet .ph-bet-market > div {
   min-width: 0;
@@ -827,7 +838,7 @@
   display: grid;
   gap: 6px;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ph-bet .ph-bet-idea p {
   margin: 0;
@@ -845,7 +856,7 @@
 }
 .ph-bet .ph-bet-idea-title h1 {
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ph-bet .ph-bet-idea-thesis {
   display: -webkit-box;
@@ -1032,7 +1043,7 @@
 }
 .ph-bet .ph-bet-facts dd {
   margin: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 @media (max-width: 480px) {
   .ph-bet .ph-bet-facts > div {

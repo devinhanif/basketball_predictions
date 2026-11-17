@@ -54,10 +54,13 @@ export function SidePanelHost() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("has-sidepanel", layout === "rail");
+    // A floating open button: the page's foot reserves room so its last lines can scroll clear of it.
+    document.documentElement.classList.toggle("has-sidepanel-btn", def !== null && layout !== "rail");
     return () => {
       document.documentElement.classList.remove("has-sidepanel");
+      document.documentElement.classList.remove("has-sidepanel-btn");
     };
-  }, [layout]);
+  }, [layout, def]);
 
   useEffect(() => {
     if (!modal) return;

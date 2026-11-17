@@ -4,7 +4,7 @@
 // at an exchange, stake to the cent at a sportsbook). Before/after outcome tables come from evaluateDraft.
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { Skeleton } from "../ui";
+import { PageHead, Skeleton } from "../ui";
 import { count } from "../format";
 import type { BetRoute } from "./seam";
 import { ARITHMETIC_NOTE, TITLE_HEDGE } from "./copy";
@@ -140,8 +140,12 @@ export function HedgeScreen(props: { route: BetRoute }) {
   const leg = held.find((l) => l.id === q.leg) ?? held[0] ?? null;
   return (
     <section class="ph-bet stack" aria-labelledby="ph-bet-hedge-h">
-      <h1 id="ph-bet-hedge-h">{TITLE_HEDGE}</h1>
-      <p class="ph-bet-lede">Your exact recorded positions, carried over from the slip. Pick one; the other side of its market is priced at each venue and sized to cover its gross payout.</p>
+      <PageHead
+        id="ph-bet-hedge-h"
+        kicker="Betting tools"
+        title={TITLE_HEDGE}
+        description="Your exact recorded positions, carried over from the slip. Pick one; the other side of its market is priced at each venue and sized to cover its gross payout."
+      />
       <MoneyNote arithmetic />
       {!bet.ready || !ws ? (
         <Skeleton lines={3} label="Loading your slip" />

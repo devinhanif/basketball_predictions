@@ -1,7 +1,7 @@
 // #/bet: the betting tools hub. What the tools are and are not, the money-safety note, how they fit together (three steps),
 // the ways in (each a real link with its next step), the state of the workspace as tiles, and export/import and the
 // labelled demo (through the slip's own tools). The demo loads only when the button is pressed.
-import { Skeleton, Tile } from "../ui";
+import { PageHead, Skeleton, Tile } from "../ui";
 import { Icon, type IconName } from "../icons";
 import { count } from "../format";
 import { TITLE_HOME } from "./copy";
@@ -34,9 +34,14 @@ export function BetHome() {
   return (
     <MarketGate name="Betting tools" what="The betting tools work on prices.">
       <section class="ph-bet stack" aria-labelledby="ph-bet-home-h">
-        <h1 id="ph-bet-home-h">{TITLE_HOME}</h1>
+        <PageHead
+          id="ph-bet-home-h"
+          kicker="Market tools"
+          title={TITLE_HOME}
+          description="Tools for arithmetic on prices you see elsewhere: compare venues, keep a slip, record what you already placed, and size a hedge."
+        />
         <p class="ph-bet-lede">
-          Tools for arithmetic on prices you see elsewhere: compare venues, keep a slip, record what you already placed, and size a hedge. They never estimate a chance or say what to bet; the model's own forecasts stay on the game and player pages. Until the live record proves skill, keeping your money is a fine answer.
+          They never estimate a chance or say what to bet; the model's own forecasts stay on the game and player pages. Until the live record proves skill, keeping your money is a fine answer.
         </p>
         <MoneyNote arithmetic />
         <ol class="ph-bet-steps" aria-label="How this works">
