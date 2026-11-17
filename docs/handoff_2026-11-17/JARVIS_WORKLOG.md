@@ -40,10 +40,14 @@ other's browser. That was the cause of tonight's hangs and of the "flaky" not-fo
 under load. It now takes a free port from the system, stops with exit 3 if the browser stalls for 90 s, and `walk.sh`
 retries that once.
 
+| J4c betting polish, Ideas, Analysis | 21ac525e | merged 02:58 CST: web check OFF and ON 552 tests; flag parity passed (OFF js 412,329, within 2 bytes of before; ON js 576,514; ON artifact 4,745,279); extended journey against 5186 on real data PASSED (98 ok steps, 375 and 1280, dark and light); I looked at the compact Compare |
+
+Polish items seen by the main session in the merged betting screens (for the last pass): the slip rail's unit labels wrap
+mid-word ("contra cts", "stak e"); a notice can sit over the middle of the Compare board.
+
 ## Running (wave 3, launched about 02:03 CST)
 | Lane | Branch | Worktree | Scope |
 |---|---|---|---|
-| J4c | `agent/app-jarvis-ideas` | `~/Downloads/nba-wt-1117-jv-ideas` | betting polish (slip onto shared SidePanel, compact Compare and Hedge Finder, toasts, hub, dollars formatter), Ideas, minimal real Analysis, extended journey |
 | J6 | `agent/app-jarvis-polish` | `~/Downloads/nba-wt-1117-jv-polish` | shared-component inbox (card-feature contrast, Table stacked layout, MarketOnly headings, palette lens filter), unrestyled components, whole-product design review (first run, consistency, navigation grouping) |
 | J5 | `agent/app-jarvis-verify` | `~/Downloads/nba-wt-1117-jv-verify` | `visual-check.mjs` (structural assertions + local pixel baseline), donor map, filled gap matrix and acceptance checklist, README section |
 
