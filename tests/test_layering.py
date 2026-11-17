@@ -335,12 +335,11 @@ def test_betting_web_imports_stay_inside_app_web() -> None:
                 target = (p.parent / spec).resolve()
                 if not target.is_relative_to(web):
                     bad.append((str(p.relative_to(ROOT)), spec))
-            elif spec == "preact" or spec.startswith("preact/"):
-                continue
-            elif ".test." in p.name and (spec == "vitest" or spec.startswith("node:")):
-                continue
             else:
-                bad.append((str(p.relative_to(ROOT)), spec))
+                runtime = spec == "preact" or spec.startswith("preact/")
+                test_only = ".test." in p.name and (spec == "vitest" or spec.startswith("node:"))
+                if not (runtime or test_only):
+                    bad.append((str(p.relative_to(ROOT)), spec))
     assert not bad, f"betting web code imports outside app/web/: {bad}"
 
 
