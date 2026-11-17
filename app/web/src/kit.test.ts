@@ -18,6 +18,7 @@ const PRICE_RE = [
   /\bfees?\b/i,
   /\bprices?\b/i,
   /\b(DraftKings|FanDuel|BetMGM|Caesars|ESPN ?BET|Fanatics|Kalshi|Polymarket|Novig)\b/i,
+  /\bbook \d{1,3}(\.\d)?%/i, // a book's chance beside ours ("book 51%")
 ];
 const priceWord = (s: string): string | null => {
   for (const re of PRICE_RE) {

@@ -22,7 +22,8 @@ import { SectionHead } from "../ui";
 import { instantMs } from "../time";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
-function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) {
+/** `showBook`: the book's chance beside ours, never in the Learn lens (a book figure is a price word there). */
+function KeyPropsFull({ game, market, showBook }: { game: GameSummary; market: boolean; showBook: boolean }) {
   return (
     <div class="props">
       <div class="label">Top scorers, by our forecast</div>
@@ -75,7 +76,7 @@ function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) 
                 <>
                   <span class="big-num">{pctBounded(p.model_p_over, p.extrapolated)}</span>
                   <CalTag source={p.model_p_source} />
-                  {p.market_p_over !== null ? <span class="muted small">book {pct(p.market_p_over)}</span> : null}
+                  {showBook && p.market_p_over !== null ? <span class="muted small">book {pct(p.market_p_over)}</span> : null}
                 </>
               )}
             </div>
@@ -152,7 +153,7 @@ function LiveStrip({ date, games }: { date: string; games: LiveGameSummary[] }) 
   );
 }
 
-function GameRow({ g, mode, market, live }: { g: GameSummary; mode: Mode; market: boolean; live: LiveGameSummary | null }) {
+function GameRow({ g, mode, market, learn, live }: { g: GameSummary; mode: Mode; market: boolean; learn: boolean; live: LiveGameSummary | null }) {
   return (
     <a class="game" href={`#/game/${g.game_id}`} aria-label={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}, open game`}>
       <div class="game-top">
@@ -170,7 +171,7 @@ function GameRow({ g, mode, market, live }: { g: GameSummary; mode: Mode; market
         {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
       </div>
       <WinBars wp={g.win_probability} home={g.home} away={g.away} showBook={market} />
-      {mode === "analyst" ? <KeyPropsFull game={g} market={market} /> : <KeyPropsOneLine game={g} market={market} />}
+      {mode === "analyst" ? <KeyPropsFull game={g} market={market} showBook={!learn} /> : <KeyPropsOneLine game={g} market={market} />}
     </a>
   );
 }
@@ -319,6 +320,7 @@ function WarmCache({ ids }: { ids: string[] }) {
 
 function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolean; mode: Mode; market: boolean; liveGames: LiveGameSummary[] }) {
   const { s, engine, speaks, mode, market } = props;
+  const lens = useLens();
   const liveOf = (g: GameSummary): LiveGameSummary | null => props.liveGames.find((l) => l.home.abbr === g.home.abbr && l.away.abbr === g.away.abbr) ?? null;
   const gamesList = (
     <section class="disc-games" aria-labelledby="disc-games-h">
@@ -329,7 +331,7 @@ function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolea
       />
     <div class="games">
       {s.games.map((g) => (
-        <GameRow key={g.game_id} g={g} mode={mode} market={market} live={liveOf(g)} />
+        <GameRow key={g.game_id} g={g} mode={mode} market={market} learn={lens === "learn"} live={liveOf(g)} />
       ))}
     </div>
     </section>
