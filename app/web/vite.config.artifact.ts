@@ -8,7 +8,11 @@ export default defineConfig({
   oxc: { jsx: { runtime: "automatic", importSource: "preact" } },
   define: { "import.meta.env.VITE_ARTIFACT": JSON.stringify("1") },
   resolve: {
-    alias: [{ find: /^\.\/transport$/, replacement: fileURLToPath(new URL("./src/transport.static.ts", import.meta.url)) }],
+    alias: [
+      { find: /^\.\/transport$/, replacement: fileURLToPath(new URL("./src/transport.static.ts", import.meta.url)) },
+      // No external address may ship in the page, so the remote headshot is swapped for a stand-in that returns none.
+      { find: /^\.\/headshot$/, replacement: fileURLToPath(new URL("./src/headshot.static.ts", import.meta.url)) },
+    ],
   },
   publicDir: false,
   build: {
