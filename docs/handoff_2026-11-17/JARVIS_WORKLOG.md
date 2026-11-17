@@ -42,13 +42,16 @@ retries that once.
 
 | J4c betting polish, Ideas, Analysis | 21ac525e | merged 02:58 CST: web check OFF and ON 552 tests; flag parity passed (OFF js 412,329, within 2 bytes of before; ON js 576,514; ON artifact 4,745,279); extended journey against 5186 on real data PASSED (98 ok steps, 375 and 1280, dark and light); I looked at the compact Compare |
 
+| J6 finishing pass | 895a7d79 | merged 03:10 CST: web check OFF and ON 558 tests; flag parity passed (OFF js 417,211 / css 123,240 / artifact 4,593,454; ON js 581,413 / artifact 4,757,646); walk 0 violations at all five settings; journey PASSED on real data; I looked at Discover (1440, Market, switch ON) and Compare (phone) |
+| integration branch | 1a6567ab | merged 03:20 CST so this branch is a superset of the first run (CI health, math-diagnostics note, oracle rows, report); repo lint clean; layering 15 passed after 89c4e5fa (the betting import check had started matching ordinary strings in the new screens; it now reads real import statements only) |
+
 Polish items seen by the main session in the merged betting screens (for the last pass): the slip rail's unit labels wrap
 mid-word ("contra cts", "stak e"); a notice can sit over the middle of the Compare board.
 
 ## Running (wave 3, launched about 02:03 CST)
 | Lane | Branch | Worktree | Scope |
 |---|---|---|---|
-| J6 | `agent/app-jarvis-polish` | `~/Downloads/nba-wt-1117-jv-polish` | shared-component inbox (card-feature contrast, Table stacked layout, MarketOnly headings, palette lens filter), unrestyled components, whole-product design review (first run, consistency, navigation grouping) |
+| J7 | `agent/app-jarvis-last` | `~/Downloads/nba-wt-1117-jv-last` | launched 03:22 CST: last polish (slip rail labels, notices, floating button, theme-color, the review lane's not-fixed list), the switch-ON shell and the Ideas/Analysis screens reviewed, both single-file artifacts opened as files, first-visit and keyboard passes |
 | J5 | `agent/app-jarvis-verify` | `~/Downloads/nba-wt-1117-jv-verify` | `visual-check.mjs` (structural assertions + local pixel baseline), donor map, filled gap matrix and acceptance checklist, README section |
 
 ## Next
