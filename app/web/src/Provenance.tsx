@@ -5,10 +5,11 @@ import { useState } from "preact/hooks";
 import { View } from "./components";
 import { count, decimal, MISSING } from "./format";
 import { honestyApi, type Maybe, type ProvRecord, type Snapshot } from "./honesty";
-import { sourceHref } from "./router";
+import { gameHref, legHref, sourceHref } from "./router";
 import { stamp } from "./time";
 import { termHref } from "./terms";
-import { Dialog, Table, type Column } from "./ui";
+import { Badge, Dialog, PageHead, Table, Tile, type Column } from "./ui";
+import { useMode } from "./prefs";
 import { useLoad } from "./useLoad";
 import type { LegStat } from "./legTypes";
 import { LEG_SHORT } from "./legTypes";
@@ -21,6 +22,36 @@ export function t60Words(meets: boolean | null | undefined): string {
   if (meets === true) return "Yes: it was made at least 60 minutes before tip-off, the forward scoring rule's cutoff.";
   if (meets === false) return "No: it was made less than 60 minutes before tip-off, so the forward scoring rule would not count it.";
   return "Not known: no lead time is stored for it.";
+}
+
+/** The stored `meets_t60` as icon + word (never colour alone). */
+function T60Badge({ meets }: { meets: boolean | null | undefined }) {
+  if (meets === true) return <Badge tone="better" icon="check" word="Meets T-60" />;
+  if (meets === false) return <Badge tone="worse" icon="warn" word="Misses T-60" />;
+  return <Badge tone="none" icon="info" word="T-60 not known" />;
+}
+
+/** Phones: the snapshots as a list of short cards (the six-column table is for wider screens; same rows, same order). */
+function SnapCards({ rows }: { rows: readonly Snapshot[] }) {
+  return (
+    <ul class="prov-snapcards" aria-label="Every stored forecast for this one">
+      {rows.map((s) => (
+        <li key={`${s.made_at ?? ""}-${s.model_name ?? ""}-${s.version ?? ""}`}>
+          <div class="psc-top num">
+            <strong>{when(s.made_at)}</strong>
+            <T60Badge meets={s.meets_t60} />
+          </div>
+          <div class="small num">{lead(s.lead_minutes)} before tip-off</div>
+          <div class="small">
+            <span class="mono">{s.model_name ?? MISSING}</span> · version <span class="mono">{s.version ?? MISSING}</span>
+          </div>
+          <div class="small muted">
+            {[s.is_primary ? "the one shown" : null, s.is_latest ? "latest of its model" : null, s.comparison_only ? "comparison only" : null].filter(Boolean).join(", ") || MISSING}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function Short(props: { short: string | null; full: string | null; label: string }) {
@@ -60,8 +91,32 @@ export function RecordBody({ rec }: { rec: ProvRecord }) {
       </div>
     );
   }
+  const analyst = useMode() === "analyst";
+  const snaps =
+    rec.snapshots.length > 0 ? (
+      <>
+        <div class="prov-snaptable">
+          <Table caption="Every stored forecast for this one" rows={rec.snapshots} columns={SNAP_COLS} rowKey={(s) => `${s.made_at ?? ""}-${s.model_name ?? ""}-${s.version ?? ""}`} noun={rec.snapshots.length === 1 ? "snapshot" : "snapshots"} />
+        </div>
+        <SnapCards rows={rec.snapshots} />
+        <p class="small muted">{rec.snapshots_note ?? "Their numbers are not served here."}</p>
+      </>
+    ) : (
+      <p class="small muted">No other stored snapshots.</p>
+    );
   return (
     <div class="prov">
+      <div class="prov-summary">
+        <div class="prov-summary-model">
+          <span class="label">Model</span>
+          <span class="mono">{rec.model_name ?? MISSING}</span>
+          <T60Badge meets={rec.meets_t60} />
+        </div>
+        <div class="prov-tiles">
+          <Tile label="before tip-off" value={lead(rec.lead_minutes)} note={`made ${when(rec.made_at)}`} />
+          <Tile label="rows trained on" value={rec.n_train === null ? MISSING : count(rec.n_train)} note={`games through ${rec.fit_through ?? MISSING}`} />
+        </div>
+      </div>
       <dl class="prov-dl">
         <dt>Model</dt>
         <dd>
@@ -122,13 +177,13 @@ export function RecordBody({ rec }: { rec: ProvRecord }) {
           <strong>Not stored:</strong> {rec.missing.join(", ")}.
         </p>
       ) : null}
-      {rec.snapshots.length > 0 ? (
-        <>
-          <Table caption="Every stored forecast for this one" rows={rec.snapshots} columns={SNAP_COLS} rowKey={(s) => `${s.made_at ?? ""}-${s.model_name ?? ""}-${s.version ?? ""}`} noun={rec.snapshots.length === 1 ? "snapshot" : "snapshots"} />
-          <p class="small muted">{rec.snapshots_note ?? "Their numbers are not served here."}</p>
-        </>
+      {analyst ? (
+        snaps
       ) : (
-        <p class="small muted">No other stored snapshots.</p>
+        <details class="prov-more">
+          <summary>Every stored forecast for this one</summary>
+          {snaps}
+        </details>
       )}
     </div>
   );
@@ -199,11 +254,16 @@ export function SourcePage(props: { gameId: string; playerId: number | null; sta
   const what = props.playerId === null || props.stat === null ? "the game's win chance" : `the ${LEG_SHORT[props.stat]} forecast`;
   return (
     <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Where this number comes from</div>
-        <h1>The stored record behind {what}</h1>
-        <p class="lead">Which model made it, on how much data, when, and whether it met the rule that it be made at least an hour before tip-off.</p>
-      </header>
+      <PageHead
+        kicker="Where this number comes from"
+        title={`The stored record behind ${what}`}
+        description="Which model made it, on how much data, when, and whether it met the rule that it be made at least an hour before tip-off."
+        actions={
+          <a class="btn" href={props.playerId === null || props.stat === null ? gameHref(props.gameId) : legHref(props.gameId, props.playerId, props.stat)}>
+            {props.playerId === null || props.stat === null ? "Back to the game" : "Back to the forecast"}
+          </a>
+        }
+      />
       <section class="panel">
         <Loaded gameId={props.gameId} playerId={props.playerId} stat={props.stat} />
       </section>

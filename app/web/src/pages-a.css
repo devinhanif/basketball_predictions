@@ -277,3 +277,89 @@
     background: none;
   }
 }
+
+/* ================================================================ Where this number comes from (#/source and its dialog) */
+.prov-summary {
+  display: grid;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.prov-summary-model {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  min-width: 0;
+}
+.prov-summary-model .mono {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.prov-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--sp-3);
+}
+.prov-tiles .tile-note {
+  margin-top: var(--sp-1);
+}
+@media (min-width: 521px) {
+  .prov-dl > dt,
+  .prov-dl > dd {
+    padding-top: var(--sp-2);
+    border-top: 1px solid var(--line);
+  }
+  .prov-dl > dt:first-of-type,
+  .prov-dl > dt:first-of-type + dd {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+.prov-more > summary {
+  min-height: var(--target);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--accent-ink);
+  font-weight: var(--fw-medium);
+}
+.prov-snaptable .mono {
+  white-space: nowrap;
+}
+/* The snapshot list: a table from 600 px, short cards below it (same rows, same order; only one is ever displayed). */
+.prov-snapcards {
+  display: none;
+  list-style: none;
+  margin: var(--sp-3) 0;
+  padding: 0;
+  gap: var(--sp-2);
+}
+.prov-snapcards > li {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.psc-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-2);
+}
+@media (max-width: 599px) {
+  .prov-snaptable {
+    display: none;
+  }
+  .prov-snapcards {
+    display: grid;
+  }
+}
