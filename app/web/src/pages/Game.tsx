@@ -12,7 +12,7 @@ import { GameKnowsPanel } from "../Knows";
 import { GameLive } from "../LiveParts";
 import { IS_ARTIFACT } from "../env";
 import { plainPlay } from "../plain";
-import { priceText, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
+import { priceText, bookName, lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
 import { legHref, nightHref } from "../router";
 import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
@@ -20,13 +20,14 @@ import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../type
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
 import { RESULT_HIDDEN, isLockedNight } from "../record";
 import { chanceSentence, didText, rangeSentence, winSentence } from "../words";
-import { SoWhat, Tabs } from "../ui";
+import { PageHead, SoWhat, Tabs } from "../ui";
 import { count } from "../format";
 import { SourceButton } from "../Provenance";
 import { AddToSlipSlot } from "../BetSlots";
 
-function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens }) {
+function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens; analyst?: boolean }) {
   const { prop, player, actual } = props;
+  const qn = (name: string): string => (props.analyst ? ` (${name})` : "");
   const market = props.lens === "market";
   const q = prop.q;
   return (
@@ -76,15 +77,20 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
       ) : null}
       <div class="kv num">
         <span>
-          Typical night: <b>{num(q[9] ?? 0)}</b>
+          Typical night{qn("q50")}: <b>{num(q[9] ?? 0)}</b>
         </span>
         <span>
-          Half of nights: <b>{num(q[4] ?? 0)}</b> to <b>{num(q[14] ?? 0)}</b>
+          Half of nights{qn("q25 to q75")}: <b>{num(q[4] ?? 0)}</b> to <b>{num(q[14] ?? 0)}</b>
         </span>
         <span>
-          Nine in ten: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
+          Nine in ten{qn("q5 to q95")}: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
         </span>
       </div>
+      {props.analyst ? (
+        <p class="small muted prop-model">
+          Model <span class="mono">{prop.model_source}</span>
+        </p>
+      ) : null}
       <Chips model="" stampText={prop.forecast_stamp} tipUtc={null} />
       {prop.p_play !== null && prop.p_play_label ? (
         <p class="small muted" data-model-source={prop.model_source} title={`${prop.model_label} ${prop.p_play_label}`}>
@@ -152,10 +158,12 @@ function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result:
         <p class="small muted">We do not forecast minutes yet.</p>
       )}
       {props.p.role ? <RoleSection role={props.p.role} player={props.p.name} /> : null}
+      <div class="prop-grid">
       {STATS.map((s: Stat) => {
         const prop = props.p.props[s];
-        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={props.locked ? undefined : res?.actual[s]} hidden={props.locked && res?.actual[s] !== undefined} lens={props.lens} /> : null;
+        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={props.locked ? undefined : res?.actual[s]} hidden={props.locked && res?.actual[s] !== undefined} lens={props.lens} analyst={props.mode === "analyst"} /> : null;
       })}
+      </div>
     </details>
   );
 }
@@ -173,14 +181,22 @@ function Body({ g }: { g: GameDetail }) {
   const winner = res ? (res.home_won ? g.home : g.away) : null;
   return (
     <div class="stack">
-      <div class="row between wrap">
-        <p class="back-row" style={{ margin: 0 }}>
-          <a class="back-link" href={nightHref(g.date)}>
-            Back to all games
-          </a>
-        </p>
-        <ModeToggle />
-      </div>
+      <p class="back-row" style={{ margin: 0 }}>
+        <a class="back-link" href={nightHref(g.date)}>
+          Back to all games
+        </a>
+      </p>
+      <PageHead
+        class="game-head"
+        kicker={`${longDate(g.date)} · tip-off ${tipTime(g.tip_utc)}`}
+        title={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}`}
+        actions={
+          <>
+            <span class="small muted">Detail</span>
+            <ModeToggle />
+          </>
+        }
+      />
       <SoWhat>
         {modelHome === null
           ? `${g.away.name} at ${g.home.name}: we have no forecast for this game.`
@@ -189,9 +205,6 @@ function Body({ g }: { g: GameDetail }) {
       </SoWhat>
       <LensSwitch />
       <section class="panel scoreboard">
-        <h1 class="sr">
-          {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
-        </h1>
         <div class="score-row">
           <div class="score-team">
             <TeamTag abbr={g.away.abbr} big />

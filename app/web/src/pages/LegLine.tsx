@@ -2,9 +2,11 @@
 import { CalTag } from "../components";
 import { IS_ARTIFACT } from "../env";
 import { priceText, lineText, longDate, pct } from "../format";
+import { useMode } from "../prefs";
 import { bookChance, clampLine, modelPct, nText, ofText, rangeText, chanceSource, rowHits, rowModel, snapHalf } from "../leg";
 import { type LadderRow, type LegBreakdown, type Side } from "../legTypes";
 import { SourceButton } from "../Provenance";
+import { Icon } from "../icons";
 
 const S = (n: number): string => n.toString();
 
@@ -115,10 +117,23 @@ export function LineCard(props: {
             Back to the posted line ({lineText(posted)})
           </button>
         ) : (
-          <span>No posted line for this stat</span>
+          <span aria-hidden="true" />
         )}
         <span>{lineText(max)}</span>
       </div>
+      {posted === null ? (
+        <div class="leg-noline" role="note">
+          <Icon name="info" />
+          <div>
+            <strong>No posted line for this stat</strong>
+            <p class="small muted">
+              No sportsbook line for {data.label.toLowerCase()} is stored for this game
+              {data.line_source === "model_middle" ? ", so the line starts at the middle of our own forecast. It is a reference point, not a posted number" : ""}. Move it to
+              see his recent games and the forecast at any line.
+            </p>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -135,6 +150,7 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
   const range = fresh ? rangeText(data.last10) : null;
   const book = market ? bookChance(data.prices, data.line === line, row, side) : null;
   const verb = side === "over" ? "went over" : "stayed under";
+  const analyst = useMode() === "analyst";
   return (
     <section class="leg-head" aria-label="Headline numbers">
       <div class={`leg-tiles${book ? " four" : ""}`}>
@@ -184,6 +200,16 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
           </div>
         ) : null}
       </div>
+      {analyst && data.model.available ? (
+        <p class="small muted leg-model-line">
+          Model <span class="mono">{data.model.source}</span>
+          {data.model.stamp ? (
+            <>
+              {" "}· forecast stamp <span class="mono">{data.model.stamp}</span>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       {data.last10.small ? (
         <p class="leg-flag" role="note">
           <strong>Small sample.</strong> Only {S(data.last10.n)} earlier games, fewer than 10. A rate over so few games swings a lot.

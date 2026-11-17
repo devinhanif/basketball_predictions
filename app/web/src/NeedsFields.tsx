@@ -17,7 +17,7 @@ export function NeedsField(props: { title: string; will: string; item: number })
 
 export function LegPlaceholders() {
   return (
-    <>
+    <div class="needs-row">
       <NeedsField
         title="What moved it"
         item={10}
@@ -28,6 +28,6 @@ export function LegPlaceholders() {
         item={11}
         will="It will show the desk's own written reason for the label it gave this prop, copied from the engine rather than re-derived here."
       />
-    </>
+    </div>
   );
 }

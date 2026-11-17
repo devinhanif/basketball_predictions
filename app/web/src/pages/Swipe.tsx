@@ -14,6 +14,7 @@ import { STAT_LABEL } from "../types";
 import { didText, sideText } from "../words";
 import { useLens } from "../prefs";
 import { swipeKeyChoice } from "../swipeKeys";
+import { PageHead } from "../ui";
 
 function newSeed(): number {
   const a = new Uint32Array(1);
@@ -246,8 +247,8 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
   const [list, reloadList] = useLoad(() => api.slates(), []);
   return (
     <div class="stack">
-      <div class="page-head">
-        <h1>Over or under?</h1>
+      <PageHead kicker="Pretend picks" title="Over or under?" description="Real player lines. Pick a side before tip-off; each pick is graded against what happened." />
+      <div class="swipe-how">
         <Explain label="How does this work?">
           <p>
             These are real player lines. By default you see the number{market ? " and the price" : ""}, nothing else: no forecast, no
@@ -268,7 +269,6 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
           const date = props.date ?? defaultNight(slates);
           return (
             <>
-              {date ? <DeckLoader date={date} onStale={props.onStale} /> : null}
               <nav class="tabs night-tabs" aria-label="Choose a night">
                 {slates.map((s) => (
                   <a key={s.date} class="tab" href={`#/swipe?date=${s.date}`} aria-current={s.date === date ? "true" : undefined}>
@@ -276,6 +276,7 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
                   </a>
                 ))}
               </nav>
+              {date ? <DeckLoader date={date} onStale={props.onStale} /> : null}
             </>
           );
         }}
