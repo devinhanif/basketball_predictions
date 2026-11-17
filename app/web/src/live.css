@@ -83,7 +83,7 @@
   color: var(--notice-ink);
 }
 .live-attrib {
-  margin: 0;
+  margin: var(--sp-3) 0 0;
 }
 .live-unproven {
   margin: 0 0 6px;

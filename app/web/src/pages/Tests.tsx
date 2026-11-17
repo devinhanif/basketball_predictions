@@ -148,7 +148,7 @@ export function TestsPage() {
         actions={<PageControls lens />}
       />
       <OnThisPage />
-      <View state={state} reload={reload} what="the forward tests">
+      <View state={state} reload={reload} what="the forward tests" errorLevel={2}>
         {(m: Maybe<ForwardTests>) =>
           m.kind === "absent" ? (
             <StateBlock kind="empty" title="Not in this copy of the data">

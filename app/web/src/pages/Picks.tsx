@@ -59,7 +59,7 @@ export function Picks() {
   if (picks.length === 0) {
     return (
       <div class="stack">
-        <PageHead kicker="Pretend picks" title="My picks" />
+        <PageHead kicker="Pretend picks" title="My picks" description="Your own over or under guesses from Swipe, graded against the real box score. Nothing here is real money." />
         <StateBlock
           kind="empty"
           title="No picks yet"

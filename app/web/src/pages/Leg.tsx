@@ -44,7 +44,7 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
       <SoWhat>
         {data.player}, {data.label.toLowerCase()} at {lineText(line)}: his recent games and the forecast are below. A forecast is a range, and nothing here is a pick.
       </SoWhat>
-      <p class="muted num" style={{ margin: 0 }}>
+      <p class="muted num" style={{ margin: "var(--sp-1) 0 0" }}>
         {data.team} {data.home ? "vs" : "at"} {data.opponent} · tip-off {tipTime(data.tip_utc)} · {data.label} {lineText(line)}
       </p>
       <nav class="leg-tabs" aria-label="Stat">

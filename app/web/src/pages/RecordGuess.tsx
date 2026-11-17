@@ -211,7 +211,7 @@ export function Guess() {
           saveRounds([]);
         }}
       />
-      <View state={deck} reload={reload} what="the cards">
+      <View state={deck} reload={reload} what="the cards" errorLevel={2}>
         {(d) => (
           <GuessPlay
             key={seed}

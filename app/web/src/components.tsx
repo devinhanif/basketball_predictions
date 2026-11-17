@@ -145,10 +145,13 @@ export function ModelNote(props: { items: readonly { source: string; label: stri
   const sources = [...bySource.keys()];
   const [first, ...rest] = sources;
   if (first === undefined) return null;
+  // Two stored sources can read the same in plain words (stale and missing fall back to one model): say each once.
+  const firstWords = plainModel(first);
+  const restWords = [...new Set(rest.map(plainModel))].filter((w) => w !== firstWords);
   const sentence =
-    rest.length === 0
+    restWords.length === 0
       ? plainModelSentence(first)
-      : `Forecasts come from ${plainModel(first)}; for some players, from ${rest.map(plainModel).join(" and ")}.`;
+      : `Forecasts come from ${firstWords}; for some players, from ${restWords.join(" and ")}.`;
   return (
     <div class="model-note">
       <p class="small muted">{sentence}</p>
@@ -179,6 +182,8 @@ export function View<T>(props: {
   /** What is loading, for the skeleton note ("tonight's games"). */
   what?: string;
   onStale?: (stale: boolean) => void;
+  /** Heading level of a failure panel: 2 when the page already has its own h1 above this view. */
+  errorLevel?: 1 | 2;
   children: (data: T) => ComponentChildren;
 }) {
   const { state, onStale } = props;
@@ -187,7 +192,7 @@ export function View<T>(props: {
     onStale?.(stale);
   }, [stale, onStale]);
   if (state.status === "loading") return <Loading what={props.what} />;
-  if (state.status === "error") return <ErrorPanel message={state.message} failure={state.failure} retry={props.reload} />;
+  if (state.status === "error") return <ErrorPanel message={state.message} failure={state.failure} retry={props.reload} level={props.errorLevel} />;
   return <>{props.children(state.data)}</>;
 }
 

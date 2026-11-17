@@ -173,7 +173,7 @@ function load(gameId: string, playerId: number | null, stat: LegStat | null) {
 function Loaded(props: { gameId: string; playerId: number | null; stat: LegStat | null }) {
   const [state, reload] = useLoad(() => load(props.gameId, props.playerId, props.stat), [props.gameId, props.playerId, props.stat]);
   return (
-    <View state={state} reload={reload} what="the stored record">
+    <View state={state} reload={reload} what="the stored record" errorLevel={2}>
       {(m: Maybe<ProvRecord>) =>
         m.kind === "absent" ? (
           <p class="panel empty">

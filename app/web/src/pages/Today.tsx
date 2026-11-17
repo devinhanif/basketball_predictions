@@ -218,7 +218,12 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const radar = useRadar(date, engine);
   const featured =
     slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === pickHero(radar.rows)?.gameId) ?? slate.data.games[0] ?? null) : null;
-  const played = featured !== null && instantMs(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
+  // The stored night list says how many of this night's games have a final score: when it says none, do not ask the
+  // result route for a game (it answers 404 for an unfinished game). Without that field, fall back to the clock.
+  const [nightList] = useLoad(() => api.slates(), []);
+  const storedFinished = nightList.status === "ready" ? nightList.data.find((n) => n.date === date)?.finished : undefined;
+  const listSettled = nightList.status !== "loading";
+  const played = featured !== null && listSettled && storedFinished !== 0 && instantMs(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const lens = useLens();
   // The chosen night is the newest tab, at the scrolling row's far end: bring it into view (the row only, never the page).
   const tabsRef = useRef<HTMLElement>(null);
@@ -253,7 +258,8 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           </div>
           {head ? (
             <>
-              <h1 class={`answer ${head.verdict}`}>{head.text}</h1>
+              {/* A no-break space before each dot keeps a line from starting with one. */}
+              <h1 class={`answer ${head.verdict}`}>{head.text.replace(/ · /g, "\u00a0· ")}</h1>
               <p class="muted answer-src">{head.source}</p>
             </>
           ) : (

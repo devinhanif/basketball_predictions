@@ -5,9 +5,9 @@ export const LENS_LABEL: Record<Lens, string> = { learn: "Learn", explore: "Expl
 
 /** One line each, in words a first-time visitor can act on. */
 export const LENS_SAY: Record<Lens, string> = {
-  learn: "How the game and the forecast work. The market side stays out of view on this screen.",
-  explore: "Move the line or the minutes and watch the forecast respond. Nothing is saved.",
-  market: "The market side: posted prices, edges and fees from the stored snapshots.",
+  learn: "How the game and forecast work. Market side hidden.",
+  explore: "Move the line or minutes; nothing is saved.",
+  market: "Posted prices, edges and fees, as stored.",
 };
 
 /** The three lenses on one screen. The choice is remembered on this device (default Learn). */
@@ -87,7 +87,7 @@ export function MarketOnly(props: { name: string; what: string; level?: 1 | 2 | 
   return (
     <section class="panel empty market-only" aria-labelledby={hid}>
       <H id={hid} class="market-only-title">{props.name} is a Market screen</H>
-      <p>{props.what} It is hidden in the Learn and Explore lenses. The optional what-if for a number you type, inside Explore, is the one exception.</p>
+      <p>{props.what} It stays out of view in the Learn and Explore lenses.</p>
       <button
         type="button"
         class="btn primary"
