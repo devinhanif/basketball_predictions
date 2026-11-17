@@ -1135,7 +1135,8 @@
 .ph-bet .ph-bet-aboutbox {
   margin: 0 0 var(--sp-3, 12px);
 }
-.ph-bet .ph-bet-aboutbox > summary {
+.ph-bet .ph-bet-aboutbox summary,
+.ph-bet .ph-bet-feebar > summary {
   cursor: pointer;
   min-height: 44px;
   display: flex;
