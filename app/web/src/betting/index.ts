@@ -8,6 +8,7 @@
 import { h } from "preact";
 import { BetPlaceholder } from "./Placeholder";
 import { AddToSlip } from "./AddToSlip";
+import { ComparePage } from "./Compare";
 import { SlipPage, SlipPanel } from "./Slip";
 import { BET_PREFIX, type BetRoute, type BettingModule, type BettingNavEntry, type BettingRouteDef } from "./seam";
 
@@ -22,6 +23,7 @@ export function betHref(path: string = ""): string {
 const ROUTES: readonly BettingRouteDef[] = [
   { path: "", title: "Betting tools", render: () => h(BetPlaceholder, null) },
   { path: "slip", title: "Your rolling slip", render: () => h(SlipPage, null) },
+  { path: "compare", title: "Compare venues", render: (r) => h(ComparePage, { route: r }) },
 ];
 
 const NAV: readonly BettingNavEntry[] = [
@@ -31,6 +33,14 @@ const NAV: readonly BettingNavEntry[] = [
     icon: "flag",
     sub: "Analysis only, not advice. Nothing is built here yet",
     words: "bet slip compare",
+    marketOnly: true,
+  },
+  {
+    href: "#/bet/compare",
+    label: "Compare venues",
+    icon: "swap",
+    sub: "One prop's prices at each venue, side by side, with cost per $1 of payout",
+    words: "compare venues prices kalshi draftkings prizepicks",
     marketOnly: true,
   },
   {

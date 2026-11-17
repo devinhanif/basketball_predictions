@@ -525,3 +525,13 @@
     opacity: 1;
   }
 }
+.ph-bet .ph-bet-linepick {
+  display: block;
+  max-width: 240px;
+  margin: 0 0 var(--sp-2, 8px);
+}
+.ph-bet .ph-bet-fee summary {
+  cursor: pointer;
+  font-size: var(--fs-sm, 0.875rem);
+  min-height: 32px;
+}

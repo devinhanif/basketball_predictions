@@ -52,6 +52,14 @@ export function priceWords(q: Quote): string {
   return p.kind === "binary" ? `${centsText(p.askCents, 2)} per contract · ${fee}` : `${odds(p.americanOdds, "american")} · ${fee}`;
 }
 
+/** The fee part of a price, as known, typed or unknown. */
+export function feeWords(q: Quote): string {
+  const p = q.price;
+  if (p.kind === "entry-pick") return "Priced by the whole entry";
+  if (p.fee.status === "unknown") return "Fee unknown";
+  return `Fee ${centsText(p.fee.centsPerDollarPayout, 2)} per $1 payout${p.fee.basis === "assumption" ? " (your entry)" : ""}`;
+}
+
 /** Cost per $1 of gross payout, or the model's reason there is none. */
 export function costWords(q: Quote): string {
   const c = normalisedCost(q);

@@ -7,6 +7,7 @@ import { Button, Dialog, Skeleton } from "../ui";
 import { Icon } from "../icons";
 import { count } from "../format";
 import { saveTextFile } from "../saveFile";
+import { useLens } from "../prefs";
 import { DEMO_LABEL, DEMO_NOTE, PLACED_CONFIRM, TITLE_SLIP } from "./copy";
 import { activeLegs, evaluateDraft, type SlipEvaluation } from "./slipModel";
 import { scopeLabel } from "./store";
@@ -393,7 +394,8 @@ export function SlipPanel(props: { onBetRoute: boolean }) {
   const sheet = useRef<HTMLDivElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(open);
-  const sheetMode = open && !wide;
+  const lens = useLens();
+  const sheetMode = open && !wide && lens === "market";
   useEffect(() => {
     // Back to the launcher when the panel closes (keyboard users land where they started).
     if (wasOpen.current && !open) launcher.current?.focus();
@@ -408,6 +410,8 @@ export function SlipPanel(props: { onBetRoute: boolean }) {
       document.body.style.overflow = prev;
     };
   }, [sheetMode]);
+  // A Market-lens tool: in Learn and Explore no part of the slip shows (no prices there).
+  if (lens !== "market") return null;
   if (!bet.ready || bet.view.workspace === null) {
     if (!bet.ready || bet.view.phase !== "error") return null;
   }

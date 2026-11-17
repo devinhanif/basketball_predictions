@@ -2,7 +2,7 @@
 // LocalWorkspacePort under the viewer's scope. Edits run one at a time (a quick second edit waits for the first save
 // instead of being dropped). A failed save keeps the edit on screen, marked unsaved, with retry and discard; an invalid
 // import changes nothing. No network: every action here writes to the injected browser storage and nowhere else.
-import { addPick, addQuote, addRecordedLeg, markPlaced, removeLeg, removePick, replacePlannedQuote, setEntry, setLegAmount, setNotes, settlePicks, toggleLeg } from "./slipModel";
+import { addPick, addQuote, addRecordedLeg, markPlaced, putManualQuote, removeLeg, removePick, replacePlannedQuote, setEntry, setLegAmount, setNotes, settlePicks, toggleLeg } from "./slipModel";
 import { createSlipSession, LocalWorkspacePort, scopeId, SLIP_CODEC, type RepoCode, type StorageLike, type WorkspaceScope, type WorkspaceSession } from "./repository";
 import { sampleWorkspace } from "./sample";
 import type { EntryTerms, Market, Quote, Side, SlipDraft, SlipWorkspace } from "./types";
@@ -145,6 +145,12 @@ export function betActions(store: BetStore, nowIso: () => string) {
       store.edit((ws) => {
         const r = addRecordedLeg(ws.draft, quote, market, amount, nowIso());
         return r.ok ? withDraft(ws, r.draft, "Recorded in this browser as a position you already hold. Nothing was sent anywhere.") : fail(r);
+      }),
+    /** Keeps a price the viewer typed for one venue, market and side (replacing an earlier one there). Legs are untouched. */
+    putTyped: (quote: Quote) =>
+      store.edit((ws) => {
+        const r = putManualQuote(ws, quote);
+        return r.ok ? { ok: true, workspace: r.workspace, text: "Price kept as your entry (manual). Slip legs keep the price they were added at." } : fail(r);
       }),
     toggle: (legId: string) =>
       store.edit((ws) => {

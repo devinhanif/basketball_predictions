@@ -127,9 +127,9 @@ export interface VenueCard {
   readonly inSlip: readonly SlipLeg[];
 }
 
-/** One card per venue in name sequence (never by price). */
+/** One card per venue: venues with a price first, then the unavailable ones, each group in name sequence (never by price). */
 export function venueCards(input: { providers: readonly ProviderInfo[]; stored: Catalog | null; workspace: SlipWorkspace; market: Market; side: Side; now: number }): VenueCard[] {
-  return byName(input.providers).map((provider) => {
+  const cards = byName(input.providers).map((provider) => {
     const slot = input.stored ? quoteSlot(input.stored, input.market.id, provider.id, input.side) : null;
     const stored = slot?.state === "available" ? slot.quote : null;
     const typed = input.workspace.manualQuotes.find((q) => q.marketId === input.market.id && q.provider === provider.id && q.side === input.side) ?? null;
@@ -144,6 +144,7 @@ export function venueCards(input: { providers: readonly ProviderInfo[]; stored: 
       inSlip: input.workspace.draft.legs.filter((l) => l.role === "planned" && l.market.id === input.market.id && l.quote.side === input.side && l.quote.provider === provider.id),
     };
   });
+  return [...cards.filter((c) => c.active !== null), ...cards.filter((c) => c.active === null)];
 }
 
 export type Crown = { shown: true; provider: string } | { shown: false; reasons: readonly string[] };

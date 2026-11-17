@@ -9,6 +9,8 @@
     "Analysis only, not advice: no orders are placed.",
     "Your rolling slip",
     "Mark slip as placed",
-    "to your slip (no price yet)"
+    "to your slip (no price yet)",
+    "Compare venues",
+    "The venues' settlement rules (did-not-play, voids, overtime) are not verified as equivalent."
   ]
 }
