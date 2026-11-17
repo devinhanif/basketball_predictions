@@ -22,8 +22,10 @@ Three DISTINCT formulas exist in the tree and are kept apart on purpose, bit for
 
 ``bankers_cent_fee`` and ``bankers_cent_fee_scaled`` price the same venue with the same config
 coefficient (0.0695 in both YAMLs) but multiply in a different order under Decimal's 28-digit
-context, so a double rounding can in principle land on the other side of a half cent. They are
-NOT unified here: which one is right is the maintainer's call (docs/handoff_2026-11-17).
+context, so a double rounding can in principle land on the other side of a half cent. Since
+2026-11-16 (Devin: fast-arb's order) JARVIS calls ``bankers_cent_fee`` whenever its multiplier is
+1, which is every Polymarket config today; ``bankers_cent_fee_scaled`` remains only for a
+multiplier other than 1. The two agreed on 159,240 of 159,240 tested inputs before the switch.
 
 Informational only. Nothing here sends, signs or submits anything.
 """

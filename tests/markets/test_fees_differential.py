@@ -175,11 +175,31 @@ def test_polymarket_jarvis_bankers_matches_edge_oracle() -> None:
         s = rng.choice(SERIES)
         cfg = replace(cfg0, fees={**cfg0.fees, "polymarket": fm})
         n_cases += 1
-        want = _out(_oracle_jarvis_pm, fm, p, n, s)
+        scaled = _out(_oracle_jarvis_pm, fm, p, n, s)
+        if scaled != _out(F.bankers_cent_fee_scaled, fm.multiplier(s), fm.rate("taker"), n, p):
+            bad.append((coef, p, -n, s))
+        # JARVIS itself: fast-arb's order when the multiplier is 1 (Devin, 2026-11-16), else scaled.
+        want = _out(_oracle_fastarb_pm, coef, p, n) if fm.multiplier(s) == 1.0 else scaled
         if want != _out(_order_fee, cfg, "polymarket", p, n, s):
             bad.append((coef, p, n, s))
-        if want != _out(F.bankers_cent_fee_scaled, fm.multiplier(s), fm.rate("taker"), n, p):
-            bad.append((coef, p, -n, s))
+    assert n_cases >= MIN_CASES, n_cases
+    assert not bad, (len(bad), bad[:5])
+
+
+def test_jarvis_and_fastarb_price_polymarket_identically_on_the_loaded_configs() -> None:
+    """One Polymarket US evaluation order: with the configs as shipped (multiplier 1 for every
+    series), JARVIS's per-order fee equals fast-arb's ``FeeSchedule.order_fee`` bit for bit."""
+    cfg = load_jarvis_config()
+    fm = cfg.fee("polymarket")
+    assert all(fm.multiplier(s) == 1.0 for s in SERIES), "a Polymarket multiplier appeared"
+    sched = FeeSchedule("polymarket_us_standard_taker", fm.rate("taker"), True)
+    n_cases = 0
+    bad: list[tuple[float, int, str]] = []
+    for _coef, p, n in _pm_cases():
+        for s in ("", SERIES[n_cases % len(SERIES)]):
+            n_cases += 1
+            if _out(sched.order_fee, p, n) != _out(_order_fee, cfg, "polymarket", p, n, s):
+                bad.append((p, n, s))
     assert n_cases >= MIN_CASES, n_cases
     assert not bad, (len(bad), bad[:5])
 
