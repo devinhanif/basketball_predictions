@@ -297,7 +297,7 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
         <h3>Move the what-if line</h3>
         <p class="small muted xp-own-line">
           This line belongs to the what-if only. It starts at {posted !== null ? "the posted line" : "the model's line"} and moves on its own:
-          the line card above does not follow it, and it does not follow the line card.
+          the line card on this page does not follow it, and it does not follow the line card.
         </p>
         <div class="ls-controls">
           <button type="button" class="btn" aria-label="Lower the line by one" disabled={line <= min} onClick={() => { step(-1); }}>

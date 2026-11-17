@@ -1221,7 +1221,7 @@ th {
 }
 .ls-track {
   position: relative;
-  padding: 6px 0 12px;
+  padding: 0 0 2px;
 }
 .ls-track .slider {
   width: 100%;
@@ -1231,7 +1231,7 @@ th {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 6px;
   height: 10px;
   pointer-events: none;
 }
@@ -1252,7 +1252,8 @@ th {
 .ls-jump {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
+  gap: 0 14px;
+  margin-top: -6px;
 }
 .ls-read {
   display: grid;

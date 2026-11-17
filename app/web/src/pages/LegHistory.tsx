@@ -1,7 +1,8 @@
 // Leg page, the record: last games, the model panel, the ladder, the numbers in words and every book (split from Leg.tsx).
 import { CalTag, Explain } from "../components";
 import { IS_ARTIFACT } from "../env";
-import { plainModelSentence } from "../plain";
+import { plainModelSentence, plainPlay } from "../plain";
+import { useMode } from "../prefs";
 import { priceText, bookName, lineText, longDate, num } from "../format";
 import { ladderAt, modelPct, nText, ofText, chanceSource, rowHits, rowModel, rowPrice } from "../leg";
 import { gameHref } from "../router";
@@ -48,6 +49,7 @@ function ChipItem({ c }: { c: Chip }) {
 }
 
 export function Games({ data, side, line, row }: { data: LegBreakdown; side: Side; line: number; row: LadderRow | null }) {
+  const mode = useMode();
   const first = data.chips.slice(0, 5);
   const rest = data.chips.slice(5);
   const h5 = row ? rowHits(row, side, 5) : data.last5.hits;
@@ -89,7 +91,7 @@ export function Games({ data, side, line, row }: { data: LegBreakdown; side: Sid
         </p>
       ) : null}
       <p class="small muted num">
-        {data.role.say} Season to date: {ofText(data.season.hits, data.season.n)} {side === "over" ? "over" : "under"} {lineText(line)}
+        {mode === "analyst" ? data.role.say : plainPlay(data.role.say)} Season to date: {ofText(data.season.hits, data.season.n)} {side === "over" ? "over" : "under"} {lineText(line)}
         {data.season.avg !== null ? `, averaging ${num(data.season.avg)}` : ""} ({nText(data.season)}).
       </p>
     </section>
@@ -99,6 +101,7 @@ export function Games({ data, side, line, row }: { data: LegBreakdown; side: Sid
 /* ------------------------------------------------------------------ the model's view */
 export function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side: Side; line: number; row: LadderRow | null }) {
   const m = data.model;
+  const mode = useMode();
   const p = row ? rowModel(row, side) : m.p_hit;
   if (!m.available) {
     return (
@@ -129,7 +132,7 @@ export function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side
       <p class="small">
         <SourceButton gameId={data.game_id} playerId={data.player_id} stat={data.stat} what="this forecast" />
       </p>
-      <p class="small">{m.reason}</p>
+      {mode === "analyst" ? <p class="small">{m.reason}</p> : null}
       <p class="small" data-model-source={m.source}>
         {plainModelSentence(m.source)}
         {m.source === "fixture" ? "" : " It was built without ever seeing this game."}
