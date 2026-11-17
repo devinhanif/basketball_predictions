@@ -10,7 +10,10 @@ experience for me and my friend". Follow-up integration branch `agent/app-jarvis
   jobs of the session. Restart: `cd app/api && APP_EXPORT_DIR=/Users/devin/Downloads/nba-prediction/data/export/latest uv run
   uvicorn parlayhitters_api.main:app --app-dir src --host 127.0.0.1 --port 8012` and `cd app/web && API_ORIGIN=http://127.0.0.1:8012
   npx vite --host 127.0.0.1 --port 5185`.
-- With the switch ON: `API_PORT=8013 WEB_PORT=5186 app/scripts/betting-on.sh --export` (after the screens merge).
+- Follow-up branch with the switch ON, tonight's real export: http://127.0.0.1:5186 (API 8013), started 01:02 CST as
+  background jobs (`PH_BETTING=1 APP_EXPORT_DIR=... uvicorn ... --port 8013`; `VITE_PH_BETTING=1 API_ORIGIN=http://127.0.0.1:8013
+  npx vite --host 127.0.0.1 --port 5186`). Or one command: `API_PORT=8013 WEB_PORT=5186 app/scripts/betting-on.sh --export`.
+  Only 3 of the 8 games on 11-16 have stored quotes in the 19:35 export (those not yet tipped at export time).
 - The first run's result is still at http://127.0.0.1:5184 (integration branch).
 
 ## Merged into the follow-up branch
@@ -19,6 +22,7 @@ experience for me and my friend". Follow-up integration branch `agent/app-jarvis
 | J3 betting pure logic | `agent/app-jarvis-betting-logic` | 8b062459 | web check 485 tests; bundle bytes unchanged |
 | J1 the switch | `agent/app-jarvis-flag` | 50d6e9b6 | `check.sh` OFF and `--betting` ON both ALL CHECKS PASSED; layering 15 passed (636d7105, c92daef2) |
 | J2a visual language | `agent/app-jarvis-look` | 2d89cf8e | `check.sh --fast --browser` OFF: ALL CHECKS PASSED, web 508 tests, walk 0 violations; looked at Discover on real data, phone and 1440 |
+| J4a quote-board API | `agent/app-jarvis-betting-api` | d84cd759 | API suite OFF and ON: 604 passed, 1 skipped each; ruff and mypy clean; web money-safety test passes; under a real server (01:03 CST): `/api/betting/providers` 2,956 B, `/slate/2026-11-16` 161 props over 3 games, a 29-line board for a real player, and a typed 404 on the switch-off server |
 
 Merge notes: both J1 and J3 created `betting/types.ts`; the seam's types now live in `betting/seam.ts`. `Shell.tsx` mounts
 both `BetShellPanel` (J1's slot) and `SidePanelHost` (J2a's shared panel): the slip panel should move onto `SidePanel`
@@ -27,7 +31,6 @@ both `BetShellPanel` (J1's slot) and `SidePanelHost` (J2a's shared panel): the s
 ## Running (launched about 00:40–01:00 CST)
 | Lane | Branch | Worktree | Scope |
 |---|---|---|---|
-| J4a | `agent/app-jarvis-betting-api` | `~/Downloads/nba-wt-1117-jv-betapi` | `/api/betting/providers`, `/board/{game}/{player}/{stat}`, `/slate/{date}`: stored quote snapshots, switch ON only, no model number, no ranking |
 | J4b | `agent/app-jarvis-betting-screens` | `~/Downloads/nba-wt-1117-jv-screens` | rolling slip, add-to-slip, Compare, Hedge Finder, `#/bet` hub, journey script |
 | J2b-A | `agent/app-jarvis-pages-a` | `~/Downloads/nba-wt-1117-jv-pagesA` | restyle Discover, Game, Leg family, Swipe, My picks; Analyst detail |
 | J2b-B | `agent/app-jarvis-pages-b` | `~/Downloads/nba-wt-1117-jv-pagesB` | restyle Track record, Scorecard, Forward tests, Live, Parlay, Signals, History, Alerts, Preferences, Key terms, Error help, Admin |
