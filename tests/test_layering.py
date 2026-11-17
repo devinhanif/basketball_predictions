@@ -313,8 +313,11 @@ def test_betting_api_imports_neither_nba_nor_research() -> None:
     assert not bad, f"the betting API package imports a banned package: {bad}"
 
 
+# A specifier counts only inside a real statement: `import ... from "x"` / `export ... from "x"`
+# (which may span lines), a bare `import "x"`, or a dynamic `import("x")`. A looser "from" + quote
+# pattern also matched ordinary strings and UI copy in the betting screens.
 _TS_IMPORT = re.compile(
-    r"""(?:\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+|\bexport\s+\*\s+from\s*)["']([^"']+)["']""",
+    r"""(?:^\s*(?:import|export)\b[^;'"]*?\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+)["']([^"']+)["']""",
     re.MULTILINE,
 )
 
@@ -348,10 +351,13 @@ def test_ts_import_pattern_catches_escapes() -> None:
     text = (
         'import { a } from "../../../nba/x";\nimport "../../../../research/y";\n'
         'const m = await import("/abs/path");\nexport * from "lodash";\n'
+        'import {\n  a,\n  b,\n} from "../../../nba/multi";\n'
+        'const copy = "prices from \'elsewhere\'"; const t = bad("from", "x");\n'
     )
     assert _TS_IMPORT.findall(text) == [
         "../../../nba/x",
         "../../../../research/y",
         "/abs/path",
         "lodash",
+        "../../../nba/multi",
     ]
