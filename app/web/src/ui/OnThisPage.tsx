@@ -76,6 +76,8 @@ export function OnThisPage(props: { min?: number }) {
   }, []);
   const jump = (el: HTMLElement): void => {
     if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+    // A section inside a closed fold opens it first, so the jump lands on something you can see.
+    for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
     el.scrollIntoView({
       block: "start",
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches

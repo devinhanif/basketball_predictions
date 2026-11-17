@@ -23,8 +23,8 @@ export function VerdictStrip(props: {
 }) {
   const { date, eng, tp } = props;
   if (eng.status === "loading" || tp.status === "loading") return <Loading />;
-  if (eng.status === "error") return <View state={eng} reload={props.reloadEng}>{() => null}</View>;
-  if (tp.status === "error") return <View state={tp} reload={props.reloadTp}>{() => null}</View>;
+  if (eng.status === "error") return <View state={eng} reload={props.reloadEng} errorLevel={2}>{() => null}</View>;
+  if (tp.status === "error") return <View state={tp} reload={props.reloadTp} errorLevel={2}>{() => null}</View>;
   const p = eng.data;
   const t = tp.data;
   const speaks = engineSpeaksFor(date, p.report_date);

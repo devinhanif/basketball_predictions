@@ -131,16 +131,18 @@ function Body(props: { d: Distribution; line: number; market: boolean; analyst: 
         <Tile
           label={`stored samples reach ${k.toString()} or more (the over side of ${lineText(line)})`}
           value={surv ? `${c === null ? "none" : count(c)} of ${count(surv.n)}` : MISSING}
-          n={surv ? `n = ${count(surv.n)} samples; whole-number support` : "The whole-number survival table is not stored for this forecast."}
+          n={surv ? `n = ${count(surv.n)} samples${analyst ? "; whole-number support" : ""}` : "The whole-number survival table is not stored for this forecast."}
         />
         <Tile
-          label="chance to play shown on the site"
+          label={analyst ? "chance to play shown on the site" : "chance he plays"}
           value={percent(d.p_play?.value ?? null, 1)}
           note={
-            <>
-              {d.p_play?.source ? `Source ${d.p_play.source}${d.p_play.detail ? `, ${d.p_play.detail}` : ""}. ` : ""}
-              <a class="tap" href={termHref("p-play")}>p_play</a>
-            </>
+            analyst ? (
+              <>
+                {d.p_play?.source ? `Source ${d.p_play.source}${d.p_play.detail ? `, ${d.p_play.detail}` : ""}. ` : ""}
+                <a class="tap" href={termHref("p-play")}>p_play</a>
+              </>
+            ) : undefined
           }
         />
         <Tile label="projected minutes" value={decimal(d.proj_minutes, 1)} />
@@ -169,7 +171,7 @@ function Body(props: { d: Distribution; line: number; market: boolean; analyst: 
         <div>
           <dt>Model</dt>
           <dd>
-            <span class="mono">{d.model_name ?? MISSING}</span>
+            {analyst ? <span class="mono">{d.model_name ?? MISSING}</span> : "Our props model"}
             {analyst && d.version ? <> (version <span class="mono">{d.version}</span>)</> : null}, made {d.made_at ? stamp(d.made_at) : MISSING}.
           </dd>
         </div>
@@ -185,7 +187,7 @@ export function DistributionPanel(props: { gameId: string; playerId: number; sta
   return (
     <section class="panel" aria-labelledby="dist-h">
       <h2 id="dist-h">The whole forecast, as stored</h2>
-      <View state={state} reload={reload} what="the stored distribution">
+      <View state={state} reload={reload} errorLevel={2} what="the stored distribution">
         {(m: Maybe<Distribution>) =>
           m.kind === "absent" ? (
             <p>

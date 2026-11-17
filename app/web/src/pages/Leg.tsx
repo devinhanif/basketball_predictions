@@ -205,7 +205,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
           <Games data={data} side={side} line={shown} row={row} />
           <ModelPanel data={data} side={side} line={shown} row={row} />
           {modelStat ? <DistributionPanel gameId={data.game_id} playerId={data.player_id} stat={data.stat} line={shown} /> : null}
-          <LegPlaceholders />
+          {mode === "analyst" ? <LegPlaceholders /> : null}
           {modelStat && !IS_ARTIFACT ? <PlayerKnowsPanel gameId={data.game_id} playerId={data.player_id} stat={data.stat} /> : null}
           {mode === "analyst" ? (
             depth

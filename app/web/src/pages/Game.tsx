@@ -109,12 +109,12 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result: GameResult | null; final: boolean; locked: boolean; mode: Mode; lens: Lens }) {
+function PlayerRow(props: { open: boolean; team: string; gameId: string; p: PlayerView; result: GameResult | null; final: boolean; locked: boolean; mode: Mode; lens: Lens }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
   return (
-    <details class="player" open={props.mode === "analyst" ? true : undefined}>
+    <details class="player" open={props.open ? true : undefined}>
       <summary>
         <span class="player-sum">
           <span class="player-name">
@@ -132,7 +132,7 @@ function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result:
               {lead.line_source === "reference" ? (
                 <>
                   <span class="muted small nowrap">Typical {STAT_SHORT[lead.stat]}</span>
-                  <span class="big-num">{num(lead.q[9] ?? 0)}</span>
+                  <span class="big-num">{(lead.q[9] ?? 0).toFixed(1)}</span>
                 </>
               ) : (
                 <>
@@ -173,6 +173,8 @@ function Body({ g }: { g: GameDetail }) {
   const [result, reloadResult] = useLoad(() => (show ? api.gameResult(g.game_id) : Promise.resolve({ data: null, fromCache: false })), [g.game_id, show]);
   const res: GameResult | null = result.status === "ready" ? result.data : null;
   const [side, setSide] = useState<"away" | "home">("away");
+  // Analyst opens the three top scorers of a team; the rest wait for a tap, or "Open all". Sixteen open players were 38,000 px on a phone.
+  const [openAll, setOpenAll] = useState<boolean | null>(null);
   const mode = useMode();
   const lens = useLens();
   const team = side === "home" ? g.home : g.away;
@@ -280,8 +282,6 @@ function Body({ g }: { g: GameDetail }) {
       </section>
       ) : null}
 
-      {IS_ARTIFACT ? null : <GameKnowsPanel gameId={g.game_id} />}
-
       <section class="panel">
         <div class="row between wrap">
           <h2>Player lines</h2>
@@ -300,13 +300,23 @@ function Body({ g }: { g: GameDetail }) {
           {team.city} {team.name}: {players.length} players with {g.players.some((p) => p.props.pts?.line_source === "reference") ? "a forecast" : "a line from the sportsbook"}, highest forecast scorer first.
           Tap a name to open them up.
         </p>
+        {mode === "analyst" && players.length > 3 ? (
+          <p class="row wrap" style={{ margin: 0 }}>
+            <button type="button" class="btn quiet" onClick={() => { setOpenAll(true); }}>
+              Open all {count(players.length)} players
+            </button>
+            <button type="button" class="btn quiet" onClick={() => { setOpenAll(false); }}>
+              Close all
+            </button>
+          </p>
+        ) : null}
         <ModelNote items={g.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
         <DistLegend reference={g.players.some((p) => Object.values(p.props).some((x) => x.line_source === "reference"))} />
         <div class="players" role="tabpanel" id="game-team-panel" aria-labelledby={`game-team-tab-${side}`}>
           {players.length === 0 ? (
             <p class="muted">We have no forecasts for this team in this game.</p>
           ) : (
-            players.map((p) => <PlayerRow team={(side === "home" ? g.home : g.away).abbr} key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} locked={isLockedNight(g.date)} mode={mode} lens={lens} />)
+            players.map((p, i) => <PlayerRow open={openAll ?? (mode === "analyst" && i < 3)} team={(side === "home" ? g.home : g.away).abbr} key={`${p.player_id.toString()}-${mode}-${String(openAll)}`} gameId={g.game_id} p={p} result={res} final={g.final} locked={isLockedNight(g.date)} mode={mode} lens={lens} />)
           )}
         </div>
         <ul class="plain small muted">
@@ -315,6 +325,9 @@ function Body({ g }: { g: GameDetail }) {
           ))}
         </ul>
       </section>
+
+      {/* Below the players: the page's main business is the player lines; the timeline is the depth behind them. */}
+      {IS_ARTIFACT ? null : <GameKnowsPanel gameId={g.game_id} />}
     </div>
   );
 }

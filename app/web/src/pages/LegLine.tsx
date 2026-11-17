@@ -225,7 +225,7 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
           <>
             {side === "over" ? "Over" : "Under"} <b>{priceText(price)}</b> at {lineText(line)}
             {row && row.over_price !== null && row.under_price !== null
-              ? ` (over ${priceText(row.over_price)}, under ${priceText(row.under_price)})`
+              ? ` (the ${side === "over" ? "under" : "over"} is ${priceText(side === "over" ? row.under_price : row.over_price)})`
               : ""}
             . {data.line === line ? data.prices.say : ""}
           </>

@@ -60,7 +60,7 @@ const CALL_WORDS: Record<string, string> = {
 
 function Call({ r }: { r: ScoreRow }) {
   const c = r.m?.call ?? null;
-  if (!r.comparison || !r.shown) return <span class="muted">{MISSING}</span>;
+  if (!r.comparison || !r.shown) return <span class="muted st-none">{MISSING}</span>;
   if (c === "better" || c === "worse" || c === "same") return <CompareBadge which={c} what="than the baseline" />;
   return <span>{c === null ? MISSING : (CALL_WORDS[c] ?? c)}</span>;
 }
@@ -115,14 +115,33 @@ const SHOWN_COLS: readonly Column<ScoreRow>[] = [
   LOCKED,
 ];
 
-const HIDDEN_COLS: readonly Column<ScoreRow>[] = [
-  MEASURE,
-  ROW,
-  { key: "n", head: "n rows", cell: (r) => count(r.n), sort: (r) => r.n, num: true, first: "descending" },
-  { key: "d", head: "n dates", cell: (r) => count(r.nDates), sort: (r) => r.nDates, num: true, first: "descending" },
-  LOCKED,
-  { key: "why", head: "Hidden until its look, because", wide: true, cell: (r) => <span class="small">{r.withheld ?? MISSING}</span> },
-];
+/** The producer's reason names its pre-registration file; a reader of the page gets the sentence, Analyst keeps the path. */
+function withheldText(t: string | null | undefined, analyst: boolean): string {
+  if (!t) return MISSING;
+  if (analyst) return t;
+  return stripPaths(t)
+    .replace(/\s*\(docs\/[^)]*\)/g, "")
+    .replace(/,\s*see docs\/[^)]*\)/g, ")")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/** A source reference in brackets, "(nba/daily/settle.py:264-418)", means nothing to a reader; Analyst keeps it. */
+function stripPaths(t: string): string {
+  return t.replace(/\s*\((?:nba|app|docs)\/[^)]*\)/g, "");
+}
+
+function hiddenCols(analyst: boolean): readonly Column<ScoreRow>[] {
+  return [
+    MEASURE,
+    ROW,
+    { key: "n", head: "n rows", cell: (r) => count(r.n), sort: (r) => r.n, num: true, first: "descending" },
+    { key: "d", head: "n dates", cell: (r) => count(r.nDates), sort: (r) => r.nDates, num: true, first: "descending" },
+    LOCKED,
+    { key: "why", head: "Hidden until its look, because", wide: true, cell: (r) => <span class="small">{withheldText(r.withheld, analyst)}</span> },
+  ];
+}
+
 
 /** Simple: the method behind one "how this is measured" disclosure. Analyst: laid out as its own card. */
 function Method(props: { analyst: boolean; children: ComponentChildren }) {
@@ -155,6 +174,7 @@ function Body({ s, market, analyst }: { s: Scorecard; market: boolean; analyst: 
   const hiddenNotes = s.not_available.filter((x) => !say(`${x.metric} ${x.needs} ${x.why}`)).length;
   const hiddenSentences = s.targets.filter((t) => !say(t.sentence)).length;
   const rule = s.score_rule;
+  const hiddenRows = rows.filter((r) => !r.shown);
   return (
     <>
       <section class="panel verdict pb-say" aria-labelledby="sc-say">
@@ -191,32 +211,56 @@ function Body({ s, market, analyst }: { s: Scorecard; market: boolean; analyst: 
             </>
           }
         />
-        <Table
-          caption={<>Counts only: rows under a frozen test, hidden until its look (<a href={topHref("tests")}>forward tests</a>)</>}
-          rows={rows.filter((r) => !r.shown)}
-          columns={HIDDEN_COLS}
-          rowKey={(r) => r.key}
-          noun="rows"
-          class="sc-table sc-hidden"
-          sticky
-          stack
-        />
+        {(() => {
+          const table = (
+            <Table
+              caption={<>Counts only: rows under a frozen test, hidden until its look (<a href={topHref("tests")}>forward tests</a>)</>}
+              rows={hiddenRows}
+              columns={hiddenCols(analyst)}
+              rowKey={(r) => r.key}
+              noun="rows"
+              class="sc-table sc-hidden"
+              sticky
+              stack
+            />
+          );
+          return analyst ? (
+            table
+          ) : (
+            <details class="explain sc-fold">
+              <summary>Show the {count(hiddenRows.length)} rows kept back for frozen tests</summary>
+              {table}
+            </details>
+          );
+        })()}
       </section>
       <section class="panel" aria-labelledby="sc-na">
         <SectionHead id="sc-na" title="What we cannot show yet, and why" sub="Each item names the stored field it would need." />
-        <ul class="plain pb-needs">
-          {s.not_available.map((x) => {
-            const ok = say(`${x.metric} ${x.needs} ${x.why}`);
-            return ok ? (
-              <li key={x.metric}>
-                <strong>{x.metric}</strong>
-                <span>
-                  Needs {x.needs}. {x.why}.
-                </span>
-              </li>
-            ) : null;
-          })}
-        </ul>
+        {(() => {
+          const list = (
+            <ul class="plain pb-needs">
+              {s.not_available.map((x) => {
+                const ok = say(`${x.metric} ${x.needs} ${x.why}`);
+                return ok ? (
+                  <li key={x.metric}>
+                    <strong>{x.metric}</strong>
+                    <span>
+                      Needs {analyst ? x.needs : stripPaths(x.needs)}. {analyst ? x.why : stripPaths(x.why)}.
+                    </span>
+                  </li>
+                ) : null;
+              })}
+            </ul>
+          );
+          return analyst ? (
+            list
+          ) : (
+            <details class="explain sc-fold">
+              <summary>Show the {count(s.not_available.length - hiddenNotes)} things we cannot show yet</summary>
+              {list}
+            </details>
+          );
+        })()}
         {hiddenNotes > 0 ? <p class="small muted">Further items are about the market side; they are listed in the Market lens.</p> : null}
       </section>
       <Method analyst={analyst}>

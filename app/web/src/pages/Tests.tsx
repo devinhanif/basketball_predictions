@@ -64,12 +64,6 @@ function TestCard({ t, analyst }: { t: ForwardTest; analyst: boolean }) {
             <SoFar t={t} />
           </dd>
         </div>
-        <div>
-          <dt>Outcome</dt>
-          <dd>
-            <strong>Hidden until the look.</strong> The result is published at the scheduled read, by the project, not here.
-          </dd>
-        </div>
       </dl>
       {analyst ? (
         <p class="small wrap-any pb-rule">

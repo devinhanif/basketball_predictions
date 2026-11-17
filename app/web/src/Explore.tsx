@@ -292,12 +292,12 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   const calLine = unchanged ? calibratedLine(r) : null;
   const qSide: number | null = side === "over" ? pOver : pUnder;
   return (
-    <div class="stack tight">
+    <div class="stack tight xp-lab">
       <div class="xp-block">
         <h3>Move the what-if line</h3>
         <p class="small muted xp-own-line">
           This line belongs to the what-if only. It starts at {posted !== null ? "the posted line" : "the model's line"} and moves on its own:
-          the line card above does not follow it, and it does not follow the line card.
+          the line card on this page does not follow it, and it does not follow the line card.
         </p>
         <div class="ls-controls">
           <button type="button" class="btn" aria-label="Lower the line by one" disabled={line <= min} onClick={() => { step(-1); }}>
@@ -401,7 +401,7 @@ export function ExplorePanel(props: { gameId: string; playerId: number; stat: st
     <section class="panel explore" aria-label="What if">
       <h2>{props.lens === "market" ? "Price and what-ifs" : "What if?"}</h2>
       <p class="small muted">Everything below is worked out in your browser from the stored forecast. Nothing is saved or scored.</p>
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(card) => (
           <>
             <p class="who explore-who">

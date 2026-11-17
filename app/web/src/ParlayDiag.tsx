@@ -70,7 +70,7 @@ function ForDate({ date }: { date: string }) {
   const [offset, setOffset] = useState(0);
   const [state, reload] = useLoad(() => honestyApi.parlayDiag(date, offset, PAGE), [date, offset]);
   return (
-    <View state={state} reload={reload} what="the stored joint chances">
+    <View state={state} reload={reload} errorLevel={2} what="the stored joint chances">
       {(m: Maybe<ParlayDiag>) =>
         m.kind === "absent" ? (
           <p>
@@ -93,7 +93,7 @@ export function ParlayDiagnostics(props: { date: string | null }) {
       {props.date !== null ? (
         <ForDate date={props.date} />
       ) : (
-        <View state={card} reload={reload} what="the engine's card">
+        <View state={card} reload={reload} errorLevel={2} what="the engine's card">
           {(p) => (p?.report_date ? <ForDate date={p.report_date} /> : <p>No engine card is stored, so there is no night to read.</p>)}
         </View>
       )}
