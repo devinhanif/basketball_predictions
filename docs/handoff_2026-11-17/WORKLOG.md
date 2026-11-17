@@ -68,12 +68,13 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
 | B | `agent/app-1117-web` | `~/Downloads/nba-wt-1117-web` | `app/web`: audit, route walk, not-found, error screen and boundary, time helper, SSE lifecycle | `docs/handoff_2026-11-17/lane_web.md` |
 | D | `agent/app-1117-dx` | `~/Downloads/nba-wt-1117-dx` | `app/scripts` (dev, check, artifact), `app/README.md`, architecture page, docs drift | `docs/handoff_2026-11-17/lane_dx.md` |
 
+| C1 | `agent/app-1117-design` | `~/Downloads/nba-wt-1117-design` | launched 20:03 CST: tokens, `src/ui/` components, one formatter, edge-label language, states, data-as-of line, Key terms page, intro, palette and shortcuts | `docs/handoff_2026-11-17/lane_design.md` |
 | E1 | `agent/steward-1117-ci-health` | `~/Downloads/nba-wt-1117-ci` | lint truth, `slow` marker, flaky tests, generated outputs out of git, launchd plist files (not installed), cleanup script (not run) | `docs/handoff_2026-11-17/lane_ci.md` |
 | F | `agent/scribe-1117-docs` | `~/Downloads/nba-wt-1117-docs` | `README.md`, `docs/PROJECT_STATUS.md`, drift fixes in DAILY_PIPELINE and PARLAY_ENGINE, root `NEXT_SESSION.md` removed on the branch | `docs/handoff_2026-11-17/lane_docs.md` |
 
 Not started: lane E2 (live-path refactors that need the replay oracle: one lead constant, one fee module, duplicate
 Polymarket client, legacy odds vendor names, context-residual config, forward DDL, research out of `nba/`, long files),
-lane C (design system and UX; waits for B, same files), lane E (repo-wide fixes; waits for a free slot and,
+lane C2 (candidate menu: prediction record, scorecard, health strip, distribution view, forward-test tracker, error-code help, parlay diagnostics; full-stack, waits for A and C1), lane E (repo-wide fixes; waits for a free slot and,
 for the replay oracle, for the end of the game window about 22:00 CST).
 
 ## Next three steps
