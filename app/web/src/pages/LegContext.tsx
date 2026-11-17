@@ -65,7 +65,7 @@ function SplitRow({ s }: { s: Split }) {
 export function Splits({ data, side, line }: { data: LegBreakdown; side: Side; line: number }) {
   return (
     <section class="panel" aria-label="Splits">
-      <h2>Splits bettors check</h2>
+      <h2>How he does in each situation</h2>
       <p class="small muted" style={{ marginTop: 0 }}>
         Times he went {side} {lineText(line)}, out of games in each situation. The number under each is the sample size:
         thin samples are dimmed and should not be trusted.
