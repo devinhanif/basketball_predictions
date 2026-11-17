@@ -23,6 +23,7 @@ import { chanceSentence, didText, rangeSentence, winSentence } from "../words";
 import { SoWhat, Tabs } from "../ui";
 import { count } from "../format";
 import { SourceButton } from "../Provenance";
+import { AddToSlipSlot } from "../BetSlots";
 
 function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens }) {
   const { prop, player, actual } = props;
@@ -51,6 +52,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
             Explore: move the line and the minutes
           </a>
         ) : null}
+        <AddToSlipSlot gameId={props.gameId} playerId={props.playerId} stat={prop.stat} side={null} line={prop.line} from="game" />
       </p>
       <OnItChip propId={prop.prop_id} />
       <p class="prop-say">

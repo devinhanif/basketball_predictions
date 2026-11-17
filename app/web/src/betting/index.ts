@@ -7,6 +7,7 @@
 // check proves the OFF build leaves it out.
 import { h } from "preact";
 import { BetPlaceholder } from "./Placeholder";
+import { AddToSlip } from "./AddToSlip";
 import { SlipPage, SlipPanel } from "./Slip";
 import { BET_PREFIX, type BetRoute, type BettingModule, type BettingNavEntry, type BettingRouteDef } from "./seam";
 
@@ -45,7 +46,7 @@ const NAV: readonly BettingNavEntry[] = [
 export const BETTING_MODULE: BettingModule = {
   routes: ROUTES,
   nav: NAV,
-  AddToSlip: () => null,
+  AddToSlip: (props) => h(AddToSlip, props),
   ShellPanel: (props) => h(SlipPanel, props),
 };
 
