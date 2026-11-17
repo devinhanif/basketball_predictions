@@ -122,13 +122,15 @@ export function StripBody(props: { h: Health; market: boolean; now?: Date }) {
                 Newest Pinnacle quote <Age at={q.pinnacle} old={quoteOld} />
               </span>
             )}
-            <Sep />
-            <span class="hs-item">Export {h.data_made_at ? <Age at={h.data_made_at} old={exportOld} /> : "time not reported"}</span>
+            <span class={exportOld ? "" : "hs-opt"}>
+              <Sep />
+              <span class="hs-item">Export {h.data_made_at ? <Age at={h.data_made_at} old={exportOld} /> : "time not reported"}</span>
+            </span>
             {short !== null ? (
-              <>
+              <span class="hs-opt">
                 <Sep />
                 <span class="hs-item">{short}</span>
-              </>
+              </span>
             ) : null}
           </span>
           <span class="hs-more">Details</span>

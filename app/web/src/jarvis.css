@@ -363,9 +363,11 @@ textarea:focus-visible {
   font-weight: var(--fw-bold);
   letter-spacing: 0.04em;
 }
-.ktable th,
-.ktable td {
-  padding: 10px 12px;
+@media (min-width: 760px) {
+  .ktable th,
+  .ktable td {
+    padding: 10px 12px;
+  }
 }
 .ktable tbody tr:last-child td {
   border-bottom: 0;
@@ -1166,4 +1168,108 @@ h1.answer {
 .games > .game:hover,
 .games > a.game:hover {
   border-color: var(--line-strong);
+}
+
+/* ---- the phone/tablet menu drawer (MenuDrawer.tsx) ---- */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.nav-sheet.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  width: min(300px, 86vw);
+  max-height: none;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: var(--head);
+  padding: max(16px, env(safe-area-inset-top, 0px)) 14px max(16px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: drawer-in 0.2s ease-out;
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 12px 8px;
+}
+.drawer-head .brand svg {
+  width: 30px;
+  height: 32px;
+  transform: rotate(-7deg);
+}
+.drawer .side-label {
+  padding: 16px 12px 6px;
+}
+.drawer .side-link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -15px;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent-ink);
+}
+.drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.drawer-note {
+  margin-top: auto;
+  padding-top: 16px;
+}
+@keyframes drawer-in {
+  from {
+    transform: translateX(-24px);
+    opacity: 0.6;
+  }
+}
+@media (min-width: 1024px) {
+  .drawer-scrim {
+    display: none;
+  }
+}
+/* The sidebar brand's second line. */
+.brand-words {
+  display: grid;
+  line-height: 1;
+}
+.brand-words small {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.crumb-sep {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 6px;
+  color: var(--muted);
+}
+.crumb-sep svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Today's Picks number labels were dimmed with opacity (3.7:1 in light); they take the muted ink instead (AA). */
+.tp-nums dt {
+  opacity: 1;
+  color: var(--muted);
 }

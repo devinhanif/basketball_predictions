@@ -226,16 +226,20 @@
 .hs-items {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .hstrip .hs-item {
   overflow-wrap: normal;
 }
 .hs-sep {
   margin: 0 6px;
-  color: var(--subtle);
+  color: var(--muted);
+}
+/* On a phone the line keeps only what must stay visible (the newest Pinnacle quote's age, or the export's age in the
+   Learn lens); the rest is one tap away under Details. Nothing is cut mid-word. */
+@media (max-width: 600px) {
+  .hs-opt {
+    display: none;
+  }
 }
 .hs-dot {
   width: 7px;
