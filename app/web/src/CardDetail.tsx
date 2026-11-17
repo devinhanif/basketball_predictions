@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 import { api } from "./api";
-import { american, bookName, lineText, num, pct } from "./format";
+import { priceText, bookName, lineText, num, pct } from "./format";
 import { Explain, View } from "./components";
 import { plainModel } from "./plain";
 import { gameHref } from "./router";
@@ -259,7 +259,7 @@ export function LineSlider({ card }: { card: CardView }) {
         {!market
           ? `The line on this card is ${lineText(card.line)}.`
           : posted !== null && card.over_price !== null && card.under_price !== null
-          ? `Posted line ${lineText(posted)}${card.price_book ? ` at ${bookName(card.price_book)}` : ""}: over ${american(card.over_price)}, under ${american(card.under_price)}. Prices exist only at the posted line.`
+          ? `Posted line ${lineText(posted)}${card.price_book ? ` at ${bookName(card.price_book)}` : ""}: over ${priceText(card.over_price)}, under ${priceText(card.under_price)}. Prices exist only at the posted line.`
           : "No posted price is stored for this prop."}
       </p>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { SoWhat } from "../ui";
 import { api } from "../api";
 import { CalTag, Explain, ModelNote, View } from "../components";
 import { plainModel } from "../plain";
@@ -433,6 +434,7 @@ export function Record(props: { tab: RecordTab; date: string | null }) {
     <div class="stack record">
       <header class="page-head">
         <h1>Track record</h1>
+        <SoWhat>Forecasts as they stood before tip, checked against what happened. A record is how a forecast earns trust; until it is long enough, keep your money.</SoWhat>
         <p class="muted">How the forecasts did. Replay a finished night, check how often the chances held up, or guess a line yourself.</p>
       </header>
       <nav class="tabs" aria-label="Track record">

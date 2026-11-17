@@ -12,14 +12,16 @@ import { GameKnowsPanel } from "../Knows";
 import { GameLive } from "../LiveParts";
 import { IS_ARTIFACT } from "../env";
 import { plainPlay } from "../plain";
-import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
+import { priceText, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
 import { legHref, nightHref } from "../router";
 import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
 import { RESULT_HIDDEN, isLockedNight } from "../record";
-import { chanceSentence, didText, rangeSentence } from "../words";
+import { chanceSentence, didText, rangeSentence, winSentence } from "../words";
+import { SoWhat, Tabs } from "../ui";
+import { count } from "../format";
 
 function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens }) {
   const { prop, player, actual } = props;
@@ -35,7 +37,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
             : !market
               ? `Line ${lineText(prop.line)}`
               : prop.over_price !== null && prop.under_price !== null
-              ? `Line ${lineText(prop.line)} · Over ${american(prop.over_price)} · Under ${american(prop.under_price)}${prop.price_book ? ` (${bookName(prop.price_book)})` : ""}`
+              ? `Line ${lineText(prop.line)} · Over ${priceText(prop.over_price)} · Under ${priceText(prop.under_price)}${prop.price_book ? ` (${bookName(prop.price_book)})` : ""}`
               : `Line ${lineText(prop.line)} (no usable price for both sides)`}
         </span>
       </div>
@@ -176,6 +178,12 @@ function Body({ g }: { g: GameDetail }) {
         </p>
         <ModeToggle />
       </div>
+      <SoWhat>
+        {modelHome === null
+          ? `${g.away.name} at ${g.home.name}: we have no forecast for this game.`
+          : `${g.away.name} at ${g.home.name}: by our model, ${winSentence(modelHome, g.home.name, g.away.name).replace(/^Close/, "close")}.`}{" "}
+        {`${count(g.players.length)} ${g.players.length === 1 ? "player has" : "players have"} a forecast. Nothing here is a pick.`}
+      </SoWhat>
       <LensSwitch />
       <section class="panel scoreboard">
         <h1 class="sr">
@@ -260,21 +268,16 @@ function Body({ g }: { g: GameDetail }) {
       <section class="panel">
         <div class="row between wrap">
           <h2>Player lines</h2>
-          <div class="tabs" role="tablist" aria-label="Team">
-            {(["away", "home"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                role="tab"
-                aria-selected={side === s}
-                class="tab"
-                aria-current={side === s ? "true" : undefined}
-                onClick={() => { setSide(s); }}
-              >
-                {(s === "home" ? g.home : g.away).abbr}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            label="Team"
+            idBase="game-team"
+            value={side}
+            onChange={setSide}
+            tabs={[
+              { key: "away", label: g.away.abbr },
+              { key: "home", label: g.home.abbr },
+            ]}
+          />
         </div>
         <p class="small muted">
           {team.city} {team.name}: {players.length} players with {g.players.some((p) => p.props.pts?.line_source === "reference") ? "a forecast" : "a line from the sportsbook"}, highest forecast scorer first.
@@ -282,7 +285,7 @@ function Body({ g }: { g: GameDetail }) {
         </p>
         <ModelNote items={g.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
         <DistLegend reference={g.players.some((p) => Object.values(p.props).some((x) => x.line_source === "reference"))} />
-        <div class="players">
+        <div class="players" role="tabpanel" id="game-team-panel" aria-labelledby={`game-team-tab-${side}`}>
           {players.length === 0 ? (
             <p class="muted">We have no forecasts for this team in this game.</p>
           ) : (

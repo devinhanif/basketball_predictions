@@ -1,6 +1,6 @@
 import { api } from "./api";
 import { Explain, View } from "./components";
-import { american, bookName, lineText, longDate, pct, signed, stamp } from "./format";
+import { priceText, bookName, lineText, longDate, pct, signed, stamp } from "./format";
 import { capBooks, evCautious, evVerdict, plainText, testCodesIn, ticketBook } from "./plain";
 import { defaultNight } from "./nights";
 import { legHref } from "./router";
@@ -39,7 +39,7 @@ function LegRow({ leg, illustration }: { leg: TpLeg; illustration: boolean }) {
             {leg.tail_flag === true ? <span class="tag tail-flag">65%+ leg: ran high in tests</span> : null}
           </span>
           <span class="tp-leg-price num">
-            {bookName(leg.book)} {american(leg.price_american)}
+            {bookName(leg.book)} {priceText(leg.price_american)}
           </span>
         </summary>
         <div class="tp-leg-why">

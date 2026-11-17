@@ -8,6 +8,9 @@ import { gameHref, legHref, topHref } from "./router";
 import type { SearchItem } from "./search";
 import { tipTime } from "./format";
 import { useUserState } from "./userState";
+import { IS_ARTIFACT } from "./env";
+import { useLens } from "./prefs";
+import { termHref, termsFor } from "./terms";
 import { isLegStat } from "./legTypes";
 
 export interface Notices {
@@ -42,12 +45,21 @@ export const SCREEN_ITEMS: SearchItem[] = [
   { kind: "screen", label: "Alerts", sub: "Notification center", href: topHref("alerts"), words: "notifications bell" },
   { kind: "screen", label: "Swipe", sub: "Over or under, graded after", href: topHref("swipe") },
   { kind: "screen", label: "My picks", sub: "Your paper picks and your friends'", href: topHref("picks") },
-  { kind: "screen", label: "Preferences", sub: "Theme, detail level, notifications", href: topHref("settings"), words: "settings theme mode" },
+  { kind: "screen", label: "Preferences", sub: "Theme, detail level, odds format, density, notifications", href: topHref("settings"), words: "settings theme mode odds decimal american compact" },
+  { kind: "screen", label: "Key terms", sub: "Plain definitions of every word used here", href: topHref("terms"), words: "glossary definitions help" },
+  ...(IS_ARTIFACT
+    ? []
+    : [
+        { kind: "screen" as const, label: "Live", sub: "Scores, plays and player stats while games are on", href: topHref("live"), words: "in game score" },
+        { kind: "screen" as const, label: "Track record", sub: "Replay, calibration and guess the line", href: topHref("record"), words: "history replay calibration guess" },
+        { kind: "screen" as const, label: "Parlay of the day", sub: "The engine's verdict for the newest night", href: "#/parlay", words: "parlay combo ticket" },
+      ]),
 ];
 
 /** The index: screens now; games and players once the nights load (and the newest night's whole rosters after that). */
 export function useSearchIndex(active: boolean, isAdmin: boolean): SearchItem[] {
   const [items, setItems] = useState<SearchItem[]>([]);
+  const market = useLens() === "market";
   useEffect(() => {
     if (!active) return;
     const run = { live: true };
@@ -96,5 +108,9 @@ export function useSearchIndex(active: boolean, isAdmin: boolean): SearchItem[] 
       run.live = false;
     };
   }, [active]);
-  return useMemo(() => [...SCREEN_ITEMS, ...(isAdmin ? [{ kind: "screen" as const, label: "Admin studio", sub: "Photos, activity, people, data tools", href: topHref("admin") }] : []), ...items], [items, isAdmin]);
+  return useMemo(() => {
+    // Key terms follow the lens: the market's terms are listed in the Market lens only.
+    const terms: SearchItem[] = termsFor(market).map((t) => ({ kind: "term", label: t.term, sub: t.says.length > 70 ? `${t.says.slice(0, 68)}...` : t.says, href: termHref(t.id), words: t.also ?? "" }));
+    return [...SCREEN_ITEMS, ...(isAdmin ? [{ kind: "screen" as const, label: "Admin studio", sub: "Photos, activity, people, data tools", href: topHref("admin") }] : []), ...items, ...terms];
+  }, [items, isAdmin, market]);
 }

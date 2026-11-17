@@ -1,4 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
+import { EdgeBadge } from "../ui";
+import { edgeLabelOf } from "../ui/semantic";
 import { api, getTopContracts } from "../api";
 import { Avatar } from "../Avatar";
 import { TeamTag, WinBars } from "../components";
@@ -240,7 +242,15 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
                     <td class="r" data-l="Fair">{fmtModel(r.fair)}</td>
                     <td class="r" data-l="Model">{fmtModel(r.model)}</td>
                     <td class="r" data-l="Ask">{r.ask_c !== null ? plainCents(r.ask_c) : "-"}</td>
-                    <td class="small status">{r.status}</td>
+                    <td class="small status">
+                      {r.label !== null && edgeLabelOf(r.label) !== null ? (
+                        <>
+                          <EdgeBadge label={r.label} /> {r.statusPlain}
+                        </>
+                      ) : (
+                        r.status
+                      )}
+                    </td>
                     <td class="watch-cell">
                       <button
                         type="button"

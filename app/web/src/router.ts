@@ -24,13 +24,15 @@ export type Route =
   | { name: "live"; id: string | null; date: string | null }
   | { name: "alerts" }
   | { name: "admin" }
+  /** Key terms; `term` is the anchor to scroll to, `q` the search box. */
+  | { name: "terms"; term: string | null; q: string | null }
   /** Anything the app could not have linked to; `hash` is what was asked for. */
   | { name: "notfound"; hash: string };
 
 /** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
-export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings";
+export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings" | "terms";
 const ARTIFACT_NAME: Record<TopName, string> = {
-  today: "discover", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs",
+  today: "discover", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs", terms: "terms",
 };
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
@@ -147,6 +149,14 @@ export function parse(hash: string): Route {
     case "admin":
       if (extra) return notFound;
       return parts[0] === "prefs" || parts[0] === "settings" ? { name: "settings" } : { name: parts[0] };
+    case "terms": {
+      if (extra) return notFound;
+      const t = q.get("t");
+      const s = q.get("q");
+      // A term anchor is a short slug; search text is any short text.
+      if ((t !== null && !/^[a-z0-9-]{1,40}$/.test(t)) || (s !== null && s !== "" && !okId(s))) return notFound;
+      return { name: "terms", term: t, q: s === "" ? null : s };
+    }
     case "hedge": {
       if (extra) return notFound;
       const g = q.get("game");
@@ -182,6 +192,12 @@ export function recordHref(tab: RecordTab, date: string | null): string {
   return q === "" ? "#/record" : `#/record?${q}`;
 }
 
+/** Hash for Key terms, with an anchor and a search when given. */
+export function termsHashFor(term: string | null, q: string | null): string {
+  const parts = [term === null ? "" : `t=${encodeURIComponent(term)}`, q === null || q === "" ? "" : `q=${encodeURIComponent(q)}`].filter(Boolean).join("&");
+  return parts === "" ? "#/terms" : `#/terms?${parts}`;
+}
+
 /** Hash for a night's slate. */
 export function nightHref(date: string): string {
   return `#/?date=${encodeURIComponent(date)}`;
@@ -208,6 +224,8 @@ export function plainName(route: Route): TopName | null {
       return route.tab === "replay" && route.date === null ? "record" : null;
     case "live":
       return route.id === null && route.date === null ? "live" : null;
+    case "terms":
+      return route.term === null && route.q === null ? "terms" : null;
     case "picks":
     case "settings":
     case "signals":

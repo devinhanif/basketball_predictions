@@ -13,15 +13,22 @@ export type Screen = "today" | "signals" | "swipe" | "picks";
 export type Lens = "learn" | "explore" | "market";
 export const LENSES: readonly Lens[] = ["learn", "explore", "market"];
 
+/** How a posted American price is written: as posted (the default, what the app always showed) or as decimal odds. */
+export type Odds = "american" | "decimal";
+/** Comfortable (the default) or compact panel padding; a token switch only. */
+export type Density = "comfortable" | "compact";
+
 export interface Prefs {
   theme: Theme;
   mode: Mode;
   screen: Screen;
   lens: Lens;
+  odds: Odds;
+  density: Density;
 }
 
-export const KEYS = { theme: "ph.theme", mode: "ph.mode", screen: "ph.screen", lens: "ph.lens" } as const;
-export const DEFAULTS: Prefs = { theme: "system", mode: "simple", screen: "today", lens: "learn" };
+export const KEYS = { theme: "ph.theme", mode: "ph.mode", screen: "ph.screen", lens: "ph.lens", odds: "ph.odds", density: "ph.density" } as const;
+export const DEFAULTS: Prefs = { theme: "system", mode: "simple", screen: "today", lens: "learn", odds: "american", density: "comfortable" };
 
 const memory = new Map<string, string>();
 
@@ -56,6 +63,14 @@ export function parseLens(v: string | null): Lens {
   return v === "explore" || v === "market" ? v : "learn";
 }
 
+export function parseOdds(v: string | null): Odds {
+  return v === "decimal" ? "decimal" : "american";
+}
+
+export function parseDensity(v: string | null): Density {
+  return v === "compact" ? "compact" : "comfortable";
+}
+
 let current: Prefs | null = null;
 const listeners = new Set<() => void>();
 
@@ -65,6 +80,8 @@ export function getPrefs(): Prefs {
     mode: parseMode(readKey(KEYS.mode)),
     screen: parseScreen(readKey(KEYS.screen)),
     lens: parseLens(readKey(KEYS.lens)),
+    odds: parseOdds(readKey(KEYS.odds)),
+    density: parseDensity(readKey(KEYS.density)),
   };
   return current;
 }
@@ -76,10 +93,18 @@ export function applyTheme(theme: Theme): void {
   else document.documentElement.dataset["theme"] = theme;
 }
 
+/** Puts the density on the root element; comfortable is the default and leaves no attribute. */
+export function applyDensity(density: Density): void {
+  if (typeof document === "undefined") return;
+  if (density === "comfortable") delete document.documentElement.dataset["density"];
+  else document.documentElement.dataset["density"] = density;
+}
+
 export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
   current = { ...getPrefs(), [key]: value };
   writeKey(KEYS[key], value);
   if (key === "theme") applyTheme(value as Theme);
+  if (key === "density") applyDensity(value as Density);
   for (const l of listeners) l();
 }
 

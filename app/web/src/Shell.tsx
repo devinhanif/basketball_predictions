@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { Avatar } from "./Avatar";
 import { Footer, ModeToggle, ThemeToggle } from "./components";
 import { deskOf, useDesk } from "./deskStore";
@@ -10,6 +10,9 @@ import { moveSelection, search, KIND_LABEL, type SearchItem } from "./search";
 import { useIsAdmin, useNotices, useSearchIndex } from "./shellData";
 import { useLens } from "./prefs";
 import { topHref, type Route, type TopName } from "./router";
+import type { MetaLine } from "./metaWatch";
+import { Banner, Dialog } from "./ui";
+import { ShortcutsDialog, isTypingTarget } from "./Shortcuts";
 import { dismissToast, useToasts } from "./toast";
 import { openTour } from "./tourState";
 
@@ -29,6 +32,7 @@ const ALL_WORKSPACE: NavDef[] = [
   { name: "alerts", label: "Alerts", icon: "alerts" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
   { name: "picks", label: "My picks", icon: "picks" },
+  { name: "terms", label: "Key terms", icon: "book" },
 ];
 // The track record reads the live API, which the single-file snapshot does not have.
 const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name === "record" || n.name === "live")));
@@ -39,10 +43,10 @@ export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
-  notfound: "today",
+  terms: "terms", notfound: "today",
 };
 const TITLES: Record<TopName, string> = {
-  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences",
+  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
 };
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found" };
 
@@ -52,41 +56,12 @@ function crumbs(route: Route): string[] {
   return sub ? [top, sub] : [top];
 }
 
-/** Modal shell: Escape and the backdrop close it; focus moves in and returns. */
+/** The app's modal: the one Dialog (focus trap, Escape, focus returns to the opener). */
 export function Modal(props: { title: string; onClose: () => void; children: ComponentChildren; wide?: boolean }) {
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
-    box.current?.querySelector<HTMLElement>("input, button, a")?.focus();
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        props.onClose();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      prev?.focus();
-    };
-  }, []);
   return (
-    <div
-      class="modal-back"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) props.onClose();
-      }}
-    >
-      <div class={`modal${props.wide ? " wide" : ""}`} role="dialog" aria-modal="true" aria-label={props.title} ref={box}>
-        <div class="modal-head">
-          <h2>{props.title}</h2>
-          <button type="button" class="icon-btn" aria-label="Close" onClick={props.onClose}>
-            <Icon name="close" />
-          </button>
-        </div>
-        <div class="modal-body">{props.children}</div>
-      </div>
-    </div>
+    <Dialog title={props.title} onClose={props.onClose} wide={props.wide}>
+      {props.children}
+    </Dialog>
   );
 }
 
@@ -222,7 +197,7 @@ export function Bell({ unread }: { unread: number }) {
   );
 }
 
-function ProfileMenu(props: { onClose: () => void; onAbout: () => void }) {
+function ProfileMenu(props: { onClose: () => void; onAbout: () => void; onKeys: () => void }) {
   const id = useIdentity();
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
   return (
@@ -250,6 +225,16 @@ function ProfileMenu(props: { onClose: () => void; onAbout: () => void }) {
         }}
       >
         About this app and how it works
+      </button>
+      <button
+        type="button"
+        class="pop-link"
+        onClick={() => {
+          props.onClose();
+          props.onKeys();
+        }}
+      >
+        Keyboard shortcuts <kbd class="kbd">?</kbd>
       </button>
       {IS_ARTIFACT ? null : (
         <button
@@ -307,7 +292,7 @@ export function Toasts() {
   );
 }
 
-export function Shell(props: { route: Route; replayNote: string | null; offline: boolean; children: ComponentChildren }) {
+export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; children: ComponentChildren }) {
   const desk = useDesk();
   const id = useIdentity();
   const isAdmin = useIsAdmin();
@@ -316,6 +301,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
   const [aboutOpen, setAboutOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
   const index = useSearchIndex(searchOpen, isAdmin);
   const lens = useLens();
   const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
@@ -330,6 +316,12 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setSearchOpen((o) => !o);
+        return;
+      }
+      // "?" opens the shortcut sheet, except while typing or inside an open dialog.
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey && !isTypingTarget(e.target) && document.querySelector('[role="dialog"]') === null) {
+        e.preventDefault();
+        setKeysOpen(true);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -479,14 +471,37 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
               <Avatar name={name} src={id.avatarUrl} size="sm" />
             </button>
           </div>
-          {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} onAbout={() => { setAboutOpen(true); }} /> : null}
+          {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} onAbout={() => { setAboutOpen(true); }} onKeys={() => { setKeysOpen(true); }} /> : null}
           {menuOpen ? (
             <nav class="nav-sheet" aria-label="All screens">
               {[...visible, ...mgmt].map((n) => link(n, "side-link"))}
             </nav>
           ) : null}
         </header>
-        {props.replayNote ? <div class="datanote" role="status">{props.replayNote}</div> : null}
+        {props.meta.text ? (
+          <Banner tone={props.meta.kind === "problem" ? "notice" : "info"} class="dataline">
+            {props.meta.text}
+          </Banner>
+        ) : null}
+        {props.meta.newer !== null ? (
+          <Banner
+            tone="fresh"
+            role="alert"
+            action={
+              <button
+                type="button"
+                class="btn small"
+                onClick={() => {
+                  window.location.reload();
+                }}
+              >
+                Reload
+              </button>
+            }
+          >
+            Newer data exists (built {props.meta.newer}). Reload to see it; nothing changes until you do.
+          </Banner>
+        ) : null}
         {props.offline ? (
           <div class="banner" role="status">
             You are offline, or the data server is not answering. Showing the last copy we saved.
@@ -512,6 +527,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
           );
         })}
       </nav>
+      {keysOpen ? <ShortcutsDialog onClose={() => { setKeysOpen(false); }} /> : null}
       {searchOpen ? <SearchModal index={index} onClose={() => { setSearchOpen(false); }} /> : null}
       {aboutOpen ? <AboutModal onClose={() => { setAboutOpen(false); }} private_={ready?.privacy === "private"} fixture={ready?.fixture != null} asOf={ready?.data_as_of ?? null} /> : null}
       <Toasts />

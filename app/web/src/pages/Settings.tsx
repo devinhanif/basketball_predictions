@@ -3,7 +3,7 @@ import { Avatar } from "../Avatar";
 import { deskOf, useDesk } from "../deskStore";
 import { IS_ARTIFACT } from "../env";
 import { cleanName, setLocalName, useIdentity } from "../identity";
-import { screenAllowed, setPref, usePrefs, useLens, type Mode, type Screen, type Theme } from "../prefs";
+import { screenAllowed, setPref, usePrefs, useLens, type Density, type Mode, type Odds, type Screen, type Theme } from "../prefs";
 import { useIsAdmin } from "../shellData";
 import { useUserState, setNotify } from "../userState";
 import { stamp } from "../format";
@@ -66,6 +66,14 @@ const MODES: readonly { value: Mode; label: string }[] = [
   { value: "simple", label: "Simple" },
   { value: "analyst", label: "Analyst" },
 ];
+const DENSITIES: readonly { value: Density; label: string }[] = [
+  { value: "comfortable", label: "Comfortable" },
+  { value: "compact", label: "Compact" },
+];
+const ODDS: readonly { value: Odds; label: string }[] = [
+  { value: "american", label: "American (-110)" },
+  { value: "decimal", label: "Decimal (1.91)" },
+];
 const SCREENS: readonly { value: Screen; label: string }[] = [
   { value: "today", label: "Discover" },
   { value: "signals", label: "Signals" },
@@ -104,6 +112,10 @@ export function Settings() {
           <Choice legend="Appearance" help="Dark is the default. Match my device follows your system setting." value={p.theme} options={THEMES} onPick={(v) => { setPref("theme", v); }} />
           <Choice legend="Detail level" help="Simple shows plain cards, one line per player. Analyst adds the line ladder, splits, calibration and the edge arithmetic." value={p.mode} options={MODES} onPick={(v) => { setPref("mode", v); }} />
           <Choice legend="Opens on" help="The screen you land on when you open the app without a link." value={p.screen} options={SCREENS.filter((o) => screenAllowed(o.value, lens))} onPick={(v) => { setPref("screen", v); }} />
+          <Choice legend="Density" help="Compact tightens the space inside panels and between rows, to fit more on a screen." value={p.density} options={DENSITIES} onPick={(v) => { setPref("density", v); }} />
+          {lens === "market" ? (
+            <Choice legend="Odds format" help="How a posted sportsbook price is written. Same price either way; decimal is the total return per 1 staked." value={p.odds} options={ODDS} onPick={(v) => { setPref("odds", v); }} />
+          ) : null}
         </section>
         <section class="panel settings" aria-label="Notifications">
           <h2>Notifications</h2>

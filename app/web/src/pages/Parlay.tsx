@@ -1,4 +1,5 @@
 import { api } from "../api";
+import { SoWhat } from "../ui";
 import { Explain, View } from "../components";
 import { longDate, stamp } from "../format";
 import { engineSpeaksFor } from "../nights";
@@ -135,6 +136,9 @@ export function ParlayPage(props: { date: string | null }) {
   return (
     <div class="stack">
       <h1>Parlay of the day</h1>
+      {market ? null : (
+        <SoWhat>The engine's card belongs to the market side, so this lens gives the standing answer: keep your money.</SoWhat>
+      )}
       {/* The engine's card speaks of prices, fees and a book: Market lens only, like the ticket list below. */}
       {market ? (
         <ParlayCard compact={false} date={props.date} />

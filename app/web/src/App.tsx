@@ -1,6 +1,4 @@
 import { useEffect, useState } from "preact/hooks";
-import { api } from "./api";
-import { ageNote, stamp } from "./format";
 import { Shell } from "./Shell";
 import { useRoute } from "./router";
 import { Game } from "./pages/Game";
@@ -17,54 +15,25 @@ import { Admin } from "./pages/Admin";
 import { Welcome } from "./Welcome";
 import { Record } from "./pages/Record";
 import { Live } from "./pages/Live";
+import { Terms } from "./pages/Terms";
 import { Tour } from "./Tour";
 import { MarketOnly } from "./Lens";
 import { useLens } from "./prefs";
-import { openTour, tourSeen } from "./tourState";
-import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
 import { IS_ARTIFACT } from "./env";
 import { NotFound } from "./Problem";
 import { Boundary } from "./Boundary";
-import { failureOf, reasonOf } from "./errors";
+import { useMetaLine } from "./metaWatch";
 
 export function App() {
   const route = useRoute();
   const market = useLens() === "market";
   const [stale, setStale] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
 
+  const meta = useMetaLine();
   useEffect(() => {
-    // First visit: the tour opens once (after the welcome, which opens it itself when it finishes).
-    if (!IS_ARTIFACT && hasWelcomed() && !tourSeen()) openTour();
-  }, []);
-
-  useEffect(() => {
-    api.meta().then(
-      (r) => {
-        const m = r.data as Partial<typeof r.data> | null;
-        if (m === null || typeof m !== "object" || typeof m.data_as_of !== "string" || typeof m.mode_note !== "string") {
-          setNote("The data server answered in a form this page does not read, so what you see may be old. Nothing here is advice.");
-          return;
-        }
-        setNote(
-          m.mode === "fixture_replay"
-            ? "A replay of real 2024-25 games, not tonight's slate. Nothing here is advice."
-            : `${IS_ARTIFACT ? "A saved snapshot of the nightly export; it does not update. " : ""}Data as of ${stamp(m.data_as_of)}. ${ageNote(m.data_as_of) ?? ""} ${m.mode_note}`.replace(/\s{2,}/g, " "),
-        );
-        if (r.fromCache) setStale(true);
-      },
-      (e: unknown) => {
-        const f = failureOf(e);
-        const reason = reasonOf(f);
-        setNote(
-          reason !== null
-            ? `Today's data failed its checks, so it is not shown: ${reason}. Nothing here is advice.`
-            : "The data server is not answering, so what you see may be old. Nothing here is advice.",
-        );
-      },
-    );
-  }, []);
+    if (meta.fromCache) setStale(true);
+  }, [meta.fromCache]);
 
   let page;
   switch (route.name) {
@@ -120,6 +89,9 @@ export function App() {
     case "admin":
       page = <Admin />;
       break;
+    case "terms":
+      page = <Terms term={route.term} q={route.q} />;
+      break;
     case "notfound":
       page = <NotFound hash={route.hash} />;
       break;
@@ -128,10 +100,10 @@ export function App() {
   }
   return (
     <Boundary outer>
-      <Shell route={route} replayNote={note} offline={stale}>
+      <Shell route={route} meta={meta} offline={stale}>
+        <Welcome />
         <Boundary resetKey={JSON.stringify(route)}>{page}</Boundary>
       </Shell>
-      <Welcome />
       {IS_ARTIFACT ? null : <Tour />}
     </Boundary>
   );

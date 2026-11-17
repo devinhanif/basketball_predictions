@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { App } from "./App";
-import { applyTheme, getPrefs } from "./prefs";
+import { applyDensity, applyTheme, getPrefs } from "./prefs";
 import { startUserStateSync } from "./userState";
 import { startWatchSync } from "./watch";
 import { startPhotoSync } from "./photos";
@@ -13,13 +13,19 @@ import "./picks.css";
 import "./modes.css";
 import "./live.css";
 import "./ux.css";
+import "./kit.css";
 
 applyTheme(getPrefs().theme);
+applyDensity(getPrefs().density);
 void startUserStateSync();
 void startWatchSync();
 void startPhotoSync();
 const root = document.getElementById("app");
-if (root) render(<App />, root);
+// The static "Loading..." placeholder is replaced, not left behind under the app (Preact appends to existing children).
+if (root) {
+  root.textContent = "";
+  render(<App />, root);
+}
 
 // The service worker is registered for production builds only (it needs the build's precache list).
 if (import.meta.env.PROD && "serviceWorker" in navigator) {

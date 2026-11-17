@@ -88,6 +88,11 @@ const FIXTURE_ROUTES = [
   ["live-pre", "#/live/401909955?date=2026-11-09", "ok"],
   ["alerts", "#/alerts", "ok"],
   ["admin", "#/admin", "ok"],
+  ["terms", "#/terms", "ok"],
+  ["terms-anchor", "#/terms?t=holdout", "ok"],
+  ["terms-market-anchor", "#/terms?t=label-strong", "ok"],
+  ["terms-search", "#/terms?q=interval", "ok"],
+  ["terms-bad", "#/terms?t=%3Cb%3E", "notfound"],
   // hostile
   ["unknown-hash", "#/zzz", "notfound"],
   ["unknown-deep", "#/zzz/yyy?x=1", "notfound"],
@@ -115,13 +120,14 @@ const ARTIFACT_ROUTES = [
   ["live", "#live", "ok"],
   ["alerts", "#alerts", "ok"],
   ["prefs", "#prefs", "ok"],
+  ["terms", "#terms", "ok"],
   ["record-cal", "#/record?tab=calibration", "ok"],
   ["record-guess", "#/record?tab=guess", "ok"],
   ["unknown", "#zzz", "notfound"],
 ];
 const ROUTES = SET === "artifact" ? [...ARTIFACT_ROUTES] : FIXTURE_ROUTES;
 // The Learn lens promise covers these (scripts/learn-dom.mjs); elsewhere hits are reported, not failed.
-const LEARN_CHECKED = /^(discover|game|leg|swipe|picks|parlay|signals|hedge$|history|record)/;
+const LEARN_CHECKED = /^(discover|game|leg|swipe|picks|parlay|signals|hedge$|history|record|terms)/;
 
 // ------------------------------------------------------------------------------------------------ text rules
 const PRICE_RE = [
