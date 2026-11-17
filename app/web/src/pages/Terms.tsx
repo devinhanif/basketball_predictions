@@ -5,6 +5,7 @@ import { LensSwitch } from "../Lens";
 import { useLens } from "../prefs";
 import { termsHashFor, topHref } from "../router";
 import { allTerms, searchTerms, termHref, termsFor } from "../terms";
+import { PageHead, StateBlock } from "../ui";
 
 /** Key terms: plain definitions, searchable, each with its own link. Market terms appear only in the Market lens. */
 export function Terms(props: { term: string | null; q: string | null }) {
@@ -33,20 +34,19 @@ export function Terms(props: { term: string | null; q: string | null }) {
   };
 
   return (
-    <div class="stack terms-page">
-      <header class="page-head">
-        <div class="kicker">Key terms</div>
-        <h1>What the words on this site mean</h1>
-        <p class="lead">
-          {count(list.length)} terms, one or two plain sentences each. Every term has its own link, so a definition can be shared or opened from
-          anywhere it is used. The codes on failure screens have <a href={topHref("help")}>their own help page</a>.
-        </p>
-      </header>
-      {hidden > 0 && !market ? (
-        <p class="small muted">
-          {count(hidden)} more terms about the market are listed in the Market lens. <LensSwitch compact />
-        </p>
-      ) : null}
+    <div class="stack terms-page pb-page">
+      <PageHead
+        kicker="Key terms"
+        title="What the words on this site mean"
+        description={
+          <>
+            {count(list.length)} terms, one or two plain sentences each. Every term has its own link, so a definition can be shared or opened from
+            anywhere it is used. The codes on failure screens have <a href={topHref("help")}>their own help page</a>.
+          </>
+        }
+        actions={<LensSwitch compact />}
+      />
+      {hidden > 0 && !market ? <p class="small muted">{count(hidden)} more terms about the market are listed in the Market lens.</p> : null}
       {wantedHidden ? (
         <p class="kbanner tone-notice" role="status">
           The term you followed is about the market, so it is listed in the Market lens only.
@@ -57,6 +57,7 @@ export function Terms(props: { term: string | null; q: string | null }) {
           There is no term with that link. Search below instead.
         </p>
       ) : null}
+      <div class="pb-toolbar">
       <label class="field terms-search" for="terms-q">
         <span class="label">Search terms</span>
         <input
@@ -73,12 +74,12 @@ export function Terms(props: { term: string | null; q: string | null }) {
       <p class="small muted num" aria-live="polite">
         {q.trim() === "" ? `${count(list.length)} terms` : `${count(shown.length)} of ${count(list.length)} terms match "${q.trim()}"`}
       </p>
+      </div>
       <div class="terms-list" ref={box}>
         {shown.length === 0 ? (
-          <div class="panel empty">
-            <h2>No term matches</h2>
-            <p class="muted">Nothing in the list uses those words. Try one word, such as "interval" or "forecast".</p>
-          </div>
+          <StateBlock kind="empty" title="No term matches">
+            Nothing in the list uses those words. Try one word, such as "interval" or "forecast".
+          </StateBlock>
         ) : (
           <dl class="terms-dl">
             {shown.map((t) => (

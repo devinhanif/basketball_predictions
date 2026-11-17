@@ -396,3 +396,58 @@
 .pb-pager {
   gap: var(--sp-2);
 }
+
+/* ---------------------------------------------------------------- key terms */
+.pb-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-4);
+}
+.pb-toolbar > p {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.terms-page .terms-search {
+  flex: 1 1 18rem;
+  max-width: 32rem;
+}
+@media (min-width: 1000px) {
+  .terms-page .terms-dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+}
+.terms-page .term {
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+  padding: var(--sp-3) var(--sp-4);
+}
+.terms-page .term dd {
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- preferences */
+.pb-prefs .panel > .kicker + h2 {
+  margin-bottom: var(--sp-3);
+}
+.pb-prefs .acct {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.pb-prefs form.row {
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+.pb-prefs .setting + .setting {
+  margin-top: var(--sp-4);
+}
