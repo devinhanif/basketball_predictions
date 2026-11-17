@@ -31,6 +31,7 @@ const ALL_WORKSPACE: NavDef[] = [
   { name: "history", label: "Model History", icon: "history" },
   { name: "record", label: "Track record", icon: "record" },
   { name: "scorecard", label: "Scorecard", icon: "same" },
+  { name: "tests", label: "Forward tests", icon: "flag" },
   { name: "alerts", label: "Alerts", icon: "alerts" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
   { name: "picks", label: "My picks", icon: "picks" },

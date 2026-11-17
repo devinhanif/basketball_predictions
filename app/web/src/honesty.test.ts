@@ -120,3 +120,13 @@ describe("scorecard rows", async () => {
     expect(rows[2]?.m?.call).toBe("too_few_dates");
   });
 });
+
+describe("forward tests in the Learn lens", async () => {
+  const { learnSafeTest } = await import("./pages/Tests");
+  const base = { id: "X", source: "docs/x.md:1", as_of: null, arms: [], n_so_far: null, n_so_far_reason: null, scheduled_read: "L30", n_needed: "60 dates" };
+  it("a test that speaks of prices is Market-only", () => {
+    expect(learnSafeTest({ ...base, title: "Integer quantiles vs as-is" })).toBe(true);
+    expect(learnSafeTest({ ...base, title: "Model side at the best available price" })).toBe(false);
+    expect(learnSafeTest({ ...base, title: "Calibration at Pinnacle's line" })).toBe(false);
+  });
+});

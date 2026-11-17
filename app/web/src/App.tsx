@@ -18,6 +18,7 @@ import { Live } from "./pages/Live";
 import { Terms } from "./pages/Terms";
 import { SourcePage } from "./Provenance";
 import { ScorecardPage } from "./pages/Scorecard";
+import { TestsPage } from "./pages/Tests";
 import { Tour } from "./Tour";
 import { MarketOnly } from "./Lens";
 import { useLens } from "./prefs";
@@ -101,6 +102,8 @@ export function App() {
       page = <ScorecardPage />;
       break;
     case "tests":
+      page = <TestsPage />;
+      break;
     case "help":
     case "notfound":
       page = <NotFound hash={window.location.hash} />;
