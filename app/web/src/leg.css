@@ -1,11 +1,13 @@
 /* Leg breakdown screen. Uses the theme variables from styles.css, so light and dark both follow. */
-.leg-open {
+.btn.leg-open {
   min-height: 44px;
   font-size: var(--fs-md);
   padding: 8px 12px;
   max-width: 100%;
   box-sizing: border-box;
   text-align: center;
+  white-space: normal;
+  line-height: 1.3;
 }
 .leg-title h1 {
   font-size: 1.9rem;
