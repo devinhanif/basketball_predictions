@@ -1,0 +1,194 @@
+/* The honesty pages (record, health strip, distribution, scorecard, forward tests, error help, parlay diagnostics).
+   Tokens only (theme.css); no raw colours. */
+
+/* ---------------------------------------------------------------- where a number comes from */
+.prov-open {
+  min-height: 32px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prov-dl {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, max-content) 1fr;
+  gap: var(--sp-2) var(--sp-3);
+  margin: 0 0 var(--sp-3);
+}
+.prov-dl dt {
+  font-weight: 600;
+  color: var(--muted);
+}
+.prov-dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.prov-sha summary {
+  cursor: pointer;
+}
+.prov-full {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-sm);
+}
+@media (max-width: 520px) {
+  .prov-dl {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .prov-dl dd {
+    margin-bottom: var(--sp-2);
+  }
+}
+
+/* ---------------------------------------------------------------- the health strip */
+.hstrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  align-items: baseline;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  margin: 0 0 var(--sp-2);
+}
+.hstrip .hs-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.hstrip .hs-old {
+  color: var(--notice-ink);
+  background: var(--notice-bg);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--sp-1);
+  font-weight: 600;
+}
+.hstrip details {
+  flex-basis: 100%;
+}
+.hstrip details ul {
+  margin: var(--sp-1) 0 0;
+  padding-left: 1.1rem;
+}
+
+/* ---------------------------------------------------------------- distribution */
+.fan {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  display: block;
+}
+.fan .band {
+  fill: var(--model);
+}
+.fan .mid {
+  stroke: var(--model-ink);
+  stroke-width: 3;
+}
+.fan .lineat {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+.fan text {
+  fill: var(--muted);
+  font-size: 12px;
+}
+.fan .axis {
+  stroke: var(--line);
+}
+
+/* ---------------------------------------------------------------- placeholders */
+.needs-field > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.needs-field .tag {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------- computed-in-browser note */
+.browser-note {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------- scorecard and tests */
+.hidden-row {
+  color: var(--muted);
+}
+.nbar {
+  display: block;
+  height: 6px;
+  border-radius: var(--pill);
+  background: var(--surface-3);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.test-list {
+  display: grid;
+  gap: var(--sp-3);
+}
+.test-card h2 {
+  font-size: var(--fs-md);
+  margin: 0 0 var(--sp-1);
+}
+.test-card dl {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) 1fr;
+  gap: var(--sp-1) var(--sp-3);
+  margin: var(--sp-2) 0 0;
+}
+.test-card dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+.test-card dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .test-card dl {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+/* ---------------------------------------------------------------- error help */
+.code-list {
+  display: grid;
+  gap: var(--sp-3);
+}
+.code-card:target,
+.code-card.on {
+  outline: 2px solid var(--focus);
+}
+.code-card h2 {
+  font-size: var(--fs-md);
+  margin: 0;
+}
+.code-card p {
+  margin: var(--sp-1) 0 0;
+}
+.wrap-any {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.dataline + .hstrip,
+.dataline ~ .hstrip {
+  padding: var(--sp-1) var(--gutter) 0;
+}
+.hstrip summary {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* Wide tables scroll inside their own frame on a phone rather than breaking names letter by letter. */
+.ktable.sc-table {
+  min-width: 760px;
+}
+.sc-table .wrap-any {
+  overflow-wrap: break-word;
+}

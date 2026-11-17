@@ -4,6 +4,7 @@ import { IS_ARTIFACT } from "../env";
 import { priceText, lineText, longDate, pct } from "../format";
 import { bookChance, clampLine, modelPct, nText, ofText, rangeText, chanceSource, rowHits, rowModel, snapHalf } from "../leg";
 import { type LadderRow, type LegBreakdown, type Side } from "../legTypes";
+import { SourceButton } from "../Provenance";
 
 const S = (n: number): string => n.toString();
 
@@ -162,6 +163,9 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
               <div class="leg-sub">
                 to go {side} <CalTag source={chanceSource(row, data.model)} />
               </div>
+              <div class="leg-sub">
+                <SourceButton gameId={data.game_id} playerId={data.player_id} stat={data.stat} what="this forecast" />
+              </div>
             </>
           ) : (
             <div class="leg-sub strong">
@@ -174,6 +178,9 @@ export function Headline(props: { data: LegBreakdown; row: LadderRow | null; sid
             <div class="label">{book.book}</div>
             <div class="leg-big num">{pct(book.p)}</div>
             <div class="leg-sub">to go {side}, margin removed</div>
+            {data.line === line && data.prices.market_p_over != null ? null : (
+              <span class="browser-note">Computed in your browser from the two stored prices at this line (one pair, n = 1), not by the engine.</span>
+            )}
           </div>
         ) : null}
       </div>

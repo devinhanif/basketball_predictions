@@ -100,6 +100,7 @@ function Facts(props: { s: CardStats; card: CardView }) {
             {h.hits} of {h.n}
             {h.pushes > 0 ? <span class="muted"> ({h.pushes} push)</span> : null}
             {ci ? <span class="muted"> · 95% range {pct(ci[0])} to {pct(ci[1])}</span> : null}
+            {ci ? <span class="browser-note">The range is computed in your browser from the stored hits and n = {h.n}, not by the engine.</span> : null}
           </dd>
         </div>
         <div>

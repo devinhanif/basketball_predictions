@@ -38,7 +38,7 @@ function Tiles({ desk }: { desk: Desk }) {
         <div class="tile-n muted">All settled plays with a stored close. JARVIS's kill-switch rule uses a different sample (below).</div>
         <div class="tile-n muted num">
           {c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001
-            ? "From the 2026-11-08 review (not in the desk file): of the -0.88c, about 0.69c is half the closing spread paid by buying at the ask. The line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero."
+            ? "Fixed text from a dated review (docs/reviews/desk_export_premerge_2026-11-08.md, 2026-11-08), not live data: of the -0.88c, about 0.69c is half the closing spread paid by buying at the ask. The line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero."
             : "The 2026-11-08 review split this figure into half the closing spread and line movement; that split applies to the n = 83 snapshot only and is not shown for these numbers."}
         </div>
       </div>
@@ -55,6 +55,11 @@ function Tiles({ desk }: { desk: Desk }) {
           {cr.ci ? `95% interval ${pct(cr.ci[0])} to ${pct(cr.ci[1])} (bootstrap resampling whole dates: ${cr.nDates.toString()} dates, ${cr.reps.toLocaleString("en-US")} resamples, seed ${cr.seed.toString()}). ` : (cr.reason ?? "")}
           {cr.excluded > 0 ? `${cr.excluded.toString()} daily-dollar legs are in the record but not in this rate: they settle together.` : ""}
         </div>
+        {cr.rate !== null ? (
+          <span class="browser-note">
+            The rate and its interval are computed in your browser from the stored plays (each result and date, n = {cr.n.toString()}), not by the engine.
+          </span>
+        ) : null}
         <div class="tile-n muted">Win rate is not the measure of edge: price matters more than hits.</div>
       </div>
       {desk.balance && desk.privacy === "private" ? (

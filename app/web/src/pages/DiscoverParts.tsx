@@ -167,6 +167,7 @@ export function DeskTiles({ desk, date }: { desk: Desk; date: string }) {
         <div class="tile-v num">{desk.record ? `${desk.record.n_won.toString()}-${desk.record.n_lost.toString()}` : "-"}</div>
         <div class="tile-l">paper record</div>
         <div class="tile-n muted num">{rec.n > 0 ? `n = ${rec.n.toLocaleString("en-US")}` : "none settled"}</div>
+        {rec.n > 0 ? <span class="browser-note">n is won plus lost, added up in your browser from the stored counts, not by the engine.</span> : null}
       </div>
       <div class="tile">
         <div class="tile-v num">{clv.value !== null ? signedCents(clv.value, 2) : "-"}</div>

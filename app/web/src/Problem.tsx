@@ -2,7 +2,7 @@
 // server's reason when it gave one, the code and a reference id to quote, and always a way on. Built from existing
 // classes only (panel error, btn, mono, explain); the design lane owns how it looks.
 import { codeCopy } from "./errorCodes";
-import { topHref } from "./router";
+import { helpHref, topHref } from "./router";
 
 export interface ProblemProps {
   code: string;
@@ -34,7 +34,10 @@ export function ProblemPanel(props: ProblemProps) {
       {props.note ? <p class="small muted">{props.note}</p> : null}
       <p>{c.todo}</p>
       <p class="small muted">
-        Code <span class="mono">{props.code}</span>
+        Code{" "}
+        <a class="mono" href={helpHref(props.code)} title="What this code means">
+          {props.code}
+        </a>
         {props.requestId ? (
           <>
             {" "}

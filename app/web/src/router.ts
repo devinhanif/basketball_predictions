@@ -24,15 +24,23 @@ export type Route =
   | { name: "live"; id: string | null; date: string | null }
   | { name: "alerts" }
   | { name: "admin" }
+  /** Where a shown forecast came from: a game's win chance (`playerId` null) or one prop. */
+  | { name: "source"; gameId: string; playerId: number | null; stat: LegStat | null }
+  /** The honest scorecard and the forward-test tracker. */
+  | { name: "scorecard" }
+  | { name: "tests" }
+  /** Error-code help: every code, or one (`code`), with a search box (`q`). */
+  | { name: "help"; code: string | null; q: string | null }
   /** Key terms; `term` is the anchor to scroll to, `q` the search box. */
   | { name: "terms"; term: string | null; q: string | null }
   /** Anything the app could not have linked to; `hash` is what was asked for. */
   | { name: "notfound"; hash: string };
 
 /** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
-export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings" | "terms";
+export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings" | "terms" | "scorecard" | "tests" | "help";
 const ARTIFACT_NAME: Record<TopName, string> = {
   today: "discover", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs", terms: "terms",
+  scorecard: "scorecard", tests: "tests", help: "help",
 };
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
@@ -54,7 +62,20 @@ export function liveHref(id: string | null = null, date: string | null = null): 
 /** Hash for a top-level view. The artifact frame passes only plain `#name` hashes, so there they carry no slash. */
 export function topHref(name: TopName, artifact: boolean = IS_ARTIFACT): string {
   if (artifact) return `#${ARTIFACT_NAME[name]}`;
+  if (name === "help") return "#/help/errors";
   return name === "today" ? "#/" : `#/${name === "settings" ? "prefs" : name}`;
+}
+
+/** Hash for where a forecast came from: the game's win chance, or a prop when player and stat are given. */
+export function sourceHref(gameId: string, playerId: number | null = null, stat: LegStat | null = null): string {
+  const g = `#/source/${encodeURIComponent(gameId)}`;
+  return playerId === null || stat === null ? g : `${g}/${playerId.toString()}/${stat}`;
+}
+
+/** Hash for error-code help, one code or all. */
+export function helpHref(code: string | null = null, q: string | null = null): string {
+  const base = code === null ? "#/help/errors" : `#/help/errors/${encodeURIComponent(code)}`;
+  return q === null || q === "" ? base : `${base}?q=${encodeURIComponent(q)}`;
 }
 
 /** A decoded path segment, or null when its percent-encoding is broken (a hand-edited or truncated link). */
@@ -157,6 +178,26 @@ export function parse(hash: string): Route {
       if ((t !== null && !/^[a-z0-9-]{1,40}$/.test(t)) || (s !== null && s !== "" && !okId(s))) return notFound;
       return { name: "terms", term: t, q: s === "" ? null : s };
     }
+    case "source": {
+      const gid = id(parts[1]);
+      if (gid === null) return notFound;
+      if (parts.length === 2) return { name: "source", gameId: gid, playerId: null, stat: null };
+      const pid = playerId(parts[2]);
+      const stat = parts[3];
+      if (pid !== null && stat !== undefined && isLegStat(stat) && parts.length === 4) return { name: "source", gameId: gid, playerId: pid, stat };
+      return notFound;
+    }
+    case "scorecard":
+    case "tests":
+      return extra || query !== "" ? notFound : { name: parts[0] };
+    case "help": {
+      // #/help and #/help/errors list every code; #/help/errors/<code> opens one.
+      if (parts.length > 3 || (parts[1] !== undefined && parts[1] !== "errors")) return notFound;
+      const c = parts[2] === undefined ? null : decode(parts[2]);
+      const s = q.get("q");
+      if ((c !== null && !/^[a-z_]{1,40}$/.test(c)) || (s !== null && s !== "" && !okId(s))) return notFound;
+      return { name: "help", code: c, q: s === null || s === "" ? null : s };
+    }
     case "hedge": {
       if (extra) return notFound;
       const g = q.get("game");
@@ -226,6 +267,11 @@ export function plainName(route: Route): TopName | null {
       return route.id === null && route.date === null ? "live" : null;
     case "terms":
       return route.term === null && route.q === null ? "terms" : null;
+    case "help":
+      return route.code === null && route.q === null ? "help" : null;
+    case "scorecard":
+    case "tests":
+      return route.name;
     case "picks":
     case "settings":
     case "signals":

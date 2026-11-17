@@ -16,6 +16,10 @@ import { Welcome } from "./Welcome";
 import { Record } from "./pages/Record";
 import { Live } from "./pages/Live";
 import { Terms } from "./pages/Terms";
+import { SourcePage } from "./Provenance";
+import { ScorecardPage } from "./pages/Scorecard";
+import { TestsPage } from "./pages/Tests";
+import { ErrorHelp } from "./pages/ErrorHelp";
 import { Tour } from "./Tour";
 import { MarketOnly } from "./Lens";
 import { useLens } from "./prefs";
@@ -91,6 +95,18 @@ export function App() {
       break;
     case "terms":
       page = <Terms term={route.term} q={route.q} />;
+      break;
+    case "source":
+      page = <SourcePage gameId={route.gameId} playerId={route.playerId} stat={route.stat} />;
+      break;
+    case "scorecard":
+      page = <ScorecardPage />;
+      break;
+    case "tests":
+      page = <TestsPage />;
+      break;
+    case "help":
+      page = <ErrorHelp code={route.code} q={route.q} />;
       break;
     case "notfound":
       page = <NotFound hash={route.hash} />;

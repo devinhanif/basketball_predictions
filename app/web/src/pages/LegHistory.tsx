@@ -5,6 +5,7 @@ import { plainModelSentence } from "../plain";
 import { priceText, bookName, lineText, longDate, num } from "../format";
 import { ladderAt, modelPct, nText, ofText, chanceSource, rowHits, rowModel, rowPrice } from "../leg";
 import { gameHref } from "../router";
+import { SourceButton } from "../Provenance";
 import { type Chip, type LadderRow, type LegBreakdown, type Side } from "../legTypes";
 
 const S = (n: number): string => n.toString();
@@ -124,6 +125,9 @@ export function ModelPanel({ data, side, line, row }: { data: LegBreakdown; side
         ) : (
           "No calibrated number at this line."
         )}
+      </p>
+      <p class="small">
+        <SourceButton gameId={data.game_id} playerId={data.player_id} stat={data.stat} what="this forecast" />
       </p>
       <p class="small">{m.reason}</p>
       <p class="small" data-model-source={m.source}>

@@ -76,6 +76,10 @@ const ROUTES = [
   ["record-replay", `#/record?date=${NIGHT}`, `${wait(900)}; ${click(".rp-toggle")}; ${wait(900)}; ${click(".rp-reveal")}; ${wait(500)}`],
   ["record-calibration", "#/record?tab=calibration", `${wait(900)}`],
   ["record-guess", "#/record?tab=guess", `${wait(900)}; ${click(".gs-actions .btn.over")}; ${wait(900)}`],
+  ["source-prop", `#/source/${GAME}/${PLAYER}/pts`, `${wait(900)}`],
+  ["scorecard", "#/scorecard", `${wait(900)}`],
+  ["tests", "#/tests", `${wait(900)}`],
+  ["help-errors", "#/help/errors", ""],
 ];
 
 async function crawl(lens, name, hash, action) {

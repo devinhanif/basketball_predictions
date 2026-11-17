@@ -7,6 +7,7 @@ import { LatestTopParlays } from "../TopParlaysPanel";
 import { useLoad } from "../useLoad";
 import { useLens } from "../prefs";
 import { MarketOnly } from "../Lens";
+import { ParlayDiagnostics } from "../ParlayDiag";
 import type { ParlayState } from "../types";
 
 /** Plain-language headline for the verdict. The engine's own label is kept in the details. */
@@ -145,6 +146,7 @@ export function ParlayPage(props: { date: string | null }) {
       ) : (
         <MarketOnly name="The parlay engine's card" what="The engine's card is the market side of the night." />
       )}
+      {market ? <ParlayDiagnostics date={props.date} /> : null}
       {market ? (
         <LatestTopParlays date={props.date} />
       ) : (

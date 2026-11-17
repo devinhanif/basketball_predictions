@@ -3,7 +3,7 @@ import { IS_ARTIFACT } from "../env";
 import { count } from "../format";
 import { LensSwitch } from "../Lens";
 import { useLens } from "../prefs";
-import { termsHashFor } from "../router";
+import { termsHashFor, topHref } from "../router";
 import { allTerms, searchTerms, termHref, termsFor } from "../terms";
 
 /** Key terms: plain definitions, searchable, each with its own link. Market terms appear only in the Market lens. */
@@ -39,7 +39,7 @@ export function Terms(props: { term: string | null; q: string | null }) {
         <h1>What the words on this site mean</h1>
         <p class="lead">
           {count(list.length)} terms, one or two plain sentences each. Every term has its own link, so a definition can be shared or opened from
-          anywhere it is used.
+          anywhere it is used. The codes on failure screens have <a href={topHref("help")}>their own help page</a>.
         </p>
       </header>
       {hidden > 0 && !market ? (

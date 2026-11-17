@@ -93,6 +93,15 @@ const FIXTURE_ROUTES = [
   ["terms-market-anchor", "#/terms?t=label-strong", "ok"],
   ["terms-search", "#/terms?q=interval", "ok"],
   ["terms-bad", "#/terms?t=%3Cb%3E", "notfound"],
+  ["source-prop", `#/source/${G}/${P}/pts`, "ok"],
+  ["source-game", `#/source/${G}`, "ok"],
+  ["source-bad", `#/source/${G}/abc/pts`, "notfound"],
+  ["scorecard", "#/scorecard", "ok"],
+  ["tests", "#/tests", "ok"],
+  ["help-errors", "#/help/errors", "ok"],
+  ["help-code", "#/help/errors/stale_data", "ok"],
+  ["help-search", "#/help/errors?q=forecast", "ok"],
+  ["help-bad", "#/help/errors/%3Cb%3E", "notfound"],
   // hostile
   ["unknown-hash", "#/zzz", "notfound"],
   ["unknown-deep", "#/zzz/yyy?x=1", "notfound"],
@@ -121,13 +130,16 @@ const ARTIFACT_ROUTES = [
   ["alerts", "#alerts", "ok"],
   ["prefs", "#prefs", "ok"],
   ["terms", "#terms", "ok"],
+  ["scorecard", "#scorecard", "ok"],
+  ["tests", "#tests", "ok"],
+  ["help", "#help", "ok"],
   ["record-cal", "#/record?tab=calibration", "ok"],
   ["record-guess", "#/record?tab=guess", "ok"],
   ["unknown", "#zzz", "notfound"],
 ];
 const ROUTES = SET === "artifact" ? [...ARTIFACT_ROUTES] : FIXTURE_ROUTES;
 // The Learn lens promise covers these (scripts/learn-dom.mjs); elsewhere hits are reported, not failed.
-const LEARN_CHECKED = /^(discover|game|leg|swipe|picks|parlay|signals|hedge$|history|record|terms)/;
+const LEARN_CHECKED = /^(discover|game|leg|swipe|picks|parlay|signals|hedge$|history|record|terms|source|scorecard|tests|help)/;
 
 // ------------------------------------------------------------------------------------------------ text rules
 const PRICE_RE = [

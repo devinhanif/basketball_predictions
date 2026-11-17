@@ -33,6 +33,7 @@ from .main import STATS, create_app, get_store, reset_store
 
 Json = dict[str, Any]
 SIDES = ("over", "under")
+HONESTY_SIMPLE = ("/api/scorecard", "/api/forward-tests", "/api/errors", "/api/health")
 FORMAT = 1
 
 
@@ -92,6 +93,7 @@ def bake(
     n_dates: int = 3,
     players_per_team: int = 4,
     dates: list[str] | None = None,
+    with_records: bool = True,
 ) -> Json:
     store = get_store()
     b = Baker(client)
@@ -105,6 +107,9 @@ def bake(
     b.simple["/api/slates"] = {"s": 200, "b": [s for s in slates_all if s["date"] in want]}
     for path in ("/api/parlay-of-the-day", "/api/evidence", "/api/contracts/top", "/api/desk"):
         b.put_simple(path)
+    # The honesty pages: scorecard, forward tests, error registry, health strip, as answered.
+    for path in HONESTY_SIMPLE:
+        b.put_simple(path)
     desk_entry = b.simple["/api/desk"]
     desk_info: Json = {"present": desk_entry["s"] == 200}
     if desk_info["present"]:
@@ -117,6 +122,7 @@ def bake(
 
     swipe_nights: list[str] = []
     n_breakdowns = 0
+    n_records = 0
     for d in want:
         slate = b.put_simple(f"/api/slates/{d}")["b"]
         b.put_simple(f"/api/top-parlays/{d}")
@@ -159,6 +165,8 @@ def bake(
             detail = b.put_group(grp, f"/api/games/{gid}")["b"]
             if detail.get("final"):
                 b.put_group(grp, f"/api/games/{gid}/result")
+            if with_records:
+                b.put_group(grp, f"/api/record/{gid}")
             for side in ("away", "home"):
                 top = [p for p in detail["players"] if p["side"] == side][:players_per_team]
                 for pl in top:
@@ -166,6 +174,12 @@ def bake(
                     for stat in STATS:
                         if stat in pl["props"]:
                             b.put_group(grp, f"/api/edges/{gid}/{pid}/{stat}")
+                            if with_records:
+                                # Where the number comes from, and the stored distribution, for the
+                                # same props whose breakdowns are baked (model stats only).
+                                e = b.put_group(grp, f"/api/record/{gid}/{pid}/{stat}")
+                                b.put_group(grp, f"/api/distribution/{gid}/{pid}/{stat}")
+                                n_records += 1 if e["s"] == 200 else 0
                     first_stat = next(iter(pl["props"]), None)
                     if first_stat is None:
                         continue
@@ -193,6 +207,7 @@ def bake(
         "counts": {
             "games": sum(1 for g in b.groups if g.startswith("g:")),
             "breakdowns": n_breakdowns,
+            "records": n_records,
             "cards": sum(1 for g in b.groups.values() for p in g if p.startswith("/api/card/")),
         },
         "simple": b.simple,

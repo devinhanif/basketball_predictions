@@ -15,6 +15,7 @@ import { Banner, Dialog } from "./ui";
 import { ShortcutsDialog, isTypingTarget } from "./Shortcuts";
 import { dismissToast, useToasts } from "./toast";
 import { openTour } from "./tourState";
+import { HealthStrip } from "./HealthStrip";
 
 interface NavDef {
   name: TopName;
@@ -29,6 +30,8 @@ const ALL_WORKSPACE: NavDef[] = [
   { name: "hedge", label: "Hedge Finder", icon: "hedge" },
   { name: "history", label: "Model History", icon: "history" },
   { name: "record", label: "Track record", icon: "record" },
+  { name: "scorecard", label: "Scorecard", icon: "same" },
+  { name: "tests", label: "Forward tests", icon: "flag" },
   { name: "alerts", label: "Alerts", icon: "alerts" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
   { name: "picks", label: "My picks", icon: "picks" },
@@ -43,12 +46,13 @@ export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
-  terms: "terms", notfound: "today",
+  terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
 };
 const TITLES: Record<TopName, string> = {
   today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
+  scorecard: "Scorecard", tests: "Forward tests", help: "Error help",
 };
-const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found" };
+const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };
 
 function crumbs(route: Route): string[] {
   const top = TITLES[ROUTE_TOP[route.name]];
@@ -483,6 +487,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
             {props.meta.text}
           </Banner>
         ) : null}
+        {props.meta.text ? <HealthStrip /> : null}
         {props.meta.newer !== null ? (
           <Banner
             tone="fresh"
