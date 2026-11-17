@@ -128,3 +128,12 @@ def export_client(export_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator
     with TestClient(create_app(), client=LOOPBACK_PEER) as c:
         yield c
     reset_store()
+
+
+@pytest.fixture
+def planted(export_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """The small export with the settled_scores rows of honesty_helpers.plant (honesty routes)."""
+    from honesty_helpers import export_api, plant
+
+    plant(export_dir)
+    yield from export_api(export_dir, monkeypatch)

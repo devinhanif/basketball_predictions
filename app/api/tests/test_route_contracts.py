@@ -172,8 +172,8 @@ def test_a_sha_mismatch_is_503_on_every_store_route(
         for r in _routes():
             if "{" in r.path or not r.path.startswith("/api/") or "/live/" in r.path:
                 continue
-            if r.path in ("/api/desk", "/api/docs", "/api/openapi.json"):
-                continue  # not backed by the export store
+            if r.path in ("/api/desk", "/api/docs", "/api/openapi.json", "/api/errors"):
+                continue  # not backed by the export store (the error help must work when refused)
             got = c.get(r.path)
             assert got.status_code == 503 and got.json()["code"] == "export_refused", r.path
     reset_store()

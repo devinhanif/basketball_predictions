@@ -66,6 +66,15 @@
    "todo": "Choose another player or stat from the game page."
   },
   {
+   "code": "no_game_forecast",
+   "status": 404,
+   "side": "api",
+   "title": "No stored forecast for that game",
+   "what": "We hold no stored winner forecast for that game.",
+   "why": "The game is in the data, but no pre-tip winner forecast was stored for it, or none that the app shows.",
+   "todo": "Open the game from tonight's list, or pick another game."
+  },
+  {
    "code": "no_posted_line",
    "status": 404,
    "side": "api",
@@ -145,6 +154,15 @@
    "what": "The file could not be opened.",
    "why": "It may be mid-write.",
    "todo": "Try again in a minute."
+  },
+  {
+   "code": "no_parlay_check",
+   "status": 404,
+   "side": "api",
+   "title": "No parlay check stored for that night",
+   "what": "The parlay engine's records for that date are not in the data we hold.",
+   "why": "The data holds the engine's records for one night only, the night of the latest export.",
+   "todo": "Open the parlay page from the home screen."
   },
   {
    "code": "export_refused",

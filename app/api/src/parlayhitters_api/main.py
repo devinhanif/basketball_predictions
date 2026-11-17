@@ -21,7 +21,7 @@ from .export_store import ExportRefused
 from .forecast import american_to_raw_prob
 from .live import LiveHub
 from .live_routes import register_live
-from .routes import games, market, props, slates, system, track
+from .routes import games, market, parlay_diag, props, record, scores, slates, system, track
 from .views import STATS, _swipe_empty_note
 
 LOCAL_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
@@ -72,7 +72,7 @@ def create_app() -> FastAPI:
 
 def register(app: FastAPI) -> None:
     """Every store-backed route, area by area."""
-    for area in (system, slates, games, props, track, market):
+    for area in (system, slates, games, props, track, market, record, scores, parlay_diag):
         area.register(app)
 
 
