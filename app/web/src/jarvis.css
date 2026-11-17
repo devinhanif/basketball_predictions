@@ -1489,3 +1489,165 @@ h1.answer {
 .who-photo {
   display: inline-flex;
 }
+
+/* ---- Explore (the what-if lab): each what-if is its own tile under the panel's heading ---- */
+.panel.explore {
+  display: grid;
+  gap: var(--sp-3);
+}
+.panel.explore > h2 {
+  margin: 0;
+  letter-spacing: var(--track-head);
+}
+.panel.explore > .small.muted {
+  margin: 0;
+}
+/* On the player's own page his name is already the h1: the lab does not repeat it. */
+.leg .explore-who {
+  display: none;
+}
+.explore .xp-block,
+.explore .xp-block:first-child {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--grad-tile);
+}
+/* Phones: a narrower inset so the chart's SVG labels keep their 12 px floor. */
+@media (max-width: 599px) {
+  .explore .xp-block,
+  .explore .xp-block:first-child {
+    padding: var(--sp-3) var(--sp-2);
+  }
+}
+.explore .xp-block > h3 {
+  font-size: var(--fs-lg);
+  letter-spacing: var(--track-head);
+}
+.explore .xp-share,
+.explore .xp-read {
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.explore .xp-soon {
+  border-color: var(--line-strong);
+  border-radius: var(--radius);
+}
+
+/* ---- If a teammate sits: each teammate is a real, bordered toggle; the read-out is a quiet table ---- */
+.sits-pick {
+  gap: var(--sp-2);
+}
+.sits-btn.seg-btn {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 12px;
+  transition: border-color 0.18s, background-color 0.18s;
+}
+.sits-btn.seg-btn:hover {
+  border-color: var(--line-strong);
+}
+.sits-btn.seg-btn[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--grad-nav-active);
+  color: var(--accent-ink);
+}
+.sits-btn .sits-status {
+  color: var(--muted);
+  font-weight: var(--fw-regular);
+}
+.sits-mates li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sits-mates li:last-child {
+  border-bottom: 0;
+}
+.sits-dir {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-bold);
+}
+
+/* ---- disclosures: every plain <details> shows that it opens (a summary set to flex loses the browser's marker) ---- */
+details:not(.explain):not(.player):not(.hs-details):not(.card-detail):not([class*="ph-bet"]) > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  opacity: 0.75;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.18s;
+}
+details:not(.explain):not(.player):not(.hs-details):not(.card-detail):not([class*="ph-bet"])[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+details > summary:hover {
+  color: var(--accent-ink);
+}
+
+/* ---- Try your own line (AltLine): a quiet tile whose summary reads as a control ---- */
+details.alt {
+  margin-top: var(--sp-2);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+details.alt > summary {
+  padding: 0 var(--sp-3);
+  font-weight: var(--fw-bold);
+  transition: background-color 0.18s;
+}
+details.alt > summary:hover {
+  background: var(--surface-2);
+}
+details.alt[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+details.alt > .alt-body {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+.alt-result {
+  padding: var(--sp-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+/* ---- Role, on/off and teammates out (RoleSection + RoleCards) ---- */
+.role-section > summary {
+  padding: 0 var(--sp-1);
+  border-radius: var(--radius-sm);
+}
+.role-section > summary:hover {
+  background: var(--surface-2);
+}
+.role-section[open] > summary {
+  margin-bottom: var(--sp-2);
+}
+.role-section .role-block {
+  margin-top: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.role-block h3 {
+  font-size: var(--fs-base);
+  letter-spacing: var(--track-head);
+}
+.role-block .label {
+  letter-spacing: var(--track-kicker);
+}
+.role-net,
+.beyond-val,
+.role-win {
+  font-variant-numeric: tabular-nums;
+}
