@@ -255,6 +255,32 @@
   .sc-hidden tbody td:nth-child(6) {
     grid-column: 1 / -1;
   }
+  .pd-table tbody td:nth-child(3)::before {
+    content: "Side";
+  }
+  .pd-table tbody td:nth-child(4)::before {
+    content: "Legs";
+  }
+  .pd-table tbody td:nth-child(5)::before {
+    content: "Stored joint chance";
+  }
+  .pd-table tbody td:nth-child(6)::before {
+    content: "Independent legs";
+  }
+  .pd-table tbody td:nth-child(7)::before {
+    content: "Copula";
+  }
+  .pd-table tbody td:nth-child(8)::before {
+    content: "After shrinking to the market";
+  }
+  .pd-table tbody td:nth-child(9)::before {
+    content: "Model weight";
+  }
+  .pd-table tbody td:nth-child(6),
+  .pd-table tbody td:nth-child(7),
+  .pd-table tbody td:nth-child(8) {
+    grid-column: auto;
+  }
   .sc-table .sc-int {
     display: inline;
   }
@@ -326,4 +352,47 @@
   .rp-players {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ---------------------------------------------------------------- parlay */
+.pb-two {
+  display: grid;
+  gap: var(--sp-4);
+}
+@media (min-width: 1000px) {
+  .pb-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}
+.pb-two > .panel h1 {
+  font-size: var(--fs-xl);
+}
+.pb-ways ul {
+  padding-left: 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+@media (min-width: 900px) {
+  .pb-ways ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.pb-ways li {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.pb-ways li .kbadge {
+  justify-self: start;
+}
+.pb-exact h3 {
+  margin: 0 0 var(--sp-2);
+}
+.pb-pager {
+  gap: var(--sp-2);
 }

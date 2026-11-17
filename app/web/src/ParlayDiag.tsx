@@ -6,7 +6,8 @@ import { api } from "./api";
 import { View } from "./components";
 import { count, decimal, MISSING, percent } from "./format";
 import { honestyApi, type DiagRecord, type Maybe, type ParlayDiag } from "./honesty";
-import { Table, type Column } from "./ui";
+import { useMode } from "./prefs";
+import { SectionHead, StateBlock, Table, Tile, type Column } from "./ui";
 import { useLoad } from "./useLoad";
 
 export const PAGE = 50;
@@ -25,11 +26,19 @@ const COLS: readonly Column<DiagRecord>[] = [
 ];
 
 function Body({ d, offset, onPage }: { d: ParlayDiag; offset: number; onPage: (o: number) => void }) {
+  const analyst = useMode() === "analyst";
   if (!d.available) {
-    return <p>{d.reason ?? "No stored parlay check for this night."}</p>;
+    return <StateBlock kind="empty" inline title={d.reason ?? "No stored parlay check for this night."} />;
   }
   return (
     <>
+      {analyst ? (
+        <div class="tiles pb-tiles">
+          <Tile label="Stored records" value={count(d.n_records)} note={<span class="mono wrap-any">{d.source ?? MISSING}</span>} />
+          <Tile label="With an independent-legs joint" value={count(d.n_with_independent)} />
+          <Tile label="With a copula joint" value={count(d.n_with_copula)} />
+        </div>
+      ) : null}
       <p class="num">
         {count(d.n_records)} stored records from <span class="mono">{d.source ?? MISSING}</span>; engines:{" "}
         {Object.entries(d.engines)
@@ -43,8 +52,8 @@ function Body({ d, offset, onPage }: { d: ParlayDiag; offset: number; onPage: (o
           beside the copula one on each record; docs/contracts/PROPOSAL_export_fields_2026-11-17.md). Until then nothing is shown in their place.
         </p>
       ) : null}
-      <Table caption={`Records from ${count(d.offset)}, ${count(d.n_returned)} on this page`} rows={d.records} columns={COLS} rowKey={(r) => `${r.ticker ?? ""}-${r.legs.map((l) => `${l.side ?? ""}${String(l.threshold)}`).join("")}`} noun="records" class="sc-table" />
-      <p class="row wrap">
+      <Table caption={`Records from ${count(d.offset)}, ${count(d.n_returned)} on this page`} rows={d.records} columns={COLS} rowKey={(r) => `${r.ticker ?? ""}-${r.legs.map((l) => `${l.side ?? ""}${String(l.threshold)}`).join("")}`} noun="records" class="sc-table pd-table" sticky />
+      <p class="row wrap pb-pager">
         <button type="button" class="btn" disabled={offset === 0} onClick={() => { onPage(Math.max(0, offset - PAGE)); }}>
           Previous page
         </button>
@@ -80,8 +89,7 @@ export function ParlayDiagnostics(props: { date: string | null }) {
   const [card, reload] = useLoad(() => (props.date === null ? api.parlay() : Promise.resolve({ data: null, fromCache: false })), [props.date]);
   return (
     <section class="panel" aria-labelledby="pd-h">
-      <h2 id="pd-h">The engine's stored joint chances</h2>
-      <p class="small muted">Each record's joint chance comes from the engine it names. Nothing is multiplied on this page.</p>
+      <SectionHead id="pd-h" title="The engine's stored joint chances" sub="Each record's joint chance comes from the engine it names. Nothing is multiplied on this page." />
       {props.date !== null ? (
         <ForDate date={props.date} />
       ) : (
