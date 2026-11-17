@@ -1,5 +1,6 @@
 import type { ResultRow, Stat } from "./types";
 import { MIN_LEGS, wilson } from "./stats";
+import { before, instantMs } from "./time";
 
 /** One row per swiped card. Paper only: no stake, no units. Blind by default (saw_model false); opening the forecast panel sets it. */
 export interface Pick {
@@ -72,7 +73,7 @@ export function replaceLedger(rows: Pick[]): void {
 
 /** A pick is refused at or after the game's tip (ISO-8601 UTC strings compare as instants). */
 export function canPlace(tipUtc: string, clockUtc: string): boolean {
-  return new Date(clockUtc).getTime() < new Date(tipUtc).getTime();
+  return before(clockUtc, tipUtc);
 }
 
 export type AddResult = { ok: true; pick: Pick } | { ok: false; reason: "after_tip" | "duplicate" };
@@ -213,7 +214,7 @@ export function recordOf(settled: Settled[]): WinLoss {
 /** Picks made in the 7 days before `now` (by made_at, real time). */
 export function lastWeek(settled: Settled[], now: Date = new Date()): Settled[] {
   const cutoff = now.getTime() - 7 * 24 * 3600 * 1000;
-  return settled.filter((s) => new Date(s.pick.made_at).getTime() >= cutoff);
+  return settled.filter((s) => instantMs(s.pick.made_at) >= cutoff);
 }
 
 /** How the answer was made, for the My picks list (F04). Skips carry no view tag. */

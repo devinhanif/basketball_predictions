@@ -1,6 +1,7 @@
 import { stamp } from "./format";
 import { pct } from "./format";
 import { quantile } from "./slider";
+import { before } from "./time";
 
 /** The "made <ISO>" time inside a stored forecast stamp, or null when the stamp has none. */
 export function madeAt(forecastStamp: string): string | null {
@@ -11,7 +12,7 @@ export function madeAt(forecastStamp: string): string | null {
 /** Where the number came from, as small chips: model, table kind, calibration, and when it was made. */
 export function Chips(props: { model: string; stampText: string; tipUtc: string | null; extra?: string[] }) {
   const made = madeAt(props.stampText);
-  const beforeTip = made !== null && props.tipUtc !== null && new Date(made).getTime() < new Date(props.tipUtc).getTime();
+  const beforeTip = made !== null && props.tipUtc !== null && before(made, props.tipUtc);
   return (
     <ul class="chips" aria-label="Where this number comes from">
       {props.model ? (

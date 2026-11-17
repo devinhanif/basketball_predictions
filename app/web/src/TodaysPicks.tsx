@@ -7,9 +7,10 @@ import { legHref } from "./router";
 import type { ParlayState } from "./types";
 import { betWords, evPerDollar, picksHead, priceCents, PICKS_FETCH, runIsForNight, selectPicks, whyText } from "./picksLogic";
 import { useLoad } from "./useLoad";
+import { instantMs } from "./time";
 
 function Pick({ c, rank }: { c: TopContract; rank: number }) {
-  const started = c.tip_utc !== null && Date.parse(c.tip_utc) <= Date.now();
+  const started = c.tip_utc !== null && instantMs(c.tip_utc) <= Date.now();
   return (
     <li class="tp-pick">
       <span class="tp-rank num" aria-hidden={c.ev > 0 ? "true" : undefined}>

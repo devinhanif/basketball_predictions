@@ -18,6 +18,7 @@ import { Court, DeskTiles, Discipline, Hero, Insight, Radar, useRadar } from "./
 import { compareLine, doesText, rangeSentence } from "../words";
 import { hasTickets, type TpResult } from "../topParlays";
 import { TodaysPicks } from "../TodaysPicks";
+import { instantMs } from "../time";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
 function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) {
@@ -197,7 +198,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const radar = useRadar(date, engine);
   const featured =
     slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === pickHero(radar.rows)?.gameId) ?? slate.data.games[0] ?? null) : null;
-  const played = featured !== null && Date.parse(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
+  const played = featured !== null && instantMs(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const lens = useLens();
   const liveSt = useLiveList([date], 20000);
   const liveGames = liveSt.lists[0]?.games ?? [];

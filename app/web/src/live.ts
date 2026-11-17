@@ -2,6 +2,7 @@
 // Pure functions only (the stream itself is in useLive.ts). No price, odds or edge appears anywhere in the live view.
 import type { PSource, PropView, Stat } from "./types";
 import { MODEL_LOCK_FROM } from "./record";
+import { ET_ZONE, instantMs, previousDate, zoneDate } from "./time";
 
 export const ATTRIBUTION = "Play-by-play: ESPN. Not affiliated.";
 export const CHECKPOINT_LABEL = "UNPROVEN: no live record; most nights the market already knows this.";
@@ -357,7 +358,7 @@ export const OVER_AFTER_H = 4;
 export function treatAsFinal(state: GameState, tipUtc: string | null, nowMs: number): boolean {
   if (state === "post") return true;
   if (state === "pre" || tipUtc === null) return false;
-  const tip = Date.parse(tipUtc);
+  const tip = instantMs(tipUtc);
   return Number.isFinite(tip) && nowMs - tip > OVER_AFTER_H * 3600 * 1000;
 }
 
@@ -372,15 +373,10 @@ export function sortTrackers(ts: Tracker[]): Tracker[] {
 
 /** Today's slate date in Eastern time: the capture files a night under its slate date. */
 export function etDate(d: Date): string {
-  const p = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
-  return p;
+  return zoneDate(d, ET_ZONE);
 }
 
-export function previousDate(date: string): string {
-  const t = new Date(`${date}T12:00:00Z`);
-  t.setUTCDate(t.getUTCDate() - 1);
-  return t.toISOString().slice(0, 10);
-}
+export { previousDate };
 
 /** The live game that is the app's game: same night, same two teams. */
 export function findLive(list: LiveGameSummary[], homeAbbr: string, awayAbbr: string): LiveGameSummary | null {

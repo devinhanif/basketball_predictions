@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ScrollNav, restoreScroll } from "./scrollNav";
 import { isLegStat, type LegStat, type Side } from "./legTypes";
 import { IS_ARTIFACT } from "./env";
+import { isIsoDate } from "./time";
 import { getPrefs, type Screen } from "./prefs";
 
 export type RecordTab = "replay" | "calibration" | "guess";
@@ -82,12 +83,6 @@ function playerId(raw: string | null | undefined): number | null {
   return n > 0 ? n : null;
 }
 
-/** A real calendar date in YYYY-MM-DD ("2024-02-30" is not one). */
-export function isIsoDate(s: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
-  const t = Date.parse(`${s}T00:00:00Z`);
-  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === s;
-}
 
 const HEDGE_STATS: readonly string[] = ["pts", "reb", "ast", "fg3m"];
 
