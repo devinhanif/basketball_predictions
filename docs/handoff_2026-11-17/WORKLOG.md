@@ -56,6 +56,9 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
+- Lane E1 (CI health) merged as 8a6394af at 00:10 CST on 11-17. On the merged branch I ran `ruff check`, `ruff format --check` and `mypy` on nba/ research/ tests/: all exit 0. `make test-fast` started on the merged branch at 00:11 CST as a background job (log: scratchpad `int_fast.log`); result goes into `REPORT.md` section 2.
+- Phase 6 note merged (docs only): TDA regime flag PARK, spectral parlay graph DROP (its draft rule fails its own gate: 0 multi-leg parlay records).
+- Follow-up: J3 (betting pure logic) merged into `agent/app-jarvis-followup` as 8b062459; web check there 485 tests, bundle bytes unchanged.
 - Lane E2a (daily/props) merged as d375aeb9 at 23:10 CST: lead constant (`f20c535a`), pplay shadow config path (`fe5c7efb`), DDL and config parity guard tests, stub docstrings. Its own runs: tests/daily 365 passed, layering 10 passed. `forward_withdrawals` exists only in `nba/daily/store.py`, not `schema.sql` (xfail test documents it). Pre-existing failure it met: `tests/shadow_llm/test_runner.py::test_mixed_forward_table_still_settles` (lane E1 owns it).
 - Fee decision branch `agent/market-1117-polymarket-fee-fastarb` (e05667b1) merged as 59625c3c: fee tests + tests/jarvis + layering 504 passed, 1 skipped, exit 0.
 - Open wording item for the app: the health strip's "Stale-model marks: props_avg_live2 15,276 (writer_flag); shown rows on a stale fallback 6,604" reads as if the app were stale. It means the AVG shadow is on October weights and the export fell back to the production row. Reword in `app/web/src/HealthStrip.tsx`.
