@@ -56,6 +56,7 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
+- Lane B (web hardening) merged as 85a6ad54. Verified by me on the merged branch: `npm run check` 370/370, artifact "checks passed" 5.54 MB, `npm run walk` seed 1: 150 steps, 0 violations, and with `--inject` 150 steps, 0 violations. Lane numbers (before -> after) are in `lane_web.md`. Open findings it did not fix: the service worker answers a refused export (5xx) with the saved copy and the page says "offline" (`public/sw.js:74`, Devin's call); numbers computed in the browser (`desk.ts:274`, `desk.ts:409`, `CardDetail.tsx:62`, `leg.ts:103`, hard-coded `History.tsx:39-41`); no Tab trap in dialogs; registry lacks `bad_answer`, `too_many_requests`, `refused_showing_saved`, `storage_blocked`, `unknown_live_event`.
 - Lane D (DX) merged 19:11 CST as 545ab163. I ran `dev.sh` on 8040/5196 from the integration worktree: health 200 through the web port, the busy-port message works, a terminate signal stops both servers with nothing left running. `check.sh` was run by the lane (all passed, 164 s), not yet by me on the merged branch. Report `lane_dx.md`.
 - Lane F (docs) merged 19:06 CST as 60713af7: README, PROJECT_STATUS as of 11-16, drift fixes, root NEXT_SESSION.md removed. Markdown only; report `lane_docs.md`. Its drift list for code-adjacent files goes to lane E2.
 - Phase 0 (above), commit 72924903. Shared error-code registry seeded (`app/error_codes.json`), commit d5d9b058.
