@@ -1980,6 +1980,7 @@ main h2 {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  min-width: 44px;
 }
 /* A checkbox whose own box is the 44 px target; the visible 22 px box is drawn inside it (negative margins keep the
    line height of the label it sits in). */

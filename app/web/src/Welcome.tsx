@@ -122,7 +122,10 @@ export function Welcome(props: { deep?: boolean }) {
   const [name, setName] = useState("");
   const [step, setStep] = useState<"choose" | "intro">("choose");
   // A friend who opens a shared link to a game or a player sees that page first: the intro waits as one slim line.
-  const [open, setOpen] = useState(props.deep !== true);
+  // It follows the page: leaving Discover for a game or a player folds an untouched chooser to that line too (J7); once the
+  // visitor asks for the intro, it stays open on every page.
+  const [asked, setOpen] = useState(false);
+  const open = asked || props.deep !== true;
   const introTitle = useRef<HTMLHeadingElement>(null);
   const picked = useRef(false);
   useEffect(() => {
