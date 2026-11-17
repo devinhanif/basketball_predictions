@@ -1,180 +1,125 @@
-# NBA Prediction — Project Status
+# NBA Prediction: Project Status
 
-_Living document. Last updated: 2026-10-11 04:00 CT (HEAD 2ffd6ff; tags `pre-restructure-2026-10-10`, `live-candidate-2026-10-10`). Earlier narrative (2026-10-08) is kept below under "Background". Sources: git log, TEST_LEDGER (T001-T314), HOLDOUT_ACCESS_LOG, MORNING_BRIEFING_2026-10-10 (runs through 04:00 on 2026-10-11), DECISIONS.md, DATA_CHANGELOG.md, FACTS_STORE.md, REPORTER_FEED.md, docs/reviews/._
+_Living document. Rewritten 2026-11-16 (evening, Central) from a read-only survey of `main` at `2cc4e5c9` (the "2026-11-16 survey"), re-checked the same night against `ops/`, `configs/`, `~/Library/LaunchAgents` and `docs/`. Anything marked "per the survey" was not re-checked. Anything with an "as of" date will age: read the date before trusting it. The ledger (`docs/TEST_LEDGER.md`) wins on facts; `CLAUDE.md` wins on how we work._
 
-**Bottom line for the morning read.** Production is unchanged: `rung0_injury_elo` v2 and `props_context_residual` v2, with the T-30 lineup arm still a shadow. Since 2026-10-10 every pre-registered idea we ran came back null or worse than production (F8, FOUR_FACTORS, PTS_COMPONENTS, ROUTER_TIME_WEIGHTED, MINUTES_HAZARD_2, REFEREES, F11 at T-60), and the market comparison found the market better than our model on every props cell and on game winners (ODDS_HISTORY, T203-T237). The one lever that keeps showing up is information we only get at T-30 (the confirmed five) or from reporters (minutes restrictions), and both are waiting for the live season. The honest answer to "what should I bet?" stays "keep your money".
+## Bottom line (as of 2026-11-16)
 
-**Shipped since 2026-10-10 midday.**
-- T-30 reader fix (e06763d, Devin: "ship t30 fix"): duplicate lineup rows (Expected plus Confirmed) now collapse before the confirmed check, and each T-30 decision records `dupes_collapsed`. Before the fix, 4 of the 6 recorded T-30 decisions had been skipped for this reason (data audit F1). The replay oracle hash was identical; the replay cannot exercise T-30, so unit tests carry it.
-- Data clean-up pass complete at **data_version 1bee33d02ff2** (291b3b0; DATA_CHANGELOG; audit in docs/reviews/data_audit_2026-10-11.md): 10 neutral-site games restored (+273 box rows, 148 report rows linked), possession parser fixed (points reconcile in 100% of team-games), stints rebuilt with a season-wide name book (played player-games with no stint row 671 -> 91), head coach by game, players_static re-pulled, lineup dedupe view. Replay golden is now `89889f6d` (46,658 predictions; `030804df` until the p_play change re-baselined it on 2026-10-11; docs/reviews/replay_oracle_2026-10-09.md).
-- Facts store (`nba/facts`, 40e599c, 0555501) and reporter feed (`nba/ingest/reporters.py`, e3da819) built; see the components table in section 2.
+The market beats the model on game winners and on every props cell measured so far. The 2025-26 replay put the model's Brier score 0.0064 worse than Kalshi's price (`CLAUDE.md`); the ODDS_HISTORY comparison (T203-T237, 2023-25) found the market better on every props cell. The parlay engine's model weight has been **0** since 2026-11-02 (paper track record flat: n = 17,571, paired Brier gain +0.0006 with lower bound -0.0024; the upper bound is cut off in `docs/NEXT_SESSION.md`), so the fair price the tools show is the market's, not ours. The honest answer to "what should I bet?" is **keep your money** until the live forward log proves skill. Nothing in the repo places orders. The live 2026-27 forward log is the only clean test; season 2025 is burned.
 
-## 1. In production (registry alias `production`)
+Production has not changed since the October restructure. The newest commit on `main` is `2cc4e5c9`, dated 2026-11-10 (checked with `git log` at 19:03 CST on 11-16).
 
-| Model | Version | What it does | Headline (OOF 2022-24, real-tip gating) |
+## 1. In production
+
+| Target | Model | What it is | Headline (out-of-fold 2022-24, real-tip gating) |
 |---|---|---|---|
-| `rung0_injury_elo` | v2 (v1 deprecated) | MOV-Elo logit + official injury-report availability terms; coefficients refit every run on games before the slate date | Log loss vs MOV-Elo -0.00812 [-0.01212, -0.00379], n=3,951 games (T128, same as T091; v1/proxy19 was -0.00786). Brier -0.00371; ECE +0.0108 [-0.0059, +0.0209] |
-| `props_context_residual` | v2 | pts/reb/ast/fg3m quantile distributions from recency average + context residual, injury-report gated | CRPS vs recency_conformal: pts -0.0862, reb -0.0313, ast -0.0229, fg3m -0.0102 (T092-T095, reproduced in T128; clustered CIs in the ledger) |
+| Game winner | `rung0_injury_elo` v2 | MOV-Elo logit plus terms for players OUT or DOUBTFUL on the official injury report, using the latest report at least 60 min before the real tip; refit every run. Fallback and comparison: `rung0_mov_elo` v1 | Log loss vs MOV-Elo -0.0081 [-0.0121, -0.0038], n = 3,951 games (T128). Win accuracy about 64%, calibrated |
+| Player props: pts, reb, ast, fg3m | `props_context_residual` v2 | Recency-weighted mean, a LightGBM residual mean head and a LightGBM scale head with conformal residuals; stores a 19-point quantile grid, `p_play` and projected minutes | CRPS vs `recency_conformal`: pts -0.0862, reb -0.0313, ast -0.0229, fg3m -0.0102 (T092-T095, reproduced in T128; clustered CIs in the ledger) |
+| Minutes and P(play) | `nba/props/minutes.py` hurdle model | Picks the roster; stored inside every prop row; not scored as its own target | n/a |
 
-- Real-tip gating (76cc177, maintainer-approved, T128): training and backtests now admit an injury-report snapshot only if it was published at least 60 min before the real scheduled tip (coverage 1320/1320, 1318/1318, 1315/1315, 1316/1316 games for 2022-25, 0 proxy fallbacks). Removes the train/serve mismatch found by the red team (4d56875); it costs about 0.003 of the pts gain.
-- The 2025 holdout figures on v1 (proxy19 gate) are not re-measurable and are carried on v2 only as labelled historical values. season=2025 is burned (no virgin holdout); the 2026-27 forward log is the only clean test.
-- Win prob is ~64% accuracy, calibrated; the gain over MOV-Elo is small. Red team (redteam_production_2026-10-09): injury_elo SURVIVES; context_residual WOUNDED (minor, the proxy defect, now fixed).
-- Other registry heads: `rung0_mov_elo` v1 is also `production` (fallback/comparison). rung1-4 and seq_props remain candidates, none promoted.
+- These are backtests, not live results. A model that beats a baseline can still lose to the market, and this one does.
+- The 2025 holdout figures on v1 are not re-measurable and are history only. Red team (`redteam_production_2026-10-09`): injury-Elo SURVIVES; context-residual WOUNDED (minor, the proxy defect, since fixed).
+- About a third of primary prop rows settle as DNP (per the survey). Most prop error is minutes.
 
-## 2. What runs automatically (launchd on the maintainer's Mac, bridge until a VM is chosen)
+## 2. Shadow and forward arms (logged nightly, not used for decisions)
 
-| Job | Schedule | Does |
+The pretip and early-forecast commands in `ops/nba_daily.sh` pass `--log-int-variant --log-lower-tail-variant --log-pplay-shadow --log-full-shadow --log-avg-shadow --log-combo-shadow` (checked 2026-11-16).
+
+| Arm | What | Notes |
 |---|---|---|
-| `local.nba.daily-pretip` | at :20 and :50, 09:20-21:50 | `nba.daily run` (official rosters through 2026-11-03 then recent; logs the integer-quantile and lower-tail shadow variants), referee assignments, `nba.markets capture`, then read-only `nba.parlay evaluate` shadow log. Exit 4 = some games already tipped, not a failure (5 = degraded). **Known issue (left as is, Devin 2026-10-10):** launchd runs the calendar an hour ahead (timezone cached at load); opening-night tips are still covered (NEXT_SESSION). The T-30 reader dedupe is live (e06763d) |
-| odds history pull (not launchd; `sh ops/odds_history_pull.sh`, detached) | one-time, 2026-10-10 | the-odds-api.com archive: T-60 and T-5 snapshots of props and game lines for 2023-25 into `data/odds/odds_history.duckdb`; raw cached; credit ledger capped at 2M of the 5M plan. Status: `python -m nba.odds history-status` |
-| `local.nba.daily-morning` | 08:00 | settle, report, parlay settle, post-game ingest (skipped while the ingest queue runs), data manifest snapshot/diff/leak check, DB copy to `data/backups/` (7 kept), Drive copy of registry, DB backup and lineup snapshots |
-| `local.nba.lineups` | every 5 min, idle outside game windows | T-30 lineup collector (static daily_lineups JSON, one GET per tick); shadow only (0877e89, 2b3cc84) |
-| `local.nba.kalshi-snapshot` | every 15 min | read-only Kalshi market/price snapshot to `data/kalshi/kalshi.duckdb` (plist is not created by `ops/install_launchd.sh`; documented in KALSHI_LIVE_2026-10-08.md) |
-| ingest queue (not launchd; `sh ops/run_ingest_queue.sh`) | continuous, ~6 s/request (~600/h quota) | 50-step sequential queue; at 13:23Z on 2026-10-09: 2 done (handover, cur:tracking), `cur:hustle` running since 13:16Z, 47 pending. Hustle ~6.5 h, older box scores ~18 h, then PBP; total is several days. Old seasons go to `data/history/nba_history.duckdb`, never `nba.duckdb`. Restart after reboot with the same script (done steps are skipped). The daily and lineup jobs yield stats.nba.com to it (b39aed0) |
+| `props_context_residual_int` | integer-support quantiles | a scoring-convention gain, not model skill (2023 OOF, T124-T127) |
+| `props_context_residual_lt` | pts short-minutes mixture | passed 2023 and 2024 (T136-T159) |
+| `props_context_residual_t30`, `_t15` | confirmed-lineup arms at T-30 and T-15 | run by the 5-minute lineups tick. Per the survey, 211 of 212 T-30 decisions were skipped because lineups are rarely confirmed by T-30, while T-15 logged 172 of 200 (as of 2026-11-16) |
+| `props_context_residual_late` | T-15 injury report, OUT and DOUBTFUL both excluded | per the survey |
+| pplay / full / avg / combo shadows | own tables `forward_{pplay,full,avg,combo}_shadow` | AVG is a 50/50 pmf mix of a torch sequence model and FULL; weights are trained monthly on Colab |
+| `llm_shadow` | Claude via `claude -p` | off, 0 rows (per the survey; `NBA_LLM_SHADOW` is not in the lineups plist) |
 
-### Components built but not scheduled
+## 3. Frozen forward tests and their scheduled reads
 
-| Component | State | Notes |
-|---|---|---|
-| Facts store (`nba/facts`, `data/facts/facts.duckdb`; FACTS_STORE.md; 40e599c, 0555501) | built, additive, not in the nightly job | Every fact carries a known_at; `as_of(game, t)` refuses a time after tip. Holds 2022-24 fully (`--max-season`; season 2025 never loaded) plus the 2026-27 schedule only (`--schedule-seasons 2026`: tips and teams, nothing else). The explainer reads it ("What was known, and when"). No production reader. To do before opening night: replace `--max-season` with an explicit `--seasons` list and rebuild nightly after the morning settle (NEXT_SESSION) |
-| Reporter feed (`nba/ingest/reporters.py`, REPORTER_FEED.md; e3da819) | built, **no key, no network yet** | Read-only X API v2, allow-listed handles only (`configs/reporters.yaml`, empty until Devin fills it), post budget ledger, write-once raw, regex-only parser, claimed facts with provenance, shadow only. Needs Devin's developer.x.com sign-up (pay-per-use) and `X_BEARER_TOKEN` in `.env`. Nothing in the daily path imports it |
+Rules live in `docs/FORWARD_PREREG_2026_27.md` and `docs/prereg/`. A read happens once, on the date or size the rule names; nothing is read early.
 
+| Test | Scheduled read (as of 2026-11-16) |
+|---|---|
+| `FORWARD_PREREG_2026_27` (T30, INT, LT arms; win-model tripwire) | looks with alpha spending (its section 5) |
+| `LINE_CAL_LIVE` (T524) | one look on the first date the window holds at least 200 games and 5,000 legs, projected 2026-12-01; backstop 2027-01-31 (`docs/prereg/LINE_CAL_LIVE.md`). The app hides raw outcome vs chance until then |
+| `BEST_PRICE_FORWARD` | forward window opened after its freeze; per the survey, 2026-11-10 |
+| `LINE_MOVE_TOWARD_MODEL` (T510) | per the survey, at least 300 markets and 14 dates |
+| `FAV_DIP_PAPER` (T511) | scored once at 100 trades over 14 distinct dates (`docs/prereg/FAV_DIP_PAPER.md`) |
+| `STAR_FLOOR_PAPER` (T514) | scored once at 100 settled trades over 14 distinct dates (`docs/prereg/STAR_FLOOR_PAPER.md`); no result yet |
+| `INGAME_WINPROB_V2` (T513) | stage 1 (per the survey; not re-checked) |
+| `AVG_SHADOW_LIVE_2` | per the survey, about 2027-01-10; stale weights push it toward INCONCLUSIVE (section 7) |
+| `FULL_SHADOW_LIVE_2026_27` | kill-only interim at 7,300 rows, final look at 14,600 rows (`docs/prereg/FULL_SHADOW_LIVE_2026_27.md`); per the survey, about Feb 2027 |
+| `COMBO_STOCKS_SHADOW` | later in the season |
+| `GAME_SCRIPTS_FORWARD` rev 2 | drafted (rule `563a1c67`); the freeze waits for its branch to merge (DECISIONS 2026-11-10 16:29) |
 
-Guards: one job at a time (`data/ops/lock`), waits up to 15 min for another `nba.duckdb` writer, failures go to `data/ops/ALERTS.md` plus a macOS notification. The Mac must be awake. Debutants on official-roster runs get a capped, cached `players_static` auto-fill that never fails the run (b39aed0). Details: DAILY_PIPELINE.md.
+## 4. What runs automatically (launchd, one Mac, as of 2026-11-16)
 
-## 3. Shadow-logged (no effect on production or parlays)
+Every job runs the main checkout through `/opt/homebrew/bin/uv run --no-sync`, except where noted. Plist hours are on launchd's cached clock, which on this Mac is a fixed UTC-4 clock (see "Clock"). "Installed" means a plist is in `~/Library/LaunchAgents` (listed 2026-11-16); whether each is currently loaded was not checked.
 
-- Integer-support count-stat quantiles (`--log-int-variant`, rows `props_context_residual_int`): pre-registered in fce2e13, code d5df57a. 2023 OOF descriptive CRPS: reb -0.0115, ast -0.0166, fg3m -0.0243, pts -0.0053 (T124-T127). P(>=N) and threshold log loss are exactly unchanged, so it is a scoring-convention gain, not model skill. Naive 80% intervals over-cover once rounded (0.88-0.93); use continuity-corrected coverage.
-- T-30 lineups (`props_context_residual_t30`): offline estimate was pts -0.023..-0.041, reb -0.009..-0.018, ast conditional, fg3m fails (T085-T090, T096-T097; WOUNDED because box-score starters stand in for the announced five). The collector will measure the real announcement times.
-- Lower-tail short-minutes mixture for pts (`props_context_residual_lt`): passed 2023/2024 (T136-T159, dCRPS -0.011), shadow-logged live; scored under FORWARD_PREREG_2026_27.
-- Parlay engine shadow log: marginal/copula parlays, no stake, no orders. Market-deferral gate needs 30 settled rows and >= 14 distinct settled dates (971e0e6).
-- Sharp-line benchmark: the theoddsapi.com subscription was cancelled (DECISIONS 2026-10-10) and the pre-tip `odds_capture` step removed; the live benchmark for 2026-27 is Kalshi only until another feed is chosen. The historical comparison is done (T203-T237).
+| Job | Schedule | Does | Source |
+|---|---|---|---|
+| `local.nba.daily-pretip` | :20 and :50, hours 09-22 (28 slots, 09:20 to 22:50) | `ops/nba_daily.sh pretip`: `nba.daily run` with the shadow flags, `nba.explain slate` (report edition), referees, `nba.markets capture`, `nba.parlay evaluate` and `analyze`, `nba.ops.coverage` | `ops/install_launchd.sh`, `ops/nba_daily.sh` |
+| `local.nba.daily-morning` | 08:00; `NBA_FACTS_NIGHTLY` is set in the installed plist | `ops/nba_daily.sh morning`: ingest, settle, checkpoint, report, early forecast and early briefing, yesterday's coverage, scorecard, facts rebuild, parlay settle, post-game fetch and load, stints, datamanifest snapshot/diff/check, DB backup (7 kept) and Drive copies | same |
+| `local.nba.lineups` | every 300 s | lineup poll inside [tip-60, tip+5); sportsbook odds capture when `NBA_CLOSE_CAPTURE=1`; LLM shadow if enabled; `run-t30` and `run-t15` when due | `ops/nba_lineups.sh` |
+| `local.nba.pulls` | every 120 s | `nba.pulls` tick: serves Pinnacle refresh requests within budget | `ops/launchd/local.nba.pulls.plist`; `ops/install_launchd.sh` also writes it (defined twice, per the survey) |
+| `local.nba.watchdog` | every 600 s | `nba.ops.watchdog check` | `ops/install_launchd.sh` |
+| `local.nba.jarvis` | every 120 s | `nba.jarvis watch --once` (Discord posts, paper book) | `ops/launchd/local.nba.jarvis.plist` |
+| `local.nba.app-export` | :05 and :35, hours 12-23 | `nba.ops.app_export`: rebuilds `data/export/latest`, gated on a clean morning run | `ops/launchd/local.nba.app-export.plist` |
+| `local.nba.live-capture-start` | every 600 s | starts `nba.live capture` during game windows | `ops/launchd/local.nba.live-capture-start.plist` |
+| `local.nba.kalshi-candles` | every 600 s | starts the 15-second Kalshi quote poller | `ops/launchd/local.nba.kalshi-candles.plist` |
+| `local.nba.kalshi-snapshot` | every 900 s | `nba.kalshi snapshot` into `data/kalshi/kalshi.duckdb` | **only in `~/Library/LaunchAgents`; no plist in the repo, and it runs `uv run` without `--no-sync`** |
+| `local.nba.fastarb` | none | cross-venue arbitrage alerts | not installed (template only; needs `.env.fastarb`, which does not exist per the survey) |
+| `local.nba.reporters` | none | X reporter feed | not installed (sketch; empty allow-list per the survey) |
 
-## 4. Experiments ledger (newest first; ids in TEST_LEDGER.md)
+- **Clock.** launchd fires on a fixed UTC-4 clock, so since the 2026-11-01 fall back the jobs run an hour earlier on the Eastern wall clock than the plists read. `data/ops/schedule_tz` contains `Etc/GMT+4` (read 2026-11-16) and tells the watchdog. After a reboot or relogin, delete that file by hand and recheck the first morning start (`docs/DAILY_PIPELINE.md`, "launchd calendar timezone").
+- **Roster source.** `ops/roster_source.sh` uses official rosters through **2026-11-30**, then recent-games rosters. Whether to keep that flip is a decision for Devin (section 8).
+- **Guards.** One job at a time (`data/ops/lock`, stale after 3 h); `nba.duckdb` is single-writer with a bounded wait; per-step timeouts; failures go to `data/ops/ALERTS.md` and macOS notifications. Exit 4 is informational, 5 degraded, 75 database busy. Details: `docs/DAILY_PIPELINE.md`.
 
-Closed since 2026-10-10 (each under a rule frozen before any result; the ledger holds the numbers and CIs):
+## 5. Market layer (read-only; no orders, no credentials)
 
-- MINUTES_HAZARD -> MINUTES_HAZARD_2 (T300; T301-T314, frozen a11ae618): first stopped at its data gate (stints missing short appearances); rerun after the rebuild, 0.55-0.58 min worse than M2. Closed.
-- ROUTER_TIME_WEIGHTED (T284-T299, bb633f7a): no pass; the only gain is the T-30 arm itself. Closed.
-- PTS_COMPONENTS (T280-T283, 7e6fd8f0): points as 2s, 3s and FTs worse than production by about 0.03 CRPS. Closed.
-- FOUR_FACTORS (T264-T279, 0d87c2ce): as-of pace and four factors add nothing; rebounds slightly worse. Closed.
-- F8 lineup rebounding (T252-T263, 2a8e581e): projected five adds nothing; the actual five would (oracle). Closed.
-- F11 lineup context (T244-T251): powered null at T-60; only the confirmed five at T-30 carries signal. Closed.
-- REFEREES crew tendencies (T202 gate stop; T238-T243): null for pts, fg3m and the total after the official-id merge. Closed.
-- ODDS_HISTORY market comparison (T203-T237, d5b8b162): market better on every props cell and on game winners; blend red-teamed WOUNDED. Nothing promoted.
-- Descriptive nulls (no ledger rows, no rule; reports and FAN_KNOWLEDGE): role clusters (reports/role_clusters_2026-10-10.md) cannot predict who absorbs minutes; market routing by a/b/c/d (scratch pilot) moves log loss by at most 0.0009, floor 0.002; coach to absorption cluster (reports/coach_allocation_2026-10-10.md) does not carry across seasons; returning-teammate effect is not knowable at T-60 (flagged player plays 16.5% of the time), so it is a T-30 candidate.
+- **Kalshi** public API: snapshot every 15 min plus the 15-second poller for the app's live chart. **Prop DNP rule: verified 2026-11-10** from the contract terms. A player who withdraws before tip settles at the last fair price, not as No (DECISIONS 2026-11-10 13:20 and 16:36; merge `e921f7ed`). Props are priced as P(plays) times P(side | plays). Unders are shown on cards and never alerted: all three replayed under alerts were Pinnacle lagging news Kalshi had already priced, and 14 of 17 shown unders saw Pinnacle move toward Kalshi (0.82, game-clustered 95% CI [0.68, 1.00], 11 games; `docs/reviews/cards_unders_2026-11-10.md`).
+- **Sportsbook odds** from the-odds-api.com v4 (`THE_ODDS_API_KEY`; Pinnacle in the `eu` region), captured by the lineups tick into `data/markets/market_asof.duckdb`. The earlier vendor (theoddsapi.com) was cancelled 2026-10-10 and its pretip step removed.
+- **Parlay engine** (`docs/PARLAY_ENGINE.md`): Gaussian copula; model weight 0, so verdicts follow the market. `no_positive_ev_found` is a first-class answer.
+- **JARVIS** (Discord, paper book, alert-only): labels edges strong (3 cents or more after fees), thin, none or arbitrage. Per-stat model weights start at 0 and are earned from closing-line value. Stake rules are Devin's, in `docs/TRADING_CONTEXT.md`.
+- **fastarb** (arbitrage alerts) is built but not installed.
+- Fee model and settlement rules: `configs/parlay.yaml`, `docs/PARLAY_ENGINE.md`.
 
-Earlier closed or open items:
+## 6. The app
 
-- F9b young top-10 pick prior, re-registered (T186-T201, 2026-10-10): CLOSED. All five data checks passed; no stat reached the slice dCRPS floor (pts -0.003 / -0.006 vs -0.02); the placebo moved the bias as much as pedigree. The under-forecast of young starters (+0.4 pts) is role, not draft slot. No F9c.
-- F19 "never four givens" (descriptive, 2025-26 replay with Kalshi prices): the market's four safest sides sweep 40.5% of nights vs 37.4% implied, CI includes 0; a rolled 4-leg ticket returned about -5% after fees. Priced right. reports/f19_safest_legs.md.
-- F12 closing-lineup risk (T185) and F9 (T184): closed at their own data checks (F12 premise not replicated; F9 mis-specified undrafted as missing).
-- Minutes v2 (T162-T173): minutes-only result, props unchanged. T-30 injury-Elo (T160-T161): null. Hustle screens (T174-T175): null. Lower-tail pts mixture (T136-T159): KEPT as shadow. Upper tail (T129-T135): no candidate.
-- Integer quantiles on production (T124-T127): KEPT as shadow, awaiting a decision on the 2025 touch.
-- Tracking feature screen, passing/shooting/rebound-chances (T119-T123, 0041bca): NOT KEPT, no family passes (reb rebound-chances -0.0013, a quarter of the floor). Hustle families not run yet.
-- Leak-free experiment 3 per-stat hybrid (T102-T118): BROKEN for reb/ast/fg3m (integer-support artifact), WOUNDED for pts (-0.0078 [-0.0128, -0.0029], low-minute rows, reverses in playoffs). NOT KEPT. No 2025 touch.
-- Ridge v2, experiment 4 (T098-T101, ab2a72d): NOT KEPT; the exp-2 ridge gain was the missingness leak.
-- Lineups known, T-30 (T085-T090, T096-T097): WOUNDED; shadow collector built.
-- Basketball GPT / pbp_gpt (T082-T084, 62a9dd7): NOT KEPT.
-- Joint same-game set transformer (a592d82): NOT KEPT, ties the Gaussian copula on joint log loss.
-- ctxres_v2 exp1/exp2 (042790a, 5940e29): NOT KEPT; exp-2 "ridge gain" later shown to be a leak (voided in f1fcb91).
-- Earlier: injury_elo (KEPT, production), context_residual (KEPT, production), possession sim (rebounds and cold-start slices only; no win-prob value), game-context features, time decay, matchup 3A, archetype lineups (not kept). See RESULTS_2026-10-08.md.
+`app/` ("parlayhitters"): a read-only FastAPI service and a Preact PWA that read only the nightly export (`nba.export build`, then `nba.ops.app_export`). Not deployed; per the survey, Devin shared a static snapshot privately. Run instructions: `app/README.md`. `docs/APP_ARCHITECTURE.md` describes a planned hosting setup that does not exist (per the survey) and is stale; it is not edited here. Per the survey, a display lock hides model chance beside outcomes for slates from 2026-10-30 until the `LINE_CAL_LIVE` look.
 
-## 5. Known risks and open issues
+## 7. Known live problems (as of 2026-11-16 evening)
 
-- No clean holdout: season=2025 is burned (FDR_AUDIT 2026-10-08). Live 2026-27 forward results are the only confirmatory data; thin early on.
-- Statistical power: win-prob gains are small (log loss -0.008); CIs are close to zero at the lower end.
-- Platt P(play) layer behind `p_ge_uncond` has no confirmatory test; check forward before trusting it in parlays. About 36% of rotation DNPs never appear on any injury snapshot (backfill gap).
-- Opening-week rosters: official-roster flag raises coverage 61% to 96% in replay (an upper bound); rookies need `players_static` rows.
-- Schedule lookahead leak in `sch_days_to_next` / `sch_b2b_first` (postseason): fixed in research v2 features only (c9b00d1), effect <= 0.0005.
-- Not rehearsed end to end: live schedule fetch and injury-PDF fetch under launchd need one supervised live run.
-- NBA Cup knockout games are dropped from the slate and Elo (minor).
-- stats.nba.com quota (~600 requests/h) bounds all backfills; injury PDFs exist only from 2018-12-20, so long-window training needs an era flag.
-- Edge versus the market: MEASURED on 2026-10-10 (ODDS_HISTORY, T203-T237). Props model alone loses to the market on every stat, book and timing in 2023-24 and 2024-25 (+0.007 to +0.024 log loss); game winners too. A market-as-prior blend is indistinguishable from the market except rebounds vs Pinnacle (-0.0022, passes the frozen rule; with the adversary). The budget tool's answer stays "keep your money".
-- Mac is the single runtime; sleep or reboot pauses jobs and the ingest queue. launchd runs the calendar an hour ahead (cached timezone); Devin chose to leave it (2026-10-10), opening-night tips are still covered.
-- Data loose ends after the clean-up (data_version 1bee33d02ff2): 188 injury-report rows still have no game_id (136 postponements or no game on the date, 52 ambiguous); 91 played player-games have no stint row (same-surname teammates; the gate target was revised 40 -> 91 after the full run, recorded in DATA_CHANGELOG); 2025-26 head coaches are written as unverified. None is read by production. The earlier possession defects (event order, oreb over-count) were fixed 2026-10-10.
-- Odds vendors: the live theoddsapi.com benchmark was cancelled; the historical pull from the-odds-api.com is complete (Devin cancels that plan after the month). Player-name resolution relies on a generated alias table plus a reviewed list; two names stay unresolved (J. Green, Thompson).
-- Reporter feed untested live: no key, no allow-list handles, no real post has been parsed; first poll is budget-capped (section 7).
+1. **Odds key.** Per the survey, the-odds-api key was deactivated from 11-14, every capture returned `401 DEACTIVATED_KEY`, and there were no sportsbook or Pinnacle prices for about 3 nights; without Pinnacle, JARVIS labels collapse to thin or none. Devin replaced the key in `.env` at about 18:22 CST on 11-16. **Not yet confirmed.** `data/ops/ALERTS.md` shows `[lineups] odds capture all rc=4` every 5 min through 18:19 and no later such line by 19:03; whether rows are being written was not checked.
+2. **AVG shadow serves October weights** (per the survey): the November Colab refit has not run, rows are marked `stale_model=1`, and each stale day pushes that test toward INCONCLUSIVE.
+3. **CI is not green.** Per the survey, none of the last 40 runs on `main` passed (35 cancelled, 5 failed; the latest failure, 11-11, was `ruff check`, and the unit job ran over an hour). The repo's own checks, run in a dev environment, are the real gate until CI is fixed.
+4. **Battery near tip.** The watchdog wrote `ACTION NEEDED: next tip in 57 min and the Mac can sleep` at 19:02 CST on 11-16 (`data/ops/ALERTS.md`). A sleeping Mac stops every job.
+5. **Daily outputs pile up uncommitted** in the main checkout (reports and the data manifest; `git status` at the start of this session listed dozens of untracked `reports/forward_scorecard/*` files). No commit to `main` since 2026-11-10.
+6. **Unmatched Kalshi names**: about 63 as of 11-08 (`docs/NEXT_SESSION.md`), so those players' props never meet the model.
+7. **Disk** (per the survey): 57% used after a cleanup (it was 97% on 11-10); about 26 GB in `data/ops`, including two pretip logs of about 9 GB each.
 
-## 6. Decisions waiting on the maintainer
+## 8. Decisions waiting on Devin
 
-Exactly what is open as of 2026-10-11 04:00 CT (detail in MORNING_BRIEFING_2026-10-10.md and DECISIONS.md):
+From `docs/NEXT_SESSION.md` (2026-11-10 block) and the survey. None was re-confirmed as still open tonight.
 
-1. **X sign-up and reporter handles.** Sign up at developer.x.com (pay-per-use credits, no monthly plan), put the bearer token in `.env` as `X_BEARER_TOKEN`, and fill `configs/reporters.yaml` with the handles you trust (one beat writer per team you care about). Steps in REPORTER_FEED.md. Nothing is bought by Claude.
-2. **Delete candidates, your yes/no.** Under `data/rehearsal/`: `oracle_t30base*`, `oracle_t30fix*`, and `oracle_b` through `oracle_j` with their `.duckdb` and `_full.duckdb` files. Keep `oracle_golden2*` (the current golden source; note it also starts with the letter g, so do not delete by the pattern `oracle_[b-j]*`). And the six stale `.team/worktrees/*` (branches `agent/*`): `git worktree remove` then `git branch -D`; nothing references them.
-3. **Oracle VM** after opening night (the Mac is the single runtime until then).
-4. **Your own rclone client id** (the shared one retires in 2026; about five minutes).
-5. **Two alias names left unresolved:** J. Green (Jalen or Jeff on the same HOU roster) and bare "Thompson". Nine of the 11 REVIEW names were applied under your team-roster rule.
+- AVG November refit (Colab run, about 5 minutes).
+- Launchd installs: the afternoon re-export schedule and, optionally, the candles poller (Claude is refused installs). Both plists are already in `~/Library/LaunchAgents`, so this may be done.
+- The roster-source flip on 2026-11-30: keep it or change it.
+- The T-30 arm's future (it cannot change mid-rule; it needs a DECISIONS row for the next rule).
+- D1 tripwire audit content; the AS_OF_IDENTITY gate.
+- X API spend ceiling for the reporter feed, or archive it.
+- Delete `data/raw/bref_salaries_2026-10-21`; re-source coaches.
+- Polymarket terms read and steps 2-3 of SHARP_WALLETS_PERSIST.
+- TEAMMATE_SITS display choice (O2).
+- The `GAME_SCRIPTS_FORWARD` freeze, after its branch merges.
+- Data-source terms (NBA headshots, ESPN play-by-play, nba.com) before any revenue.
+- Plug the Mac in and keep it awake on game nights.
 
-Not open any more: F8 and the other frozen rules (all run and closed), the T-30 fix (shipped), the pretip scheduler (left as is), the Drive sweep (deleted), the theoddsapi.com plan (cancelled), the data clean-up (done).
+## 9. What the experiments taught (short; numbers and CIs are in `docs/TEST_LEDGER.md`)
 
-## 7. Opening-night checklist (first games 2026-10-20)
+- Wins came from information known before tip: the official injury report with real-tip gating, confirmed lineups (backtest; live they rarely confirm by T-30), short-minutes behavior, integer-support scoring, and TEAMMATE_SITS (T526: pts survives attack; reb is wounded).
+- Architecture alone lost or tied: possession simulator for props, neural step-heads, RAPM, set transformer, play-by-play GPT, tracking features, opponent ridge, stacking, four factors, referee tendencies, minutes hazard models, workload features (T521, null).
+- Closed nulls are results, not failures. No variant-chasing.
 
-See NEXT_SESSION.md for the ordered list. The standing checklist (jobs loaded, one supervised pretip run, ingest queue, sleep off, registry shows production v2) is unchanged. Added 2026-10-11:
-- Rebuild the facts store nightly once `nba.facts build --seasons` exists (today it is `--max-season`); do not touch the daily script before the replay oracle (`oracle_pplay`, golden `89889f6d`; was `030804df` before 2026-10-11) passes on the change.
-- First reporter poll only after Devin's sign-up, with `--budget-posts 50`; read the briefing section before widening the budget.
+## 10. Where to look
 
-## 8. Roadmap after opening night
-
-See NEXT_SESSION.md.
-
----
-
-# Background (2026-10-08 narrative, still accurate for the sections below)
-
-## Results as of 2026-10-08 — the sim earned its first player-prop wins
-Gave the possession sim **real 5-man lineups** (parsed for 100% of 1.05M possessions) and **real
-player attributes** (position/height/weight/draft/age, all 891 players). Result: the sim now
-**beats the season-average baseline on rebounds** (CRPS −0.014, CI excludes 0 — first prop stat to
-do so), **ties** on points/assists, all biases within ±0.5. A **routing analysis** shows the sim's
-edge is **concentrated in cold-start / intermittent / erratic players** (it wins those buckets with
-CI excluding 0; season-average only wins "smooth" high-volume regulars) — a concrete registry
-routing rule and direct confirmation of the cold-start thesis. Two ideas tested and honestly set
-aside: on-court usage denominator (regressed → off) and lineup archetype-MIX (real but negligible,
-R²≈0.016 → no rung-4 encoder yet). Full tables + caveats in RESULTS_2026-10-08.md.
-
-## What we're building
-A system that predicts NBA games two ways: **who wins** (and by how much), and **individual player stat lines** (points, rebounds, assists, threes). The guiding principle isn't "be right more often" — it's **be honestly calibrated**: when the model says 70%, it should happen ~70% of the time. At every step we check against real history and against dead-simple benchmarks, so we don't fool ourselves.
-
-## North-star goal (set 2026-10-07)
-The project's **primary objective is now the possession-level simulation engine** — a *generative model of the game* (CLAUDE.md's original mission), replacing feature-ML as the center of gravity. Its step-models are to be learned with **neural / attention methods** (transformers over possession/event sequences; permutation-invariant set-attention over 5-man lineups for cold-start), producing calibrated full-game **and** player-line distributions, finished with an **ensemble + isotonic/Platt calibration** layer (ladder rungs 3→4→5→6).
-
-**Why the pivot is earned:** feature-ML has demonstrably plateaued — nothing (fancier models, game-context, minutes context) beats Elo / season-average; even the one win (GA-tuned MOV-Elo) is tiny. The sim is the only structurally different path, and the only place deep models + real information (availability, matchup, lineups) get *used* rather than re-approximating Elo.
-
-**Critical path:** PBP pull → possession/stint parser (time-boxed, reconciliation-gated per risk #5) → possession-outcome step-models → Monte Carlo sim → neural step-heads + lineup set-attention (GPU/Colab enters here) → ensemble + calibrate. GPU training (Colab) was deferred to exactly these rungs.
-
-## One-sentence headline
-We have a clean, working, honest system on 4 real seasons — and what it's telling us is that NBA games and player stats are **hard to predict better than simple methods already do.** That's a real finding, not a failure.
-
-## What "the Elo model" really means
-Elo is a team-strength number borrowed from chess. Every team has a rating (avg ≈ 1500). The winner of a game takes rating points from the loser — more for beating a strong team than a weak one. Over a season each number drifts to reflect how good the team is. To predict a game we take the two ratings, add a home-court bump, and convert the gap into a win probability.
-
-Why it matters that Elo is our **best** model: we built fancier models (logistic regression, LightGBM) with dozens of features and **none beat Elo.** The lesson: almost all the predictable signal in an NBA game is just "which team is better, adjusted for home court and recent form," and one simple self-updating number captures that about as well as anything.
-
-- Elo gets the winner right **~64%** of the time and is **well-calibrated**.
-- Reference points: always-home ≈ 55%; a sharp Vegas line ≈ 68–70%.
-
-## Status by front
-| Front | Status | Plain-English result |
-|---|---|---|
-| Data / ingestion | ✅ solid | 4 seasons, ~5,300 games, ~138k player-games, all free NBA API, local. 3 real data bugs found & fixed. Trustworthy. |
-| Win probability | ✅ done | Elo wins (~64%, calibrated); fancier models don't beat it. |
-| Player props | ✅ working | Unbiased; sim **beats season-avg on rebounds** and **ties** pts/ast. Edge is **concentrated in cold-start/volatile players** (routing analysis) — route those to the sim, regulars to season-avg. |
-| Game-context features | ✅ tested | Travel / national TV / playoff race / tanking did **not** beat Elo for wins (Elo already encodes team quality). Being tested on player **minutes** next. |
-| Markets / parlays | ⬜ not started | No odds data yet → the "is there money here?" question is **unanswered**. |
-| Infrastructure | ✅ pro-grade | Tests, CI (green), model registry, reproducible runs. |
-
-## What you KNOW
-- NBA winners predictable ~64%, with trustworthy (calibrated) probabilities.
-- Simple team-strength (Elo) is the winner; complexity didn't help.
-- Player stat predictions are unbiased but **don't beat a season average** (except 3PM / rookies).
-- Data + pipeline are clean and reproducible.
-
-## What you DON'T know yet
-- **Whether any of this beats the betting market** — the real test of edge. Needs odds data (Phase 3, not built).
-- Whether context features help player **minutes** (test in progress).
-- ~~Whether a possession-by-possession simulation beats these simple models.~~ **Answered (2026-10-08):** it beats season-avg on rebounds and in cold-start/volatile player slices; ties elsewhere; does not beat Elo on win prob. See RESULTS_2026-10-08.md.
-- Real parlay expected value — the honest-EV tool isn't built.
-
-## The honest bottom line
-As an **edge-finding / betting** tool: unproven and probably small — simple baselines (Elo, season averages) are hard to beat, which is exactly what the literature predicts. As an **engineering + forecasting** project: genuinely strong — calibrated, leakage-free, well-tested, and honest about its own limits.
+`docs/NEXT_SESSION.md` (resume here, newest block on top), `docs/DAILY_PIPELINE.md`, `docs/DECISIONS.md`, `docs/TEST_LEDGER.md`, `docs/HOLDOUT_ACCESS_LOG.md`, `docs/BEST_PRACTICES.md`, `docs/FORWARD_PREREG_2026_27.md`.
