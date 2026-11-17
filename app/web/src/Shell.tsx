@@ -15,6 +15,7 @@ import { Banner, Dialog } from "./ui";
 import { ShortcutsDialog, isTypingTarget } from "./Shortcuts";
 import { dismissToast, useToasts } from "./toast";
 import { openTour } from "./tourState";
+import { HealthStrip } from "./HealthStrip";
 
 interface NavDef {
   name: TopName;
@@ -484,6 +485,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
             {props.meta.text}
           </Banner>
         ) : null}
+        {props.meta.text ? <HealthStrip /> : null}
         {props.meta.newer !== null ? (
           <Banner
             tone="fresh"

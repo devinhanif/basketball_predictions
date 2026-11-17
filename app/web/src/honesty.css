@@ -175,3 +175,12 @@
   overflow-wrap: anywhere;
   min-width: 0;
 }
+.dataline + .hstrip,
+.dataline ~ .hstrip {
+  padding: var(--sp-1) var(--gutter) 0;
+}
+.hstrip summary {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

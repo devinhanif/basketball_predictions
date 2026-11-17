@@ -65,3 +65,18 @@ describe("plain words", () => {
     expect(hasPriceWords(null)).toBe(false);
   });
 });
+
+describe("health strip age marks", async () => {
+  const { isOld, OLD_AFTER_HOURS } = await import("./HealthStrip");
+  const { agoText } = await import("./time");
+  const now = new Date("2026-11-17T03:00:00Z");
+  it("a quote three days old looks dead, a fresh one does not", () => {
+    expect(isOld("2026-11-14T03:00:00Z", OLD_AFTER_HOURS.quote, now)).toBe(true);
+    expect(agoText("2026-11-14T03:00:00Z", now)).toBe("3 days ago");
+    expect(isOld("2026-11-17T00:45:47Z", OLD_AFTER_HOURS.quote, now)).toBe(false);
+    expect(isOld(null, OLD_AFTER_HOURS.quote, now)).toBe(false);
+  });
+  it("the export uses the data line's own threshold", () => {
+    expect(OLD_AFTER_HOURS.export).toBe(30);
+  });
+});
