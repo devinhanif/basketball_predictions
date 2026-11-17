@@ -969,25 +969,23 @@ textarea:focus-visible {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--sp-3);
   }
-  .fr-option {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 112px;
-    column-gap: 14px;
-    padding: 16px;
-  }
-  .fr-top,
-  .fr-tag {
-    grid-column: 1 / -1;
-  }
+  /* A phone: no sparkle and no thumbnails, so both choices and the start button fit the first screen. */
+  .firstrun > .intro-head .fr-spark,
   .fr-preview {
-    grid-column: 2;
-    grid-row: 2 / 4;
-    height: 88px;
-    align-self: center;
+    display: none;
   }
-  .fr-name,
+  .fr-option {
+    gap: 4px;
+    padding: 14px;
+  }
+  .fr-top {
+    margin-bottom: 0;
+  }
+  .fr-tag {
+    padding-top: 8px;
+  }
   .fr-says {
-    grid-column: 1;
+    line-height: 1.45;
   }
   .intro-actions .btn.primary {
     flex: 1 1 100%;
@@ -1458,9 +1456,14 @@ h1.answer {
 .page-controls .seg.wide {
   width: auto;
 }
+@media (min-width: 760px) {
+  .pc-row .seg {
+    min-width: 13.5rem;
+  }
+}
 .pc-say {
   margin: 0;
-  max-width: 36ch;
+  max-width: 46ch;
   text-align: right;
 }
 @media (max-width: 759px) {
@@ -1487,6 +1490,21 @@ h1.answer {
   .pc-say {
     max-width: none;
     text-align: left;
+  }
+  /* A phone: the two switches sit close together (44 px buttons stay), and the one-line hint hugs them. */
+  .page-controls {
+    gap: 4px;
+  }
+  .pc-row .seg {
+    padding: 2px;
+    gap: 2px;
+  }
+  .pc-say {
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  .page-controls {
+    margin-bottom: var(--sp-2);
   }
 }
 /* The Leg page: the player's name on the left, the same controls on the right. */
@@ -2028,4 +2046,20 @@ input[type="checkbox"].tap-check:checked::after {
 input[type="checkbox"].tap-check:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: -6px;
+}
+
+/* A "Market screen" stand-in: heading, sentence and button breathe; the sentence reads as a short paragraph. */
+.market-only {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+}
+.market-only > * {
+  margin: 0;
+}
+.market-only > p {
+  max-width: 52ch;
+}
+.market-only-title {
+  text-wrap: balance;
 }
