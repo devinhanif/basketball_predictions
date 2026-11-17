@@ -192,3 +192,104 @@
 .sc-table .wrap-any {
   overflow-wrap: break-word;
 }
+
+/* ---------------------------------------------------------------- the health strip: one line, detail on request (loaded before jarvis.css; these rules win over the older ones above) */
+.hstrip {
+  display: block;
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.dataline + .hstrip,
+.dataline ~ .hstrip {
+  padding: 0 var(--gutter-r) 0 var(--gutter);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.hstrip .hs-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 32px;
+  max-width: 1120px;
+  margin: 0 auto;
+  min-width: 0;
+}
+.hstrip summary.hs-line {
+  cursor: pointer;
+  list-style: none;
+  text-decoration: none;
+}
+.hstrip summary.hs-line::-webkit-details-marker {
+  display: none;
+}
+.hs-items {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hstrip .hs-item {
+  overflow-wrap: normal;
+}
+.hs-sep {
+  margin: 0 6px;
+  color: var(--subtle);
+}
+.hs-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--win);
+  flex: none;
+}
+.hs-dot.old {
+  background: var(--notice-ink);
+}
+.hs-more {
+  flex: none;
+  color: var(--accent-ink);
+  font-weight: var(--fw-bold);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hs-more::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+}
+.hs-details {
+  min-width: 0;
+}
+.hs-details[open] .hs-more::after {
+  transform: rotate(-135deg) translateX(-2px);
+}
+.hs-body {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 4px 0 12px;
+}
+.hs-body p {
+  margin: 6px 0 2px;
+}
+.hs-sub {
+  font-weight: var(--fw-bold);
+  color: var(--ink);
+}
+.hs-body ul {
+  margin: 2px 0 0;
+  padding-left: 1.1rem;
+}
+.hs-books {
+  columns: 2 16rem;
+}
+@media (max-width: 760px) {
+  .hstrip .hs-line {
+    min-height: var(--target);
+  }
+}
