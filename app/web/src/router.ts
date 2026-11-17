@@ -2,6 +2,8 @@ import { useEffect, useState } from "preact/hooks";
 import { ScrollNav, restoreScroll } from "./scrollNav";
 import { isLegStat, type LegStat, type Side } from "./legTypes";
 import { IS_ARTIFACT } from "./env";
+import { isIsoDate } from "./time";
+import { STATS } from "./types";
 import { getPrefs, type Screen } from "./prefs";
 
 export type RecordTab = "replay" | "calibration" | "guess";
@@ -21,7 +23,9 @@ export type Route =
   | { name: "record"; tab: RecordTab; date: string | null }
   | { name: "live"; id: string | null; date: string | null }
   | { name: "alerts" }
-  | { name: "admin" };
+  | { name: "admin" }
+  /** Anything the app could not have linked to; `hash` is what was asked for. */
+  | { name: "notfound"; hash: string };
 
 /** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
 export type TopName = "today" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings";
@@ -51,49 +55,124 @@ export function topHref(name: TopName, artifact: boolean = IS_ARTIFACT): string 
   return name === "today" ? "#/" : `#/${name === "settings" ? "prefs" : name}`;
 }
 
+/** A decoded path segment, or null when its percent-encoding is broken (a hand-edited or truncated link). */
+function decode(s: string): string | null {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return null;
+  }
+}
+
+/** An id the app put in a link: any text, but not empty, not huge and without control characters. */
+function okId(s: string): boolean {
+  if (s.length === 0 || s.length > 64) return false;
+  for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) < 0x20) return false;
+  return true;
+}
+
+/** A path segment as an id, or null. */
+function id(raw: string | undefined): string | null {
+  const s = raw === undefined ? null : decode(raw);
+  return s !== null && okId(s) ? s : null;
+}
+
+/** A positive whole player id written in plain digits ("1e3", "0x10" and " 12" are not ids). */
+function playerId(raw: string | null | undefined): number | null {
+  if (raw === null || raw === undefined || !/^\d{1,10}$/.test(raw)) return null;
+  const n = Number(raw);
+  return n > 0 ? n : null;
+}
+
+
+/**
+ * The route for a hash. Anything the app could not have linked to (an unknown path, a broken id, an impossible date)
+ * is the explicit not-found route, which keeps the hash so the screen can say what was asked for. Never throws.
+ */
 export function parse(hash: string): Route {
-  const [path = "", query = ""] = hash.replace(/^#/, "").split("?");
+  const notFound: Route = { name: "notfound", hash };
+  const raw = hash.replace(/^#/, "");
+  const cut = raw.indexOf("?");
+  const path = cut < 0 ? raw : raw.slice(0, cut);
+  const query = cut < 0 ? "" : raw.slice(cut + 1);
   const parts = path.split("/").filter(Boolean);
-  const q = new URLSearchParams(query);
+  let q: URLSearchParams;
+  try {
+    q = new URLSearchParams(query);
+  } catch {
+    return notFound;
+  }
+  /** The `date` parameter: absent is null; present must be a real date, else the whole route is not found. */
+  const date = (): string | null | undefined => {
+    const d = q.get("date");
+    if (d === null) return null;
+    return isIsoDate(d) ? d : undefined;
+  };
+  const extra = parts.length > 1;
   switch (parts[0]) {
-    case "game":
-      return parts[1] ? { name: "game", id: decodeURIComponent(parts[1]) } : { name: "today", date: null };
-    case "leg": {
-      const [, gameId, pid, stat] = parts;
-      const playerId = Number(pid);
-      if (gameId && Number.isInteger(playerId) && stat && isLegStat(stat)) {
-        return { name: "leg", gameId: decodeURIComponent(gameId), playerId, stat, side: q.get("side") === "under" ? "under" : "over" };
-      }
-      return { name: "today", date: null };
+    case undefined:
+    case "discover":
+    case "today":
+    case "main": {
+      const d = date();
+      return d === undefined || extra ? notFound : { name: "today", date: d };
     }
-    case "swipe":
-      return { name: "swipe", date: q.get("date") };
+    case "game": {
+      const gid = id(parts[1]);
+      return gid !== null && parts.length === 2 ? { name: "game", id: gid } : notFound;
+    }
+    case "leg": {
+      const gid = id(parts[1]);
+      const pid = playerId(parts[2]);
+      const stat = parts[3];
+      if (gid !== null && pid !== null && stat !== undefined && isLegStat(stat) && parts.length === 4) {
+        return { name: "leg", gameId: gid, playerId: pid, stat, side: q.get("side") === "under" ? "under" : "over" };
+      }
+      return notFound;
+    }
+    case "swipe": {
+      const d = date();
+      return d === undefined || extra ? notFound : { name: "swipe", date: d };
+    }
+    case "parlay": {
+      const d = date();
+      return d === undefined || extra ? notFound : { name: "parlay", date: d };
+    }
     case "picks":
-      return { name: "picks" };
-    case "parlay":
-      return { name: "parlay", date: q.get("date") };
     case "settings":
     case "prefs":
-      return { name: "settings" };
     case "signals":
-      return { name: "signals" };
-    case "hedge":
-      return { name: "hedge", game: q.get("game"), player: q.get("player") ? Number(q.get("player")) : null, stat: q.get("stat") };
     case "history":
-      return { name: "history" };
+    case "alerts":
+    case "admin":
+      if (extra) return notFound;
+      return parts[0] === "prefs" || parts[0] === "settings" ? { name: "settings" } : { name: parts[0] };
+    case "hedge": {
+      if (extra) return notFound;
+      const g = q.get("game");
+      const p = q.get("player");
+      const s = q.get("stat");
+      const game = g !== null && okId(g) ? g : null;
+      const player = p === null ? null : playerId(p);
+      if ((g !== null && game === null) || (p !== null && player === null) || (s !== null && !(STATS as readonly string[]).includes(s))) return notFound;
+      return { name: "hedge", game, player, stat: s };
+    }
     case "record": {
       const t = q.get("tab");
+      const d = date();
+      if (extra || d === undefined) return notFound;
+      // An unknown tab is the replay (an old link), not a missing page.
       const tab: RecordTab = t === "calibration" || t === "guess" ? t : "replay";
-      return { name: "record", tab, date: q.get("date") };
+      return { name: "record", tab, date: d };
     }
-    case "alerts":
-      return { name: "alerts" };
-    case "live":
-      return { name: "live", id: parts[1] ? decodeURIComponent(parts[1]) : null, date: q.get("date") };
-    case "admin":
-      return { name: "admin" };
+    case "live": {
+      const d = date();
+      const lid = parts[1] === undefined ? null : id(parts[1]);
+      if (d === undefined || parts.length > 2 || (parts[1] !== undefined && lid === null)) return notFound;
+      return { name: "live", id: lid, date: d };
+    }
     default:
-      return { name: "today", date: q.get("date") };
+      return notFound;
   }
 }
 

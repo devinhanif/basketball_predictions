@@ -24,6 +24,9 @@ import { openTour, tourSeen } from "./tourState";
 import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
 import { IS_ARTIFACT } from "./env";
+import { NotFound } from "./Problem";
+import { Boundary } from "./Boundary";
+import { failureOf, reasonOf } from "./errors";
 
 export function App() {
   const route = useRoute();
@@ -39,7 +42,11 @@ export function App() {
   useEffect(() => {
     api.meta().then(
       (r) => {
-        const m = r.data;
+        const m = r.data as Partial<typeof r.data> | null;
+        if (m === null || typeof m !== "object" || typeof m.data_as_of !== "string" || typeof m.mode_note !== "string") {
+          setNote("The data server answered in a form this page does not read, so what you see may be old. Nothing here is advice.");
+          return;
+        }
         setNote(
           m.mode === "fixture_replay"
             ? "A replay of real 2024-25 games, not tonight's slate. Nothing here is advice."
@@ -47,8 +54,14 @@ export function App() {
         );
         if (r.fromCache) setStale(true);
       },
-      () => {
-        setNote("The data server is not answering, so what you see may be old. Nothing here is advice.");
+      (e: unknown) => {
+        const f = failureOf(e);
+        const reason = reasonOf(f);
+        setNote(
+          reason !== null
+            ? `Today's data failed its checks, so it is not shown: ${reason}. Nothing here is advice.`
+            : "The data server is not answering, so what you see may be old. Nothing here is advice.",
+        );
       },
     );
   }, []);
@@ -107,16 +120,19 @@ export function App() {
     case "admin":
       page = <Admin />;
       break;
+    case "notfound":
+      page = <NotFound hash={route.hash} />;
+      break;
     default:
       page = <Today date={route.date} onStale={setStale} />;
   }
   return (
-    <>
+    <Boundary outer>
       <Shell route={route} replayNote={note} offline={stale}>
-        {page}
+        <Boundary resetKey={JSON.stringify(route)}>{page}</Boundary>
       </Shell>
       <Welcome />
       {IS_ARTIFACT ? null : <Tour />}
-    </>
+    </Boundary>
   );
 }

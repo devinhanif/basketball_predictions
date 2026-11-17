@@ -560,7 +560,8 @@ th.r {
 }
 .swipe-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, ...): a long side label wraps inside its button instead of pushing the page sideways at 360-390 px. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 10px;
   position: sticky;

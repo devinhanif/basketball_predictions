@@ -18,6 +18,7 @@ import { Court, DeskTiles, Discipline, Hero, Insight, Radar, useRadar } from "./
 import { compareLine, doesText, rangeSentence } from "../words";
 import { hasTickets, type TpResult } from "../topParlays";
 import { TodaysPicks } from "../TodaysPicks";
+import { instantMs } from "../time";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
 function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) {
@@ -173,7 +174,12 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
         {(raw) => {
           const slates = chronological(raw);
           const date = props.date ?? defaultNight(slates);
-          return date ? <Night date={date} nights={slates.map((s) => s.date)} onStale={props.onStale} /> : <p>No nights are loaded.</p>;
+          return date ? <Night date={date} nights={slates.map((s) => s.date)} onStale={props.onStale} /> : (
+            <div class="panel empty" role="status">
+              <h1>No nights are loaded</h1>
+              <p>This copy of the data holds no slates, so there is nothing to show yet. Nothing is broken; check back after the nightly run.</p>
+            </div>
+          );
         }}
       </View>
     </div>
@@ -192,7 +198,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
   const radar = useRadar(date, engine);
   const featured =
     slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === pickHero(radar.rows)?.gameId) ?? slate.data.games[0] ?? null) : null;
-  const played = featured !== null && Date.parse(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
+  const played = featured !== null && instantMs(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const lens = useLens();
   const liveSt = useLiveList([date], 20000);
   const liveGames = liveSt.lists[0]?.games ?? [];
@@ -226,7 +232,8 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           <h1 class="answer pending">Reading the night&hellip;</h1>
         )}
       </header>
-      <TodaysPicks date={date} engine={engine} onStale={props.onStale} />
+      {/* Prices, fees and a book's name: never in the Learn lens (scripts/learn-dom.mjs). */}
+      {lens === "learn" ? null : <TodaysPicks date={date} engine={engine} onStale={props.onStale} />}
       <LiveStrip date={date} games={liveGames} />
       <nav class="tabs" aria-label="Choose a night">
         {props.nights.map((d) => (

@@ -28,6 +28,7 @@ import type { GameDetail } from "./types";
 import { STAT_SHORT } from "./types";
 import { liveHref } from "./router";
 import { useLiveGame, type LiveConn } from "./useLive";
+import { ProblemPanel } from "./Problem";
 import { useLiveFor } from "./useLiveData";
 
 /** How old the data on screen is. Keeps its own one-second clock so nothing else re-renders on a tick. */
@@ -69,8 +70,9 @@ export function Attribution(props: { note?: string }) {
   );
 }
 
-function PhaseNote({ conn }: { conn: LiveConn }) {
+function PhaseNote({ conn }: { conn: LiveConn & { retry?: () => void } }) {
   if (conn.phase === "live" || conn.phase === "connecting" || conn.phase === "final") return null;
+  if (conn.phase === "stopped") return <ProblemPanel code="live_feed_stopped" level={2} retry={conn.retry ?? null} />;
   return (
     <p class={`live-phase ${conn.phase}`} role="status">
       {conn.message ?? (conn.phase === "error" ? "Could not reach the live feed." : "")}

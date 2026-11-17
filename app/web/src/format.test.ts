@@ -39,7 +39,7 @@ describe("router", () => {
     expect(parse("#/game/0022400001")).toEqual({ name: "game", id: "0022400001" });
     expect(parse("#/swipe?date=2024-11-20")).toEqual({ name: "swipe", date: "2024-11-20" });
     expect(parse("#/picks")).toEqual({ name: "picks" });
-    expect(parse("#/nonsense")).toEqual({ name: "today", date: null });
+    expect(parse("#/nonsense")).toEqual({ name: "notfound", hash: "#/nonsense" });
   });
 });
 

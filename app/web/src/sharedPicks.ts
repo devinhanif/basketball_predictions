@@ -8,6 +8,7 @@
 //  * One subscription for the whole collection, set up once. One write at a time to the viewer's own document.
 import { loadLedger, onLedgerChange, replaceLedger, type Pick } from "./ledger";
 import { STATS, type Stat } from "./types";
+import { instantMs } from "./time";
 
 export const MAX_SHARED = 400;
 const MAX_STR = 80;
@@ -44,7 +45,7 @@ function fin(x: unknown): number | null {
 }
 function iso(x: unknown): string | null {
   const s = str(x, 40);
-  return s !== null && !Number.isNaN(Date.parse(s)) ? s : null;
+  return s !== null && !Number.isNaN(instantMs(s)) ? s : null;
 }
 
 /** Validate one pick from a document nobody here controls. Null when anything is off. */

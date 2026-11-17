@@ -1,4 +1,5 @@
-const ET = "America/New_York";
+// Times and dates live in time.ts (one module for every conversion); re-exported here for existing imports.
+export { STALE_AFTER_HOURS, ageNote, deskStamp, longDate, stamp, tipTime } from "./time";
 
 export function pct(p: number, digits = 0): string {
   return `${(p * 100).toFixed(digits)}%`;
@@ -42,68 +43,6 @@ export function lineText(line: number): string {
   return Number.isInteger(line) ? line.toFixed(0) : line.toFixed(1);
 }
 
-export function tipTime(utc: string): string {
-  const d = new Date(utc);
-  return (
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: ET,
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(d) + " ET"
-  );
-}
-
-export function longDate(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const dt = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1, 12));
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "UTC",
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(dt);
-}
-
-export function stamp(utc: string): string {
-  return (
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: ET,
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(utc)) + " ET"
-  );
-}
-
 export function signed(x: number, digits = 4): string {
   return `${x >= 0 ? "+" : "-"}${Math.abs(x).toFixed(digits)}`;
-}
-
-/** "Sun, Nov 8, 6:45 PM ET": the weekday matters, because a desk file can be a day old. */
-export function deskStamp(utc: string): string {
-  return (
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: ET,
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(utc)) + " ET"
-  );
-}
-
-/** Past this many hours the banner says the data is old (architecture section 6: the banner shows its age). */
-export const STALE_AFTER_HOURS = 30;
-
-/** "This data is 2 days old." once the data is more than STALE_AFTER_HOURS old; null while it is fresh or the time is unreadable. */
-export function ageNote(dataAsOf: string, now: Date = new Date()): string | null {
-  const t = Date.parse(dataAsOf);
-  if (Number.isNaN(t)) return null;
-  const hours = (now.getTime() - t) / 3_600_000;
-  if (hours <= STALE_AFTER_HOURS) return null;
-  const days = Math.max(1, Math.floor(hours / 24));
-  return `This data is ${days.toString()} ${days === 1 ? "day" : "days"} old.`;
 }
