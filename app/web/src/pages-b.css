@@ -496,7 +496,12 @@
 /* ---------------------------------------------------------------- failure screen and error help */
 .pb-problem {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-2);
+}
+.pb-problem > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .pb-problem > p {
   margin: 0;
