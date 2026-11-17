@@ -37,7 +37,7 @@ Each lane's own report, with file:line findings, is beside this file (`lane_*.md
 | Real-export load | 4.7–5.8 s, about 1,135 MB after load | 3.6–3.7 s, about 767 MB (lane A's measurement) |
 | Largest route, warm, `/api/games/{id}` | 255 KB, 6 ms (Phase 0, on the 18:35 export) | 224 KB, 9.5 ms (lane A, on a frozen copy of the 19:05 export; different data, so not a before/after of the code) |
 | Repo lint (`ruff check`, `ruff format --check`, `mypy` on nba/ research/ tests/) | 81 errors / 3 files / 38 errors | 0 / 0 / 0 on the merged branch (run by the main session at 00:11 CST) |
-| Repo fast suite (`make test-fast`) | did not exist | lane E1: 5,861 passed, 13 skipped, 284 deselected, 20:59 min; on the merged branch: FAST_SUITE_PENDING |
+| Repo fast suite (`make test-fast`) | did not exist | lane E1: 5,861 passed, 13 skipped, 284 deselected, 20:59 min; on the merged integration branch (main session, 00:11–00:33 CST): 5,905 passed, 13 skipped, 284 deselected, 1 expected failure, exit 0, 21:45 min |
 | Repo full suite (`make test`) | 2 failed, then crashed at the coverage combine (42:49) | lane E1: 6,133 passed, 15 skipped, 53:10; rung-4 file 10 passed; coverage 72% (floor 70). The three steps were each seen passing, not in one uninterrupted run after the last fix |
 | Fee differential test | none | 552,150 cases, 0 mismatches at the bit level |
 | Replay oracle, baseline (694ae69b) | | IDENTICAL `89889f6d`, 46,658 predictions, 44,562 scores, 20/20 dates |
@@ -135,3 +135,10 @@ Learn), 5 (not-found screen), 8 (intro replaces the welcome modal), 15 (forward 
 - Whether the export job is meant to stop after first tips (no export after 19:35 CST on 11-16).
 - The markets-side changes are outside what the replay oracle hashes; their evidence is tests only.
 - One walker rule misfires when a desk file is served (see `WORKLOG.md`); the default walk is clean.
+
+## 10. Status of this report
+
+The first run (SUPER PROMPT v3) is finished as of 00:35 CST on 2026-11-17: every lane is merged into the integration branch
+and the gates above were run on the merged tree. The follow-up run (Jarvis look and betting tools behind one switch) is in
+progress on `agent/app-jarvis-followup`; its report will be `REPORT_JARVIS.md`. The completion line that the terminal resume
+loop waits for is written only when that follow-up is finished too.

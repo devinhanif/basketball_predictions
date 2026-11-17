@@ -56,6 +56,8 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
+- **First run finished** (00:38 CST): `make test-fast` on the merged integration branch: 5,905 passed, 13 skipped, 284 deselected, 1 xfailed, exit 0, 21:45 min. `REPORT.md` is complete except for the completion line (held back on purpose, see the follow-up section).
+- Follow-up: J1 (switch) merged into `agent/app-jarvis-followup` as 50d6e9b6 (conflict: seam types moved to `betting/seam.ts`). On that branch: `app/scripts/check.sh` OFF and `--betting` ON both ALL CHECKS PASSED (API 582/581+1 skipped, web 495, flag parity pass); layering 15 passed after allowing test files to import the test runner. J4a `agent/app-jarvis-betting-api` (`~/Downloads/nba-wt-1117-jv-betapi`) and J4b `agent/app-jarvis-betting-screens` (`~/Downloads/nba-wt-1117-jv-screens`) launched about 00:40 CST. J2a (visual) still running.
 - Lane E1 (CI health) merged as 8a6394af at 00:10 CST on 11-17. On the merged branch I ran `ruff check`, `ruff format --check` and `mypy` on nba/ research/ tests/: all exit 0. `make test-fast` started on the merged branch at 00:11 CST as a background job (log: scratchpad `int_fast.log`); result goes into `REPORT.md` section 2.
 - Phase 6 note merged (docs only): TDA regime flag PARK, spectral parlay graph DROP (its draft rule fails its own gate: 0 multi-leg parlay records).
 - Follow-up: J3 (betting pure logic) merged into `agent/app-jarvis-followup` as 8b062459; web check there 485 tests, bundle bytes unchanged.
