@@ -30,6 +30,7 @@ const ALL_WORKSPACE: NavDef[] = [
   { name: "hedge", label: "Hedge Finder", icon: "hedge" },
   { name: "history", label: "Model History", icon: "history" },
   { name: "record", label: "Track record", icon: "record" },
+  { name: "scorecard", label: "Scorecard", icon: "same" },
   { name: "alerts", label: "Alerts", icon: "alerts" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
   { name: "picks", label: "My picks", icon: "picks" },

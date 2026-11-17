@@ -185,3 +185,10 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* Wide tables scroll inside their own frame on a phone rather than breaking names letter by letter. */
+.ktable.sc-table {
+  min-width: 760px;
+}
+.sc-table .wrap-any {
+  overflow-wrap: break-word;
+}

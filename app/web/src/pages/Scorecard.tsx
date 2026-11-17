@@ -1,0 +1,230 @@
+// The honest scorecard (#/scorecard; scorecard_v1): the production model against its declared baseline on stored scores,
+// each mean with its n rows, n dates and date-clustered interval; frozen-test rows and locked dates as counts only; the
+// rule the scores follow, verbatim; and what cannot be shown yet. Every number is a field of the answer.
+import { View } from "../components";
+import { count, decimal, MISSING } from "../format";
+import { hasPriceWords, honestyApi, type Maybe, type Metric, type ScoreTarget, type Scorecard } from "../honesty";
+import { LensSwitch } from "../Lens";
+import { useLens } from "../prefs";
+import { topHref } from "../router";
+import { termHref } from "../terms";
+import { stamp } from "../time";
+import { CompareBadge, SoWhat, Table, type Column } from "../ui";
+import { useLoad } from "../useLoad";
+
+const TARGET_LABEL: Record<string, string> = { pts: "Points", reb: "Rebounds", ast: "Assists", fg3m: "Threes", win_prob_home: "Game winner" };
+const targetLabel = (t: string): string => TARGET_LABEL[t] ?? t;
+
+export interface ScoreRow {
+  key: string;
+  target: string;
+  label: string;
+  role: string;
+  shown: boolean;
+  metric: string | null;
+  m: Metric | null;
+  n: number;
+  nDates: number;
+  nLocked: number;
+  datesLocked: number;
+  withheld: string | null;
+  comparison: boolean;
+}
+
+/** One table row per stored model row and per stored comparison, metric by metric; counts-only rows keep their counts. */
+export function scoreRows(targets: readonly ScoreTarget[]): ScoreRow[] {
+  const out: ScoreRow[] = [];
+  for (const t of targets) {
+    for (const m of t.models) {
+      const metrics = Object.entries(m.metrics);
+      const base = { target: t.target, role: m.role, shown: m.shown, n: m.n_scored, nDates: m.n_dates, nLocked: m.n_scored_locked, datesLocked: m.n_dates_locked, withheld: m.withheld_reason, comparison: false };
+      if (metrics.length === 0) out.push({ ...base, key: `${t.target}:${m.model_name}`, label: m.model_name, metric: null, m: null });
+      for (const [name, v] of metrics) out.push({ ...base, key: `${t.target}:${m.model_name}:${name}`, label: m.model_name, metric: name, m: v });
+    }
+    for (const c of t.comparisons) {
+      const metrics = Object.entries(c.metrics);
+      const base = { target: t.target, role: "difference", shown: c.shown, n: c.n_pairs, nDates: c.n_dates, nLocked: c.n_pairs_locked, datesLocked: c.n_dates_locked, withheld: c.withheld_reason, comparison: true };
+      const label = `${c.arm} minus ${c.comparator}`;
+      if (metrics.length === 0) out.push({ ...base, key: `${t.target}:${label}`, label, metric: null, m: null });
+      for (const [name, v] of metrics) out.push({ ...base, key: `${t.target}:${label}:${name}`, label, metric: name, m: v });
+    }
+  }
+  return out;
+}
+
+const CALL_WORDS: Record<string, string> = {
+  too_few_dates: "no call: ten or fewer dates never decide",
+  no_interval: "no call: no interval",
+};
+
+function Call({ r }: { r: ScoreRow }) {
+  const c = r.m?.call ?? null;
+  if (!r.comparison || !r.shown) return <span class="muted">{MISSING}</span>;
+  if (c === "better" || c === "worse" || c === "same") return <CompareBadge which={c} what="than the baseline" />;
+  return <span>{c === null ? MISSING : (CALL_WORDS[c] ?? c)}</span>;
+}
+
+function Mean({ r }: { r: ScoreRow }) {
+  if (!r.shown || r.m === null) {
+    return (
+      <span class="hidden-row">
+        Hidden until its look.
+      </span>
+    );
+  }
+  const v = r.m;
+  return (
+    <span class="num">
+      {decimal(v.value, 3)}{" "}
+      <span class="small muted">
+        [{decimal(v.lo, 3)}, {decimal(v.hi, 3)}]
+      </span>
+    </span>
+  );
+}
+
+const MEASURE: Column<ScoreRow> = { key: "target", head: "Measure", cell: (r) => `${targetLabel(r.target)}${r.metric ? `, ${r.metric.toUpperCase()}` : ""}`, sort: (r) => r.target };
+const ROW: Column<ScoreRow> = {
+  key: "row",
+  head: "Row",
+  cell: (r) => (
+    <span class="wrap-any">
+      <span class="mono">{r.label}</span> <span class="small muted">({r.role.replace(/_/g, " ")})</span>
+    </span>
+  ),
+  sort: (r) => r.label,
+};
+const LOCKED: Column<ScoreRow> = {
+  key: "locked",
+  head: "Locked dates (hidden until the look)",
+  cell: (r) => (r.nLocked > 0 ? `${count(r.nLocked)} rows, ${count(r.datesLocked)} dates` : MISSING),
+  sort: (r) => r.nLocked,
+  num: true,
+};
+
+const SHOWN_COLS: readonly Column<ScoreRow>[] = [
+  MEASURE,
+  ROW,
+  { key: "mean", head: "Mean [95% interval]", cell: (r) => <Mean r={r} />, sort: (r) => r.m?.value ?? null },
+  { key: "n", head: "n rows", cell: (r) => count(r.m?.n ?? r.n), sort: (r) => r.n, num: true, first: "descending" },
+  { key: "d", head: "n dates", cell: (r) => count(r.m?.n_dates ?? r.nDates), sort: (r) => r.nDates, num: true, first: "descending" },
+  { key: "call", head: "Better, worse or same", cell: (r) => <Call r={r} /> },
+  LOCKED,
+];
+
+const HIDDEN_COLS: readonly Column<ScoreRow>[] = [
+  MEASURE,
+  ROW,
+  { key: "n", head: "n rows", cell: (r) => count(r.n), sort: (r) => r.n, num: true, first: "descending" },
+  { key: "d", head: "n dates", cell: (r) => count(r.nDates), sort: (r) => r.nDates, num: true, first: "descending" },
+  LOCKED,
+  { key: "why", head: "Hidden until its look, because", cell: (r) => <span class="small">{r.withheld ?? MISSING}</span> },
+];
+
+function Body({ s, market }: { s: Scorecard; market: boolean }) {
+  const say = (t: string | null | undefined): string | null => (t && (market || !hasPriceWords(t)) ? t : null);
+  if (!s.available) {
+    return (
+      <section class="panel empty">
+        <h2>No scores to show</h2>
+        <p>{s.reason ?? "This data carries no settled scores."}</p>
+        <p class="small muted">That is a state of the data, not a fault: the scorecard fills in once a nightly export with settled games is served.</p>
+      </section>
+    );
+  }
+  const rows = scoreRows(s.targets);
+  const hiddenNotes = s.not_available.filter((x) => !say(`${x.metric} ${x.needs} ${x.why}`)).length;
+  const hiddenSentences = s.targets.filter((t) => !say(t.sentence)).length;
+  const rule = s.score_rule;
+  return (
+    <>
+      <section class="panel verdict" aria-labelledby="sc-say">
+        <h2 id="sc-say">Where the baseline or the market wins</h2>
+        <ul class="plain">
+          {s.targets.map((t) => {
+            const line = say(t.sentence);
+            return line ? <li key={t.target}>{line}</li> : null;
+          })}
+        </ul>
+        {hiddenSentences > 0 ? <p class="small muted">Further lines speak of the market side; they show in the Market lens.</p> : null}
+        <p class="small">{say(s.market.reason) ? `The market column: ${s.market.reason ?? ""}.` : "There is no market column: nothing from the market side is stored beside the scored rows."}</p>
+      </section>
+      <section class="panel" aria-labelledby="sc-rule">
+        <h2 id="sc-rule">Which rows these scores follow</h2>
+        <p>
+          Rule: <span class="mono">{rule.rule}</span>. {rule.t60_filter ?? ""}
+        </p>
+        {rule.limitation ? <p class="small">{rule.limitation}</p> : null}
+        {s.lock_text ? <p class="small">{s.lock_text}</p> : null}
+        <p class="small num">
+          Over all measures: {count(rule.n_rows_read)} stored rows read, {count(rule.n_late_excluded)} made too late and left out, {count(rule.n_t60_unknown)} kept whose
+          tip-off this data does not hold. Seasons {s.seasons.join(", ") || MISSING}; scores as of {s.as_of ? stamp(s.as_of) : MISSING}.
+        </p>
+        <details class="explain">
+          <summary>How the means and intervals are made</summary>
+          <div class="explain-body">
+            <p class="small">{s.method}</p>
+            <p class="small">{s.population}</p>
+            <p class="small">
+              <a href={termHref("crps")}>CRPS</a> · <a href={termHref("n-interval")}>n and clustered interval</a> · <a href={termHref("prereg")}>Frozen rule</a>
+            </p>
+          </div>
+        </details>
+      </section>
+      <section class="panel" aria-label="Scores">
+        <Table caption="Stored scores, lower is better" rows={rows.filter((r) => r.shown)} columns={SHOWN_COLS} rowKey={(r) => r.key} noun="rows" class="sc-table" />
+      </section>
+      <section class="panel" aria-label="Counts only">
+        <Table
+          caption={<>Counts only: rows under a frozen test, hidden until its look (<a href={topHref("tests")}>forward tests</a>)</>}
+          rows={rows.filter((r) => !r.shown)}
+          columns={HIDDEN_COLS}
+          rowKey={(r) => r.key}
+          noun="rows"
+          class="sc-table"
+        />
+      </section>
+      <section class="panel" aria-labelledby="sc-na">
+        <h2 id="sc-na">What we cannot show yet, and why</h2>
+        <ul class="plain">
+          {s.not_available.map((x) => {
+            const ok = say(`${x.metric} ${x.needs} ${x.why}`);
+            return ok ? (
+              <li key={x.metric}>
+                <strong>{x.metric}</strong>: needs {x.needs}. {x.why}.
+              </li>
+            ) : null;
+          })}
+        </ul>
+        {hiddenNotes > 0 ? <p class="small muted">Further items are about the market side; they are listed in the Market lens.</p> : null}
+      </section>
+    </>
+  );
+}
+
+export function ScorecardPage() {
+  const market = useLens() === "market";
+  const [state, reload] = useLoad(() => honestyApi.scorecard(), []);
+  return (
+    <div class="stack">
+      <header class="page-head">
+        <div class="kicker">Track record</div>
+        <h1>Scorecard: the model against its baseline</h1>
+      </header>
+      <SoWhat>Lower scores are better. A row we may not show yet keeps its counts and says when it opens; nothing is filled in.</SoWhat>
+      <LensSwitch compact />
+      <View state={state} reload={reload} what="the scorecard">
+        {(m: Maybe<Scorecard>) =>
+          m.kind === "absent" ? (
+            <section class="panel empty">
+              <h2>Not in this copy of the data</h2>
+              <p>{m.why}</p>
+            </section>
+          ) : (
+            <Body s={m.data} market={market} />
+          )
+        }
+      </View>
+    </div>
+  );
+}

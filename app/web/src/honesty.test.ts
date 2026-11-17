@@ -96,3 +96,27 @@ describe("distribution lookups (no arithmetic on probabilities)", async () => {
     expect(survivalAt(c, 0)).toBeNull();
   });
 });
+
+describe("scorecard rows", async () => {
+  const { scoreRows } = await import("./pages/Scorecard");
+  it("keeps shown means and counts-only rows apart, copying fields only", () => {
+    const rows = scoreRows([
+      {
+        target: "pts",
+        sentence: "s",
+        models: [
+          { model_name: "prod", role: "production", shown: true, withheld_reason: null, n_scored: 10, n_dates: 3, n_dnp: 1, n_scored_locked: 5, n_dates_locked: 2, metrics: { crps: { value: 3.1, lo: 3, hi: 3.2, n: 10, n_dates: 3, call: null } } },
+          { model_name: "arm", role: "frozen_arm", shown: false, withheld_reason: "frozen", n_scored: 7, n_dates: 3, n_dnp: 0, n_scored_locked: 4, n_dates_locked: 2, metrics: {} },
+        ],
+        comparisons: [{ arm: "prod", comparator: "base", shown: true, withheld_reason: null, n_pairs: 9, n_dates: 3, n_pairs_locked: 1, n_dates_locked: 1, metrics: { crps: { value: -0.2, lo: -0.3, hi: -0.1, n: 9, n_dates: 3, call: "too_few_dates" } } }],
+      },
+    ]);
+    expect(rows.map((r) => [r.label, r.shown, r.metric, r.n])).toEqual([
+      ["prod", true, "crps", 10],
+      ["arm", false, null, 7],
+      ["prod minus base", true, "crps", 9],
+    ]);
+    expect(rows[1]?.withheld).toBe("frozen");
+    expect(rows[2]?.m?.call).toBe("too_few_dates");
+  });
+});
