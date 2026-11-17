@@ -4,12 +4,11 @@ The Jarvis Integration Kit (React 19 + TypeScript + Vite reference UI, its tests
 donor code; parlayhitters (`app/`) is the destination and the source of truth. The kit arrived as a flat folder,
 `/Users/devin/Downloads/jarvis-followup/`, with path separators encoded as `__` (so `kit__ui__src__Compare.tsx` is the
 kit's `ui/src/Compare.tsx`). All 54 `kit__*` files are listed below, grouped by area. Each destination path was checked
-to exist on branch `agent/app-jarvis-verify` (worktree head `850a3cb7` plus this lane's commits) on 2026-11-17.
+to exist on branch `agent/app-jarvis-verify` (the follow-up branch `f9874a78` merged in, with the Ideas lane J4c and the polish lane J6) on 2026-11-17.
 
-Sources for the mapping: the lane reports in `docs/handoff_2026-11-17/` (`lane_jarvis_flag.md`, `lane_jarvis_logic.md`,
+Sources for the mapping: the lane reports in `docs/handoff_2026-11-17/` (`lane_jarvis_flag.md`, `lane_jarvis_ideas.md`, `lane_jarvis_polish.md`, `lane_jarvis_logic.md`,
 `lane_jarvis_look.md`, `lane_jarvis_betapi.md`, `lane_jarvis_screens.md`, `lane_jarvis_pages_a.md`,
-`lane_jarvis_pages_b.md`) and the code itself. Rows marked **pending the Ideas lane** depend on work (Ideas, the minimal
-Analysis view) that had not merged into this worktree when the map was written.
+`lane_jarvis_pages_b.md`) and the code itself. `lane_jarvis_ideas.md` and `lane_jarvis_polish.md` were added after those lanes merged; no row is pending now.
 
 Not-ported reasons used below: **React-only shell** (a standalone React root, build or config the app already has in
 Preact), **fixture data** (sample players, prices, P&L or metrics that must never look live), **photos** (the kit's
@@ -65,15 +64,15 @@ accounts exist), **superseded** (an existing app feature already does it), **def
 | `kit__ui__src__compare.css` | `ui/src/compare.css` | `app/web/src/betting/betting.css`, scoped under `.ph-bet`, injected only by the module (`?inline`), so the OFF CSS is unchanged. |
 | `kit__ui__src__SlipCart.tsx` | `ui/src/SlipCart.tsx` | `app/web/src/betting/Slip.tsx` (`SlipPage` at `#/bet/slip`, `SlipPanel` in the shell: desktop panel, phone sheet), with `app/web/src/betting/parts.tsx` (money note, outcome table, coverage block) and `app/web/src/betting/useBet.tsx`. |
 | `kit__ui__src__slip-cart.css` | `ui/src/slip-cart.css` | `app/web/src/betting/betting.css` (scoped). |
-| `kit__ui__src__workspace-slip.css` | `ui/src/workspace-slip.css` | `app/web/src/betting/betting.css` (slip panel and sheet, scoped). The generic rail and sheet are `app/web/src/ui/SidePanel.tsx`; moving the slip onto it is an open request (lane J4b request 2). |
-| `kit__ui__src__Ideas.tsx` | `ui/src/Ideas.tsx` | **Pending the Ideas lane.** The pure logic exists (`saveIdea`, `loadIdea`, `removeIdea`, `recordOutcomes`, `describeOverlaps` in `app/web/src/betting/slipModel.ts`) and the slip edits title, thesis and tags; no Ideas screen is registered in `app/web/src/betting/index.ts` in this worktree. |
-| `kit__ui__src__ideas.css` | `ui/src/ideas.css` | **Pending the Ideas lane.** |
+| `kit__ui__src__workspace-slip.css` | `ui/src/workspace-slip.css` | The slip now sits in the shared side panel, `app/web/src/ui/SidePanel.tsx` (rail from 1280 px, the shell's sheet below), filled by `SlipPanel` in `app/web/src/betting/Slip.tsx` with the layout rules in `app/web/src/betting/panel.ts`; slip-specific styles in `app/web/src/betting/betting.css` (scoped). (lane J4c A1) |
+| `kit__ui__src__Ideas.tsx` | `ui/src/Ideas.tsx` | `app/web/src/betting/Ideas.tsx` (`#/bet/ideas` list and `#/bet/ideas/<id>` idea page: thesis, tags, frozen legs, shared exposure, outcomes, paper net, load a copy, delete, export and merge-import) with its logic in `app/web/src/betting/ideaModel.ts` (plus `saveIdea`, `loadIdea`, `recordOutcomes` in `app/web/src/betting/slipModel.ts`). "Save as an idea" is on the slip page. (lane J4c B) |
+| `kit__ui__src__ideas.css` | `ui/src/ideas.css` | `app/web/src/betting/betting.css` (the `.ph-bet-idea` rules, scoped under `.ph-bet`). |
 
 ## Desk and analysis screens
 
 | Kit file | Kit path | Destination in parlayhitters |
 |---|---|---|
-| `kit__ui__src__Analysis.tsx` | `ui/src/Analysis.tsx` | Superseded: Signals by `app/web/src/pages/Signals.tsx` (correction links from `app/web/src/desk.ts`), History by `app/web/src/pages/History.tsx` (the desk's own ledger, calibration and kill-switch state, no fixture metrics), Alerts by `app/web/src/pages/Alerts.tsx` with `app/web/src/alerts.ts`. Its legacy `Hedge` is the pure `calculateFixedScenarioHedge` above. The brief's "minimal Analysis view on real export fields" is **pending the Ideas lane**. Fixture metrics not ported. |
+| `kit__ui__src__Analysis.tsx` | `ui/src/Analysis.tsx` | Superseded: Signals by `app/web/src/pages/Signals.tsx` (correction links from `app/web/src/desk.ts`), History by `app/web/src/pages/History.tsx` (the desk's own ledger, calibration and kill-switch state, no fixture metrics), Alerts by `app/web/src/pages/Alerts.tsx` with `app/web/src/alerts.ts`. Its legacy `Hedge` is the pure `calculateFixedScenarioHedge` above. The brief's minimal Analysis view on real export fields is `app/web/src/betting/Analysis.tsx` (`#/bet/analysis`: the player page's own model panels, links to the stored record, the stored board as counts, the prop in the slip and ideas; lane J4c C). Fixture metrics not ported. |
 | `kit__ui__src__analysis.css` | `ui/src/analysis.css` | Not ported: superseded by `app/web/src/desk.css` (already in the donor's style per lane J2b-B) and `app/web/src/pages-b.css`. |
 | `kit__ui__src__Admin.tsx` | `ui/src/Admin.tsx` | Superseded by `app/web/src/pages/Admin.tsx` (player photos, activity, people, data tabs; photos via `app/web/src/photos.ts`). Not ported: account roles and the `Jarvis` password (demo auth), photo upload into kit PNG storage (photos). |
 | `kit__ui__src__admin.css` | `ui/src/admin.css` | Not ported: superseded by `app/web/src/desk.css`. |
@@ -100,7 +99,7 @@ accounts exist), **superseded** (an existing app feature already does it), **def
 | `kit__ui__tests__slip-model.test.mjs` | `ui/tests/slip-model.test.mjs` | `app/web/src/betting/slipModel.test.ts`, block "donor slip-model cases" (ported and adapted: entry picks priced null, coverage suppressed on unverified settlement, no 24-quote rule). |
 | `kit__ui__tests__integration__controller.test.ts` | `ui/tests/integration/controller.test.ts` | `app/web/src/betting/repository.test.ts`, block "donor controller cases on the session" (a conflict is a typed result, not a thrown error). |
 | `kit__ui__tests__integration__feed.test.ts` | `ui/tests/integration/feed.test.ts` | `app/web/src/betting/catalog.test.ts`, block "donor feed cases, adapted" (the model-reader case dropped: no model reader). |
-| `kit__ui__tests__slip-ui.test.tsx` | `ui/tests/slip-ui.test.tsx` | Partly. The flow (Jalen sample, add Bobby, mark placed, Hedge Finder) is `app/web/src/betting/screens.test.ts` ("slip to Hedge Finder: the donor's NBA flow") over the store, not a DOM render (no DOM test library is a dependency); the browser version is `app/web/scripts/bet-journey.mjs`. Ideas cases **pending the Ideas lane**. |
+| `kit__ui__tests__slip-ui.test.tsx` | `ui/tests/slip-ui.test.tsx` | Partly. The flow (Jalen sample, add Bobby, mark placed, Hedge Finder) is `app/web/src/betting/screens.test.ts` ("slip to Hedge Finder: the donor's NBA flow") over the store, not a DOM render (no DOM test library is a dependency); the browser version is `app/web/scripts/bet-journey.mjs`. Its Ideas cases are in `app/web/src/betting/ideaModel.test.ts` (idea snapshots, outcomes and saved-price net, file export/import), and the browser journey covers saving, outcomes, loading a copy, export and import. |
 | `kit__ui__tests__integration__connected-workspace.test.tsx` | `ui/tests/integration/connected-workspace.test.tsx` | Not ported as a component test. Its behaviours (failed save kept and retried, invalid import changes nothing, no sample on error) are in `app/web/src/betting/store.test.ts` and `app/web/src/betting/repository.test.ts`. |
 | `kit__ui__tests__ui.test.tsx` | `ui/tests/ui.test.tsx` | Not ported: it tests the reference's onboarding, Admin, photos and alerts. The app's own suites cover its versions (for example `app/web/src/modes.test.ts`, `app/web/src/desk.test.ts`). |
 | `kit__ui__tests__standalone.integration.mjs` | `ui/tests/standalone.integration.mjs` | Not ported: superseded by the app's single-file build checks (`app/web/scripts/build-artifact.mjs` forbidden-text scan, `app/web/src/artifact.test.ts`) and the storage-blocked fallback test in `app/web/src/modes.test.ts`. A scripts-disabled preview check does not exist (see the acceptance checklist). |

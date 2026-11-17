@@ -143,12 +143,13 @@ app/scripts/betting-off.sh                   # the same servers with the switch 
 API_PORT=8140 WEB_PORT=5280 app/scripts/betting-on.sh    # other ports
 ```
 
-The screens are in the **Market lens** (`#/bet` hub, `#/bet/slip`, `#/bet/compare`, `#/bet/hedge`); in Learn and Explore
+The screens are in the **Market lens** (`#/bet` hub, `#/bet/slip`, `#/bet/compare`, `#/bet/hedge`, `#/bet/ideas`,
+`#/bet/analysis`); in Learn and Explore
 every `#/bet...` address shows the "is a Market screen" note.
 
 **Where it lives.** Web: `web/src/betting/` (entry `index.ts` with `ROUTES` and `NAV`; seam types `seam.ts`; pure logic
 `slipModel.ts`, `hedgeMath.ts`, `catalog.ts`, `repository.ts`; screens `Home.tsx`, `Slip.tsx`, `Compare.tsx`,
-`Hedge.tsx`; the app reaches it only through `BETTING`-guarded code and `web/src/BetSlots.tsx`). API:
+`Hedge.tsx`, `Ideas.tsx`, `Analysis.tsx`; saved-idea logic `ideaModel.ts`; the app reaches it only through `BETTING`-guarded code and `web/src/BetSlots.tsx`). API:
 `api/src/parlayhitters_api/betting/` (GET routes registered by `register(app)` in `routes.py`).
 
 **Money-safety rules** (flag on or off):
@@ -177,7 +178,7 @@ Compare offers typed prices.
 app/scripts/check.sh --betting               # lint, types, every test, builds and flag parity with the switch ON
 cd app/web && node scripts/flag-parity.mjs   # alone: OFF builds carry no betting marker, ON builds carry all
 API_PORT=8140 WEB_PORT=5280 app/scripts/betting-on.sh       # then, in a second terminal:
-cd app/web && node scripts/bet-journey.mjs http://127.0.0.1:5280/ /tmp/ph-journey   # add -> slip -> compare -> placed -> hedge -> reload
+cd app/web && node scripts/bet-journey.mjs http://127.0.0.1:5280/ /tmp/ph-journey   # add, compare, placed, hedge, reload, ideas, export/import, analysis
 app/scripts/visual.sh --betting              # visual checks with the switch ON (also: app/scripts/visual.sh for OFF)
 ```
 
