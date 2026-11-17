@@ -92,12 +92,18 @@ export interface Codec<T> {
 }
 
 export const SLIP_SCHEMA = "ph.betting.workspace";
-export const SLIP_VERSION = 1;
+export const SLIP_VERSION = 2;
 
 export const SLIP_CODEC: Codec<SlipWorkspace> = {
   schema: SLIP_SCHEMA,
   version: SLIP_VERSION,
-  migrations: {},
+  migrations: {
+    // 1 -> 2: each saved idea gains its own (empty) outcome history; nothing else changes.
+    1: (doc) => {
+      if (!isObject(doc) || !Array.isArray(doc["ideas"])) return doc;
+      return { ...doc, ideas: (doc["ideas"] as unknown[]).map((i) => (isObject(i) && i["history"] === undefined ? { ...i, history: [] } : i)) };
+    },
+  },
   validate(raw) {
     const r = validateSlipWorkspace(raw);
     return r.ok ? { ok: true, document: r.workspace } : { ok: false, text: r.text };

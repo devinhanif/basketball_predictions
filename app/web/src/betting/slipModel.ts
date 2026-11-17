@@ -6,7 +6,7 @@ import { checkMarket, checkQuote, DEFAULT_MAX_QUOTE_AGE_MS, freshness, isFiniteI
 import { enumerateOutcomes, grossPayoutOf, MAX_ENUMERATED_MARKETS, round6, sizeHedge, validNativeAmount, type OutcomeMap } from "./hedgeMath";
 import { instantMs } from "../time";
 import { deepFreeze, frozenCopy, jsonCopy, localId } from "./ids";
-import type { EntryTerms, IdeaStatus, Market, ProviderId, Quote, Result, SavedIdea, Side, SlipDraft, SlipLeg, SlipPick, SlipWorkspace } from "./types";
+import type { EntryTerms, IdeaStatus, Market, OutcomeAction, OutcomeEntry, ProviderId, Quote, Result, SavedIdea, Side, SlipDraft, SlipLeg, SlipPick, SlipWorkspace } from "./types";
 
 export const MAX_LEGS = 64;
 export const MAX_IDEAS = 500;
@@ -462,12 +462,15 @@ export function ideaMarketIds(idea: Pick<SlipDraft, "legs">): string[] {
   return uniqueMarkets(activeLegs(idea)).map((m) => m.id);
 }
 
+export const MAX_HISTORY = 200;
+
 /**
  * Records the viewer's own outcome for an idea (a paper result, never a provider settlement): for each active market the
  * side that happened, or "void" in `voids`. "settled" needs every active market recorded one way or the other; "paper" or
- * "watching" keeps it open (and may hold some or none).
+ * "watching" keeps it open (and may hold some or none). With `now`, a change appends one line to the idea's own history
+ * (recorded, corrected or reopened); an identical save appends none.
  */
-export function recordOutcomes(ws: SlipWorkspace, ideaId: string, outcomes: Readonly<Record<string, Side>>, status: IdeaStatus, voids: readonly string[] = []): IdeaEdit {
+export function recordOutcomes(ws: SlipWorkspace, ideaId: string, outcomes: Readonly<Record<string, Side>>, status: IdeaStatus, voids: readonly string[] = [], now?: string): IdeaEdit {
   const idea = ws.ideas.find((i) => i.id === ideaId);
   if (!idea) return { ok: false, code: "not_found", text: "That idea is not saved here." };
   const ids = ideaMarketIds(idea);
@@ -482,8 +485,15 @@ export function recordOutcomes(ws: SlipWorkspace, ideaId: string, outcomes: Read
   }
   if (status === "settled" && Object.keys(clean).length + voided.length !== ids.length) return { ok: false, code: "outcomes_incomplete", text: "Record an outcome (or void) for every market in the idea before settling it." };
   if (status === "settled" && !evaluateDraft(idea, { now: instantMs(idea.createdAt) }).complete) return { ok: false, code: "outcomes_incomplete", text: "This saved idea is incomplete (an unknown fee or an unfinished entry), so it cannot be settled. Load a copy into the slip, finish it and save it again." };
-  const rest = Object.fromEntries(Object.entries(idea).filter(([k]) => k !== "voids")) as unknown as SavedIdea;
-  const next: SavedIdea = frozenCopy({ ...rest, status, outcomes: clean, ...(voided.length ? { voids: voided } : {}) });
+  const rest = Object.fromEntries(Object.entries(idea).filter(([k]) => k !== "voids" && k !== "history")) as unknown as SavedIdea;
+  // One history line per change (an identical save adds none). Reopening is a status change away from settled.
+  const before = JSON.stringify([idea.status, idea.outcomes, idea.voids ?? []]);
+  const after = JSON.stringify([status, clean, voided]);
+  const hadMarks = Object.keys(idea.outcomes).length > 0 || (idea.voids ?? []).length > 0;
+  const prior = idea.history ?? [];
+  const action: OutcomeAction = idea.status === "settled" && status !== "settled" ? "reopened" : hadMarks ? "corrected" : "recorded";
+  const history: readonly OutcomeEntry[] = now !== undefined && before !== after ? [...prior, { at: now, action, status, outcomes: { ...clean }, voids: [...voided] }].slice(-MAX_HISTORY) : prior;
+  const next: SavedIdea = frozenCopy({ ...rest, status, outcomes: clean, ...(voided.length ? { voids: voided } : {}), ...(history.length ? { history } : {}) });
   return { ok: true, workspace: { ...ws, ideas: ws.ideas.map((i) => (i.id === ideaId ? next : i)) } };
 }
 
@@ -572,7 +582,29 @@ function checkIdea(v: unknown, path: string): Check<SavedIdea> {
     if (!evaluateDraft(d.value, { now: instantMs(o["createdAt"]) }).complete) return bad("a settled idea must be complete", "");
     if (!ids.every((id) => isSide(outcomes[id]) || voids.includes(id))) return bad("a settled idea needs an outcome for every active market", ".outcomes");
   }
-  return { ok: true, value: { ...d.value, id: o["id"], createdAt: o["createdAt"], status, outcomes: { ...(outcomes as Record<string, Side>) }, ...(voids.length ? { voids } : {}) } };
+  const rawHistory = o["history"] ?? [];
+  if (!Array.isArray(rawHistory) || rawHistory.length > MAX_HISTORY) return bad(`history must be a list of at most ${MAX_HISTORY}`, ".history");
+  const history: OutcomeEntry[] = [];
+  for (const [i, h] of (rawHistory as unknown[]).entries()) {
+    const e = checkHistoryEntry(h, allIds);
+    if (e === null) return bad("not a valid history entry", `.history[${i}]`);
+    history.push(e);
+  }
+  return { ok: true, value: { ...d.value, id: o["id"], createdAt: o["createdAt"], status, outcomes: { ...(outcomes as Record<string, Side>) }, ...(voids.length ? { voids } : {}), ...(history.length ? { history } : {}) } };
+}
+
+function checkHistoryEntry(h: unknown, markets: ReadonlySet<string>): OutcomeEntry | null {
+  if (!isObject(h) || !isInstant(h["at"])) return null;
+  const action = h["action"];
+  if (action !== "recorded" && action !== "corrected" && action !== "reopened") return null;
+  const status = h["status"];
+  if (status !== "watching" && status !== "paper" && status !== "settled") return null;
+  const outcomes = h["outcomes"];
+  const voids = h["voids"];
+  if (!isObject(outcomes) || !Array.isArray(voids)) return null;
+  for (const [k, s] of Object.entries(outcomes)) if (!markets.has(k) || !isSide(s)) return null;
+  if (!(voids as unknown[]).every((v) => typeof v === "string" && markets.has(v) && outcomes[v] === undefined)) return null;
+  return { at: h["at"], action, status, outcomes: { ...(outcomes as Record<string, Side>) }, voids: [...(voids as string[])] };
 }
 
 export type WorkspaceCheck = Result<{ workspace: SlipWorkspace }, "invalid_data">;

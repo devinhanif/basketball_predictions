@@ -134,6 +134,22 @@ export interface SavedIdea extends SlipDraft {
    * none). A void market's refund follows each venue's own rules, which are not modelled, so an idea with one has no net.
    */
   readonly voids?: readonly string[];
+  /**
+   * The viewer's own record of each time the outcomes were recorded, corrected or reopened, oldest first. Typed by hand: it
+   * is never a venue's settlement. Absent in documents written before it existed (read as none).
+   */
+  readonly history?: readonly OutcomeEntry[];
+}
+
+export type OutcomeAction = "recorded" | "corrected" | "reopened";
+
+/** One line of an idea's paper-outcome history: when, what the viewer did, and the outcomes then on record. */
+export interface OutcomeEntry {
+  readonly at: string;
+  readonly action: OutcomeAction;
+  readonly status: IdeaStatus;
+  readonly outcomes: Readonly<Record<string, Side>>;
+  readonly voids: readonly string[];
 }
 
 /**
