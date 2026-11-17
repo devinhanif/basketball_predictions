@@ -273,7 +273,7 @@ export function ScorecardPage() {
         actions={<PageControls lens />}
       />
       <OnThisPage />
-      <View state={state} reload={reload} what="the scorecard">
+      <View state={state} reload={reload} what="the scorecard" errorLevel={2}>
         {(m: Maybe<Scorecard>) =>
           m.kind === "absent" ? (
             <StateBlock kind="empty" title="Not in this copy of the data">

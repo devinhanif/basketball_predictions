@@ -259,7 +259,7 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
         </Explain>
       </div>
       <ShareNote />
-      <View state={list} reload={reloadList} onStale={props.onStale}>
+      <View state={list} reload={reloadList} onStale={props.onStale} errorLevel={2}>
         {(list) => {
           const all = chronological(list);
           // A snapshot can hold nights that have not been played: there is nothing to grade a pick against, so only the
@@ -296,7 +296,7 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
   const [seed, setSeed] = useState(newSeed);
   const [state, reload] = useLoad(() => api.swipe(date, seed, 60), [date, seed]);
   return (
-    <View state={state} reload={reload} onStale={onStale} what="the cards">
+    <View state={state} reload={reload} onStale={onStale} what="the cards" errorLevel={2}>
       {(deck) =>
         deck.cards.length === 0 ? (
           <div class="panel empty">

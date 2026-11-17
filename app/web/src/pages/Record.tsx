@@ -167,7 +167,7 @@ function ReplayGame({ g, locked, analyst }: { g: GameSummary; locked: boolean; a
 function Replay(props: { date: string | null }) {
   const [list, reloadList] = useLoad(() => api.slates(), []);
   return (
-    <View state={list} reload={reloadList} what="the nights we have played">
+    <View state={list} reload={reloadList} what="the nights we have played" errorLevel={2}>
       {(all: SlateListItem[]) => {
         const nights = all.filter((s) => (s.finished ?? 0) > 0).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
         if (nights.length === 0) {
@@ -212,7 +212,7 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
           ))}
         </div>
       </section>
-      <View state={slate} reload={reload}>
+      <View state={slate} reload={reload} errorLevel={2}>
         {(s) => (
           <div class="rp-grid">
             {s.games.map((g) => (
@@ -426,7 +426,7 @@ function Calibration() {
   const [state, reload] = useLoad(() => api.calibration(), []);
   const [which, setWhich] = useState<"props" | "winners">("props");
   return (
-    <View state={state} reload={reload}>
+    <View state={state} reload={reload} errorLevel={2}>
       {(c) => (
         <div class="stack">
           <section class="panel rp-pick">

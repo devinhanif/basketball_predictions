@@ -182,6 +182,8 @@ export function View<T>(props: {
   /** What is loading, for the skeleton note ("tonight's games"). */
   what?: string;
   onStale?: (stale: boolean) => void;
+  /** Heading level of a failure panel: 2 when the page already has its own h1 above this view. */
+  errorLevel?: 1 | 2;
   children: (data: T) => ComponentChildren;
 }) {
   const { state, onStale } = props;
@@ -190,7 +192,7 @@ export function View<T>(props: {
     onStale?.(stale);
   }, [stale, onStale]);
   if (state.status === "loading") return <Loading what={props.what} />;
-  if (state.status === "error") return <ErrorPanel message={state.message} failure={state.failure} retry={props.reload} />;
+  if (state.status === "error") return <ErrorPanel message={state.message} failure={state.failure} retry={props.reload} level={props.errorLevel} />;
   return <>{props.children(state.data)}</>;
 }
 
