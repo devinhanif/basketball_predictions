@@ -17,7 +17,8 @@ export function Badge(props: { tone: string; icon: IconName; word: string; title
  * link to Key terms. A label outside the four is shown verbatim in grey, never guessed into one of them.
  */
 export function EdgeBadge(props: { label: string | null | undefined; link?: boolean }) {
-  const k = edgeLabelOf(props.label);
+  // No stored label reads as "none", as the desk ledger always showed it.
+  const k = props.label === null || props.label === undefined ? "none" : edgeLabelOf(props.label);
   if (k === null) {
     const raw = (props.label ?? "").replace(/_/g, " ");
     return <Badge tone="none" icon="info" word={raw === "" ? "none" : raw} title="A label outside the four the desk defines; shown as stored." />;

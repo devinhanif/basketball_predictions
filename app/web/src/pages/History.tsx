@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { EdgeBadge } from "../ui";
 import { Avatar } from "../Avatar";
 import { DeskAge, DeskGate } from "../DeskUI";
 import {
-  barScale, calibration, cents, clusteredRate, labelText, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd,
+  barScale, calibration, cents, clusteredRate, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd,
   type DayBar, type Desk, type DeskPlay, type LedgerFilter,
 } from "../desk";
 import { longDate, pct } from "../format";
@@ -365,7 +366,7 @@ function LedgerCard({ desk }: { desk: Desk }) {
                   </td>
                   <td class="r" data-l="Entry">{cents(p.price_cents)}</td>
                   <td data-l="Signal">
-                    {labelText(p.edge_label)} {p.edge_cents !== null ? signedCents(p.edge_cents, 1) : ""}
+                    <EdgeBadge label={p.edge_label} /> {p.edge_cents !== null ? signedCents(p.edge_cents, 1) : ""}
                   </td>
                   <td class="r" data-l="Closing-line value">{signedCents(p.result?.clv_cents ?? null)}</td>
                   <td data-l="Result">{resultWord(p)}</td>
