@@ -1076,3 +1076,26 @@
 .ph-bet details[open] > summary::after {
   transform: translateY(2px) rotate(-135deg);
 }
+.ph-bet .ph-bet-hist-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: break-word;
+}
+.ph-bet .ph-bet-history {
+  margin-top: var(--sp-3, 12px);
+}
+/* Long user text (a 600-character thesis, a long unbroken tag, a long name) wraps inside its box. */
+.ph-bet .ph-bet-tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.ph-bet .ph-bet-thesis p,
+.ph-bet .ph-bet-idea-thesis {
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+.ph-bet .ph-bet-leg-what,
+.ph-bet .ph-bet-venue {
+  overflow-wrap: break-word;
+  min-width: 0;
+}

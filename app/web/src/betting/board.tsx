@@ -14,7 +14,7 @@ import { DEFAULT_MAX_QUOTE_AGE_MS, KNOWN_PROVIDERS, freshness } from "./catalog"
 import { NO_SNAPSHOTS, PROVENANCE_MEANING, PROVENANCE_WORD, SETTLEMENT_NOTE } from "./copy";
 import { PROV_TONE, PriceForm, marketWords, providerLabel } from "./parts";
 import { sampleCatalog } from "./sample";
-import { isStat, marketFromFacts, providerRegistry, storedBoard, type ApiBoard, type ApiProviders, type StoredBoard } from "./snapshots";
+import { boardMatches, isStat, marketFromFacts, providerRegistry, storedBoard, type ApiBoard, type ApiProviders, type StoredBoard } from "./snapshots";
 import { normalisedCost } from "./slipModel";
 import type { BetActions } from "./store";
 import type { Catalog, Market, ProviderInfo, Quote, Side, SlipWorkspace } from "./types";
@@ -59,7 +59,10 @@ export interface Stored {
 /** The whole stored board for one player and stat (every line and side), as the API serves it; never sample. */
 export function useRawBoard(gameId: string, playerId: string, stat: string): [Snap<ApiBoard>, () => void] {
   const [b, reload] = useLoad<Snap<ApiBoard>>(() => betting<ApiBoard>(`/api/betting/board/${encodeURIComponent(gameId)}/${encodeURIComponent(playerId)}/${encodeURIComponent(stat)}`), [gameId, playerId, stat]);
-  return [unwrap(b), reload];
+  const snap = unwrap(b);
+  // An earlier prop's answer still on screen for one render is loading, not this prop's board.
+  if (snap.kind === "ok" && gameId !== "" && !boardMatches(snap.data, { eventId: gameId, playerId, stat })) return [{ kind: "loading" }, reload];
+  return [snap, reload];
 }
 
 /** The stored board for an export market (none for typed markets; the demo's own invented board for sample markets). */
@@ -82,6 +85,8 @@ export function useStored(market: Market | null, side: Side): Stored {
   if (source === "manual" || market === null) return { providers: [...KNOWN_PROVIDERS], stored: null, board: null, state: { kind: "off" }, source, reload };
   const providers = providerRegistry(prov.kind === "ok" ? prov.data : null);
   if (board.kind !== "ok") return { providers, stored: null, board: null, state: board, source, reload };
+  // A slower, earlier answer for another prop must never read as this prop's board: until the matching answer arrives, loading.
+  if (!boardMatches(board.data, market)) return { providers, stored: null, board: null, state: { kind: "loading" }, source, reload };
   const sb = storedBoard(board.data, market, side, providers);
   return { providers, stored: sb.catalog, board: sb, state: board, source, reload };
 }

@@ -212,6 +212,14 @@ export function centsFromAmerican(q: Pick<ApiQuote, "price_american" | "implied_
  * The stored board for one market and side: the newest usable quote per provider on exactly this line. Each quote is
  * validated by the catalog (a bad one is listed, not shown). Fees are unknown: the export carries none.
  */
+/**
+ * True when a board answer is the one for this market's game, player and stat. A newer market with an older board still on
+ * screen (the render before the new request starts) is never shown as that market's prices.
+ */
+export function boardMatches(board: Pick<ApiBoard, "game_id" | "player_id" | "stat">, market: { readonly eventId: string; readonly playerId: string; readonly stat: string }): boolean {
+  return board.game_id === market.eventId && String(board.player_id) === market.playerId && board.stat === market.stat;
+}
+
 export function storedBoard(board: ApiBoard, market: Market, side: Side, providers: readonly ProviderInfo[]): StoredBoard {
   const want = overUnder(side);
   const unusable: { provider: string; reason: string }[] = [];

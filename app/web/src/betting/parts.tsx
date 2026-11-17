@@ -10,12 +10,12 @@ import { bookName, centsText, count, dollars, lineText, odds } from "../format";
 import { agoText, stamp } from "../time";
 import { STAT_LABEL } from "../types";
 import { KNOWN_PROVIDERS, freshness } from "./catalog";
-import { ARITHMETIC_NOTE, MONEY_NOTE, PROVENANCE_MEANING, PROVENANCE_WORD, REMOVE_RECORD_NOTE } from "./copy";
+import { ARITHMETIC_NOTE, MEMORY_ONLY_TEXT, MEMORY_ONLY_TITLE, MONEY_NOTE, PROVENANCE_MEANING, PROVENANCE_WORD, REMOVE_RECORD_NOTE } from "./copy";
 import { legCost, legPayout, legProblem, normalisedCost, type Coverage, type SlipEvaluation, type SlipRow } from "./slipModel";
 import type { BetActions } from "./store";
 import type { Market, ProviderInfo, Quote, Side, SlipLeg } from "./types";
 import { compareHashFor, typedQuote } from "./viewModel";
-import { say } from "./useBet";
+import { say, useBet } from "./useBet";
 
 // ------------------------------------------------------------------------------------------------ text
 
@@ -86,9 +86,23 @@ export function Provenance(props: { quote: Quote; now: number; label?: string })
 /** The money-safety note; `arithmetic` adds the typed-prices sentence. */
 export function MoneyNote(props: { arithmetic?: boolean }) {
   return (
-    <p class="ph-bet-note" role="note">
-      <strong>{MONEY_NOTE}</strong>
-      {props.arithmetic ? <> {ARITHMETIC_NOTE}</> : null}
+    <>
+      <p class="ph-bet-note" role="note">
+        <strong>{MONEY_NOTE}</strong>
+        {props.arithmetic ? <> {ARITHMETIC_NOTE}</> : null}
+      </p>
+      <MemoryOnlyNote />
+    </>
+  );
+}
+
+/** Shown on every betting screen while the slip lives in this tab's memory only (the browser blocks storage). */
+export function MemoryOnlyNote() {
+  const bet = useBet();
+  if (!bet.ready || !bet.view.memoryOnly) return null;
+  return (
+    <p class="ph-bet-save panel error" role="status">
+      <strong>{MEMORY_ONLY_TITLE}</strong> {MEMORY_ONLY_TEXT}
     </p>
   );
 }

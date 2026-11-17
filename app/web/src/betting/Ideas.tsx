@@ -403,6 +403,45 @@ function OutcomeForm(props: { bet: Ready; idea: SavedIdea; now: number }) {
   );
 }
 
+const HISTORY_WORD = { recorded: "Recorded", corrected: "Corrected", reopened: "Reopened" } as const;
+
+/** Each time the viewer recorded, corrected or reopened this idea's outcomes: typed by hand, never a venue's settlement. */
+function HistoryList(props: { idea: SavedIdea }) {
+  const { idea } = props;
+  const entries = idea.history ?? [];
+  if (!entries.length) return null;
+  const marketOf = (id: string): Market | undefined => idea.legs.find((l) => l.market.id === id)?.market;
+  const said = (e: (typeof entries)[number]): string => {
+    const parts = [
+      ...Object.entries(e.outcomes).map(([id, side]) => {
+        const m = marketOf(id);
+        return m ? `${m.playerName} ${STAT_LABEL[m.stat].toLowerCase()} ${lineText(m.line)}: ${MARK_WORD(m, side)}` : id;
+      }),
+      ...e.voids.map((id) => {
+        const m = marketOf(id);
+        return m ? `${m.playerName} ${STAT_LABEL[m.stat].toLowerCase()} ${lineText(m.line)}: void` : id;
+      }),
+    ];
+    return parts.length ? parts.join("; ") : "no outcomes on record";
+  };
+  return (
+    <section class="ph-bet-history" aria-labelledby="ph-bet-hist-h">
+      <h2 class="ph-bet-h" id="ph-bet-hist-h">
+        History of this record
+      </h2>
+      <p class="small muted">Each change you made to the outcomes, typed by hand. This is your own log, not a venue's settlement.</p>
+      <ol class="plain ph-bet-hist-list">
+        {entries.map((e) => (
+          <li key={`${e.at}-${e.action}`}>
+            <strong>{HISTORY_WORD[e.action]}</strong> <span class="small muted num">{stamp(e.at)}</span>
+            <div class="small">{said(e)}</div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function IdeaActions(props: { bet: Ready; idea: SavedIdea }) {
   const { bet, idea } = props;
   const ws = bet.view.workspace;
@@ -528,6 +567,7 @@ function IdeaPage(props: { bet: Ready; id: string }) {
         <p class="small">No two included legs share a market, a player or a game.</p>
       )}
       <OutcomeForm key={`${idea.id}-${idea.status}-${JSON.stringify(idea.outcomes)}-${(idea.voids ?? []).join(",")}`} bet={props.bet} idea={idea} now={now} />
+      <HistoryList idea={idea} />
       <h2 class="ph-bet-h">Every listed outcome at the saved prices</h2>
       <p class="small muted">{ARITHMETIC_NOTE} These are the prices saved with the idea, not today's.</p>
       {ev.rows.length ? <OutcomeTable evaluation={ev} caption="Outcomes" /> : <p class="small">No outcome table: {ev.warnings[0] ?? "a leg is incomplete."}</p>}

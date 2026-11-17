@@ -20,6 +20,7 @@ const [base, outDir] = process.argv.slice(2);
 if (!base || !outDir) throw new Error("usage: bet-journey.mjs <base url> <outdir>");
 mkdirSync(outDir, { recursive: true });
 const NOTE = "Analysis only, not advice: no orders are placed.";
+const REMOVE_NOTE = "Removing a recorded position deletes this browser's note only. It does not cancel or change anything at the venue.";
 const PAPER = "Paper net: arithmetic on the prices you saved and the outcomes you entered";
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9500 + Math.floor(Math.random() * 300);
@@ -110,7 +111,8 @@ async function until(js, what, ms = 15000) {
     if (await ev(`${H} return !!(${js});`)) return;
     await sleep(200);
   }
-  throw new Error(`timed out waiting for: ${what}`);
+  const seen = await ev(`return (document.querySelector('main')?.innerText ?? document.body.innerText).replace(/\\s+/g, ' ').slice(0, 900);`).catch(() => "");
+  throw new Error(`timed out waiting for: ${what} (page shows: ${seen})`);
 }
 
 let step = 0;
@@ -184,6 +186,21 @@ async function journey(w, theme) {
   console.log("  ok  typed prices in dialogs; focus back on each row");
   await check("compare-typed", w, theme, true);
 
+  // 3b. select / deselect: leave a planned leg out and the total moves; switch it back on and the total returns
+  await go("#/bet/slip");
+  await until(`document.querySelector('main .ph-bet-leg input[type=checkbox]')`, "the include boxes on the slip");
+  const total = `(() => { const dt = [...document.querySelectorAll('main dt')].find((e) => T(e) === 'Total cost'); return dt ? T(dt.nextElementSibling) : null; })()`;
+  const total0 = await ev(`${H} return ${total};`);
+  if (!total0 || total0 === "not complete") throw new Error(`the slip total is not a figure before deselecting: ${total0}`);
+  await ev(`document.querySelector('main .ph-bet-leg input[type=checkbox]').click(); return 0;`);
+  await until(`document.querySelector('main .ph-bet-leg.off') && ${total} !== ${JSON.stringify(total0)}`, "the total to change after leaving a leg out");
+  const total1 = await ev(`${H} return ${total};`);
+  if (!(await ev(`return document.querySelector('main .ph-bet-leg.off').innerText.includes('Left out');`))) throw new Error("a left-out leg does not say so");
+  await check("slip-deselected", w, theme, true);
+  await ev(`document.querySelector('main .ph-bet-leg.off input[type=checkbox]').click(); return 0;`);
+  await until(`!document.querySelector('main .ph-bet-leg.off') && ${total} === ${JSON.stringify(total0)}`, "the total to return after switching the leg back on");
+  console.log(`  ok  deselect moved the total ${total0} -> ${total1}; reselect restored ${total0}`);
+
   // 4. mark placed: cancel once (focus returns), then confirm (focus on the Hedge Finder link)
   await go("#/bet/slip");
   await click("main button", "Mark slip as placed", "Mark slip as placed");
@@ -215,6 +232,10 @@ async function journey(w, theme) {
   const n = await ev(`return document.querySelectorAll('main .ph-bet-leg.recorded').length;`);
   if (n !== 2) throw new Error(`expected 2 recorded legs after reload, saw ${n}`);
   await check("slip-reloaded", w, theme, true);
+  // a recorded position has no include box: it always counts
+  if (await ev(`return document.querySelectorAll('main .ph-bet-leg.recorded input[type=checkbox]').length;`)) throw new Error("a recorded position offers an include box");
+  if (!(await ev(`return [...document.querySelectorAll('main .ph-bet-leg.recorded')].every((l) => l.innerText.includes('Recorded'));`))) throw new Error("a recorded position is not labelled Recorded");
+  console.log("  ok  recorded positions cannot be switched off");
   await ideasJourney(w, theme);
 }
 
@@ -254,6 +275,9 @@ async function ideasJourney(w, theme) {
   const after = await ev(`${H} return [...document.querySelectorAll('.ph-bet-idea-legs tbody .ph-bet-b-price')].map(T).join('|');`);
   if (after !== before) throw new Error(`the idea's saved prices changed on screen: ${before} -> ${after}`);
   console.log("  ok  outcomes recorded; paper net shown with its label");
+  await until(`document.body.innerText.includes('History of this record')`, "the history of this record");
+  if (!(await ev(`return document.querySelector('.ph-bet-hist-list')?.innerText.includes('Recorded') && document.querySelector('.ph-bet-history').innerText.includes('typed by hand');`))) throw new Error("the history list does not show the recorded entry labelled typed by hand");
+  console.log("  ok  history of this record lists the entry, labelled typed by hand");
   await check("idea-settled", w, theme, true);
 
   // load a copy into the slip: cancel once (focus returns), then confirm
@@ -266,6 +290,19 @@ async function ideasJourney(w, theme) {
   await until(`location.hash === '#/bet/slip' && document.querySelector('main .ph-bet-notes input')?.value === 'Journey idea'`, "the slip with the loaded copy");
   console.log("  ok  a copy loaded into the slip (cancel returned focus)");
   await check("slip-loaded", w, theme, true);
+
+  // remove a recorded position: the wording says it is the note only, and nothing is removed until it is confirmed
+  const recCount = () => ev(`return document.querySelectorAll('main .ph-bet-leg.recorded').length;`);
+  const rec0 = await recCount();
+  if (rec0 < 1) throw new Error("the loaded copy holds no recorded position to remove");
+  await ev(`const b = document.querySelector('main .ph-bet-leg.recorded .ph-bet-x'); b.focus(); b.click(); return 0;`);
+  await until(`document.querySelector('main .ph-bet-confirm') && document.querySelector('main .ph-bet-confirm').innerText.includes(${JSON.stringify(REMOVE_NOTE)})`, "the remove-the-record wording");
+  if ((await recCount()) !== rec0) throw new Error("a recorded position was removed before it was confirmed");
+  await check("remove-record", w, theme, true);
+  await click("main .ph-bet-confirm button", "Remove the note", "Remove the note");
+  await until(`document.querySelectorAll('main .ph-bet-leg.recorded').length === ${rec0 - 1}`, "the recorded position to go");
+  console.log("  ok  removing a recorded position shows its wording first and removes the note only after confirming");
+  await longContent(w, theme);
 
   // export every idea (a real browser download)
   const dl = join(outDir, `dl_${w}_${theme}`);
@@ -314,6 +351,43 @@ async function ideasJourney(w, theme) {
   await until(`document.querySelector('.ph-bet-facts, .ph-bet-panel-card p')`, "the analysis panels");
   await sleep(800);
   await check("analysis", w, theme, true);
+}
+
+// ---- long content: a 40-character player name and a 600-character thesis with long tags, on the slip, an idea and the list
+async function longContent(w, theme) {
+  const NAME = "Maximilian Bartholomew-Featherstonehaugh";
+  const THESIS = Array.from({ length: 12 }, (_, i) => `Sentence ${i + 1} explains the thinking behind this idea in plain words.`).join(" ").slice(0, 600);
+  const TAGS = ["a-very-long-tag-with-no-spaces-at-all-so-it-cannot-wrap-naturally", "another-extremely-long-tag-written-as-one-word-1234567890"].map((t) => t.slice(0, 60));
+  const original = await ev(`const k = Object.keys(localStorage).find((x) => x.startsWith('ph.betting.workspace')); return JSON.stringify([k, localStorage.getItem(k)]);`);
+  await ev(`const k = Object.keys(localStorage).find((x) => x.startsWith('ph.betting.workspace'));
+    const env = JSON.parse(localStorage.getItem(k));
+    const walk = (o) => { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') { if ('playerName' in o) o.playerName = ${JSON.stringify(NAME)}; for (const v of Object.values(o)) walk(v); } };
+    walk(env.document);
+    for (const d of [env.document.draft, ...env.document.ideas]) { d.title = ${JSON.stringify(`${NAME} and a long idea title`)}; d.thesis = ${JSON.stringify(THESIS)}; d.tags = ${JSON.stringify(TAGS)}; }
+    localStorage.setItem(k, JSON.stringify(env)); return 0;`);
+  await send("Page.reload");
+  await sleep(1500);
+  const clipped = async (label) => {
+    const bad = await ev(`const W = window.innerWidth; return [...document.querySelectorAll('main button, main a, main input, main textarea, main summary, .sidepanel button')].filter((e) => e.offsetParent !== null).map((e) => [e, e.getBoundingClientRect()]).filter(([e, r]) => r.width > 0 && (r.right > W + 1 || r.left < -1)).map(([e]) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 50));`);
+    if (bad.length) throw new Error(`${label}: controls outside the ${w}px viewport: ${bad.join(" | ")}`);
+  };
+  await go("#/bet/slip");
+  await until(`document.body.innerText.includes(${JSON.stringify(NAME)})`, "the long name on the slip");
+  await clipped("slip with long content");
+  await check("long-slip", w, theme, true);
+  await go("#/bet/ideas");
+  await until(`document.body.innerText.includes(${JSON.stringify(NAME)})`, "the long name in the ideas list");
+  await clipped("ideas list with long content");
+  await check("long-ideas", w, theme, true);
+  await click("main .ph-bet-idea h2 a", NAME, "the long idea link");
+  await until(`document.querySelector('main h1') && document.body.innerText.includes('Sentence 1 explains')`, "the long idea page");
+  await clipped("idea page with long content");
+  await check("long-idea", w, theme, true);
+  console.log("  ok  long name, thesis and tags: no sideways scroll, no control outside the viewport");
+  // put the workspace back as it was, so the steps after this one are unchanged
+  await ev(`const [k, v] = ${original}; localStorage.setItem(k, v); return 0;`);
+  await send("Page.reload");
+  await sleep(1500);
 }
 
 // In the Learn and Explore lenses no betting UI shows: no add buttons, no slip, and #/bet/... is the "Market screen" note.
