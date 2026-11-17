@@ -1,4 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
+import { PageHead, StateBlock } from "../ui";
 import { Avatar } from "../Avatar";
 import { CertaintyChip, DeskAge, DeskGate, SectionNote } from "../DeskUI";
 import { correctionLinks, newestFirst, type Desk, type DeskObservation } from "../desk";
@@ -70,20 +71,26 @@ function Body({ desk }: { desk: Desk }) {
   );
   return (
     <div class="stack">
-      <header class="page-head signals-head">
-        <div class="kicker">Signal inbox</div>
-        {date ? (
-          <h1 class="answer">
-            {day.length.toLocaleString("en-US")} observations on {longDate(date).replace(/, \d{4}$/, "")} · {tally.reported.toLocaleString("en-US")} reported,{" "}
-            {tally.inference.toLocaleString("en-US")} inferred, {tally.correction.toLocaleString("en-US")} corrections
-          </h1>
-        ) : (
-          <h1 class="answer">No observations are stored yet</h1>
-        )}
-        <p class="muted answer-src">
-          What the desk noticed in games, from its stored in-game flags. {games > 0 ? `${games.toString()} game${games === 1 ? "" : "s"} that night.` : ""} <DeskAge desk={desk} />
-        </p>
-        <nav class="tabs" aria-label="Choose a night">
+      <PageHead
+        kicker="Signal inbox"
+        class="pb-answer signals-head"
+        title={
+          date ? (
+            <>
+              {day.length.toLocaleString("en-US")} observations on {longDate(date).replace(/, \d{4}$/, "")} · {tally.reported.toLocaleString("en-US")} reported,{" "}
+              {tally.inference.toLocaleString("en-US")} inferred, {tally.correction.toLocaleString("en-US")} corrections
+            </>
+          ) : (
+            "No observations are stored yet"
+          )
+        }
+        description={
+          <>
+            What the desk noticed in games, from its stored in-game flags. {games > 0 ? `${games.toString()} game${games === 1 ? "" : "s"} that night.` : ""} <DeskAge desk={desk} />
+          </>
+        }
+      />
+      <nav class="tabs pb-nights" aria-label="Choose a night">
           {dates.slice(0, 8).map((d) => (
             <button
               key={d}
@@ -98,14 +105,12 @@ function Body({ desk }: { desk: Desk }) {
               {longDate(d).replace(/, \d{4}$/, "")}
             </button>
           ))}
-        </nav>
-      </header>
+      </nav>
       {desk.observations.length === 0 ? (
-        <section class="panel empty">
-          <h2>Nothing noticed yet</h2>
+        <StateBlock kind="empty" title="Nothing noticed yet">
           <p class="muted">The desk has stored no observations. This is a normal state before games.</p>
           <SectionNote desk={desk} k="observations.names" />
-        </section>
+        </StateBlock>
       ) : null}
       {featured ? (
         <div class="two-col">
