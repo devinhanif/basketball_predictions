@@ -110,9 +110,24 @@ for the replay oracle, for the end of the game window about 22:00 CST).
   Output: `~/Downloads/nba-scratch-1117/oracle_base.log`, `.hash`, `.start`, `.end`. Expected `89889f6d`.
 - If the session died before 22:15 the job died with it: check for `oracle_base.start`; if absent, run the command by hand
   from the oracle worktree (the row is already logged).
+- **E2 result: IDENTICAL `89889f6d`** at 59625c3c (46,658 predictions, 44,562 scores, 20/20 dates, failures 0), 23:13 to 23:25 CST. Result row in the holdout log.
 - **E2 run started 23:13 CST** on the integration tip 59625c3c (holdout row 7470f7fa logged first, at d375aeb9, before the fee-order merge): output `~/Downloads/nba-scratch-1117/oracle_e2.{log,hash,start,end,commit}`. Expected `89889f6d`.
 - The plan that led to it: after E2a and E2b merge, log a second row, `git checkout --detach <integration tip>` in the oracle worktree, run again
   into `oracle_e2.duckdb`. A different hash means bisecting E2a's commits (one per task) and reverting the offender.
+
+## Follow-up run (Devin, 23:17 and 23:22 CST on 11-16): Jarvis look + betting tools behind one switch
+Brief: `/Users/devin/Downloads/jarvis-followup/FOLLOWUP_PROMPT.md` (kit files flat in that folder). Devin: run until
+09:00 CST on 11-17, usage is not a constraint. Do NOT write `RUN COMPLETE` into `REPORT.md` until this follow-up is also
+finished: the terminal resume loop stops on that line.
+- Follow-up integration branch: `agent/app-jarvis-followup`, worktree `~/Downloads/nba-wt-1117-jarvis`, cut from
+  integration at 7bc6a0ae-or-later. Lane branches merge into it; never into `main`. Final report `REPORT_JARVIS.md`.
+- Lanes: J1 `agent/app-jarvis-flag` (`~/Downloads/nba-wt-1117-jv-flag`): the one switch `VITE_PH_BETTING` / `PH_BETTING`,
+  seam under `#/bet`, OFF-parity tests. J3 `agent/app-jarvis-betting-logic` (`~/Downloads/nba-wt-1117-jv-logic`): pure
+  logic port into `app/web/src/betting/`. J2a `agent/app-jarvis-look` (`~/Downloads/nba-wt-1117-jv-look`): tokens,
+  components, shell, Simple/Analyst chooser, state components.
+- Then: J2b lens restyle (after J2a), J4 betting screens (after J1, J3, J2a), J5 visual regression, donor map, report.
+- Worktree names keep "nba-wt-1117" so the resume loop's activity check sees them; a keep-awake with that marker runs
+  as a background task of the session.
 
 ## Auto-resume (Devin started it in a terminal about 19:04 CST on 11-16; if it was the one-shot with `sleep 14700`, it fires about 23:09 CST)
 A terminal command resumes this session headless (`claude --resume ... -p "Continue the autonomous run..."`), either once

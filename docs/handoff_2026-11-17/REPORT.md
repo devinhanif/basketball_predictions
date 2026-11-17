@@ -38,7 +38,7 @@ Each lane's own report, with file:line findings, is beside this file (`lane_*.md
 | Largest route, warm, `/api/games/{id}` | 255 KB, 6 ms (Phase 0, on the 18:35 export) | 224 KB, 9.5 ms (lane A, on a frozen copy of the 19:05 export; different data, so not a before/after of the code) |
 | Fee differential test | none | 552,150 cases, 0 mismatches at the bit level |
 | Replay oracle, baseline (694ae69b) | | IDENTICAL `89889f6d`, 46,658 predictions, 44,562 scores, 20/20 dates |
-| Replay oracle, merged tip | | E2_ORACLE_PENDING |
+| Replay oracle, merged tip (59625c3c, with the live-path lanes) | | IDENTICAL `89889f6d`, 46,658 predictions, 44,562 scores, 20/20 dates, ran 23:13–23:25 CST |
 
 Last full app gate on the merged branch: `app/scripts/check.sh --bake --browser`, ALL CHECKS PASSED at 21:57 CST (before
 the repo lanes merged; they do not touch `app/`).
