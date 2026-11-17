@@ -31,29 +31,6 @@ function T60Badge({ meets }: { meets: boolean | null | undefined }) {
   return <Badge tone="none" icon="info" word="T-60 not known" />;
 }
 
-/** Phones: the snapshots as a list of short cards (the six-column table is for wider screens; same rows, same order). */
-function SnapCards({ rows }: { rows: readonly Snapshot[] }) {
-  return (
-    <ul class="prov-snapcards" aria-label="Every stored forecast for this one">
-      {rows.map((s) => (
-        <li key={`${s.made_at ?? ""}-${s.model_name ?? ""}-${s.version ?? ""}`}>
-          <div class="psc-top num">
-            <strong>{when(s.made_at)}</strong>
-            <T60Badge meets={s.meets_t60} />
-          </div>
-          <div class="small num">{lead(s.lead_minutes)} before tip-off</div>
-          <div class="small">
-            <span class="mono">{s.model_name ?? MISSING}</span> · version <span class="mono">{s.version ?? MISSING}</span>
-          </div>
-          <div class="small muted">
-            {[s.is_primary ? "the one shown" : null, s.is_latest ? "latest of its model" : null, s.comparison_only ? "comparison only" : null].filter(Boolean).join(", ") || MISSING}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function Short(props: { short: string | null; full: string | null; label: string }) {
   if (props.full === null && props.short === null) return <span>{MISSING}</span>;
   return (
@@ -67,14 +44,15 @@ function Short(props: { short: string | null; full: string | null; label: string
 }
 
 const SNAP_COLS: readonly Column<Snapshot>[] = [
-  { key: "made", head: "Made", cell: (s) => when(s.made_at), sort: (s) => s.made_at, first: "ascending" },
+  { key: "made", head: "Made", lead: true, cell: (s) => when(s.made_at), sort: (s) => s.made_at, first: "ascending" },
   { key: "lead", head: "Before tip-off", cell: (s) => lead(s.lead_minutes), sort: (s) => s.lead_minutes, num: true },
   { key: "t60", head: "Meets T-60", cell: (s) => (s.meets_t60 === true ? "yes" : s.meets_t60 === false ? "no" : MISSING) },
-  { key: "model", head: "Model", cell: (s) => <span class="mono">{s.model_name ?? MISSING}</span>, sort: (s) => s.model_name },
+  { key: "model", head: "Model", wide: true, cell: (s) => <span class="mono">{s.model_name ?? MISSING}</span>, sort: (s) => s.model_name },
   { key: "ver", head: "Version", cell: (s) => <span class="mono">{s.version ?? MISSING}</span> },
   {
     key: "role",
     head: "Role",
+    wide: true,
     cell: (s) =>
       [s.is_primary ? "the one shown" : null, s.is_latest ? "latest of its model" : null, s.comparison_only ? "comparison only" : null].filter(Boolean).join(", ") ||
       MISSING,
@@ -96,9 +74,8 @@ export function RecordBody({ rec }: { rec: ProvRecord }) {
     rec.snapshots.length > 0 ? (
       <>
         <div class="prov-snaptable">
-          <Table caption="Every stored forecast for this one" rows={rec.snapshots} columns={SNAP_COLS} rowKey={(s) => `${s.made_at ?? ""}-${s.model_name ?? ""}-${s.version ?? ""}`} noun={rec.snapshots.length === 1 ? "snapshot" : "snapshots"} />
+          <Table caption="Every stored forecast for this one" rows={rec.snapshots} columns={SNAP_COLS} rowKey={(s) => `${s.made_at ?? ""}-${s.model_name ?? ""}-${s.version ?? ""}`} noun={rec.snapshots.length === 1 ? "snapshot" : "snapshots"} stack />
         </div>
-        <SnapCards rows={rec.snapshots} />
         <p class="small muted">{rec.snapshots_note ?? "Their numbers are not served here."}</p>
       </>
     ) : (

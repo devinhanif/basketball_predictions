@@ -26,6 +26,7 @@ const RE = [
   /\bfees?\b/i,
   /\bprices?\b/i,
   /\b(DraftKings|FanDuel|BetMGM|Caesars|ESPN ?BET|Fanatics|Kalshi|Polymarket|Novig)\b/i,
+  /\bbook \d{1,3}(\.\d)?%/i, // a book's chance beside ours ("book 51%")
 ];
 
 const tabs = await (await fetch(`http://127.0.0.1:${port}/json`)).json();

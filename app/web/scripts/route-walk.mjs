@@ -154,6 +154,7 @@ const PRICE_RE = [
   /\bfees?\b/i,
   /\bprices?\b/i,
   /\b(DraftKings|FanDuel|BetMGM|Caesars|ESPN ?BET|Fanatics|Kalshi|Polymarket|Novig)\b/i,
+  /\bbook \d{1,3}(\.\d)?%/i, // a book's chance beside ours ("book 51%")
 ];
 // Desk money that only a private session may show (History's balance tile and P&L column).
 const MONEY_RE = [/Paper balance/i, /Net P&L/i, /\$\d[\d,]*(\.\d\d)? start, \$\d/];

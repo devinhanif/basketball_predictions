@@ -135,6 +135,30 @@ h3 {
 .panel.card-feature > * {
   position: relative;
 }
+/* Inside the hero the page's tokens are re-pointed at the purple: text takes the on-feature inks, and anything with its
+   own surface (tiles, badges, buttons) becomes dark glass carrying the dark theme's status colours. So small and muted
+   text passes AA on the card in both themes, whatever component sits in it (theme.css: the centre stop is #6a52a8). */
+.panel.card-feature {
+  --ink: var(--on-feature);
+  --muted: var(--on-feature-muted);
+  --head: var(--on-feature);
+  --accent-ink: var(--on-feature);
+  --line: #ffffff2e;
+  --surface: #120e26c4;
+  --surface-2: #120e26b0;
+  --surface-3: #120e269c;
+  --grad-tile: linear-gradient(110deg, #120e26c4, #120e26a8);
+  --accent-soft: #120e26b0;
+  --win: #6fdcae;
+  --loss: #f58f9d;
+  --book: #9aa3b8;
+  --mine: #e9b949;
+  --mine-ink: #f2cd73;
+  --edge-thin: #e9b949;
+  --edge-arb: #7cc4ff;
+  --notice-ink: #f4dc9a;
+  color-scheme: dark;
+}
 .panel.card-feature .kicker,
 .panel.card-feature .muted,
 .panel.card-feature .small {
@@ -387,6 +411,88 @@ textarea:focus-visible {
   background: var(--surface);
   box-shadow: inset 0 -1px 0 var(--line);
 }
+/* Stacked tables (Table stack): below 640 px each row is a labelled block. The header row stays as sort buttons; headers
+   without a sort leave the eye but stay in the accessibility tree (visually hidden, not display: none). */
+.ktable .st-label {
+  display: none;
+}
+@media (max-width: 640px) {
+  .table-wrap.stack {
+    overflow: visible;
+  }
+  .table-wrap.stack.sticky {
+    max-height: none;
+  }
+  .ktable.stack {
+    min-width: 0;
+    display: block;
+  }
+  .ktable.stack caption {
+    display: block;
+    text-align: left;
+    margin-bottom: var(--sp-2);
+  }
+  .ktable.stack thead,
+  .ktable.stack tbody {
+    display: block;
+  }
+  .ktable.stack thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-2);
+    padding-bottom: var(--sp-2);
+  }
+  .ktable.stack thead th,
+  .table-wrap.stack.sticky thead th {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .ktable.stack thead th:not([aria-sort]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .ktable.stack thead .sort-btn {
+    border: 1px solid var(--line);
+    border-radius: var(--pill);
+    padding: 0 var(--sp-3);
+    min-height: var(--target);
+  }
+  .ktable.stack tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-2) var(--sp-3);
+    padding: var(--sp-3) 0;
+    border-top: 1px solid var(--line);
+  }
+  .ktable.stack tbody td,
+  .ktable.stack tbody td.num {
+    display: block;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    min-width: 0;
+  }
+  .ktable.stack tbody td.st-lead,
+  .ktable.stack tbody td.st-wide {
+    grid-column: 1 / -1;
+  }
+  .ktable.stack tbody td.st-lead:first-child {
+    font-weight: var(--fw-bold);
+  }
+  .ktable.stack .st-label {
+    display: block;
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    font-weight: var(--fw-bold);
+  }
+}
 
 /* ---------------------------------------------------------------- dialog */
 .modal-back {
@@ -440,6 +546,11 @@ textarea:focus-visible {
     background: linear-gradient(140deg, #e6e2f0, #f3f0f9);
     color: var(--ink);
   }
+}
+/* On the purple hero the initials stay on the dark disc in both themes (light ink on a light disc otherwise). */
+:root .panel.card-feature .avatar.initials {
+  background: linear-gradient(140deg, #3b4058, #292e40);
+  color: #f4f5fa;
 }
 
 /* ---------------------------------------------------------------- skeleton */
@@ -1150,11 +1261,6 @@ h1.answer {
 .today-head .page-heading-actions {
   gap: var(--sp-2);
 }
-/* The nights row reads as the donor's toolbar: pills on a rule. */
-.today-head ~ nav.tabs {
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
-}
 .view-opts {
   border-radius: var(--radius);
 }
@@ -1285,4 +1391,564 @@ h1.answer {
   white-space: nowrap;
   font-size: var(--fs-xs);
   letter-spacing: 0.01em;
+}
+
+/* ================================================================ finishing pass (lane J6) */
+/* ---- grouped navigation: labelled sections in the sidebar and the phone drawer ---- */
+.side-groups {
+  gap: 0;
+}
+.sidebar .side-groups {
+  margin-top: var(--sp-3);
+}
+.side-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar .side-group .side-label {
+  padding: 14px 12px 6px;
+}
+.sidebar .side-group:first-child .side-label {
+  padding-top: 6px;
+}
+/* The sidebar only shows from desktop widths (pointer, not touch): rows a little tighter so every section fits. */
+@media (min-width: 1024px) and (pointer: fine) {
+  .sidebar .side-link {
+    min-height: 38px;
+    padding: 7px 12px;
+  }
+}
+
+/* ---- page controls: the lens and Simple/Analyst switches, in the same place on every page that has them ---- */
+.page-controls {
+  display: grid;
+  gap: var(--sp-2);
+  justify-items: end;
+}
+.pc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.pc-label {
+  min-width: 3.4rem;
+  text-align: right;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--track-kicker);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.page-controls .lens {
+  display: block;
+}
+.page-controls .seg.wide {
+  width: auto;
+}
+.pc-say {
+  margin: 0;
+  max-width: 36ch;
+  text-align: right;
+}
+@media (max-width: 759px) {
+  .page-heading-actions,
+  .page-controls {
+    width: 100%;
+  }
+  .page-controls {
+    justify-items: stretch;
+  }
+  .pc-row > :last-child {
+    flex: 1;
+  }
+  .pc-row .seg {
+    display: flex;
+    width: 100%;
+  }
+  .pc-row .seg-btn {
+    flex: 1;
+  }
+  .pc-label {
+    text-align: left;
+  }
+  .pc-say {
+    max-width: none;
+    text-align: left;
+  }
+}
+/* The Leg page: the player's name on the left, the same controls on the right. */
+.leg-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-5);
+}
+.leg-head-row .who {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+.who-photo {
+  display: inline-flex;
+}
+
+/* ---- Explore (the what-if lab): each what-if is its own tile under the panel's heading ---- */
+.panel.explore {
+  display: grid;
+  gap: var(--sp-3);
+}
+.panel.explore > h2 {
+  margin: 0;
+  letter-spacing: var(--track-head);
+}
+.panel.explore > .small.muted {
+  margin: 0;
+}
+/* On the player's own page his name is already the h1: the lab does not repeat it. */
+.leg .explore-who {
+  display: none;
+}
+.explore .xp-block,
+.explore .xp-block:first-child {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--grad-tile);
+}
+/* Phones: a narrower inset so the chart's SVG labels keep their 12 px floor. */
+@media (max-width: 599px) {
+  .explore .xp-block,
+  .explore .xp-block:first-child {
+    padding: var(--sp-3) var(--sp-2);
+  }
+}
+.explore .xp-block > h3 {
+  font-size: var(--fs-lg);
+  letter-spacing: var(--track-head);
+}
+.explore .xp-share,
+.explore .xp-read {
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.explore .xp-soon {
+  border-color: var(--line-strong);
+  border-radius: var(--radius);
+}
+
+/* ---- If a teammate sits: each teammate is a real, bordered toggle; the read-out is a quiet table ---- */
+.sits-pick {
+  gap: var(--sp-2);
+}
+.sits-btn.seg-btn {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 12px;
+  transition: border-color 0.18s, background-color 0.18s;
+}
+.sits-btn.seg-btn:hover {
+  border-color: var(--line-strong);
+}
+.sits-btn.seg-btn[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--grad-nav-active);
+  color: var(--accent-ink);
+}
+.sits-btn .sits-status {
+  color: var(--muted);
+  font-weight: var(--fw-regular);
+}
+.sits-mates li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sits-mates li:last-child {
+  border-bottom: 0;
+}
+.sits-dir {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-bold);
+}
+
+/* ---- disclosures: every plain <details> shows that it opens (a summary set to flex loses the browser's marker) ---- */
+details.role-section > summary::after,
+details.sits-notes > summary::after,
+details.alt > summary::after,
+details.needs-field > summary::after,
+details.tp-more > summary::after,
+details.kn-first > summary::after,
+details.prov-sha > summary::after,
+details.prov-more > summary::after,
+details.dist-more > summary::after,
+details.chart-numbers > summary::after,
+details.panel > summary::after,
+details:not([class]) > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  opacity: 0.75;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.18s;
+}
+details.role-section[open] > summary::after,
+details.sits-notes[open] > summary::after,
+details.alt[open] > summary::after,
+details.needs-field[open] > summary::after,
+details.tp-more[open] > summary::after,
+details.kn-first[open] > summary::after,
+details.prov-sha[open] > summary::after,
+details.prov-more[open] > summary::after,
+details.dist-more[open] > summary::after,
+details.chart-numbers[open] > summary::after,
+details.panel[open] > summary::after,
+details:not([class])[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+details > summary:hover {
+  color: var(--accent-ink);
+}
+
+/* ---- Try your own line (AltLine): a quiet tile whose summary reads as a control ---- */
+details.alt {
+  margin-top: var(--sp-2);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+details.alt > summary {
+  padding: 0 var(--sp-3);
+  font-weight: var(--fw-bold);
+  transition: background-color 0.18s;
+}
+details.alt > summary:hover {
+  background: var(--surface-2);
+}
+details.alt[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+details.alt > .alt-body {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+.alt-result {
+  padding: var(--sp-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+/* ---- Role, on/off and teammates out (RoleSection + RoleCards) ---- */
+.role-section > summary {
+  padding: 0 var(--sp-1);
+  border-radius: var(--radius-sm);
+}
+.role-section > summary:hover {
+  background: var(--surface-2);
+}
+.role-section[open] > summary {
+  margin-bottom: var(--sp-2);
+}
+.role-section .role-block {
+  margin-top: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.role-block h3 {
+  font-size: var(--fs-base);
+  letter-spacing: var(--track-head);
+}
+.role-block .label {
+  letter-spacing: var(--track-kicker);
+}
+.role-net,
+.beyond-val,
+.role-win {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- What the game knew (Knows): the timeline's events as quiet cards on the rail ---- */
+.panel.knows .kn-rail {
+  border-left-color: var(--line-strong);
+}
+.panel.knows .kn-item {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.panel.knows .kn-item::before {
+  left: -26px;
+  top: 14px;
+}
+.panel.knows .kn-when {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+}
+.panel.knows .kn-change {
+  border-left-color: var(--tonight);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--tonight-soft);
+  padding: var(--sp-1) var(--sp-2);
+}
+
+/* ---- Card detail (Swipe's "the full card"): the same tile and summary as the other disclosures ---- */
+.card-detail {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--elev-1);
+}
+.card-detail > summary {
+  transition: background-color 0.18s;
+}
+.card-detail > summary:hover {
+  background: var(--surface-2);
+}
+.card-detail-body .big-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-title);
+}
+
+/* ---- Viz: chips and the distribution strip ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.chips .chip {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Most confident parlays (TopParlaysPanel) and the verdict strip ---- */
+.panel.verdict.tp .tp-verdict {
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  background: var(--grad-nav-active);
+  padding: var(--sp-3) var(--sp-4);
+}
+.panel.verdict.tp .tp-verdict-text {
+  font-family: var(--display);
+  font-weight: var(--fw-heavy);
+  letter-spacing: var(--track-title);
+}
+.tp-ticket {
+  border-radius: var(--radius-lg);
+  background: var(--grad-tile);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--elev-1);
+}
+.tp-rank {
+  font-variant-numeric: tabular-nums;
+}
+.tp-leg-price {
+  font-variant-numeric: tabular-nums;
+}
+.panel.verdict .notice {
+  border-radius: var(--radius-sm);
+}
+.panel.verdict.strip {
+  border-radius: var(--radius-lg);
+  background: var(--grad-card);
+}
+
+/* ---- tables: sortable and plain column heads read alike (a button does not inherit case or tracking) ---- */
+.ktable th .sort-btn,
+.table-wrap th .sort-btn {
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-align: inherit;
+}
+.ktable td.num,
+.ktable th.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- first run on a deep link: the intro waits as one slim line above the page ---- */
+.intro.intro-slim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+}
+.intro-slim .fr-spark {
+  flex: none;
+}
+.intro-slim-text {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+.intro-slim-actions {
+  gap: var(--sp-2);
+  align-items: center;
+}
+/* A heading with the view controls lines its title up with their top, not their bottom (no empty band above the title). */
+.page-heading:has(.page-controls),
+.leg-head-row {
+  align-items: flex-start;
+}
+
+/* ---- On this page: the jump list under a long page's heading ---- */
+.otp > details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0 var(--sp-3);
+}
+.otp > details > summary {
+  gap: 6px;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--track-kicker);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.otp > details > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.otp > details[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+.otp ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-2);
+}
+.otp-link {
+  appearance: none;
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.18s, background-color 0.18s;
+}
+.otp-link:hover {
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+}
+.otp-link:active {
+  background: var(--accent-soft);
+}
+@media (max-width: 759px) {
+  .otp-link {
+    min-height: var(--target);
+    white-space: normal;
+    text-align: left;
+  }
+}
+main h2 {
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+
+/* Prices by book on a phone: column heads may wrap and cells sit tighter, so the last column is not cut off. */
+@media (max-width: 599px) {
+  .leg-table th {
+    white-space: normal;
+  }
+}
+@media (max-width: 380px) {
+  .leg-table {
+    font-size: var(--fs-sm);
+  }
+  .leg-table th,
+  .leg-table td {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+  /* The narrowest phones: the what-if tiles go flat so the chart keeps its 12 px labels. */
+  .explore .xp-block,
+  .explore .xp-block:first-child {
+    padding: var(--sp-3) 0;
+    border-width: 1px 0 0;
+    border-radius: 0;
+    background: none;
+  }
+}
+
+/* Track record's night picker on a phone: one scrolling row (newest first), not a column of seven pills. */
+@media (max-width: 599px) {
+  .tabs.rp-nights {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: var(--sp-1);
+  }
+}
+
+/* ---- print (Scorecard, Forward tests and any page): the page's content and its footer on white, no app chrome ---- */
+@media print {
+  .sidebar,
+  .topbar,
+  .nav-bottom,
+  .skip-link,
+  .otp,
+  .page-controls,
+  .intro,
+  .toasts,
+  .hs-details,
+  .side-panel-host {
+    display: none !important;
+  }
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f4f4f7;
+    --ink: #111111;
+    --muted: #444444;
+    --line: #cccccc;
+  }
+  body,
+  .shell,
+  .content {
+    background: #ffffff !important;
+    color: #111111;
+  }
+  .shell {
+    display: block !important;
+  }
+  .panel,
+  .pb-test {
+    break-inside: avoid;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+  .table-wrap.sticky {
+    max-height: none;
+    overflow: visible;
+  }
+  details > :not(summary) {
+    display: block;
+  }
 }

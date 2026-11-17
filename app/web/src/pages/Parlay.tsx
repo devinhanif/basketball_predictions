@@ -75,7 +75,7 @@ export function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
     </ul>
   );
   return (
-    <section class={`panel verdict${compact ? "" : " card-header pb-verdict"}`} aria-labelledby="parlay-h">
+    <section class={`panel verdict${compact ? "" : " card-feature pb-verdict"}`} aria-labelledby="parlay-h">
       <div class="kicker">Parlay of the day</div>
       <h2 id="parlay-h">{p.title}</h2>
       <p class="lead">{verdictText(p)}</p>
@@ -157,8 +157,8 @@ export function ParlayPage(props: { date: string | null }) {
         <LatestTopParlays date={props.date} />
       ) : (
         <div class="pb-two">
-          <MarketOnly name="The parlay engine's card" what="The engine's card is the market side of the night." />
-          <MarketOnly name="The ticket list" what="The ticket list is the market side of a night's tickets." />
+          <MarketOnly level={2} name="The parlay engine's card" what="The engine's card is the market side of the night." />
+          <MarketOnly level={2} name="The ticket list" what="The ticket list is the market side of a night's tickets." />
         </div>
       )}
       <Card kicker="Reading the verdict" title="The three ways a day can go" class="pb-ways">

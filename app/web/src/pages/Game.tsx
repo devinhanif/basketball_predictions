@@ -4,10 +4,10 @@ import { AltLine } from "../AltLine";
 import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
 import { Avatar } from "../Avatar";
-import { CalTag, DistBar, DistLegend, Explain, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { CalTag, DistBar, DistLegend, Explain, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { OnItChip } from "../SharedUI";
 import { useLens, useMode, type Lens, type Mode } from "../prefs";
-import { LensSwitch } from "../Lens";
+import { PageControls } from "../Lens";
 import { GameKnowsPanel } from "../Knows";
 import { GameLive } from "../LiveParts";
 import { IS_ARTIFACT } from "../env";
@@ -20,7 +20,7 @@ import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../type
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
 import { RESULT_HIDDEN, isLockedNight } from "../record";
 import { chanceSentence, didText, rangeSentence, winSentence } from "../words";
-import { PageHead, SoWhat, Tabs } from "../ui";
+import { OnThisPage, PageHead, SoWhat, Tabs } from "../ui";
 import { count } from "../format";
 import { SourceButton } from "../Provenance";
 import { AddToSlipSlot } from "../BetSlots";
@@ -190,12 +190,7 @@ function Body({ g }: { g: GameDetail }) {
         class="game-head"
         kicker={`${longDate(g.date)} · tip-off ${tipTime(g.tip_utc)}`}
         title={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}`}
-        actions={
-          <>
-            <span class="small muted">Detail</span>
-            <ModeToggle />
-          </>
-        }
+        actions={<PageControls lens detail />}
       />
       <SoWhat>
         {modelHome === null
@@ -203,7 +198,7 @@ function Body({ g }: { g: GameDetail }) {
           : `${g.away.name} at ${g.home.name}: by our model, ${winSentence(modelHome, g.home.name, g.away.name).replace(/^Close/, "close")}.`}{" "}
         {`${count(g.players.length)} ${g.players.length === 1 ? "player has" : "players have"} a forecast. Nothing here is a pick.`}
       </SoWhat>
-      <LensSwitch />
+      <OnThisPage />
       <section class="panel scoreboard">
         <div class="score-row">
           <div class="score-team">

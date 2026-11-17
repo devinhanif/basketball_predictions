@@ -9,6 +9,8 @@ export interface SearchItem {
   href: string;
   /** Extra words to match (team names, abbreviations). */
   words?: string;
+  /** A screen whose whole subject is prices and edges: listed in the Market lens only (like the nav). */
+  marketOnly?: boolean;
 }
 
 export const KIND_LABEL: Record<SearchKind, string> = { screen: "Screens", game: "Games", player: "Players", term: "Key terms" };

@@ -14,8 +14,8 @@ export const PAGE = 50;
 const NOT_STORED = "not stored in tonight's export";
 
 const COLS: readonly Column<DiagRecord>[] = [
-  { key: "title", head: "Contract", cell: (r) => <span class="wrap-any">{r.title ?? r.ticker ?? MISSING}</span>, sort: (r) => r.title },
-  { key: "engine", head: "Engine", cell: (r) => <span class="mono">{r.engine ?? MISSING}</span>, sort: (r) => r.engine },
+  { key: "title", head: "Contract", lead: true, cell: (r) => <span class="wrap-any">{r.title ?? r.ticker ?? MISSING}</span>, sort: (r) => r.title },
+  { key: "engine", head: "Engine", lead: true, cell: (r) => <span class="mono">{r.engine ?? MISSING}</span>, sort: (r) => r.engine },
   { key: "side", head: "Side", cell: (r) => r.legs.map((l) => l.side ?? MISSING).join(", ") || MISSING },
   { key: "legs", head: "Legs", cell: (r) => count(r.n_legs), sort: (r) => r.n_legs, num: true },
   { key: "joint", head: "Stored joint chance", cell: (r) => percent(r.joint_stored, 1), sort: (r) => r.joint_stored, num: true, first: "descending" },
@@ -52,7 +52,7 @@ function Body({ d, offset, onPage }: { d: ParlayDiag; offset: number; onPage: (o
           beside the copula one on each record; docs/contracts/PROPOSAL_export_fields_2026-11-17.md). Until then nothing is shown in their place.
         </p>
       ) : null}
-      <Table caption={`Records from ${count(d.offset)}, ${count(d.n_returned)} on this page`} rows={d.records} columns={COLS} rowKey={(r) => `${r.ticker ?? ""}-${r.legs.map((l) => `${l.side ?? ""}${String(l.threshold)}`).join("")}`} noun="records" class="sc-table pd-table" sticky />
+      <Table caption={`Records from ${count(d.offset)}, ${count(d.n_returned)} on this page`} rows={d.records} columns={COLS} rowKey={(r) => `${r.ticker ?? ""}-${r.legs.map((l) => `${l.side ?? ""}${String(l.threshold)}`).join("")}`} noun="records" class="sc-table pd-table" sticky stack />
       <p class="row wrap pb-pager">
         <button type="button" class="btn" disabled={offset === 0} onClick={() => { onPage(Math.max(0, offset - PAGE)); }}>
           Previous page

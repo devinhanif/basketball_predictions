@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { Avatar } from "./Avatar";
 import { Footer, ModeToggle, ThemeToggle } from "./components";
 import { deskOf, useDesk } from "./deskStore";
@@ -7,7 +7,7 @@ import { IS_ARTIFACT } from "./env";
 import { clearLocalIdentity, useIdentity } from "./identity";
 import { Icon, Logo, type IconName } from "./icons";
 import { moveSelection, search, KIND_LABEL, type SearchItem } from "./search";
-import { useIsAdmin, useNotices, useSearchIndex } from "./shellData";
+import { MARKET_ONLY, useIsAdmin, useNotices, useSearchIndex } from "./shellData";
 import { useLens } from "./prefs";
 import { topHref, type Route, type TopName } from "./router";
 import type { MetaLine } from "./metaWatch";
@@ -27,27 +27,40 @@ interface NavDef {
   label: string;
   icon: IconName;
 }
-// Track record and the Desk of earlier plans are now Model History and Signals; nothing else is listed until it exists.
+// Every top-level view, by name. The sidebar groups them below; the order inside a group is the order on screen.
 const ALL_WORKSPACE: NavDef[] = [
   { name: "today", label: "Discover", icon: "discover" },
   { name: "live", label: "Live", icon: "live" },
-  { name: "signals", label: "Signals", icon: "signals" },
-  { name: "hedge", label: "Hedge Finder", icon: "hedge" },
-  { name: "history", label: "Model History", icon: "history" },
+  { name: "swipe", label: "Swipe", icon: "swipe" },
+  { name: "picks", label: "My picks", icon: "picks" },
   { name: "record", label: "Track record", icon: "record" },
   { name: "scorecard", label: "Scorecard", icon: "same" },
   { name: "tests", label: "Forward tests", icon: "flag" },
-  { name: "alerts", label: "Alerts", icon: "alerts" },
-  { name: "swipe", label: "Swipe", icon: "swipe" },
-  { name: "picks", label: "My picks", icon: "picks" },
+  { name: "signals", label: "Signals", icon: "signals" },
+  { name: "hedge", label: "Hedge Finder", icon: "hedge" },
+  { name: "history", label: "Model History", icon: "history" },
   { name: "terms", label: "Key terms", icon: "book" },
+  { name: "help", label: "Error codes", icon: "info" },
+  { name: "alerts", label: "Alerts", icon: "alerts" },
 ];
 // The track record reads the live API, which the single-file snapshot does not have.
 const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name === "record" || n.name === "live")));
-const TABS: TopName[] = ["today", "live", "record", "signals", "swipe", "picks"];
-/** Screens whose whole subject is prices and edges: they leave the nav outside the Market lens. */
-export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
+/**
+ * The sidebar's sections, in the order a visitor uses them: tonight's slate first, then how the model has done, then the
+ * Market lens's tools (the betting module's entries join that group), then reference. Preferences and Admin follow in
+ * "You". A section with nothing visible in the current lens is not drawn.
+ */
+const GROUPS: readonly { label: string; names: readonly TopName[]; bet?: true }[] = [
+  { label: "Tonight", names: ["today", "live", "swipe", "picks"] },
+  { label: "Record and tests", names: ["record", "scorecard", "tests"] },
+  { label: "Market tools", names: ["signals", "hedge", "history"], bet: true },
+  { label: "Reference", names: ["terms", "help"] },
+];
+/** The phone's bottom bar: the five most used, the same in every lens (everything else is in the menu drawer). */
+const TABS: TopName[] = ["today", "live", "record", "swipe", "picks", "terms"];
+export { MARKET_ONLY };
 
+// The nav entry marked current on each route (a game, a leg and the source page belong to Discover).
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
@@ -57,7 +70,7 @@ const ROUTE_TOP: Record<Route["name"], TopName> = {
 };
 const TITLES: Record<TopName, string> = {
   today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
-  scorecard: "Scorecard", tests: "Forward tests", help: "Error help",
+  scorecard: "Scorecard", tests: "Forward tests", help: "Error codes",
 };
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };
 
@@ -209,11 +222,35 @@ export function Bell({ unread }: { unread: number }) {
   );
 }
 
+/** The profile popover: a labelled group of links (not an ARIA menu); Escape or a click outside closes it and focus goes back to the button that opened it. */
 function ProfileMenu(props: { onClose: () => void; onAbout: () => void; onKeys: () => void }) {
   const id = useIdentity();
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
+  const box = useRef<HTMLDivElement>(null);
+  const close = useRef(props.onClose);
+  close.current = props.onClose;
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape" && document.querySelector('[role="dialog"]') === null) {
+        e.preventDefault();
+        if (opener?.isConnected) opener.focus();
+        close.current();
+      }
+    };
+    const onDown = (e: MouseEvent): void => {
+      const t = e.target as Node | null;
+      if (box.current && t && !box.current.contains(t) && !(t instanceof Element && t.closest('[aria-label="Profile menu"]'))) close.current();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, []);
   return (
-    <div class="popover" role="menu" aria-label="Profile">
+    <div class="popover" role="group" aria-label="Profile" ref={box}>
       <div class="pop-who">
         <Avatar name={name} src={id.avatarUrl} size="md" />
         <div>
@@ -317,7 +354,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
   const index = useSearchIndex(searchOpen, isAdmin);
   const lens = useLens();
   const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
-  const tabs = TABS.filter((t) => visible.some((w) => w.name === t));
+  const tabs = TABS.filter((t) => visible.some((w) => w.name === t)).slice(0, 5);
   // On a betting screen no top-level view is current (the module's own nav entry is).
   const here: TopName | null = BETTING && props.route.name === "bet" ? null : ROUTE_TOP[props.route.name];
   const ready = deskOf(desk);
@@ -349,7 +386,11 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
 
   const signalsToday = ready ? ready.observations.filter((o) => o.slate_date === (ready.observations.map((x) => x.slate_date).sort().at(-1) ?? "")).length : 0;
   const badge = (n: TopName): number => (n === "alerts" ? unread : n === "signals" ? signalsToday : 0);
-  const mgmt: NavDef[] = [...(isAdmin ? [{ name: "admin" as const, label: "Admin studio", icon: "admin" as const }] : []), { name: "settings", label: "Preferences", icon: "prefs" }];
+  const mgmt: NavDef[] = [
+    ...visible.filter((n) => n.name === "alerts"),
+    { name: "settings", label: "Preferences", icon: "prefs" },
+    ...(isAdmin ? [{ name: "admin" as const, label: "Admin studio", icon: "admin" as const }] : []),
+  ];
   const link = (n: NavDef, cls: string) => (
     <a key={n.name} class={cls} href={topHref(n.name)} aria-current={here === n.name ? "page" : undefined}>
       <Icon name={n.icon} />
@@ -358,6 +399,32 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
     </a>
   );
   const crumb = crumbs(props.route);
+  const crumbKey = crumb.join("/");
+  // The tab's title names the page ("Scorecard · parlayhitters"); a game or a player adds its own name once it loads.
+  useEffect(() => {
+    const label = crumb[crumb.length - 1] ?? "Discover";
+    const named = props.route.name === "game" || props.route.name === "leg";
+    const set = (): void => {
+      let t = "";
+      const h = named ? document.querySelector("main h1") : null;
+      if (h) {
+        const copy = h.cloneNode(true) as HTMLElement;
+        copy.querySelectorAll('[aria-hidden="true"]').forEach((e) => {
+          e.remove();
+        });
+        t = copy.textContent.replace(/\s+/g, " ").trim();
+      }
+      const next = t ? `${t} · ${label} · parlayhitters` : `${label} · parlayhitters`;
+      if (document.title !== next) document.title = next;
+    };
+    set();
+    const main = document.getElementById("main");
+    const mo = named && main ? new MutationObserver(set) : null;
+    if (mo && main) mo.observe(main, { childList: true, subtree: true, characterData: true });
+    return () => {
+      mo?.disconnect();
+    };
+  }, [props.route, crumbKey]);
   // The betting module's nav entries (none in a build with the switch off).
   const betNav: readonly BettingNavEntry[] = BETTING ? BETTING_MODULE.nav.filter((n) => lens === "market" || !n.marketOnly) : [];
   const betLink = (n: BettingNavEntry) => (
@@ -366,6 +433,24 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
       <span>{n.label}</span>
     </a>
   );
+
+  // One list of sections for the sidebar and the phone drawer: a labelled group per section (heading + links).
+  const sectionsFor = (where: "side" | "drawer") => [
+    ...GROUPS.map((g) => ({ label: g.label, links: [...visible.filter((n) => g.names.includes(n.name)).sort((a, b) => g.names.indexOf(a.name) - g.names.indexOf(b.name)).map((n) => link(n, "side-link")), ...(g.bet && BETTING ? betNav.map(betLink) : [])] })),
+    { label: "You", links: mgmt.map((n) => link(n, "side-link")) },
+  ]
+    .filter((g) => g.links.length > 0)
+    .map((g) => {
+      const gid = `${where}-nav-${g.label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+      return (
+        <div key={g.label} class="side-group" role="group" aria-labelledby={gid}>
+          <div class="side-label" id={gid}>
+            {g.label}
+          </div>
+          {g.links}
+        </div>
+      );
+    });
 
   return (
     <div class="shell">
@@ -402,15 +487,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
             <span class="small muted">{ready?.fixture ? "synthetic desk fixture" : IS_ARTIFACT ? "shared page, snapshot" : "this machine"}</span>
           </span>
         </button>
-        <div class="side-label">Workspace</div>
-        <nav class="side-nav" aria-label="Main">
-          {visible.map((n) => link(n, "side-link"))}
-          {BETTING ? betNav.map(betLink) : null}
-        </nav>
-        <div class="side-label">Management</div>
-        <nav class="side-nav" aria-label="Management">
-          {mgmt.map((n) => link(n, "side-link"))}
-        </nav>
+        <nav class="side-nav side-groups" aria-label="Main">{sectionsFor("side")}</nav>
         <div class="side-foot">
           <div class="side-card">
             <strong class="small">Paper only</strong>
@@ -511,11 +588,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
                 </div>
               }
             >
-              <div class="side-label">Workspace</div>
-              {visible.map((n) => link(n, "side-link"))}
-              {BETTING ? betNav.map(betLink) : null}
-              <div class="side-label">Management</div>
-              {mgmt.map((n) => link(n, "side-link"))}
+              {sectionsFor("drawer")}
             </MenuDrawer>
           ) : null}
         </header>

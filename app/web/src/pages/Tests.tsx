@@ -4,11 +4,11 @@
 import { View } from "../components";
 import { count, MISSING } from "../format";
 import { hasPriceWords, honestyApi, type ForwardTest, type ForwardTests, type Maybe } from "../honesty";
-import { LensSwitch } from "../Lens";
+import { PageControls } from "../Lens";
 import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
-import { Badge, PageHead, StateBlock } from "../ui";
+import { Badge, OnThisPage, PageHead, StateBlock } from "../ui";
 import { useLoad } from "../useLoad";
 
 /** Is everything a test says free of price words (so it may show in the Learn lens)? */
@@ -145,8 +145,9 @@ export function TestsPage() {
             <a href={topHref("scorecard")}>Scorecard</a>
           </>
         }
-        actions={<LensSwitch compact />}
+        actions={<PageControls lens />}
       />
+      <OnThisPage />
       <View state={state} reload={reload} what="the forward tests">
         {(m: Maybe<ForwardTests>) =>
           m.kind === "absent" ? (
