@@ -286,8 +286,7 @@
   width: 20px;
   height: 20px;
 }
-.ph-bet .ph-bet-launcher:focus-visible,
-.ph-bet .ph-bet-panel-close:focus-visible {
+.ph-bet .ph-bet-launcher:focus-visible {
   outline: 3px solid var(--focus, var(--ink));
   outline-offset: 2px;
 }
@@ -307,77 +306,74 @@
   border-radius: 50%;
   background: var(--loss);
 }
-.ph-bet .ph-bet-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 39;
-  background: var(--scrim, rgba(0, 0, 0, 0.45));
-}
-.ph-bet .ph-bet-panel {
-  position: fixed;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  color: var(--ink);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-}
-.ph-bet .ph-bet-panel.sheet {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  max-height: 88vh;
-  max-height: 88dvh;
-  border-radius: var(--radius, 12px) var(--radius, 12px) 0 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-.ph-bet .ph-bet-panel.side {
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(400px, 92vw);
-  border-width: 0 0 0 1px;
-}
-.ph-bet .ph-bet-panel-head {
+/* the slip inside the shell's side panel (rail or sheet) */
+.ph-bet.ph-bet-side .ph-bet-side-tools {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 8px 8px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--head, var(--surface));
+  margin: -4px 0 10px;
 }
-.ph-bet .ph-bet-panel-head h2 {
-  margin: 0;
-  font-size: var(--fs-lg, 1.125rem);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ph-bet .ph-bet-panel-head .ph-bet-count {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-.ph-bet .ph-bet-panel-close {
-  min-width: 44px;
-  min-height: 44px;
-}
-.ph-bet .ph-bet-panel-body {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 12px 16px 16px;
-}
-.ph-bet .ph-bet-panel-foot {
-  margin: 0;
-  padding: 6px 16px 10px;
-  border-top: 1px solid var(--line);
-}
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .ph-bet .ph-bet-launcher {
     bottom: 24px;
     right: 24px;
+  }
+}
+
+/* ------------------------------------------------------------ notices (coalesced toasts) */
+.ph-bet.ph-bet-toasts {
+  position: fixed;
+  z-index: 60;
+  left: 16px;
+  right: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  pointer-events: none;
+}
+.ph-bet.ph-bet-toasts.bottom {
+  bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+}
+.ph-bet.ph-bet-toasts.top {
+  top: calc(var(--topbar-h, 64px) + 8px + env(safe-area-inset-top, 0px));
+}
+.ph-bet .ph-bet-toast {
+  pointer-events: auto;
+  width: min(420px, 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px 10px 14px;
+  border: 1px solid var(--accent-line, var(--line));
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius, 12px);
+  background: var(--surface-2, var(--surface));
+  color: var(--ink);
+  box-shadow: var(--elev-2, var(--shadow));
+}
+.ph-bet .ph-bet-toast.failed {
+  border-left-color: var(--loss);
+}
+.ph-bet .ph-bet-toast .icon-btn {
+  min-width: 36px;
+  min-height: 36px;
+}
+@media (min-width: 1024px) {
+  .ph-bet.ph-bet-toasts {
+    left: calc(var(--sidebar-w, 240px) + 24px);
+    right: auto;
+    width: 420px;
+    justify-items: start;
+  }
+  .ph-bet.ph-bet-toasts.bottom {
+    bottom: 24px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ph-bet .ph-bet-toast {
+    animation: ph-bet-rise 0.18s ease-out;
   }
 }
 
@@ -413,65 +409,53 @@
   min-width: 0;
   flex: 1;
 }
-.ph-bet .ph-bet-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  gap: var(--bet-gap);
-  margin: var(--bet-gap) 0;
-}
-.ph-bet .ph-bet-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius, 10px);
-  background: var(--surface);
-  padding: 12px 14px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.ph-bet .ph-bet-card.unavailable {
-  background: var(--surface-2);
-  border-style: dashed;
-}
-.ph-bet .ph-bet-card h3 {
-  margin: 0;
-  font-size: var(--fs-lg, 1.125rem);
-}
-.ph-bet .ph-bet-card .ph-bet-price {
-  font-size: var(--fs-xl, 1.25rem);
-  font-weight: 700;
-  margin: 0;
-}
-.ph-bet .ph-bet-card p {
-  margin: 0;
-}
-.ph-bet .ph-bet-card .ph-bet-kind {
-  color: var(--muted);
-  font-size: var(--fs-xs, 0.75rem);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 .ph-bet .ph-bet-crown {
   font-weight: 700;
   color: var(--accent-ink, var(--accent));
 }
+/* ------------------------------------------------------------ held positions (Hedge Finder), pinned on phones */
 .ph-bet .ph-bet-held {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
   margin: var(--sp-2, 8px) 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 4px 0 6px;
 }
-.ph-bet .ph-bet-held button {
-  text-align: left;
-  min-height: 44px;
-  max-width: 100%;
-  white-space: normal;
+.ph-bet .ph-bet-chip {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  max-width: min(320px, 82vw);
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: var(--radius-sm, 9px);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
 }
-.ph-bet .ph-bet-held button[aria-pressed="true"] {
+.ph-bet .ph-bet-chip strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ph-bet .ph-bet-chip[aria-current="true"] {
   border-color: var(--accent);
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: var(--accent-soft, var(--surface-2));
 }
+@media (max-width: 1023px) {
+  .ph-bet .ph-bet-held {
+    position: sticky;
+    top: var(--topbar-h, 64px);
+    z-index: 5;
+    background: var(--bg);
+    margin: 0 calc(-1 * var(--gutter, 16px));
+    padding: 8px var(--gutter, 16px);
+    border-bottom: 1px solid var(--line);
+  }
+}
+
 .ph-bet .ph-bet-picker {
   display: grid;
   gap: var(--sp-2, 8px);
@@ -512,11 +496,6 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .ph-bet .ph-bet-panel.sheet {
-    animation: ph-bet-rise 160ms ease-out;
-  }
-}
 @keyframes ph-bet-rise {
   from {
     opacity: 0;
@@ -534,4 +513,231 @@
   cursor: pointer;
   font-size: var(--fs-sm, 0.875rem);
   min-height: 32px;
+}
+
+/* ------------------------------------------------------------ the venue board (Compare, Hedge Finder) */
+.ph-bet .ph-bet-headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+.ph-bet .ph-bet-headrow .ph-bet-linepick {
+  margin: 0;
+  max-width: 160px;
+}
+.ph-bet .ph-bet-toolbar {
+  gap: 8px;
+  margin: var(--sp-3, 12px) 0;
+}
+.ph-bet .ph-bet-about {
+  margin: 0 0 var(--sp-3, 12px);
+  padding: 10px 14px 10px 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 12px);
+  background: var(--surface);
+  color: var(--ink);
+  max-width: 80ch;
+}
+.ph-bet .ph-bet-about li + li {
+  margin-top: 4px;
+}
+.ph-bet .ph-bet-feebar {
+  margin: 0 0 var(--sp-3, 12px);
+}
+.ph-bet .ph-bet-feeform {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+.ph-bet .ph-bet-feeform label {
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+}
+.ph-bet .ph-bet-board-wrap {
+  container: phbetboard / inline-size;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface);
+  overflow: hidden;
+}
+.ph-bet .ph-bet-board {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ph-bet .ph-bet-board th,
+.ph-bet .ph-bet-board td {
+  padding: 9px 12px;
+  text-align: left;
+  vertical-align: middle;
+  border-top: 1px solid var(--line);
+}
+.ph-bet .ph-bet-board thead th {
+  border-top: 0;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: var(--fw-bold, 700);
+  letter-spacing: var(--track-kicker, 0.04em);
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.ph-bet .ph-bet-board .num {
+  text-align: right;
+}
+.ph-bet .ph-bet-board .ph-bet-b-group th {
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: var(--fw-bold, 700);
+  background: var(--surface-2);
+  color: var(--ink);
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.ph-bet .ph-bet-board tr.unavailable .ph-bet-b-name {
+  font-weight: var(--fw-medium, 500);
+}
+.ph-bet .ph-bet-board tbody th {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--fs-base, 1rem);
+  color: var(--ink);
+}
+.ph-bet .ph-bet-b-venue {
+  font-weight: inherit;
+  min-width: 0;
+}
+.ph-bet .ph-bet-b-name {
+  display: block;
+  font-weight: var(--fw-bold, 700);
+}
+.ph-bet .ph-bet-b-kind,
+.ph-bet .ph-bet-b-sub,
+.ph-bet .ph-bet-board .ph-bet-crown {
+  display: block;
+}
+.ph-bet .ph-bet-b-price {
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: var(--fw-bold, 700);
+  white-space: nowrap;
+}
+.ph-bet .ph-bet-src {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+.ph-bet .ph-bet-b-lab {
+  display: none;
+}
+.ph-bet .ph-bet-b-act {
+  white-space: nowrap;
+  text-align: right;
+}
+.ph-bet .ph-bet-b-act > * + * {
+  margin-left: 8px;
+}
+.ph-bet .ph-bet-board tr.has-extra td,
+.ph-bet .ph-bet-board tr.has-extra th {
+  border-bottom: 0;
+}
+.ph-bet .ph-bet-board tr.ph-bet-b-extra td {
+  border-top: 0;
+  padding-top: 0;
+}
+.ph-bet .ph-bet-b-more summary {
+  cursor: pointer;
+  color: var(--accent-ink, var(--accent));
+  font-weight: var(--fw-medium, 500);
+  margin-top: 4px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.ph-bet .ph-bet-b-more[open] {
+  padding: 8px 0;
+}
+.ph-bet .ph-bet-disclose > summary {
+  cursor: pointer;
+  font-weight: var(--fw-medium, 500);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+@container phbetboard (max-width: 700px) {
+  .ph-bet .ph-bet-board thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .ph-bet .ph-bet-board,
+  .ph-bet .ph-bet-board tbody {
+    display: block;
+  }
+  .ph-bet .ph-bet-board tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+  }
+  .ph-bet .ph-bet-board tr.has-extra {
+    padding-bottom: 2px;
+  }
+  .ph-bet .ph-bet-board tr.ph-bet-b-extra {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .ph-bet .ph-bet-board th,
+  .ph-bet .ph-bet-board td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .ph-bet .ph-bet-board .ph-bet-b-group {
+    display: block;
+    padding: 6px 12px;
+    background: var(--surface-2);
+  }
+  .ph-bet .ph-bet-b-venue {
+    flex: 1 1 60%;
+    min-width: 0;
+  }
+  .ph-bet .ph-bet-b-name {
+    display: inline;
+    margin-right: 6px;
+  }
+  .ph-bet .ph-bet-b-kind {
+    display: inline;
+  }
+  .ph-bet .ph-bet-b-price {
+    margin-left: auto;
+  }
+  .ph-bet .ph-bet-src {
+    flex-wrap: nowrap;
+  }
+  .ph-bet .ph-bet-board td.ph-bet-b-fee,
+  .ph-bet .ph-bet-board td.ph-bet-b-cost {
+    text-align: left;
+  }
+  .ph-bet .ph-bet-board td.ph-bet-b-cost.nocost {
+    display: none;
+  }
+  .ph-bet .ph-bet-b-lab {
+    display: inline;
+    color: var(--muted);
+  }
+  .ph-bet .ph-bet-b-none {
+    flex: 1 1 60%;
+  }
+  .ph-bet .ph-bet-b-act {
+    margin-left: auto;
+  }
+  .ph-bet .ph-bet-board tr.ph-bet-b-extra td {
+    flex: 1 1 100%;
+  }
 }

@@ -6,7 +6,7 @@ import { useState } from "preact/hooks";
 import { Badge, Button, Table, type Column } from "../ui";
 import { MarketOnly } from "../Lens";
 import { useLens } from "../prefs";
-import { MINUS, MISSING, bookName, centsText, count, lineText, odds } from "../format";
+import { bookName, centsText, count, dollars, lineText, odds } from "../format";
 import { agoText, stamp } from "../time";
 import { STAT_LABEL } from "../types";
 import { KNOWN_PROVIDERS, freshness } from "./catalog";
@@ -19,18 +19,14 @@ import { say } from "./useBet";
 
 // ------------------------------------------------------------------------------------------------ text
 
-/** Dollars to the cent: 24.5 -> "$24.50", -7 -> "−$7.00". Missing stays missing, never $0. */
+/** Dollars to the cent (the app's one formatter): 24.5 -> "$24.50", -7 -> "−$7.00". Missing stays missing, never $0. */
 export function money(x: number | null | undefined): string {
-  if (typeof x !== "number" || !Number.isFinite(x)) return MISSING;
-  const [whole = "0", cents = "00"] = Math.abs(x).toFixed(2).split(".");
-  const body = `$${count(Number(whole))}.${cents}`;
-  return x < 0 && Number(Math.abs(x).toFixed(2)) !== 0 ? `${MINUS}${body}` : body;
+  return dollars(x);
 }
 
 /** A net result with its sign: "+$7.00", "−$40.00", "$0.00". */
 export function signedMoney(x: number | null | undefined): string {
-  if (typeof x !== "number" || !Number.isFinite(x)) return MISSING;
-  return Number(Math.abs(x).toFixed(2)) === 0 ? money(0) : x > 0 ? `+${money(x)}` : money(x);
+  return dollars(x, { signed: true });
 }
 
 export function providerLabel(id: string, registry?: readonly ProviderInfo[]): string {
@@ -68,7 +64,7 @@ export function costWords(q: Quote): string {
 
 // ------------------------------------------------------------------------------------------------ badges and notes
 
-const PROV_TONE = { live: "model", delayed: "base", manual: "mine", sample: "none" } as const;
+export const PROV_TONE = { live: "model", delayed: "base", manual: "mine", sample: "none" } as const;
 
 /** Provenance word, its meaning on hover, and when the price was seen (with its age). */
 export function Provenance(props: { quote: Quote; now: number; label?: string }) {

@@ -2,48 +2,43 @@
 // prices, sides, amounts), lets the viewer pick any held position, takes the opposite side of that market, and sizes a
 // hedge at each venue against the position's uncovered gross payout (hedgeMath via slipModel: whole contracts rounded up
 // at an exchange, stake to the cent at a sportsbook). Before/after outcome tables come from evaluateDraft.
+import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { Button, Skeleton } from "../ui";
+import { Skeleton } from "../ui";
 import { count } from "../format";
 import type { BetRoute } from "./seam";
-import { ARITHMETIC_NOTE, SETTLEMENT_NOTE, TITLE_HEDGE } from "./copy";
-import { legCost, makeHedgeLeg } from "./slipModel";
-import type { Market, Quote, Side, SlipLeg } from "./types";
-import { hedgeCards, hedgeSideFor, heldPositions, parseCompareQuery, previewWithLeg } from "./viewModel";
+import { ARITHMETIC_NOTE, TITLE_HEDGE } from "./copy";
+import { legCost, legPayout, makeHedgeLeg } from "./slipModel";
+import type { Market, ProviderInfo, Quote, Side, SlipLeg } from "./types";
+import { hedgeSideFor, heldPositions, parseCompareQuery, previewWithLeg, venueCards } from "./viewModel";
 import { CoverageBlock, MarketGate, MoneyNote, OutcomeTable, marketWords, money, providerLabel } from "./parts";
-import { MarketHead, SnapshotStatus, VenueCardView, useStored } from "./board";
-import { ensureBetStyles, revealSlip, say, setPanelOpen, useBet, useNow, type BetHook } from "./useBet";
+import { AboutPrices, FeeControl, MarketHead, TypePriceDialog, VenueBoard, useStored } from "./board";
+import { ensureBetStyles, revealSlip, say, useBet, useNow, type BetHook } from "./useBet";
 
 type Ready = Extract<BetHook, { ready: true }>;
 
 function HeldChips(props: { held: readonly SlipLeg[]; selected: string }) {
   return (
-    <div class="ph-bet-held" role="group" aria-label="Held positions">
+    <nav class="ph-bet-held" aria-label="Held positions">
       {props.held.map((l) => (
-        <a key={l.id} class="btn" href={`#/bet/hedge?leg=${encodeURIComponent(l.id)}`} aria-pressed={l.id === props.selected ? "true" : "false"} aria-current={l.id === props.selected ? "true" : undefined}>
-          <span>
-            <strong>{marketWords(l.market, l.quote.side)}</strong>
-            <br />
-            <span class="small">
-              {providerLabel(l.quote.provider)} · {l.quote.price.kind === "binary" ? `${count(l.amount)} contracts` : `${money(l.amount)} stake`} · cost {money(legCost(l))}
-              {l.quote.provenance === "sample" ? " · sample" : ""}
-            </span>
+        <a key={l.id} class="ph-bet-chip" href={`#/bet/hedge?leg=${encodeURIComponent(l.id)}`} aria-current={l.id === props.selected ? "true" : undefined}>
+          <strong>{marketWords(l.market, l.quote.side)}</strong>
+          <span class="small num">
+            {providerLabel(l.quote.provider)} · {l.quote.price.kind === "binary" ? `${count(l.amount)} contracts` : `${money(l.amount)} stake`} · cost {money(legCost(l))}
+            {l.quote.provenance === "sample" ? " · sample" : ""}
           </span>
         </a>
       ))}
-    </div>
+    </nav>
   );
 }
 
-function Preview(props: { bet: Ready; market: Market; quote: Quote; now: number }) {
+function Preview(props: { bet: Ready; market: Market; quote: Quote; amount: number | null | undefined; now: number }) {
   const ws = props.bet.view.workspace;
   if (!ws) return null;
-  const sized = makeHedgeLeg(ws.draft, props.quote, props.market);
-  const amount = sized.ok ? sized.leg.amount : undefined;
-  const p = previewWithLeg(ws.draft, props.quote, props.market, amount, props.now);
+  const p = previewWithLeg(ws.draft, props.quote, props.market, props.amount, props.now);
   return (
-    <section class="ph-bet-preview" aria-label="Before and after">
-      <h2 class="ph-bet-h">Before and after this hedge at {providerLabel(props.quote.provider)}</h2>
+    <div class="ph-bet-preview">
       <p class="small muted">{ARITHMETIC_NOTE} "Before" is your slip as it is (recorded positions and included planned legs); "after" adds this hedge.</p>
       {p.text ? <p class="small ph-bet-err">{p.text}</p> : null}
       <div class="ph-bet-split">
@@ -61,7 +56,21 @@ function Preview(props: { bet: Ready; market: Market; quote: Quote; now: number 
           ) : null}
         </div>
       </div>
-    </section>
+    </div>
+  );
+}
+
+/** The hedge size at one venue, in words: whole contracts or a stake, what it pays gross, and its cost when the fee is known. */
+function sizeLine(r: ReturnType<typeof makeHedgeLeg>, sideWord: string): ComponentChildren {
+  if (!r.ok) return <span class="ph-bet-err">{r.text}</span>;
+  if (!r.sized) return <span>{r.text}</span>;
+  const l = r.leg;
+  const amount = l.quote.price.kind === "binary" ? `${count(l.amount)} contracts` : `a ${money(l.amount)} stake`;
+  const cost = legCost(l);
+  return (
+    <span class="num">
+      <strong>Hedge size: {amount}</strong> · pays {money(legPayout(l))} gross if {sideWord} · cost {cost === null ? "needs a fee" : money(cost)}
+    </span>
   );
 }
 
@@ -71,63 +80,54 @@ function Finder(props: { bet: Ready; leg: SlipLeg; held: readonly SlipLeg[] }) {
   const market = leg.market;
   const side: Side = hedgeSideFor(leg);
   const st = useStored(market, side);
-  const [preview, setPreview] = useState<Quote | null>(null);
+  const [fees, setFees] = useState<Record<string, string>>({});
+  const [typing, setTyping] = useState<ProviderInfo | null>(null);
   const ws = bet.view.workspace;
   if (!ws) return null;
-  const cards = hedgeCards({ providers: st.providers, stored: st.stored, workspace: ws, market, side, now });
+  const cards = venueCards({ providers: st.providers, stored: st.stored, workspace: ws, market, side, now });
   const unusable = (provider: string): string[] => st.board?.unusable.filter((u) => u.provider === provider).map((u) => u.reason) ?? [];
+  const word = side === "yes" ? "over" : "under";
   return (
     <>
       <HeldChips held={props.held} selected={leg.id} />
       <MarketHead market={market} side={side}>
         <p class="small">
-          Hedging your {providerLabel(leg.quote.provider)} {leg.quote.side === "yes" ? "over" : "under"} position: the other side is shown at every venue.
+          Hedging your {providerLabel(leg.quote.provider)} {leg.quote.side === "yes" ? "over" : "under"} position: the other side is shown at every venue, sized to cover the position's gross payout.
         </p>
       </MarketHead>
-      <SnapshotStatus state={st.state} source={st.source} board={st.board} />
-      <p class="small" role="note">
-        {SETTLEMENT_NOTE}
-      </p>
-      <div class="ph-bet-cards">
-        {cards.map((c) => (
-          <VenueCardView
-            key={c.provider.id}
-            card={c}
-            market={market}
-            side={side}
-            now={now}
-            actions={bet.actions}
-            crowned={false}
-            unusable={unusable(c.provider.id)}
-            addLabel={`Add ${c.provider.label} hedge to slip`}
-            extra={
-              c.hedge ? (
-                <div class="small">
-                  <p>
-                    <strong>{c.hedge.text}</strong>
-                  </p>
-                  {c.active ? (
-                    <button type="button" class="linklike small" onClick={() => { setPreview(c.active); }}>
-                      Show before and after
-                    </button>
-                  ) : null}
-                </div>
-              ) : null
-            }
-            onAdd={(q) => {
-              const sized = makeHedgeLeg(ws.draft, q, market);
-              const amount = sized.ok ? sized.leg.amount : undefined;
-              void bet.actions.addQuote(q, market, amount).then((d) => {
-                if (say(d)) {
-                  setPreview(q);
-                  revealSlip();
-                }
-              });
-            }}
-          />
-        ))}
-      </div>
-      {preview ? <Preview bet={bet} market={market} quote={preview} now={now} /> : <p class="small muted">Choose "Show before and after" on a venue to see every listed outcome with and without that hedge.</p>}
+      <AboutPrices st={st} cards={cards} now={now} crownText={null} />
+      <FeeControl cards={cards} fees={fees} onFees={setFees} />
+      <VenueBoard
+        cards={cards}
+        market={market}
+        side={side}
+        now={now}
+        fees={fees}
+        crowned={null}
+        unusable={unusable}
+        caption={`Hedge venues for ${marketWords(market, side)}: priced first, then unavailable, each by name`}
+        addLabel={(venue) => `Add ${venue} hedge to slip`}
+        addWord="Add hedge"
+        extra={(_c, q) => {
+          const r = makeHedgeLeg(ws.draft, q, market);
+          const amount = r.ok ? r.leg.amount : undefined;
+          return {
+            line: sizeLine(r, word),
+            more: { summary: "Show before and after", body: () => <Preview bet={bet} market={market} quote={q} amount={amount} now={now} /> },
+          };
+        }}
+        onAdd={(q) => {
+          const sized = makeHedgeLeg(ws.draft, q, market);
+          const amount = sized.ok ? sized.leg.amount : undefined;
+          void bet.actions.addQuote(q, market, amount).then((d) => {
+            if (say(d)) revealSlip();
+          });
+        }}
+        onType={(p) => {
+          setTyping(p);
+        }}
+      />
+      {typing ? <TypePriceDialog provider={typing} market={market} side={side} actions={bet.actions} onClose={() => { setTyping(null); }} /> : null}
     </>
   );
 }
@@ -156,7 +156,6 @@ export function HedgeScreen(props: { route: BetRoute }) {
             <a class="btn" href="#/bet/compare">
               Open Compare
             </a>
-            <Button onClick={() => { setPanelOpen(true); }}>Show the slip panel</Button>
           </div>
         </div>
       ) : (
