@@ -69,6 +69,14 @@ for the replay oracle, for the end of the game window about 22:00 CST).
 2. Launch lane E (steward) when D finishes; launch lane C when B is merged.
 3. Replay oracle after 22:00 CST for any live-path change: holdout row first, DB copy under a scratch directory.
 
+## Auto-resume (Devin started it in a terminal about 19:25 CST on 11-16)
+A terminal command resumes this session headless (`claude --resume ... -p "Continue the autonomous run..."`), either once
+after a fixed wait or hourly until `REPORT.md` contains the line `RUN COMPLETE`. Rules for a resumed copy:
+1. First check whether the original session is still working: `pgrep -fl "nba-wt-1117"` and
+   `git log --all --since="20 minutes ago" --oneline | head`. If there is activity, do nothing and end the turn.
+2. Otherwise continue from "Next three steps" below.
+3. The last line of `REPORT.md` is `RUN COMPLETE` only when the whole list is finished or deliberately closed.
+
 ## Notes for whoever resumes
 - Servers left running by this run: API 8010 (fixtures), API 8011 (real export, read-only), Vite 5183 and 5184, all from the
   integration worktree. They are plain foreground processes of the session; start them again with the quickstart.
