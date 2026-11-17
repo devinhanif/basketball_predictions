@@ -18,8 +18,10 @@
 // Exit code 1 on any violation. Not part of `npm run check`: it needs Chrome and servers. No dependency: plain Node + CDP.
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { clearTimeout, setTimeout } from "node:timers";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const args = process.argv.slice(2);
@@ -163,7 +165,18 @@ const NOT_FOUND_CODES = ["bad_route", "not_found", "unknown_game", "unknown_slat
 
 // ------------------------------------------------------------------------------------------------ chrome
 const profile = mkdtempSync(join(tmpdir(), "ph-walk-"));
-const port = 9300 + Math.floor(rng(SEED + 7)() * 400);
+// A free port from the system, never one derived from the seed: two walkers with the same seed used to pick the same
+// port, and the second one then drove the first one's browser (hangs and false violations when lanes ran at once).
+const port = await new Promise((resolve, reject) => {
+  const probe = createServer();
+  probe.once("error", reject);
+  probe.listen(0, "127.0.0.1", () => {
+    const { port: free } = probe.address();
+    probe.close(() => {
+      resolve(free);
+    });
+  });
+});
 const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--no-first-run", "--disable-gpu", "--allow-file-access-from-files", "about:blank"], { stdio: "ignore" });
 let target;
 for (let i = 0; i < 60 && !target; i++) {
@@ -188,10 +201,31 @@ let failedRequests = [];
 let scenario = "none";
 let midCount = 0;
 const injected = new Map();
+// A watchdog for the browser itself: headless Chrome can stall under load (seen with several walkers on one small
+// machine). If no CDP answer arrives for STALL_MS the walk stops with exit code 3: an infrastructure failure, not a page
+// violation, so the caller (app/scripts/walk.sh) retries it once.
+const STALL_MS = 90_000;
+let stallTimer = null;
+const armStall = () => {
+  if (stallTimer) clearTimeout(stallTimer);
+  stallTimer = setTimeout(() => {
+    console.error(`route-walk: the browser gave no answer for ${String(STALL_MS / 1000)} s; stopping (exit 3: a stalled browser, not a page violation)`);
+    try {
+      chrome.kill();
+    } catch {
+      /* already gone */
+    }
+    process.exit(3);
+  }, STALL_MS);
+};
 const send = (method, params = {}) =>
   new Promise((r) => {
     const i = ++msgId;
-    pend.set(i, r);
+    pend.set(i, (m) => {
+      armStall();
+      r(m);
+    });
+    armStall();
     ws.send(JSON.stringify({ id: i, method, params }));
   });
 const b64 = (s) => Buffer.from(s).toString("base64");
@@ -447,4 +481,5 @@ try {
 } catch {
   /* the profile is in the system temp folder; leaving it is harmless */
 }
+if (stallTimer) clearTimeout(stallTimer);
 process.exit(!SNAPSHOT && stats.violations > 0 ? 1 : 0);

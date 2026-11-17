@@ -51,9 +51,20 @@ done
 base="http://127.0.0.1:$WEB_PORT/"
 rc=0
 cd "$APP_DIR/web"
-node scripts/route-walk.mjs "$base" --seed 1 || rc=1
-node scripts/route-walk.mjs "$base" --seed 2 --inject || rc=1
+# One walk; a stalled browser (exit 3) is retried once, a page violation (exit 1) is not.
+walk() {
+  local code=0
+  node scripts/route-walk.mjs "$base" "$@" || code=$?
+  if [ "$code" = 3 ]; then
+    echo "walk.sh: the browser stalled; retrying this walk once" >&2
+    code=0
+    node scripts/route-walk.mjs "$base" "$@" || code=$?
+  fi
+  [ "$code" = 0 ] || rc=1
+}
+walk --seed 1
+walk --seed 2 --inject
 if [ "$widths" = 1 ]; then
-  for w in 360 768 1180; do node scripts/route-walk.mjs "$base" --seed 3 --width "$w" || rc=1; done
+  for w in 360 768 1180; do walk --seed 3 --width "$w"; done
 fi
 exit "$rc"
