@@ -107,7 +107,15 @@ Learn), 5 (not-found screen), 8 (intro replaces the welcome modal), 15 (forward 
 - Splitting `pipeline.py`, `runner.py`, `the_odds_api.py`, `live_close.py`: tests patch functions at the cut points.
 - Typed route table driving router, nav and palette: budget; the plan is in `lane_dx.md`.
 - A separate app polish pass and five suggested registry codes: superseded by the follow-up work (Jarvis look).
-- Phase 6 (math diagnostics): PHASE6_PENDING
+- Phase 6 (math diagnostics) was done as analysis and draft rules only (`lane_math_diagnostics.md`, two reading-log
+  entries under `docs/research/`, two DRAFT rules under `docs/prereg/`); nothing was fitted or scored.
+  - TDA regime flag: PARK. The mathematics is established; that it says more about forecast reliability than three
+    simple flags (minutes spread, games since a starter change, distance from the training rows) is not. Its minimum-data
+    gate could not be counted without opening `nba.duckdb`.
+  - Spectral parlay graph: DROP. The engine pools correlations by relation and stat pair, so the graph's spectrum is
+    fixed by which legs share a player or a game (for two legs the Fiedler value is |r|). The draft rule fails its own
+    gate: 0 of 1,355 parlay records in tonight's export have more than one leg. The copula's lift over the product of
+    marginals is the better thing to show once the export carries it.
 
 ## 9. Not verified
 
