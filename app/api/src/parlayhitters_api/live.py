@@ -66,6 +66,12 @@ MAX_SUBS_PER_GAME = 150
 MAX_WATCHED_GAMES = 30
 QUEUE_MAX = 64
 HEARTBEAT_S = 15.0
+#: Server-side bounds on one stream (live_routes.live_stream): a ``stale`` event after this long
+#: with no new capture body, an ``end`` and a close after IDLE_CLOSE_S with none, and an ``end``
+#: after STREAM_MAX_S whatever happens (the browser reconnects to a fresh snapshot).
+STALE_AFTER_S = 180.0
+IDLE_CLOSE_S = 1800.0
+STREAM_MAX_S = 4 * 3600.0
 PARSE_CACHE_MAX = 64
 MAX_BODY_BYTES = 20_000_000  # decompressed; a larger body is refused, not parsed
 

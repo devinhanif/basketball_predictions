@@ -15,6 +15,9 @@ from .errors import ApiError
 from .live import (
     ATTRIBUTION,
     HEARTBEAT_S,
+    IDLE_CLOSE_S,
+    STALE_AFTER_S,
+    STREAM_MAX_S,
     HubFull,
     LiveHub,
     UnknownGame,
@@ -22,6 +25,7 @@ from .live import (
     plays_before,
     read_checkpoint,
     snapshot_payload,
+    sse,
 )
 from .params import EventId, LiveDate
 
@@ -71,7 +75,12 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
     @app.get("/api/live/{game_id}/stream")
     async def live_stream(game_id: EventId) -> StreamingResponse:
         """Server-Sent Events: a snapshot, then deltas as new capture bodies land; a heartbeat
-        comment every 15 s; closes after the final event."""
+        comment every 15 s; closes after the final event.
+
+        Bounded on the server: a ``stale`` event once no new capture body has landed for
+        STALE_AFTER_S (the capture may have stopped; the client can say so), an ``end`` event and
+        a clean close once none has landed for IDLE_CLOSE_S (``capture_stopped``) or the stream
+        has run STREAM_MAX_S (``max_duration``; the browser reconnects to a fresh snapshot)."""
         try:
             sub, first, final = await hub.subscribe(game_id)
         except UnknownGame:
@@ -84,6 +93,9 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
             ) from None
 
         async def body() -> AsyncIterator[str]:
+            loop = asyncio.get_running_loop()
+            opened = last_body = loop.time()
+            stale_sent = False
             try:
                 yield "retry: 2000\n\n" + first[0]
                 for m in first[1:]:
@@ -91,13 +103,42 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
                 if final:
                     return
                 while True:
+                    now = loop.time()
+                    if now - opened >= STREAM_MAX_S:
+                        yield sse("end", {"game_id": game_id, "reason": "max_duration"})
+                        return
+                    if now - last_body >= IDLE_CLOSE_S:
+                        idle = round(now - last_body, 1)
+                        yield sse(
+                            "end",
+                            {"game_id": game_id, "reason": "capture_stopped", "idle_s": idle},
+                        )
+                        return
+                    wait = min(
+                        HEARTBEAT_S,
+                        IDLE_CLOSE_S,
+                        STALE_AFTER_S,
+                        STREAM_MAX_S,
+                        STREAM_MAX_S - (now - opened),
+                        IDLE_CLOSE_S - (now - last_body),
+                    )
                     try:
-                        item = await asyncio.wait_for(sub.queue.get(), HEARTBEAT_S)
+                        item = await asyncio.wait_for(sub.queue.get(), max(0.01, wait))
                     except TimeoutError:
-                        yield ": hb\n\n"
+                        idle = loop.time() - last_body
+                        if not stale_sent and idle >= STALE_AFTER_S:
+                            stale_sent = True
+                            yield sse(
+                                "stale",
+                                {"game_id": game_id, "idle_s": round(idle, 1),
+                                 "note": "No new capture body has landed for a while."},
+                            )  # fmt: skip
+                        else:
+                            yield ": hb\n\n"
                         continue
                     if item is None:
                         return
+                    last_body, stale_sent = loop.time(), False
                     yield item
             finally:
                 hub.unsubscribe(game_id, sub)
