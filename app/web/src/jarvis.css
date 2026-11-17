@@ -1869,3 +1869,28 @@ details.alt > .alt-body {
 main h2 {
   scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
 }
+
+/* Prices by book on a phone: column heads may wrap and cells sit tighter, so the last column is not cut off. */
+@media (max-width: 599px) {
+  .leg-table th {
+    white-space: normal;
+  }
+}
+@media (max-width: 380px) {
+  .leg-table {
+    font-size: var(--fs-sm);
+  }
+  .leg-table th,
+  .leg-table td {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+  /* The narrowest phones: the what-if tiles go flat so the chart keeps its 12 px labels. */
+  .explore .xp-block,
+  .explore .xp-block:first-child {
+    padding: var(--sp-3) 0;
+    border-width: 1px 0 0;
+    border-radius: 0;
+    background: none;
+  }
+}
