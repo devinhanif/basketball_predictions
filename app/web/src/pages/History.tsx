@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { Badge, PageHead } from "../ui";
 import { EdgeBadge } from "../ui";
 import { Avatar } from "../Avatar";
 import { DeskAge, DeskGate } from "../DeskUI";
@@ -36,7 +37,10 @@ function Tiles({ desk }: { desk: Desk }) {
           {clv.ci ? `${ciText(clv.ci, "c")}, clustered on ${c?.clustered_on.replace("_", " ") ?? "date"}${c?.n_dates ? ` (${c.n_dates.toString()} dates)` : ""}` : (clv.reason ?? "")}
         </div>
         <div class="tile-n muted">All settled plays with a stored close. JARVIS's kill-switch rule uses a different sample (below).</div>
-        <div class="tile-n muted num">
+        <div class={`tile-n num pb-fixed${c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001 ? " on" : " muted"}`}>
+          {c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001 ? (
+            <Badge tone="amber" icon="book" word="Fixed review text, not live data" class="pb-fixed-badge" />
+          ) : null}
           {c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001
             ? "Fixed text from a dated review (docs/reviews/desk_export_premerge_2026-11-08.md, 2026-11-08), not live data: of the -0.88c, about 0.69c is half the closing spread paid by buying at the ask. The line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero."
             : "The 2026-11-08 review split this figure into half the closing spread and line movement; that split applies to the n = 83 snapshot only and is not shown for these numbers."}
@@ -402,17 +406,22 @@ function Body({ desk }: { desk: Desk }) {
   const clv = clvRate(desk);
   return (
     <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Model history</div>
-        <h1 class="answer">
-          {desk.record ? `${desk.record.n_won.toString()}-${desk.record.n_lost.toString()} on ${(desk.record.n_won + desk.record.n_lost).toLocaleString("en-US")} paper bets` : "No paper record is stored"}
-          {clv.value !== null ? ` · closing-line value ${signedCents(clv.value, 2)} (n = ${clv.n.toLocaleString("en-US")})` : ""}
-          {desk.status.kill_switch.on ? " · kill switch on" : ""}
-        </h1>
-        <p class="muted answer-src">
-          A record of paper results, costs and discipline. <DeskAge desk={desk} />
-        </p>
-      </header>
+      <PageHead
+        kicker="Model history"
+        class="pb-answer"
+        title={
+          <>
+            {desk.record ? `${desk.record.n_won.toString()}-${desk.record.n_lost.toString()} on ${(desk.record.n_won + desk.record.n_lost).toLocaleString("en-US")} paper bets` : "No paper record is stored"}
+            {clv.value !== null ? ` · closing-line value ${signedCents(clv.value, 2)} (n = ${clv.n.toLocaleString("en-US")})` : ""}
+            {desk.status.kill_switch.on ? " · kill switch on" : ""}
+          </>
+        }
+        description={
+          <>
+            A record of paper results, costs and discipline. <DeskAge desk={desk} />
+          </>
+        }
+      />
       <Tiles desk={desk} />
       <div class="two-col wide-left">
         <DaysCard desk={desk} />

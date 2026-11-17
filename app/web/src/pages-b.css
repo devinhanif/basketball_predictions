@@ -451,3 +451,44 @@
 .pb-prefs .setting + .setting {
   margin-top: var(--sp-4);
 }
+
+/* ---------------------------------------------------------------- desk pages (Signals, History, Hedge, Alerts, Admin) */
+.pb-answer .page-heading-title {
+  max-width: 30ch;
+  line-height: 1.15;
+}
+.pb-answer .page-heading-desc {
+  max-width: 72ch;
+}
+.pb-nights {
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+/* History: the dated review figures are fixed text; the callout and its badge make that impossible to miss. */
+.pb-fixed.on {
+  display: grid;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px dashed var(--amber);
+  border-radius: var(--radius-sm);
+  background: var(--amber-soft);
+  color: var(--ink);
+}
+.pb-fixed-badge {
+  justify-self: start;
+}
+.pb-fixed.on {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pb-fixed-badge.kbadge {
+  white-space: normal;
+  height: auto;
+  max-width: 100%;
+}
+@media (max-width: 520px) {
+  .tiles.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
