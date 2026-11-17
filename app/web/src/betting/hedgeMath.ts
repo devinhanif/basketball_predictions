@@ -152,13 +152,15 @@ export interface FixedHedgeResult {
 }
 
 /** Sample candidates (labelled sample on any screen that shows them). */
-export const FIXED_SCENARIO_CANDIDATES: readonly FixedHedgeCandidate[] = Object.freeze([
-  Object.freeze({ id: "no3" as const, name: "NO · Collin 3+ threes", kind: "Exact complement", subtitle: "Pays when Collin makes 0–2 threes", price: 52, fee: 1 }),
-  Object.freeze({ id: "no2" as const, name: "NO · Collin 2+ threes", kind: "Partial coverage", subtitle: "Exactly 2 threes leaves a gap", price: 41, fee: 1 }),
-  Object.freeze({ id: "phx" as const, name: "YES · Phoenix wins", kind: "Same-game exposure", subtitle: "Both positions can lose", price: 60, fee: 2 }),
+export const FIXED_SCENARIO_CANDIDATES: readonly FixedHedgeCandidate[] = /* @__PURE__ */ Object.freeze([
+  /* @__PURE__ */ Object.freeze({ id: "no3" as const, name: "NO · Collin 3+ threes", kind: "Exact complement", subtitle: "Pays when Collin makes 0–2 threes", price: 52, fee: 1 }),
+  /* @__PURE__ */ Object.freeze({ id: "no2" as const, name: "NO · Collin 2+ threes", kind: "Partial coverage", subtitle: "Exactly 2 threes leaves a gap", price: 41, fee: 1 }),
+  /* @__PURE__ */ Object.freeze({ id: "phx" as const, name: "YES · Phoenix wins", kind: "Same-game exposure", subtitle: "Both positions can lose", price: 60, fee: 2 }),
 ]);
 
-const FIXED_IDS = new Set<string>(FIXED_SCENARIO_CANDIDATES.map((c) => c.id));
+// Built on first use: a module-level call could survive tree-shaking in a build that never uses it.
+let fixedIds: Set<string> | null = null;
+const isFixedId = (id: string): boolean => (fixedIds ??= new Set<string>(FIXED_SCENARIO_CANDIDATES.map((c) => c.id))).has(id);
 const FIXED_BASE_COST_C = 78;
 const FIXED_BASE_PAYOUT_C = 200;
 const asDollars = (cents: number): number => Number((cents / 100).toFixed(8));
@@ -172,7 +174,7 @@ export function calculateFixedScenarioHedge(legs: unknown): FixedHedgeResult {
     if (raw === null || typeof raw !== "object") throw new TypeError("Unknown hedge settlement condition.");
     const leg = raw as Record<string, unknown>;
     const id = leg["id"];
-    if (typeof id !== "string" || !FIXED_IDS.has(id)) throw new TypeError("Unknown hedge settlement condition.");
+    if (typeof id !== "string" || !isFixedId(id)) throw new TypeError("Unknown hedge settlement condition.");
     const { qty, price, fee } = leg;
     if (!isNum(qty) || !Number.isInteger(qty) || qty < 1 || qty > 100) throw new RangeError("Quantity must be a whole number from 1 to 100.");
     if (!isNum(price) || price < 0 || price > 100) throw new RangeError("Ask must be from 0 to 100 cents.");

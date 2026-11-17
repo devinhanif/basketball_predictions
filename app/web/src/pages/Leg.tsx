@@ -18,6 +18,7 @@ import { Headline, LineCard, NoHistory } from "./LegLine";
 import { Books, Games, InWords, Ladder, ModelPanel } from "./LegHistory";
 import { DistributionPanel } from "../Distribution";
 import { LegPlaceholders } from "../NeedsFields";
+import { AddToSlipSlot } from "../BetSlots";
 import { EdgePanel, HeadsUp, Opponent, RolePanel, Splits, Teammates } from "./LegContext";
 
 const S = (n: number): string => n.toString();
@@ -186,6 +187,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
         onLine={setLine}
         onSide={setSide}
       />
+      <AddToSlipSlot gameId={data.game_id} playerId={data.player_id} stat={data.stat} side={side} line={shown} from="leg" />
       {data.prior_games === 0 ? (
         <>
           <NoHistory data={data} side={side} line={shown} row={row} market={market} />

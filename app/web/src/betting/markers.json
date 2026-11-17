@@ -1,9 +1,17 @@
 {
   "_comment": "Strings that exist only in the betting module. scripts/flag-parity.mjs and src/bettingSafety.test.ts read this list: an OFF build must contain none of them, an ON build all of them. Later lanes add their own distinctive strings here.",
   "markers": [
-    "Betting tools: analysis only, not advice, no orders are placed. Nothing is built here yet.",
+    "Tools for arithmetic on prices you see elsewhere",
     "/api/betting",
     "#/bet",
-    "ph-bet"
+    "ph-bet",
+    "ph.betting.workspace",
+    "Analysis only, not advice: no orders are placed.",
+    "Your rolling slip",
+    "Mark slip as placed",
+    "to your slip (no price yet)",
+    "Compare venues",
+    "The venues' settlement rules (did-not-play, voids, overtime) are not verified as equivalent.",
+    "Slip Hedge Finder"
   ]
 }

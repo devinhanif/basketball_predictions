@@ -6,10 +6,10 @@ import { STATS, type Stat } from "../types";
 import { frozenCopy } from "./ids";
 import type { Catalog, Fee, Freshness, Market, ProviderId, ProviderInfo, ProviderKind, Quote, QuotePrice, QuoteSlot, Side } from "./types";
 
-export const KNOWN_PROVIDERS: readonly ProviderInfo[] = Object.freeze([
-  Object.freeze({ id: "kalshi", label: "Kalshi", kind: "exchange" as const }),
-  Object.freeze({ id: "draftkings", label: "DraftKings", kind: "sportsbook" as const }),
-  Object.freeze({ id: "prizepicks", label: "PrizePicks", kind: "entry" as const }),
+export const KNOWN_PROVIDERS: readonly ProviderInfo[] = /* @__PURE__ */ Object.freeze([
+  /* @__PURE__ */ Object.freeze({ id: "kalshi", label: "Kalshi", kind: "exchange" as const }),
+  /* @__PURE__ */ Object.freeze({ id: "draftkings", label: "DraftKings", kind: "sportsbook" as const }),
+  /* @__PURE__ */ Object.freeze({ id: "prizepicks", label: "PrizePicks", kind: "entry" as const }),
 ]);
 
 /** A planned price older than this is stale (and an earlier `expiresAt` wins). A parameter everywhere it is used. */
