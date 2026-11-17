@@ -18,6 +18,7 @@ from .errors import (
     request_id_of,
 )
 from .export_store import ExportRefused
+from .features import betting_enabled
 from .forecast import american_to_raw_prob
 from .live import LiveHub
 from .live_routes import register_live
@@ -27,7 +28,10 @@ from .views import STATS, _swipe_empty_note
 LOCAL_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
 
 
-def create_app() -> FastAPI:
+def create_app(*, betting: bool | None = None) -> FastAPI:
+    """The app. ``betting`` None reads the switch (``features.betting_enabled``) now, at creation;
+    tests pass True or False to build either state."""
+    betting_on = betting_enabled() if betting is None else betting
     app = FastAPI(
         title="parlayhitters.ai read-only API",
         version="0.1.0",
@@ -63,6 +67,10 @@ def create_app() -> FastAPI:
 
     install_error_handlers(app)
     register(app)
+    if betting_on:
+        from .betting import register as register_betting  # imported only when the switch is on
+
+        register_betting(app)
     register_live(app, LiveHub())
     # Outermost: the request id is on every response, including the last-resort 500.
     app.add_middleware(RequestContext)

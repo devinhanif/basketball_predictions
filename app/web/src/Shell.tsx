@@ -16,6 +16,9 @@ import { ShortcutsDialog, isTypingTarget } from "./Shortcuts";
 import { dismissToast, useToasts } from "./toast";
 import { openTour } from "./tourState";
 import { HealthStrip } from "./HealthStrip";
+import { BETTING } from "./features";
+import { BETTING_MODULE, betCrumbs, betHref, type BettingNavEntry } from "./betting";
+import { BetShellPanel } from "./BetSlots";
 
 interface NavDef {
   name: TopName;
@@ -47,6 +50,8 @@ const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
   terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
+  // A betting screen has no TopName of its own (the module brings its own nav); crumbs() names it and `here` is null.
+  bet: "today",
 };
 const TITLES: Record<TopName, string> = {
   today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
@@ -55,6 +60,7 @@ const TITLES: Record<TopName, string> = {
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };
 
 function crumbs(route: Route): string[] {
+  if (BETTING && route.name === "bet") return betCrumbs(route);
   const top = TITLES[ROUTE_TOP[route.name]];
   const sub = CRUMB[route.name];
   return sub ? [top, sub] : [top];
@@ -310,7 +316,8 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
   const lens = useLens();
   const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
   const tabs = TABS.filter((t) => visible.some((w) => w.name === t));
-  const here = ROUTE_TOP[props.route.name];
+  // On a betting screen no top-level view is current (the module's own nav entry is).
+  const here: TopName | null = BETTING && props.route.name === "bet" ? null : ROUTE_TOP[props.route.name];
   const ready = deskOf(desk);
   const workspace = ready?.privacy === "private" ? "Jarvis Desk (private)" : "Public";
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
@@ -349,6 +356,14 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
     </a>
   );
   const crumb = crumbs(props.route);
+  // The betting module's nav entries (none in a build with the switch off).
+  const betNav: readonly BettingNavEntry[] = BETTING ? BETTING_MODULE.nav.filter((n) => lens === "market" || !n.marketOnly) : [];
+  const betLink = (n: BettingNavEntry) => (
+    <a key={n.href} class="side-link" href={n.href} aria-current={props.route.name === "bet" && n.href === betHref(props.route.path.join("/")) ? "page" : undefined}>
+      <Icon name={n.icon} />
+      <span>{n.label}</span>
+    </a>
+  );
 
   return (
     <div class="shell">
@@ -385,6 +400,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
         <div class="side-label">Workspace</div>
         <nav class="side-nav" aria-label="Main">
           {visible.map((n) => link(n, "side-link"))}
+          {BETTING ? betNav.map(betLink) : null}
         </nav>
         <div class="side-label">Management</div>
         <nav class="side-nav" aria-label="Management">
@@ -479,6 +495,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
           {menuOpen ? (
             <nav class="nav-sheet" aria-label="All screens">
               {[...visible, ...mgmt].map((n) => link(n, "side-link"))}
+              {BETTING ? betNav.map(betLink) : null}
             </nav>
           ) : null}
         </header>
@@ -518,6 +535,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
           </div>
         ) : null}
         <main id="main" tabIndex={-1}>{props.children}</main>
+        {BETTING ? <BetShellPanel onBetRoute={props.route.name === "bet"} /> : null}
         <Footer />
       </div>
       <nav class="nav-bottom" aria-label="Main">

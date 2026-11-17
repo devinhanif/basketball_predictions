@@ -27,8 +27,10 @@ describe("betting module hygiene", () => {
     }
   });
 
-  it("no file imports preact, react or any app module beyond the pure types and time helpers", () => {
-    for (const f of files) {
+  it("no pure-logic file imports preact, react or any app module beyond the pure types and time helpers", () => {
+    // index.ts and seam.ts are the registration seam (routes, nav, slots): they are the two files that may touch the UI.
+    const seam = new Set(["index.ts", "seam.ts"]);
+    for (const f of files.filter((x) => !seam.has(x))) {
       const imports = [...readFileSync(join(here, f), "utf8").matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1] ?? "");
       for (const i of imports) {
         expect(/^(preact|react)/.test(i), `${f} imports ${i}`).toBe(false);

@@ -12,6 +12,8 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from urllib.parse import quote
 
+from parlayhitters_api.features import betting_enabled
+
 #: Valid values for the committed fixtures (fixture_replay store, live fixture capture).
 VALID: dict[str, str] = {
     "date": "2024-11-12",
@@ -65,6 +67,15 @@ ROUTES: list[tuple[str, tuple[str, ...], dict[str, str]]] = [
     ("/api/parlay-diagnostics/{date}", ("date",), {"offset": "0", "limit": "100"}),
     ("/api/errors", (), {}),
 ]
+
+#: The betting module's routes. Served only with the betting switch on, so they join ROUTES (and
+#: every test that walks it) only in a run with the switch on; tests/test_betting_flag.py fuzzes
+#: them in both states explicitly.
+BETTING_ROUTES: list[tuple[str, tuple[str, ...], dict[str, str]]] = [
+    ("/api/betting/status", (), {}),
+]
+if betting_enabled():
+    ROUTES = ROUTES + BETTING_ROUTES
 
 #: The name a refusal must give for each parameter (the live routes' path names).
 FIELD: dict[str, str] = {"live_date": "date", "event_id": "game_id"}

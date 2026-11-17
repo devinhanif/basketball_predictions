@@ -2,6 +2,8 @@ import { useEffect, useState } from "preact/hooks";
 import { ScrollNav, restoreScroll } from "./scrollNav";
 import { isLegStat, type LegStat, type Side } from "./legTypes";
 import { IS_ARTIFACT } from "./env";
+import { BETTING } from "./features";
+import { parseBet, type BetRoute } from "./betting";
 import { isIsoDate } from "./time";
 import { STATS } from "./types";
 import { getPrefs, type Screen } from "./prefs";
@@ -33,6 +35,8 @@ export type Route =
   | { name: "help"; code: string | null; q: string | null }
   /** Key terms; `term` is the anchor to scroll to, `q` the search box. */
   | { name: "terms"; term: string | null; q: string | null }
+  /** A betting tools screen (the "bet" prefix). Only ever parsed in a build with the betting switch on (./features). */
+  | BetRoute
   /** Anything the app could not have linked to; `hash` is what was asked for. */
   | { name: "notfound"; hash: string };
 
@@ -222,6 +226,9 @@ export function parse(hash: string): Route {
       if (d === undefined || parts.length > 2 || (parts[1] !== undefined && lid === null)) return notFound;
       return { name: "live", id: lid, date: d };
     }
+    case "bet":
+      // Reserved for the betting module: every address under the "bet" prefix is not-found unless the build has the switch on.
+      return BETTING ? (parseBet(parts.slice(1), query) ?? notFound) : notFound;
     default:
       return notFound;
   }

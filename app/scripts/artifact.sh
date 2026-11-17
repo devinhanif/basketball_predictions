@@ -4,6 +4,8 @@
 #   app/scripts/artifact.sh                  bake from the committed fixtures (two 2024-25 nights)
 #   app/scripts/artifact.sh --export [DIR]   bake from the nightly export (DIR, else $APP_EXPORT_DIR,
 #                                            else <repo>/data/export/latest), read-only
+#   app/scripts/artifact.sh --betting        build the page with the betting switch ON (VITE_PH_BETTING=1); without it
+#                                            the variable is removed, so the page is built OFF whatever the shell says
 #
 # Never passes --money to the bake, so the page carries the shared desk cut only.
 # Writes app/web/artifact-data/baked.json and app/web/dist-artifact/ (both git-ignored). Prints path and size.
@@ -15,13 +17,15 @@ die() { echo "artifact.sh: $*" >&2; exit 1; }
 
 use_export=0
 export_dir=""
+betting=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --export)
       use_export=1
       if [ $# -gt 1 ] && [ "${2#--}" = "$2" ]; then export_dir="$2"; shift; fi
       ;;
-    -h|--help) sed -n '2,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --betting) betting=1 ;;
+    -h|--help) sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option '$1' (try --help)" ;;
   esac
   shift
@@ -50,7 +54,12 @@ else
 fi
 
 echo "artifact.sh: building the page"
-(cd "$APP_DIR/web" && npm run build:artifact)
+if [ "$betting" = 1 ]; then
+  echo "artifact.sh: the betting switch is ON for this page"
+  (cd "$APP_DIR/web" && env VITE_PH_BETTING=1 npm run build:artifact)
+else
+  (cd "$APP_DIR/web" && env -u VITE_PH_BETTING npm run build:artifact)
+fi
 
 out="$APP_DIR/web/dist-artifact/parlayhitters.html"
 [ -f "$out" ] || die "the build finished but $out is missing"
