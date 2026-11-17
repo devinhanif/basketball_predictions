@@ -15,6 +15,7 @@ import { didText, sideText } from "../words";
 import { useLens } from "../prefs";
 import { swipeKeyChoice } from "../swipeKeys";
 import { PageHead } from "../ui";
+import { useCurrentTab } from "../useCurrentTab";
 
 function newSeed(): number {
   const a = new Uint32Array(1);
@@ -242,6 +243,19 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
   );
 }
 
+function NightTabs(props: { dates: string[]; date: string | null }) {
+  const ref = useCurrentTab(`${props.date ?? ""}|${props.dates.length}`);
+  return (
+    <nav class="tabs night-tabs" aria-label="Choose a night" ref={ref}>
+      {props.dates.map((d) => (
+        <a key={d} class="tab" href={`#/swipe?date=${d}`} aria-current={d === props.date ? "true" : undefined}>
+          {longDate(d).replace(/, \d{4}$/, "")}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export function Swipe(props: { date: string | null; onStale: (s: boolean) => void }) {
   const market = useLens() === "market";
   const [list, reloadList] = useLoad(() => api.slates(), []);
@@ -269,13 +283,7 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
           const date = props.date ?? defaultNight(slates);
           return (
             <>
-              <nav class="tabs night-tabs" aria-label="Choose a night">
-                {slates.map((s) => (
-                  <a key={s.date} class="tab" href={`#/swipe?date=${s.date}`} aria-current={s.date === date ? "true" : undefined}>
-                    {longDate(s.date).replace(/, \d{4}$/, "")}
-                  </a>
-                ))}
-              </nav>
+              <NightTabs dates={slates.map((x) => x.date)} date={date} />
               {date ? <DeckLoader date={date} onStale={props.onStale} /> : null}
             </>
           );

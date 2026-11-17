@@ -13,6 +13,7 @@ import { STATS, STAT_LABEL, type CalBin, type CalSeries, type PropsPublished, ty
 import { useLoad } from "../useLoad";
 import { didText } from "../words";
 import { Guess } from "./RecordGuess";
+import { useCurrentTab } from "../useCurrentTab";
 
 const S = (n: number): string => n.toString();
 
@@ -192,6 +193,7 @@ function Replay(props: { date: string | null }) {
 }
 
 function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
+  const navRef = useCurrentTab<HTMLDivElement>(props.date);
   const [slate, reload] = useLoad(() => api.slate(props.date), [props.date]);
   const analyst = useMode() === "analyst";
   return (
@@ -210,7 +212,7 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
         </div>
         <p class="small muted">Each forecast below is the last one stored before that game's tip. Results stay hidden until you tap.</p>
         {isLockedNight(props.date) ? <p class="small muted">{LOCK_NOTE}</p> : null}
-        <div class="tabs rp-nights" role="group" aria-label="Night">
+        <div class="tabs rp-nights" role="group" aria-label="Night" ref={navRef}>
           {props.nights.map((n) => (
             <a key={n.date} class="tab" href={recordHref("replay", n.date)} aria-current={n.date === props.date ? "true" : undefined}>
               {longDate(n.date).replace(/, \d{4}$/, "")}

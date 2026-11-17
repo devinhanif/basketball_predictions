@@ -267,6 +267,7 @@
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: var(--sp-2);
 }
 .kn-movers a {

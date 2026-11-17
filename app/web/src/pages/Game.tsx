@@ -132,7 +132,7 @@ function PlayerRow(props: { open: boolean; team: string; gameId: string; p: Play
               {lead.line_source === "reference" ? (
                 <>
                   <span class="muted small nowrap">Typical {STAT_SHORT[lead.stat]}</span>
-                  <span class="big-num">{num(lead.q[9] ?? 0)}</span>
+                  <span class="big-num">{(lead.q[9] ?? 0).toFixed(1)}</span>
                 </>
               ) : (
                 <>
