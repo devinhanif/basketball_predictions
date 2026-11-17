@@ -71,3 +71,26 @@ def test_contained(tmp_path: Path) -> None:
     assert contained(tmp_path / "a", tmp_path / "a" / "x.json")
     assert not contained(tmp_path / "a", tmp_path / "a" / ".." / "outside" / "x.json")
     assert not contained(tmp_path / "a", tmp_path / "a" / "link" / "x.json")
+
+
+def test_live_paths_cannot_be_built_from_unchecked_parts(tmp_path: Path) -> None:
+    from parlayhitters_api import live
+
+    with pytest.raises(ValueError):
+        live.event_dirs(tmp_path, "../../etc", "401909952")
+    with pytest.raises(ValueError):
+        live.event_dirs(tmp_path, "2026-11-09", "../401909952")
+    assert live.locate_event(tmp_path, "../../x") is None
+    assert live.list_event_ids(tmp_path, "..") == []
+
+
+def test_top_parlays_refuses_a_file_that_points_outside_its_directory(tmp_path: Path) -> None:
+    from parlayhitters_api.top_parlays import TopParlaysMissing, load_top_parlays
+
+    base = tmp_path / "tp"
+    base.mkdir()
+    outside = tmp_path / "elsewhere.json"
+    outside.write_text("{}")
+    (base / "top_parlays_2024-01-01.json").symlink_to(outside)
+    with pytest.raises(TopParlaysMissing):
+        load_top_parlays("2024-01-01", base)
