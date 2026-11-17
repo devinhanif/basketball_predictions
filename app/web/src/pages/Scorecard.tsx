@@ -253,7 +253,7 @@ function Body({ s, market, analyst }: { s: Scorecard; market: boolean; analyst: 
           </details>
         )}
         <p class="small">
-          <a href={termHref("crps")}>CRPS</a> · <a href={termHref("n-interval")}>n and clustered interval</a> · <a href={termHref("prereg")}>Frozen rule</a>
+          <a class="nowrap" href={termHref("crps")}>CRPS</a> · <a class="nowrap" href={termHref("n-interval")}>n and clustered interval</a> · <a class="nowrap" href={termHref("prereg")}>Frozen rule</a>
         </p>
       </Method>
     </>

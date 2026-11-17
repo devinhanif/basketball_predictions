@@ -139,7 +139,7 @@ function Body(props: { d: Distribution; line: number; market: boolean; analyst: 
           note={
             <>
               {d.p_play?.source ? `Source ${d.p_play.source}${d.p_play.detail ? `, ${d.p_play.detail}` : ""}. ` : ""}
-              <a href={termHref("p-play")}>p_play</a>
+              <a class="tap" href={termHref("p-play")}>p_play</a>
             </>
           }
         />

@@ -10,7 +10,7 @@ import { Badge, Button, Dialog } from "../ui";
 import { centsText, count, lineText, longDate, odds } from "../format";
 import { agoText, stamp } from "../time";
 import { useLoad } from "../useLoad";
-import { KNOWN_PROVIDERS, freshness } from "./catalog";
+import { DEFAULT_MAX_QUOTE_AGE_MS, KNOWN_PROVIDERS, freshness } from "./catalog";
 import { NO_SNAPSHOTS, PROVENANCE_MEANING, PROVENANCE_WORD, SETTLEMENT_NOTE } from "./copy";
 import { PROV_TONE, PriceForm, marketWords, providerLabel } from "./parts";
 import { sampleCatalog } from "./sample";
@@ -101,6 +101,9 @@ export function snapshotSpan(cards: readonly VenueCard[]): { newest: string; old
 export function AboutPrices(props: { st: Stored; cards: readonly VenueCard[]; now: number; crownText: string | null }) {
   const { st } = props;
   const span = snapshotSpan(props.cards);
+  const stored = props.cards.flatMap((c) => (c.active && c.active.provenance === "delayed" ? [c.active] : []));
+  const staleStored = stored.filter((q) => freshness(q, props.now) === "stale");
+  const ageMinutes = Math.round(DEFAULT_MAX_QUOTE_AGE_MS / 60_000);
   const anyUnknownFee = props.cards.some((c) => c.active && c.active.price.kind !== "entry-pick" && c.active.price.fee.status === "unknown");
   let where: ComponentChildren;
   if (st.source === "sample") where = "Demo market: every price on it is an invented sample, labelled as such.";
@@ -139,6 +142,13 @@ export function AboutPrices(props: { st: Stored; cards: readonly VenueCard[]; no
   return (
     <ul class="ph-bet-about small" aria-label="About these prices">
       <li>{where}</li>
+      {staleStored.length ? (
+        <li>
+          A price older than {ageMinutes} minutes counts as out of date, so the slip shows no coverage figure while it is in a planned leg
+          {staleStored.length === stored.length ? ": every stored snapshot on this board is older than that." : "; each row shows its age."} Type a current
+          price to use one.
+        </li>
+      ) : null}
       {anyUnknownFee ? <li>Cost per $1 of payout is blank where a venue's fee is unknown. The export carries no fees; set one below if you know it.</li> : null}
       <li>{SETTLEMENT_NOTE}</li>
       <li>
@@ -210,7 +220,7 @@ export function nativePrice(q: Quote): string {
 }
 
 /** Provenance word and age on one short line (the full time is on hover and in the screen reader's text). */
-export function SourceCell(props: { quote: Quote; now: number }) {
+export function SourceCell(props: { quote: Quote; now: number; /** The board says once above that old stored snapshots are out of date. */ quiet?: boolean }) {
   const q = props.quote;
   const f = freshness(q, props.now);
   const age = q.provenance === "sample" ? null : agoText(q.observedAt, new Date(props.now));
@@ -220,8 +230,13 @@ export function SourceCell(props: { quote: Quote; now: number }) {
       <Badge tone={PROV_TONE[q.provenance]} icon={q.provenance === "manual" ? "user" : q.provenance === "sample" ? "spark" : "history"} word={PROVENANCE_WORD[q.provenance]} />
       <span class="small muted num">
         {age ?? (q.provenance === "sample" ? "sample" : "age unknown")}
-        {f === "stale" ? " · out of date" : ""}
-        <span class="sr"> ({when})</span>
+        {/* On a board, a stored (delayed) snapshot's staleness is said once above it; a typed price that went stale says it here. */}
+        {f === "stale" && !(props.quiet && q.provenance === "delayed") ? " · out of date" : ""}
+        <span class="sr">
+          {" "}
+          ({f === "stale" ? "out of date; " : ""}
+          {when})
+        </span>
       </span>
     </span>
   );
@@ -307,7 +322,7 @@ export function VenueBoard(props: {
               {nativePrice(q)}
             </td>
             <td class="ph-bet-b-src" data-label="Source">
-              <SourceCell quote={q} now={props.now} />
+              <SourceCell quote={q} now={props.now} quiet />
             </td>
             <td class="ph-bet-b-fee num small" data-label="Fee">
               <span class="ph-bet-b-lab">Fee </span>

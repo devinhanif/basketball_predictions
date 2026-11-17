@@ -12,11 +12,6 @@
   min-width: 44px;
   min-height: 44px;
 }
-.switch::before {
-  content: "";
-  position: absolute;
-  inset: -8px -4px;
-}
 details > summary {
   min-height: 44px;
 }

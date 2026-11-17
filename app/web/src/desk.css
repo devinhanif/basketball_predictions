@@ -1050,27 +1050,37 @@ details.panel > summary {
   margin: 0;
 }
 .switch {
+  /* The button itself is the 44 px target; the 52 x 32 track is drawn inside it. */
   appearance: none;
   flex: none;
-  width: 52px;
-  height: 32px;
+  width: 60px;
+  height: 44px;
+  padding: 0;
+  border: 0;
   border-radius: var(--pill);
-  border: 1px solid var(--line);
-  background: var(--surface-3);
+  background: transparent;
   position: relative;
   cursor: pointer;
 }
+.switch::before {
+  content: "";
+  position: absolute;
+  inset: 6px 4px;
+  border-radius: var(--pill);
+  border: 1px solid var(--line);
+  background: var(--surface-3);
+}
 .switch i {
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 10px;
+  left: 8px;
   width: 24px;
   height: 24px;
   border-radius: 50%;
   background: var(--ink);
   transition: transform 0.15s;
 }
-.switch.on {
+.switch.on::before {
   background: var(--accent);
   border-color: var(--accent);
 }

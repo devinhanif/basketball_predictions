@@ -4,13 +4,15 @@ import type { ComponentChildren } from "preact";
  * The page heading block: a kicker (short, upper-case), the title, one line of description and the page's actions on the
  * right (below the text on a phone). The title is the page's h1 unless `level` says otherwise.
  */
-export function PageHead(props: { kicker?: ComponentChildren; title: ComponentChildren; description?: ComponentChildren; actions?: ComponentChildren; level?: 1 | 2; class?: string }) {
+export function PageHead(props: { kicker?: ComponentChildren; title: ComponentChildren; description?: ComponentChildren; actions?: ComponentChildren; level?: 1 | 2; class?: string; id?: string }) {
   const H = props.level === 2 ? "h2" : "h1";
   return (
     <header class={`page-heading${props.class ? ` ${props.class}` : ""}`}>
       <div class="page-heading-text">
         {props.kicker ? <div class="eyebrow">{props.kicker}</div> : null}
-        <H class="page-heading-title">{props.title}</H>
+        <H class="page-heading-title" id={props.id}>
+          {props.title}
+        </H>
         {props.description ? <p class="page-heading-desc">{props.description}</p> : null}
       </div>
       {props.actions ? <div class="page-heading-actions">{props.actions}</div> : null}

@@ -4,7 +4,7 @@
 // listed outcome at the saved prices, the viewer's own paper outcomes (typed by hand, unverified) and the net they give,
 // which is arithmetic on the saved prices only. Loading an idea copies it into the slip; the idea never changes.
 import { useRef, useState } from "preact/hooks";
-import { Badge, Button, Dialog, FilterChips, Skeleton, Tile } from "../ui";
+import { Badge, Button, Dialog, FilterChips, PageHead, Skeleton, Tile } from "../ui";
 import { count, lineText } from "../format";
 import { saveTextFile } from "../saveFile";
 import { stamp } from "../time";
@@ -479,14 +479,23 @@ function IdeaPage(props: { bet: Ready; id: string }) {
   const firstExport = idea.legs.find((l) => l.market.origin !== "manual");
   return (
     <>
-      <div class="ph-bet-idea-title">
-        <h1 id="ph-bet-ideas-h">{idea.title || "Untitled idea"}</h1>
-        <StatusBadge status={idea.status} />
-        {idea.origin === "sample" ? <Badge tone="none" icon="spark" word="sample" title="Saved from the labelled demo: invented prices" /> : null}
-      </div>
-      <p class="small muted num">
-        Saved {stamp(idea.createdAt)} · {count(idea.legs.length)} {idea.legs.length === 1 ? "leg" : "legs"} · prices frozen at save time
-      </p>
+      <PageHead
+        id="ph-bet-ideas-h"
+        class="ph-bet-idea-title"
+        kicker="Saved idea"
+        title={idea.title || "Untitled idea"}
+        description={
+          <span class="num">
+            Saved {stamp(idea.createdAt)} · {count(idea.legs.length)} {idea.legs.length === 1 ? "leg" : "legs"} · prices frozen at save time
+          </span>
+        }
+        actions={
+          <>
+            <StatusBadge status={idea.status} />
+            {idea.origin === "sample" ? <Badge tone="none" icon="spark" word="sample" title="Saved from the labelled demo: invented prices" /> : null}
+          </>
+        }
+      />
       <MoneyNote arithmetic />
       <section aria-label="Thesis" class="ph-bet-thesis">
         <p>{idea.thesis || <span class="muted">No thesis was saved with this idea.</span>}</p>
@@ -541,8 +550,14 @@ export function IdeasPage(props: { route: BetRoute }) {
             <a href="#/bet/ideas">All ideas</a>
           </p>
         ) : null}
-        {id ? null : <h1 id="ph-bet-ideas-h">{TITLE_IDEAS}</h1>}
-        {id ? null : <p class="ph-bet-lede">Your reasoning, kept with the legs and prices exactly as they were when you saved them. Come back after the game and record what happened.</p>}
+        {id ? null : (
+          <PageHead
+            id="ph-bet-ideas-h"
+            kicker="Betting tools"
+            title={TITLE_IDEAS}
+            description="Your reasoning, kept with the legs and prices exactly as they were when you saved them. Come back after the game and record what happened."
+          />
+        )}
         {id ? null : <MoneyNote arithmetic />}
         {!bet.ready ? <Skeleton lines={3} label="Waiting to know who is looking" /> : id ? <IdeaPage bet={bet} id={id} /> : <IdeasList bet={bet} />}
       </section>

@@ -94,9 +94,11 @@ export function MoneyNote(props: { arithmetic?: boolean }) {
 }
 
 /** Betting screens are Market-lens tools: in Learn and Explore they show the app's "Market screen" note instead. */
-export function MarketGate(props: { name: string; what: string; children: ComponentChildren }) {
+export function MarketGate(props: { name: string; what: string; level?: 1 | 2 | 3; children: ComponentChildren }) {
   const lens = useLens();
-  if (lens !== "market") return <MarketOnly name={props.name} what={props.what} />;
+  // The note is the page's only heading on a standalone betting screen (level 1, the default); a gate placed under a
+  // page's own h1 passes level 2 so the page keeps exactly one h1.
+  if (lens !== "market") return <MarketOnly name={props.name} what={props.what} level={props.level ?? 1} />;
   return <>{props.children}</>;
 }
 
@@ -260,6 +262,7 @@ export function LegCard(props: { leg: SlipLeg; actions: BetActions; now: number;
           <label class="ph-bet-check">
             <input
               type="checkbox"
+              class="tap-check"
               checked={leg.enabled}
               aria-label={`Include ${words} at ${venue}`}
               onChange={() => {

@@ -3,7 +3,7 @@
 // placed" (a local record, confirmed in a dialog), the way into the Hedge Finder, export/import and the labelled demo.
 // Shown in two places: the persistent panel (compact) and the page #/bet/slip (full).
 import { useEffect, useRef, useState } from "preact/hooks";
-import { Button, Dialog, Skeleton, clearSidePanel, setSidePanel } from "../ui";
+import { Button, Dialog, PageHead, Skeleton, clearSidePanel, setSidePanel } from "../ui";
 import { Icon } from "../icons";
 import { count } from "../format";
 import { saveTextFile } from "../saveFile";
@@ -417,13 +417,47 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
 }
 
 /** #/bet/slip */
+/** True while the slip page is on screen (the single-file snapshot keeps detail routes in memory, so the hash cannot say). */
+let slipPageShown = false;
+let slipPageListeners: Set<() => void> | null = null;
+function slipPageSet(on: boolean): void {
+  slipPageShown = on;
+  for (const l of slipPageListeners ?? []) l();
+}
+function useSlipPageShown(): boolean {
+  const [on, setOn] = useState(slipPageShown);
+  useEffect(() => {
+    slipPageListeners ??= new Set();
+    const l = (): void => {
+      setOn(slipPageShown);
+    };
+    slipPageListeners.add(l);
+    l();
+    return () => {
+      slipPageListeners?.delete(l);
+    };
+  }, []);
+  return on;
+}
+
 export function SlipPage() {
   ensureBetStyles();
   const bet = useBet();
+  useEffect(() => {
+    slipPageSet(true);
+    return () => {
+      slipPageSet(false);
+    };
+  }, []);
   return (
     <MarketGate name="The rolling slip" what="The rolling slip holds prices, costs and payouts.">
       <section class="ph-bet stack" aria-labelledby="ph-bet-slip-h">
-        <h1 id="ph-bet-slip-h">{TITLE_SLIP}</h1>
+        <PageHead
+          id="ph-bet-slip-h"
+          kicker="Betting tools"
+          title={TITLE_SLIP}
+          description="The picks and priced legs you are weighing, and the bets you already placed elsewhere, kept in this browser only."
+        />
         {bet.ready ? <SlipBody bet={bet} /> : <Skeleton lines={3} label="Waiting to know who is looking" />}
       </section>
     </MarketGate>
@@ -478,8 +512,10 @@ const sideContent = () => <SlipSide />;
 /** The coalesced betting notices, placed away from the control just used. */
 function Notices() {
   const list = useNotices();
+  // From 1024 px every notice sits in one stack at the sidebar's foot (betting.css), so top and bottom are one group.
+  const oneStack = useWide(1024);
   if (!list.length) return null;
-  const at = (place: "top" | "bottom") => list.filter((n) => n.place === place);
+  const at = (place: "top" | "bottom") => (oneStack ? (place === "bottom" ? list : []) : list.filter((n) => n.place === place));
   return (
     <>
       {(["top", "bottom"] as const).map((place) =>
@@ -516,7 +552,8 @@ export function SlipPanel() {
   const hash = useHash();
   const launcher = useRef<HTMLButtonElement>(null);
   const ready = bet.ready && (bet.view.workspace !== null || bet.view.phase === "error");
-  const plan = slipPanelPlan({ lens, ready, wide, open, onSlipPage: isSlipPage(hash) });
+  const onSlipPage = useSlipPageShown();
+  const plan = slipPanelPlan({ lens, ready, wide, open, onSlipPage: isSlipPage(hash) || onSlipPage });
   const n = bet.ready && bet.view.workspace ? slipCount(bet.view.workspace) : 0;
   const unsaved = bet.ready && bet.view.dirty;
   const was = useRef(plan);
@@ -530,6 +567,13 @@ export function SlipPanel() {
     },
     [],
   );
+  useEffect(() => {
+    // The floating launcher: the page's foot reserves room for it (the shell's stylesheet reads this class).
+    document.documentElement.classList.toggle("has-float-launcher", plan === "launcher");
+    return () => {
+      document.documentElement.classList.remove("has-float-launcher");
+    };
+  }, [plan]);
   useEffect(() => {
     // Hiding the rail puts focus back on the button that brings it back.
     if (was.current === "rail" && plan === "launcher") launcher.current?.focus();

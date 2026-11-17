@@ -337,3 +337,18 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* Game: the win-chance card's foot, where the record behind the number is opened (J7: it floated centred between the
+   two "?" disclosures). */
+.scoreboard .score-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.scoreboard .score-foot .prov-open {
+  padding-left: 0;
+}

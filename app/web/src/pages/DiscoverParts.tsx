@@ -324,7 +324,7 @@ export function Discipline({ desk, engine }: { desk: Desk | null; engine: Parlay
         <>
           <h3>{engine ? engine.title : "No discipline check is stored"}</h3>
           <p class="small">{engine ? engine.verdict_line : "The engine's state could not be read."}</p>
-          <a class="linklike" href="#/parlay">
+          <a class="linklike tap" href="#/parlay">
             The full story
           </a>
         </>

@@ -14,12 +14,12 @@ import { count, lineText, longDate } from "../format";
 import { ladderAt } from "../leg";
 import type { LegBreakdown, LegStat, Side as PageSide } from "../legTypes";
 import { stamp, agoText } from "../time";
-import { Skeleton } from "../ui";
+import { PageHead, Skeleton } from "../ui";
 import { DistributionPanel } from "../Distribution";
 import { Headline } from "../pages/LegLine";
 import { ModelPanel } from "../pages/LegHistory";
 import type { BetRoute } from "./seam";
-import { TITLE_ANALYSIS } from "./copy";
+import { NO_SNAPSHOTS, TITLE_ANALYSIS } from "./copy";
 import { MarketGate, MoneyNote, providerLabel } from "./parts";
 import { MarketHead, MarketProblem, useMarketFromQuery, useRawBoard } from "./board";
 import { ideaHref } from "./Ideas";
@@ -201,7 +201,7 @@ function AnalysisScreen(props: { route: BetRoute }) {
             Stored snapshots could not be read: {failureMessage(board.failure)}
           </p>
         ) : board.kind === "off" ? (
-          <p class="small">Stored snapshots are not available from this server.</p>
+          <p class="small">{NO_SNAPSHOTS}</p>
         ) : (
           <BoardSummary board={board.data} market={m} now={now} />
         )}
@@ -223,7 +223,12 @@ export function AnalysisPage(props: { route: BetRoute }) {
   return (
     <MarketGate name="Prop analysis" what="Prop analysis shows stored prices beside the model's forecast.">
       <section class="ph-bet stack" aria-labelledby="ph-bet-an-h">
-        <h1 id="ph-bet-an-h">{TITLE_ANALYSIS}</h1>
+        <PageHead
+          id="ph-bet-an-h"
+          kicker="Betting tools"
+          title={TITLE_ANALYSIS}
+          description="The model's stored forecast for one prop, with the stored prices beside it as counts. Nothing here is a pick."
+        />
         <MoneyNote />
         <AnalysisScreen route={props.route} />
       </section>

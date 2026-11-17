@@ -94,7 +94,7 @@ function MinutesBlock(props: {
                 : ""}
             </p>
             <label class="xp-check">
-              <input type="checkbox" checked={props.narrow} onChange={(e) => { props.onNarrow(e.currentTarget.checked); }} /> Treat minutes as known (narrow the spread by that share)
+              <input type="checkbox" class="tap-check" checked={props.narrow} onChange={(e) => { props.onNarrow(e.currentTarget.checked); }} /> Treat minutes as known (narrow the spread by that share)
             </label>
           </>
         ) : (
@@ -294,7 +294,11 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   return (
     <div class="stack tight">
       <div class="xp-block">
-        <h3>Move the line</h3>
+        <h3>Move the what-if line</h3>
+        <p class="small muted xp-own-line">
+          This line belongs to the what-if only. It starts at {posted !== null ? "the posted line" : "the model's line"} and moves on its own:
+          the line card above does not follow it, and it does not follow the line card.
+        </p>
         <div class="ls-controls">
           <button type="button" class="btn" aria-label="Lower the line by one" disabled={line <= min} onClick={() => { step(-1); }}>
             -1

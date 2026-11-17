@@ -6,7 +6,7 @@
 import { useState } from "preact/hooks";
 import { api, getJson } from "../api";
 import { ApiError, failureMessage } from "../errors";
-import { Button, Dialog, Skeleton } from "../ui";
+import { Button, Dialog, PageHead, Skeleton } from "../ui";
 import { count, lineText, longDate, tipTime } from "../format";
 import { todayET } from "../time";
 import { useLoad, type LoadState } from "../useLoad";
@@ -469,7 +469,12 @@ export function CompareScreen(props: { route: BetRoute }) {
   const ms = useMarketFromQuery(q, bet.ready ? bet.view.workspace : null);
   return (
     <section class="ph-bet stack" aria-labelledby="ph-bet-cmp-h">
-      <h1 id="ph-bet-cmp-h">{TITLE_COMPARE}</h1>
+      <PageHead
+        id="ph-bet-cmp-h"
+        kicker="Betting tools"
+        title={TITLE_COMPARE}
+        description="One prop's price at each venue, side by side, with where each price came from, how old it is and its fee."
+      />
       <MoneyNote arithmetic />
       {!bet.ready || bet.view.workspace === null ? (
         <Skeleton lines={3} label="Loading your slip" />
@@ -482,7 +487,7 @@ export function CompareScreen(props: { route: BetRoute }) {
       ) : (
         <>
           <p class="small">
-            <a href="#/bet/compare">Pick another prop</a>
+            <a class="tap" href="#/bet/compare">Pick another prop</a>
           </p>
           <Comparison bet={bet} market={ms.market} side={sideOf(q.side)} />
         </>

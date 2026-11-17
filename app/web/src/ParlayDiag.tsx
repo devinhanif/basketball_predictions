@@ -52,7 +52,7 @@ function Body({ d, offset, onPage }: { d: ParlayDiag; offset: number; onPage: (o
           beside the copula one on each record; docs/contracts/PROPOSAL_export_fields_2026-11-17.md). Until then nothing is shown in their place.
         </p>
       ) : null}
-      <Table caption={`Records from ${count(d.offset)}, ${count(d.n_returned)} on this page`} rows={d.records} columns={COLS} rowKey={(r) => `${r.ticker ?? ""}-${r.legs.map((l) => `${l.side ?? ""}${String(l.threshold)}`).join("")}`} noun="records" class="sc-table pd-table" sticky stack />
+      <Table caption={`${count(d.n_returned)} of ${count(d.n_records)} stored records on this page${d.offset > 0 ? `, after the first ${count(d.offset)}` : ""}`} rows={d.records} columns={COLS} rowKey={(r) => `${r.ticker ?? ""}-${r.legs.map((l) => `${l.side ?? ""}${String(l.threshold)}`).join("")}`} noun="records" class="sc-table pd-table" sticky stack />
       <p class="row wrap pb-pager">
         <button type="button" class="btn" disabled={offset === 0} onClick={() => { onPage(Math.max(0, offset - PAGE)); }}>
           Previous page

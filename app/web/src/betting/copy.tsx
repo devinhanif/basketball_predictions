@@ -2,6 +2,8 @@
 // MONEY_NOTE; where arithmetic on typed prices is shown it also prints ARITHMETIC_NOTE. Tests and the browser journey look
 // for these exact strings.
 
+import { IS_ARTIFACT } from "../env";
+
 /** On every screen that shows prices, cost or hedge output. */
 export const MONEY_NOTE = "Analysis only, not advice: no orders are placed.";
 
@@ -20,7 +22,10 @@ export const PLACED_CONFIRM =
 export const REMOVE_RECORD_NOTE = "Removing a recorded position deletes this browser's note only. It does not cancel or change anything at the venue.";
 
 /** With the API's betting switch off (a typed 404), stored prices are simply not offered. */
-export const NO_SNAPSHOTS = "Stored snapshots are not available from this server; enter prices by hand.";
+/** Said where stored quotes cannot be read: the single-file snapshot has no server at all, so it says so plainly. */
+export const NO_SNAPSHOTS = IS_ARTIFACT
+  ? "Stored snapshots are not available in this snapshot; enter prices by hand."
+  : "Stored snapshots are not available from this server; enter prices by hand.";
 
 /** The demo button's label and what it does. */
 export const DEMO_LABEL = "Load the labelled demo";
