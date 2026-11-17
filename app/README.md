@@ -66,6 +66,8 @@ See "Reading the nightly export" below for the exact rules.
 | `PARLAYHITTERS_MODEL_CHEAP`, `_STRONG` | `dissect/providers.py` | unset | model names for the stub provider's tiers |
 | `NBA_PYTHON` | one API test | unset | interpreter that rebuilds `fixtures/export_small`; the test skips without it |
 | `VITE_ARTIFACT` | `web/vite.config.artifact.ts` (`env.ts`) | unset | `1` only in the artifact build: swaps `transport.ts` for `transport.static.ts` |
+| `VITE_PH_BETTING` | web build (`web/src/features.ts` only) | unset = off | `1` builds the betting tools module in (see "The betting switch") |
+| `PH_BETTING` | API (`features.py` only), read at `create_app` | unset = off | `1` adds the betting module's GET routes under `/api/betting/` |
 | `ONLY`, `W` | `web/scripts/shots.mjs` | unset | screenshot filters |
 
 Ports in use: 8000 API, 5173 dev server, 4173 `npm run preview`. All are bound to 127.0.0.1 except the `:lan` scripts.
@@ -78,6 +80,7 @@ app/scripts/check.sh --fast       # pytest without test_live, test_links, test_l
 app/scripts/check.sh --bake       # bake the artifact data from the fixtures first
 app/scripts/check.sh --browser    # also the browser route walk: scripts/walk.sh starts its own servers, needs Chrome (about 2.5 min)
 app/scripts/walk.sh --widths      # the walk alone, plus 360, 768 and 1180 px
+app/scripts/check.sh --betting    # every step with the betting switch ON (see "The betting switch")
 ```
 
 Or by hand:
@@ -105,6 +108,24 @@ Output: `app/web/dist-artifact/parlayhitters.html` (plus `preview.html` for loca
 APP_EXPORT_DIR=<export dir> PYTHONPATH=src uv run python -m parlayhitters_api.bake_artifact --out ../web/artifact-data/baked.json`,
 then `cd ../web && npm run build:artifact`; the build needs `artifact-data/baked.json` and says so if it is missing. With
 `APP_EXPORT_DIR` unset the bake reads the fixtures (the two 2024-25 nights). Details are in "The artifact" below.
+
+## The betting switch (default off)
+
+One switch turns the betting tools module on or off: `VITE_PH_BETTING=1` at web build time (read only by
+`web/src/features.ts`, folded to a constant so a build without it drops the module's code entirely) and `PH_BETTING=1` for
+the API (read only by `api/src/parlayhitters_api/features.py` when the app is created). Unset, or any value but `1`, is
+off, everywhere: dev, checks, the regular build and the single-file artifact. With it off the app is the app without the
+module: `#/bet...` is the not-found screen, `/api/betting/*` is the ordinary typed 404, and
+`web/scripts/flag-parity.mjs` (a step of `check.sh`) proves on real builds that no string in
+`web/src/betting/markers.json` reaches either bundle. Turn it on for local work with `app/scripts/betting-on.sh` (same
+options as `dev.sh`; it runs `dev.sh --betting`) and back off with `app/scripts/betting-off.sh` or plain `dev.sh`;
+`app/scripts/check.sh --betting` and `app/scripts/artifact.sh --betting` run the checks or build the page with it on. The
+module lives in `web/src/betting/` (its contract is `betting/types.ts`; it reaches the app only through
+`features.ts`-guarded code in `router.ts`, `App.tsx`, `Shell.tsx`, `shellData.ts` and `BetSlots.tsx`) and
+`api/src/parlayhitters_api/betting/`. Money-safety rules, on or off: analysis only, not advice; no orders are placed,
+routed or cancelled anywhere; no credentials, keys or account access of any kind; the API stays GET-only; all betting
+state lives in this browser. `web/src/bettingSafety.test.ts` greps both module directories for credentials, order words,
+off-origin requests and write routes, and the repo's `tests/test_layering.py` keeps the module inside `app/`.
 
 ## Installable build and a phone on the same Wi-Fi
 

@@ -6,21 +6,34 @@
 #   app/scripts/check.sh --bake       bake the artifact data from the fixtures first (else the artifact step is
 #                                     skipped when app/web/artifact-data/baked.json is absent)
 #   app/scripts/check.sh --browser    also run the browser route walk (app/scripts/walk.sh: own servers on spare ports, needs Chrome)
+#   app/scripts/check.sh --betting    run every step with the betting switch ON (VITE_PH_BETTING=1 for the web build and
+#                                     tests, PH_BETTING=1 for the API). Without it both are removed from the environment,
+#                                     so an inherited value never turns the default (OFF) check into an ON one.
+#
+# The "flag parity" step always builds both states itself (app/web/scripts/flag-parity.mjs, temp dirs only).
 #
 # Output of each step streams unpiped. Exit code is non-zero if any step failed. A failure does not stop later steps.
 set -uo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fast=0; bake=0; browser=0
+fast=0; bake=0; browser=0; betting=0
 for a in "$@"; do
   case "$a" in
     --fast) fast=1 ;;
     --bake) bake=1 ;;
     --browser) browser=1 ;;
-    -h|--help) sed -n '2,9p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --betting) betting=1 ;;
+    -h|--help) sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "check.sh: unknown option '$a' (try --help)" >&2; exit 2 ;;
   esac
 done
+
+if [ "$betting" = 1 ]; then
+  export VITE_PH_BETTING=1 PH_BETTING=1
+  echo "check.sh: the betting switch is ON for this run (VITE_PH_BETTING=1, PH_BETTING=1)"
+else
+  unset VITE_PH_BETTING PH_BETTING
+fi
 
 command -v uv >/dev/null || { echo "check.sh: uv is not installed" >&2; exit 2; }
 command -v node >/dev/null || { echo "check.sh: node is not installed" >&2; exit 2; }
@@ -67,6 +80,8 @@ else
   skip "artifact build" "app/web/artifact-data/baked.json is absent; run with --bake (fixtures) or app/scripts/artifact.sh --export"
 fi
 
+run "flag parity"         web node scripts/flag-parity.mjs
+
 if [ "$browser" = 1 ]; then
   if [ -f "$APP_DIR/web/scripts/route-walk.mjs" ]; then
     run "browser route walk" . "$APP_DIR/scripts/walk.sh"
@@ -77,6 +92,7 @@ fi
 
 echo
 echo "================ check summary ================"
+if [ "$betting" = 1 ]; then echo "betting switch: ON"; else echo "betting switch: off"; fi
 printf '%-26s %-6s %s\n' "step" "result" "seconds"
 total=0
 for i in "${!NAMES[@]}"; do

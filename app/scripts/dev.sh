@@ -6,9 +6,12 @@
 #                                         else <repo>/data/export/latest); refuses if DIR has no manifest.json
 #   app/scripts/dev.sh --lan              web server on 0.0.0.0 (a phone on the same Wi-Fi); the API stays on 127.0.0.1
 #   app/scripts/dev.sh --private          set PH_PRIVATE=1 for the API (the private desk, local requests only)
+#   app/scripts/dev.sh --betting          turn the betting switch ON: VITE_PH_BETTING=1 for the web server and
+#                                         PH_BETTING=1 for the API (app/scripts/betting-on.sh does this)
 #
 # Env: API_PORT (default 8000), WEB_PORT (default 5173). Ctrl-C stops both servers.
 # PH_PRIVATE is never set unless --private is given, and an inherited PH_PRIVATE is removed.
+# Likewise VITE_PH_BETTING and PH_BETTING: never set unless --betting is given; inherited values are removed.
 # Nothing here writes outside the logs in a temp directory; the export is opened read-only by the API.
 set -euo pipefail
 
@@ -21,8 +24,9 @@ use_export=0
 export_dir=""
 lan=0
 private=0
+betting=0
 
-usage() { sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 die() { echo "dev.sh: $*" >&2; exit 1; }
 
 while [ $# -gt 0 ]; do
@@ -33,6 +37,7 @@ while [ $# -gt 0 ]; do
       ;;
     --lan) lan=1 ;;
     --private) private=1 ;;
+    --betting) betting=1 ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown option '$1' (try --help)" ;;
   esac
@@ -89,9 +94,13 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 # API: the environment for the child only. PH_PRIVATE is removed unless --private.
-api_env=(env -u APP_EXPORT_DIR -u PH_PRIVATE)
-[ "$use_export" = 1 ] && api_env=(env -u PH_PRIVATE "APP_EXPORT_DIR=$export_dir")
+api_env=(env -u APP_EXPORT_DIR -u PH_PRIVATE -u PH_BETTING -u VITE_PH_BETTING)
+[ "$use_export" = 1 ] && api_env=(env -u PH_PRIVATE -u PH_BETTING -u VITE_PH_BETTING "APP_EXPORT_DIR=$export_dir")
 [ "$private" = 1 ] && api_env+=("PH_PRIVATE=1")
+[ "$betting" = 1 ] && api_env+=("PH_BETTING=1")
+# Web: the betting switch is build-time (read by src/features.ts); removed unless --betting.
+web_env=(env -u VITE_PH_BETTING -u PH_BETTING "API_ORIGIN=http://127.0.0.1:$API_PORT")
+[ "$betting" = 1 ] && web_env+=("VITE_PH_BETTING=1")
 
 (cd "$APP_DIR/api" && exec "${api_env[@]}" uv run uvicorn parlayhitters_api.main:app --app-dir src \
   --host 127.0.0.1 --port "$API_PORT") >"$LOG_DIR/api.log" 2>&1 &
@@ -99,7 +108,7 @@ API_PID=$!
 
 web_script="dev"
 [ "$lan" = 1 ] && web_script="dev:lan"
-(cd "$APP_DIR/web" && exec env "API_ORIGIN=http://127.0.0.1:$API_PORT" npm run "$web_script" -- --port "$WEB_PORT") \
+(cd "$APP_DIR/web" && exec "${web_env[@]}" npm run "$web_script" -- --port "$WEB_PORT") \
   >"$LOG_DIR/web.log" 2>&1 &
 WEB_PID=$!
 
@@ -137,6 +146,11 @@ if [ "$private" = 1 ]; then
   echo "  desk:   PH_PRIVATE=1 is SET (--private): the private desk answers local requests only"
 else
   echo "  desk:   PH_PRIVATE is not set: only the shared desk cut is served"
+fi
+if [ "$betting" = 1 ]; then
+  echo "  betting: switch ON (--betting): #/bet and /api/betting/status exist; analysis only, no orders are placed"
+else
+  echo "  betting: switch off (the default)"
 fi
 echo "  logs:   $LOG_DIR/api.log  $LOG_DIR/web.log"
 echo "Ctrl-C stops both."
