@@ -5,10 +5,10 @@ import { View } from "../components";
 import { count, MISSING } from "../format";
 import { hasPriceWords, honestyApi, type ForwardTest, type ForwardTests, type Maybe } from "../honesty";
 import { LensSwitch } from "../Lens";
-import { useLens } from "../prefs";
+import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
-import { SoWhat } from "../ui";
+import { Badge, PageHead, StateBlock } from "../ui";
 import { useLoad } from "../useLoad";
 
 /** Is everything a test says free of price words (so it may show in the Learn lens)? */
@@ -37,55 +37,92 @@ function SoFar({ t }: { t: ForwardTest }) {
   );
 }
 
-function TestCard({ t }: { t: ForwardTest }) {
+function TestCard({ t, analyst }: { t: ForwardTest; analyst: boolean }) {
   return (
-    <article class="panel test-card" aria-labelledby={`t-${t.id}`}>
-      <h2 id={`t-${t.id}`}>{t.title}</h2>
-      <p class="small muted mono wrap-any">{t.id}</p>
+    <article class="panel pb-test test-card" aria-labelledby={`t-${t.id}`}>
+      <div class="card-head">
+        <div class="card-head-text">
+          <h2 id={`t-${t.id}`}>{t.title}</h2>
+          <p class="small muted mono pb-test-id">{t.id}</p>
+        </div>
+        <div class="card-head-actions">
+          <Badge tone="none" icon="lock" word="Outcome hidden until the look" />
+        </div>
+      </div>
       <dl>
-        <dt>Reads</dt>
-        <dd>{t.scheduled_read ?? MISSING}</dd>
-        <dt>n needed</dt>
-        <dd>{t.n_needed ?? MISSING}</dd>
-        <dt>n so far</dt>
-        <dd>
-          <SoFar t={t} />
-        </dd>
-        <dt>Outcome</dt>
-        <dd>
-          <strong>Hidden until the look.</strong> The result is published at the scheduled read, by the project, not here.
-        </dd>
-        <dt>Rule</dt>
-        <dd class="small wrap-any">{t.source}</dd>
+        <div>
+          <dt>Reads</dt>
+          <dd>{t.scheduled_read ?? MISSING}</dd>
+        </div>
+        <div>
+          <dt>n needed</dt>
+          <dd>{t.n_needed ?? MISSING}</dd>
+        </div>
+        <div>
+          <dt>n so far</dt>
+          <dd>
+            <SoFar t={t} />
+          </dd>
+        </div>
+        <div>
+          <dt>Outcome</dt>
+          <dd>
+            <strong>Hidden until the look.</strong> The result is published at the scheduled read, by the project, not here.
+          </dd>
+        </div>
       </dl>
+      {analyst ? (
+        <p class="small wrap-any pb-rule">
+          <span class="muted">Rule: </span>
+          {t.source}
+        </p>
+      ) : (
+        <details class="explain pb-rule">
+          <summary>Where the frozen rule is written</summary>
+          <div class="explain-body small wrap-any">{t.source}</div>
+        </details>
+      )}
     </article>
   );
 }
 
-function Body({ f, market }: { f: ForwardTests; market: boolean }) {
+function Body({ f, market, analyst }: { f: ForwardTests; market: boolean; analyst: boolean }) {
   const shown = market ? f.tests : f.tests.filter(learnSafeTest);
   const hidden = shown.length < f.tests.length;
+  const how = (
+    <>
+      <p class="small">
+        <strong>How "n so far" is counted:</strong> {f.count_rule}
+      </p>
+      <p class="small muted">
+        List as of {f.as_of ?? MISSING}. {f.source}
+      </p>
+    </>
+  );
   return (
     <>
-      <section class="panel flat">
+      <section class="panel verdict" aria-labelledby="ft-what">
+        <div class="kicker">In plain words</div>
+        <h2 id="ft-what">What this list is</h2>
         <p>{f.note}</p>
-        <p class="small">
-          <strong>How "n so far" is counted:</strong> {f.count_rule}
-        </p>
-        <p class="small muted">
-          List as of {f.as_of ?? MISSING}. {f.source}
-        </p>
+        {analyst ? (
+          <div class="pb-foot">{how}</div>
+        ) : (
+          <details class="explain">
+            <summary>How this is measured</summary>
+            <div class="explain-body">{how}</div>
+          </details>
+        )}
       </section>
       {hidden ? <p class="small muted">Further tests are about the market side; they are listed in the Market lens.</p> : null}
       {shown.length === 0 ? (
-        <section class="panel empty">
-          <h2>No tests to list here</h2>
-          <p>The data carries no frozen tests for this lens.</p>
-        </section>
+        <StateBlock kind="empty" title="No tests to list here">
+          The data carries no frozen tests for this lens.
+        </StateBlock>
       ) : (
-        <div class="test-list">
+        <div class="test-list pb-tests">
           {shown.map((t) => (
-            <TestCard key={t.id} t={t} />
+            <TestCard key={t.id} t={t} analyst={analyst} />
           ))}
         </div>
       )}
@@ -95,27 +132,29 @@ function Body({ f, market }: { f: ForwardTests; market: boolean }) {
 
 export function TestsPage() {
   const market = useLens() === "market";
+  const analyst = useMode() === "analyst";
   const [state, reload] = useLoad(() => honestyApi.forwardTests(), []);
   return (
-    <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Track record</div>
-        <h1>Forward tests: what is being tested, and when it reads</h1>
-      </header>
-      <SoWhat>
-        Each test's rule was frozen before any result existed. No outcome is shown here until its scheduled look. <a href={termHref("prereg")}>Frozen rule</a> ·{" "}
-        <a href={topHref("scorecard")}>Scorecard</a>
-      </SoWhat>
-      <LensSwitch compact />
+    <div class="stack pb-page">
+      <PageHead
+        kicker="Track record"
+        title="Forward tests: what is being tested, and when it reads"
+        description={
+          <>
+            Each test's rule was frozen before any result existed. No outcome is shown here until its scheduled look. <a href={termHref("prereg")}>Frozen rule</a> ·{" "}
+            <a href={topHref("scorecard")}>Scorecard</a>
+          </>
+        }
+        actions={<LensSwitch compact />}
+      />
       <View state={state} reload={reload} what="the forward tests">
         {(m: Maybe<ForwardTests>) =>
           m.kind === "absent" ? (
-            <section class="panel empty">
-              <h2>Not in this copy of the data</h2>
+            <StateBlock kind="empty" title="Not in this copy of the data">
               <p>{m.why}</p>
-            </section>
+            </StateBlock>
           ) : (
-            <Body f={m.data} market={market} />
+            <Body f={m.data} market={market} analyst={analyst} />
           )
         }
       </View>
