@@ -23,6 +23,8 @@ export interface BettingRouteDef {
   path: string;
   /** The breadcrumb and page title. */
   title: string;
+  /** The screen also takes one id segment after its path (#/bet/ideas/<id>). */
+  param?: boolean;
   render: (route: BetRoute) => ComponentChildren;
 }
 

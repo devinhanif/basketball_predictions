@@ -125,3 +125,17 @@ export function odds(price: number | null | undefined, format: OddsFormat = "ame
 export function priceText(price: number | null | undefined): string {
   return odds(price, getPrefs().odds);
 }
+
+/**
+ * Dollars to the cent with thousands separators: 24.5 -> "$24.50", 1234 -> "$1,234.00", -7 -> "−$7.00". With `signed`, a
+ * net result always shows its sign: "+$7.00", "−$40.00", and zero as "$0.00". Missing stays MISSING, never "$0.00".
+ */
+export function dollars(x: number | null | undefined, opts: { signed?: boolean } = {}): string {
+  if (!ok(x)) return MISSING;
+  const s = Math.abs(x).toFixed(2);
+  const [whole = "0", cents = "00"] = s.split(".");
+  const body = `$${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${cents}`;
+  if (Number(s) === 0) return body;
+  if (x < 0) return `${MINUS}${body}`;
+  return opts.signed ? `+${body}` : body;
+}

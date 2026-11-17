@@ -3,7 +3,7 @@
 // placed" (a local record, confirmed in a dialog), the way into the Hedge Finder, export/import and the labelled demo.
 // Shown in two places: the persistent panel (compact) and the page #/bet/slip (full).
 import { useEffect, useRef, useState } from "preact/hooks";
-import { Button, Dialog, Skeleton } from "../ui";
+import { Button, Dialog, Skeleton, clearSidePanel, setSidePanel } from "../ui";
 import { Icon } from "../icons";
 import { count } from "../format";
 import { saveTextFile } from "../saveFile";
@@ -13,8 +13,11 @@ import { activeLegs, evaluateDraft, type SlipEvaluation } from "./slipModel";
 import { scopeLabel } from "./store";
 import type { SlipPick, SlipWorkspace } from "./types";
 import { compareHashFor } from "./viewModel";
+import { localId } from "./ids";
+import { ideaHref } from "./Ideas";
 import { CoverageBlock, LegCard, MarketGate, MoneyNote, OutcomeTable, SaveState, Warnings, marketWords, money, providerLabel } from "./parts";
-import { ensureBetStyles, say, setPanelOpen, useBet, useNow, usePanelOpen, useWide, type BetHook } from "./useBet";
+import { isSlipPage, slipPanelPlan } from "./panel";
+import { RAIL_MIN, dismissNotice, ensureBetStyles, say, setPanelOpen, useBet, useHash, useNotices, useNow, usePanelOpen, useWide, type BetHook } from "./useBet";
 
 type Ready = Extract<BetHook, { ready: true }>;
 
@@ -106,7 +109,7 @@ function Notes(props: { bet: Ready; ws: SlipWorkspace }) {
   return (
     <details class="ph-bet-notes" open={d.title !== "" || d.thesis !== "" ? true : undefined}>
       <summary>The thinking behind this slip</summary>
-      <p class="small muted">Kept with the slip in this browser. Saving it as an idea comes with the Ideas screen.</p>
+      <p class="small muted">Kept with the slip in this browser, and saved with it when you save the slip as an idea.</p>
       <label>
         <span>Title</span>
         <input key={`t${d.title}`} maxLength={200} defaultValue={d.title} placeholder="e.g. Cover my rebound over" onChange={(e) => { set({ title: e.currentTarget.value }); }} />
@@ -120,6 +123,46 @@ function Notes(props: { bet: Ready; ws: SlipWorkspace }) {
         <input key={`g${d.tags.join(",")}`} defaultValue={d.tags.join(", ")} placeholder="hedge, rotation" onChange={(e) => { set({ tags: e.currentTarget.value.split(",") }); }} />
       </label>
     </details>
+  );
+}
+
+/** Saves the working slip as an idea: an independent snapshot of every included leg and its price, taken now. */
+function SaveIdea(props: { bet: Ready; ws: SlipWorkspace }) {
+  const [status, setStatus] = useState<"watching" | "paper">("watching");
+  const [saved, setSaved] = useState<string | null>(null);
+  if (!activeLegs(props.ws.draft).length) return null;
+  return (
+    <section class="ph-bet-saveidea" aria-labelledby="ph-bet-saveidea-h">
+      <h2 class="ph-bet-h" id="ph-bet-saveidea-h">
+        Save as an idea
+      </h2>
+      <p class="small muted">The idea keeps the title, thesis and tags above with a frozen copy of every included leg and its price as it is now. Later price changes and edits to the slip never reach it.</p>
+      <div class="row wrap ph-bet-saverow">
+        <label>
+          <span>Status</span>
+          <select value={status} onChange={(e) => { setStatus(e.currentTarget.value === "paper" ? "paper" : "watching"); }}>
+            <option value="watching">Watching</option>
+            <option value="paper">Paper (tracking it as if placed)</option>
+          </select>
+        </label>
+        <Button
+          kind="primary"
+          onClick={() => {
+            const id = localId("idea");
+            void props.bet.actions.saveIdea({ id, status }).then((d) => {
+              if (say(d, "Idea")) setSaved(id);
+            });
+          }}
+        >
+          Save as an idea
+        </Button>
+      </div>
+      {saved ? (
+        <p class="small" role="status">
+          Saved. <a href={ideaHref(saved)}>Open the idea</a> or <a href="#/bet/ideas">see all ideas</a>.
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -283,14 +326,16 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
     <div class="ph-bet-slip">
       {save}
       <MoneyNote arithmetic />
-      <p class="small muted num">
-        {count(planned.filter((l) => l.enabled).length)} of {count(planned.length)} planned legs included · {count(recorded.length)} recorded · {count(ws.picks.length)} waiting for a price.
-        {ws.draft.origin === "sample" ? " This slip is the labelled demo: sample prices only." : ""}
-      </p>
+      {empty ? null : (
+        <p class="small muted num">
+          {[planned.length ? `${count(planned.filter((l) => l.enabled).length)} of ${count(planned.length)} planned ${planned.length === 1 ? "leg" : "legs"} included` : "", recorded.length ? `${count(recorded.length)} recorded` : "", ws.picks.length ? `${count(ws.picks.length)} waiting for a price` : ""].filter(Boolean).join(" · ")}.
+          {ws.draft.origin === "sample" ? " This slip is the labelled demo: sample prices only." : ""}
+        </p>
+      )}
       {empty ? (
         <div class="ph-bet-empty">
           <h3>Your slip is empty</h3>
-          <p>Add a player from a game or player page (the Market lens shows an "Add to slip" button), or open Compare to pick a prop from tonight's slate or type your own.</p>
+          <p>Start from a line: on a game or player page (Market lens) press "+ Slip" beside it, or open Compare to pick one of tonight's props with stored prices, or type your own market.</p>
           <div class="row wrap">
             <a class="btn primary" href="#/bet/compare">
               Open Compare
@@ -356,13 +401,14 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
         ) : null}
         {props.compact ? (
           <a class="btn quiet wide" href="#/bet/slip">
-            Full slip page: every outcome, notes, export
+            Open the full slip page
           </a>
         ) : null}
       </div>
       {props.compact ? null : (
         <>
           <Notes bet={bet} ws={ws} />
+          <SaveIdea bet={bet} ws={ws} />
           <SlipTools bet={bet} ws={ws} />
         </>
       )}
@@ -384,96 +430,134 @@ export function SlipPage() {
   );
 }
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+// ------------------------------------------------------------------------------------------------ the slip beside the page
 
-/** The persistent slip: a collapsible right-hand panel on a wide screen, a bottom sheet (modal) on a phone. Market lens only. */
-export function SlipPanel(props: { onBetRoute: boolean }) {
+const OWNER = "bet-slip";
+let focusRailNext = false;
+
+/** What the shell's side panel shows: the compact slip, plus a "Hide" control on the wide rail (Escape does the same). */
+function SlipSide() {
   ensureBetStyles();
   const bet = useBet();
-  const open = usePanelOpen();
-  const wide = useWide();
-  const sheet = useRef<HTMLDivElement>(null);
-  const launcher = useRef<HTMLButtonElement>(null);
-  const wasOpen = useRef(open);
-  const lens = useLens();
-  const sheetMode = open && !wide && lens === "market";
+  const wide = useWide(RAIL_MIN);
+  const hide = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    // Back to the launcher when the panel closes (keyboard users land where they started).
-    if (wasOpen.current && !open) launcher.current?.focus();
-    wasOpen.current = open;
-  }, [open]);
-  useEffect(() => {
-    if (!sheetMode) return;
-    sheet.current?.querySelector<HTMLElement>(".ph-bet-panel-close")?.focus();
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [sheetMode]);
-  // A Market-lens tool: in Learn and Explore no part of the slip shows (no prices there).
-  if (lens !== "market") return null;
-  if (!bet.ready || bet.view.workspace === null) {
-    if (!bet.ready || bet.view.phase !== "error") return null;
-  }
-  const n = bet.view.workspace ? slipCount(bet.view.workspace) : 0;
-  const unsaved = bet.view.dirty;
-  if (!open) {
-    return (
-      <div class="ph-bet">
-        <button ref={launcher} type="button" class="ph-bet-launcher" aria-expanded="false" aria-controls="ph-bet-panel" aria-label={`Open your slip, ${String(n)} ${n === 1 ? "item" : "items"}${unsaved ? ", not saved" : ""}`} onClick={() => { setPanelOpen(true); }}>
-          <Icon name="picks" />
-          <span>Slip</span>
-          <span class="ph-bet-count num">{n}</span>
-          {unsaved ? <span class="ph-bet-dot" aria-hidden="true" /> : null}
-        </button>
-      </div>
-    );
-  }
-  const onKey = (e: KeyboardEvent): void => {
-    if (e.defaultPrevented) return;
-    if (e.key === "Escape") {
-      e.preventDefault();
-      setPanelOpen(false);
-      return;
+    if (wide && focusRailNext) {
+      focusRailNext = false;
+      hide.current?.focus();
     }
-    if (!sheetMode || e.key !== "Tab" || !sheet.current) return;
-    const list = [...sheet.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
-    const first = list[0];
-    const last = list[list.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last?.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first?.focus();
-    }
-  };
+  }, [wide]);
+  const n = bet.ready && bet.view.workspace ? slipCount(bet.view.workspace) : 0;
   return (
-    <div class="ph-bet">
-      {sheetMode ? <div class="ph-bet-scrim" aria-hidden="true" onClick={() => { setPanelOpen(false); }} /> : null}
-      <div
-        ref={sheet}
-        id="ph-bet-panel"
-        class={`ph-bet-panel${sheetMode ? " sheet" : " side"}`}
-        role={sheetMode ? "dialog" : "complementary"}
-        aria-modal={sheetMode ? "true" : undefined}
-        aria-labelledby="ph-bet-panel-h"
-        onKeyDown={onKey}
-      >
-        <header class="ph-bet-panel-head">
-          <h2 id="ph-bet-panel-h">
-            {TITLE_SLIP} <span class="ph-bet-count num">{n}</span>
-          </h2>
-          <button type="button" class="icon-btn ph-bet-panel-close" aria-label={sheetMode ? "Close your slip" : "Collapse your slip"} onClick={() => { setPanelOpen(false); }}>
-            <Icon name={sheetMode ? "close" : "chevron"} />
+    <div
+      class="ph-bet ph-bet-side"
+      onKeyDown={(e) => {
+        if (wide && e.key === "Escape" && !e.defaultPrevented) {
+          e.preventDefault();
+          setPanelOpen(false);
+        }
+      }}
+    >
+      {wide ? (
+        <div class="ph-bet-side-tools">
+          <span class="small muted num">
+            {count(n)} {n === 1 ? "item" : "items"} · kept on this device
+          </span>
+          <button ref={hide} type="button" class="btn small quiet" aria-label="Hide your slip (it stays saved)" onClick={() => { setPanelOpen(false); }}>
+            Hide
           </button>
-        </header>
-        <div class="ph-bet-panel-body">
-          <SlipBody bet={bet} compact />
         </div>
-        {props.onBetRoute ? null : <p class="small muted ph-bet-panel-foot">Stays with you across pages on this device.</p>}
-      </div>
+      ) : null}
+      {bet.ready ? <SlipBody bet={bet} compact /> : <Skeleton lines={3} label="Waiting to know who is looking" />}
     </div>
+  );
+}
+
+const sideContent = () => <SlipSide />;
+
+/** The coalesced betting notices, placed away from the control just used. */
+function Notices() {
+  const list = useNotices();
+  if (!list.length) return null;
+  const at = (place: "top" | "bottom") => list.filter((n) => n.place === place);
+  return (
+    <>
+      {(["top", "bottom"] as const).map((place) =>
+        at(place).length ? (
+          <div key={place} class={`ph-bet ph-bet-toasts ${place}`} aria-live="polite">
+            {at(place).map((n) => (
+              <div key={n.id} class={`ph-bet-toast${n.tone === "failed" ? " failed" : ""}`} role={n.tone === "failed" ? "alert" : "status"}>
+                <div>
+                  <strong>{n.title}</strong>
+                  <div class="small">{n.text}</div>
+                </div>
+                <button type="button" class="icon-btn" aria-label="Dismiss" onClick={() => { dismissNotice(n.id); }}>
+                  <Icon name="close" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null,
+      )}
+    </>
+  );
+}
+
+/**
+ * The persistent slip, Market lens only, through the shell's shared side panel: a rail beside the page from 1280 px (the
+ * page narrows), a bottom sheet below. On a wide screen the rail can be hidden; the floating "Slip N" button brings it back.
+ */
+export function SlipPanel() {
+  ensureBetStyles();
+  const bet = useBet();
+  const lens = useLens();
+  const open = usePanelOpen();
+  const wide = useWide(RAIL_MIN);
+  const hash = useHash();
+  const launcher = useRef<HTMLButtonElement>(null);
+  const ready = bet.ready && (bet.view.workspace !== null || bet.view.phase === "error");
+  const plan = slipPanelPlan({ lens, ready, wide, open, onSlipPage: isSlipPage(hash) });
+  const n = bet.ready && bet.view.workspace ? slipCount(bet.view.workspace) : 0;
+  const unsaved = bet.ready && bet.view.dirty;
+  const was = useRef(plan);
+  useEffect(() => {
+    if (plan === "rail" || plan === "sheet") setSidePanel({ owner: OWNER, title: TITLE_SLIP, openLabel: `Slip · ${String(n)}${unsaved ? " (not saved)" : ""}`, content: sideContent });
+    else clearSidePanel(OWNER);
+  }, [plan, n, unsaved]);
+  useEffect(
+    () => () => {
+      clearSidePanel(OWNER);
+    },
+    [],
+  );
+  useEffect(() => {
+    // Hiding the rail puts focus back on the button that brings it back.
+    if (was.current === "rail" && plan === "launcher") launcher.current?.focus();
+    was.current = plan;
+  }, [plan]);
+  return (
+    <>
+      <Notices />
+      {plan === "launcher" ? (
+        <div class="ph-bet">
+          <button
+            ref={launcher}
+            type="button"
+            class="ph-bet-launcher"
+            aria-expanded="false"
+            aria-label={`Show your slip, ${String(n)} ${n === 1 ? "item" : "items"}${unsaved ? ", not saved" : ""}`}
+            onClick={() => {
+              focusRailNext = true;
+              setPanelOpen(true);
+            }}
+          >
+            <Icon name="picks" />
+            <span>Slip</span>
+            <span class="ph-bet-count num">{n}</span>
+            {unsaved ? <span class="ph-bet-dot" aria-hidden="true" /> : null}
+          </button>
+        </div>
+      ) : null}
+    </>
   );
 }

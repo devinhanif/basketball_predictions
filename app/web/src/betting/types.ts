@@ -129,6 +129,11 @@ export interface SavedIdea extends SlipDraft {
   readonly status: IdeaStatus;
   /** Manual paper outcomes by market id; never a provider-verified settlement. */
   readonly outcomes: Readonly<Record<string, Side>>;
+  /**
+   * Markets the viewer recorded as void (no over/under result). Absent in documents written before voids existed (read as
+   * none). A void market's refund follows each venue's own rules, which are not modelled, so an idea with one has no net.
+   */
+  readonly voids?: readonly string[];
 }
 
 /**

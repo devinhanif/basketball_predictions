@@ -5,20 +5,21 @@
 // in the address, so a comparison can be shared and Back works.
 import { useState } from "preact/hooks";
 import { api, getJson } from "../api";
-import { Button, Skeleton } from "../ui";
-import { lineText, longDate, tipTime } from "../format";
+import { ApiError, failureMessage } from "../errors";
+import { Button, Dialog, Skeleton } from "../ui";
+import { count, lineText, longDate, tipTime } from "../format";
 import { todayET } from "../time";
-import { useLoad } from "../useLoad";
+import { useLoad, type LoadState } from "../useLoad";
 import { STATS, STAT_LABEL, type GameDetail, type Stat } from "../types";
 import type { BetRoute } from "./seam";
-import { ARITHMETIC_NOTE, SETTLEMENT_NOTE, TITLE_COMPARE } from "./copy";
+import { ARITHMETIC_NOTE, NO_SNAPSHOTS, TITLE_COMPARE } from "./copy";
 import { evaluateDraft } from "./slipModel";
-import { customMarket, sideOf, type ApiSlate } from "./snapshots";
+import { customMarket, isStat, sideOf, type ApiSlate } from "./snapshots";
 import { compareHashFor, knownMarkets, lowestCostCrown, parseCompareQuery, venueCards } from "./viewModel";
-import { CoverageBlock, MarketGate, MoneyNote, OutcomeTable, marketWords } from "./parts";
-import { ExistingBetForm, MarketHead, MarketProblem, SnapshotStatus, VenueCardView, useMarketFromQuery, useStored } from "./board";
+import { CoverageBlock, MarketGate, MoneyNote, OutcomeTable, marketWords, money } from "./parts";
+import { AboutPrices, ExistingBetForm, FeeControl, MarketHead, MarketProblem, TypePriceDialog, VenueBoard, useMarketFromQuery, useStored } from "./board";
 import { ensureBetStyles, revealSlip, say, useBet, useNow, type BetHook } from "./useBet";
-import type { Market, Side } from "./types";
+import type { Market, ProviderInfo, Side } from "./types";
 
 type Ready = Extract<BetHook, { ready: true }>;
 
@@ -197,6 +198,66 @@ function CustomMarketForm(props: { bet: Ready }) {
   );
 }
 
+const SHOW = 24;
+
+/** The night's props that have stored quotes (from the read-only betting slate), searchable, each a link into Compare. */
+function StoredProps(props: { night: string; state: LoadState<ApiSlate | null> }) {
+  const [query, setQuery] = useState("");
+  const [more, setMore] = useState(false);
+  const st = props.state;
+  if (st.status === "loading") return <Skeleton lines={2} label="Reading the night's stored props" />;
+  if (st.status === "error")
+    return (
+      <p class="small ph-bet-err" role="alert">
+        The night's stored props could not be read: {failureMessage(st.failure)}. Pick a prop from a game below, or type your own market.
+      </p>
+    );
+  if (st.data === null) return <p class="small">{NO_SNAPSHOTS} Pick a prop from a game below, or type your own market.</p>;
+  const slate = st.data;
+  const games = new Map(slate.games.map((g) => [g.game_id, `${g.away} @ ${g.home}`]));
+  const words = query.toLowerCase().split(/\s+/).filter((w) => w !== "");
+  const match = slate.props.filter((p) => {
+    const hay = `${p.player} ${p.team} ${games.get(p.game_id) ?? ""} ${isStat(p.stat) ? STAT_LABEL[p.stat] : p.stat}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+  const shown = more ? match : match.slice(0, SHOW);
+  return (
+    <section aria-labelledby="ph-bet-stored-h">
+      <h2 class="ph-bet-h" id="ph-bet-stored-h">
+        Props with stored prices, {longDate(slate.date)}
+      </h2>
+      <p class="small muted num">
+        {count(slate.props.length)} props across {count(slate.games.length)} games have at least one stored quote. Listed by game, then player; nothing is ranked.
+      </p>
+      <label class="ph-bet-search">
+        <span class="sr">Search the night's props</span>
+        <input type="search" placeholder="Search a player, team or stat" value={query} onInput={(e) => { setQuery(e.currentTarget.value); setMore(false); }} />
+      </label>
+      {match.length ? (
+        <ul class="plain ph-bet-proplist">
+          {shown.map((p) => (
+            <li key={`${p.game_id}-${String(p.player_id)}-${p.stat}`}>
+              <a href={`#/bet/compare?game=${encodeURIComponent(p.game_id)}&player=${String(p.player_id)}&stat=${encodeURIComponent(p.stat)}&side=over`}>
+                <strong>{p.player}</strong> <span class="muted">({p.team})</span> {isStat(p.stat) ? STAT_LABEL[p.stat].toLowerCase() : p.stat}
+              </a>
+              <span class="small muted num">
+                {games.get(p.game_id) ?? p.game_id} · {count(p.n_providers)} {p.n_providers === 1 ? "venue" : "venues"} · {count(p.n_lines)} {p.n_lines === 1 ? "line" : "lines"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="small">No prop matches that search.</p>
+      )}
+      {!more && match.length > SHOW ? (
+        <Button onClick={() => { setMore(true); }}>
+          Show all {count(match.length)}
+        </Button>
+      ) : null}
+    </section>
+  );
+}
+
 function Picker(props: { bet: Ready }) {
   const [list, reloadList] = useLoad(() => api.slates(), []);
   const [date, setDate] = useState<string | null>(null);
@@ -206,7 +267,11 @@ function Picker(props: { bet: Ready }) {
   const [bs] = useLoad(
     () =>
       night
-        ? getJson<ApiSlate>(`/api/betting/slate/${encodeURIComponent(night)}`).catch(() => ({ data: null, fromCache: false }))
+        ? getJson<ApiSlate>(`/api/betting/slate/${encodeURIComponent(night)}`).catch((e: unknown) => {
+            // A typed 404 means this server has no stored snapshots (its switch is off); anything else is an error.
+            if (e instanceof ApiError && e.failure.status === 404) return { data: null, fromCache: false };
+            throw e;
+          })
         : Promise.resolve({ data: null, fromCache: false }),
     [night ?? ""],
   );
@@ -227,8 +292,9 @@ function Picker(props: { bet: Ready }) {
           </ul>
         </section>
       ) : null}
+      {night ? <StoredProps night={night} state={bs} /> : null}
       <section aria-label="Pick a prop">
-        <h2 class="ph-bet-h">Pick a prop from a night's slate</h2>
+        <h2 class="ph-bet-h">Or pick any prop from a night's games</h2>
         {list.status === "loading" ? <Skeleton lines={2} label="Loading the nights" /> : null}
         {list.status === "error" ? (
           <p class="ph-bet-err" role="alert">
@@ -288,6 +354,8 @@ export function Comparison(props: { bet: Ready; market: Market; side: Side }) {
   const { bet, market, side } = props;
   const now = useNow();
   const st = useStored(market, side);
+  const [fees, setFees] = useState<Record<string, string>>({});
+  const [dialog, setDialog] = useState<null | { kind: "type"; provider: ProviderInfo } | { kind: "existing" }>(null);
   const ws = bet.view.workspace;
   if (!ws) return null;
   const cards = venueCards({ providers: st.providers, stored: st.stored, workspace: ws, market, side, now });
@@ -298,73 +366,99 @@ export function Comparison(props: { bet: Ready; market: Market; side: Side }) {
   return (
     <>
       <MarketHead market={market} side={side}>
-        <div class="ph-bet-seg" role="group" aria-label="Side">
-          {(["yes", "no"] as const).map((s) => (
-            <a key={s} class="btn small" href={compareHashFor(market, s)} aria-pressed={s === side ? "true" : "false"} aria-current={s === side ? "true" : undefined}>
-              {s === "yes" ? "Over" : "Under"} {lineText(market.line)}
-            </a>
-          ))}
+        <div class="ph-bet-headrow">
+          <div class="ph-bet-seg" role="group" aria-label="Side">
+            {(["yes", "no"] as const).map((s) => (
+              <a key={s} class="btn small" href={compareHashFor(market, s)} aria-pressed={s === side ? "true" : "false"} aria-current={s === side ? "true" : undefined}>
+                {s === "yes" ? "Over" : "Under"} {lineText(market.line)}
+              </a>
+            ))}
+          </div>
+          {lines.length > 1 && market.origin === "export" ? (
+            <label class="ph-bet-linepick">
+              <span>Line ({lines.length} stored)</span>
+              <select
+                value={String(market.line)}
+                onChange={(e) => {
+                  go(compareHashFor({ ...market, line: Number(e.currentTarget.value) }, side));
+                }}
+              >
+                {(lines.includes(market.line) ? lines : [market.line, ...lines]).map((l) => (
+                  <option key={l} value={String(l)}>
+                    {lineText(l)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </div>
       </MarketHead>
-      {lines.length > 1 && market.origin === "export" ? (
-        <label class="ph-bet-linepick">
-          <span>Line ({lines.length} stored for this player and stat)</span>
-          <select
-            value={String(market.line)}
-            onChange={(e) => {
-              go(compareHashFor({ ...market, line: Number(e.currentTarget.value) }, side));
+      <div class="ph-bet-toolbar row wrap">
+        {st.source === "export" ? (
+          <Button
+            onClick={() => {
+              st.reload();
+              say({ ok: true, text: "Stored prices read again. Legs in your slip and saved ideas keep the price they were saved at." }, "Prices");
             }}
           >
-            {(lines.includes(market.line) ? lines : [market.line, ...lines]).map((l) => (
-              <option key={l} value={String(l)}>
-                {lineText(l)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-      <SnapshotStatus state={st.state} source={st.source} board={st.board} />
-      <p class="small" role="note">
-        {SETTLEMENT_NOTE}
-      </p>
-      <p class="small muted">
-        Venues are listed by name, not by price.{" "}
-        {crown.shown ? "" : `No venue is marked cheapest: ${crown.reasons.slice(0, 2).join(" ")}`}
-      </p>
-      <div class="ph-bet-cards">
-        {cards.map((c) => (
-          <VenueCardView
-            key={c.provider.id}
-            card={c}
-            market={market}
-            side={side}
-            now={now}
-            actions={bet.actions}
-            crowned={crown.shown && crown.provider === c.provider.id}
-            unusable={unusable(c.provider.id)}
-            addLabel={`Add ${c.provider.label} to slip`}
-            onAdd={(q) => {
-              void bet.actions.addQuote(q, market).then((d) => {
-                if (say(d)) revealSlip();
-              });
-            }}
-          />
-        ))}
+            Refresh stored prices
+          </Button>
+        ) : null}
+        <Button onClick={() => { setDialog({ kind: "existing" }); }}>Log a bet you already placed</Button>
+        {market.origin === "export" ? (
+          <a class="btn" href={compareHashFor(market, side, "analysis")}>
+            Model and record for this prop
+          </a>
+        ) : null}
       </div>
-      <ExistingBetForm market={market} side={side} providers={st.providers} actions={bet.actions} />
-      <section aria-label="Your slip now">
-        <h2 class="ph-bet-h">Your slip now: before and after the planned legs</h2>
+      <AboutPrices st={st} cards={cards} now={now} crownText={crown.shown ? null : `No venue is marked cheapest: ${crown.reasons[0] ?? "the comparison is not like-for-like."}`} />
+      <FeeControl cards={cards} fees={fees} onFees={setFees} />
+      <VenueBoard
+        cards={cards}
+        market={market}
+        side={side}
+        now={now}
+        fees={fees}
+        crowned={crown.shown ? crown.provider : null}
+        unusable={unusable}
+        caption={`Venues for ${marketWords(market, side)}: priced first, then unavailable, each by name`}
+        addLabel={(venue) => `Add ${venue} to slip`}
+        onAdd={(q) => {
+          void bet.actions.addQuote(q, market).then((d) => {
+            if (say(d)) revealSlip();
+          });
+        }}
+        onType={(provider) => {
+          setDialog({ kind: "type", provider });
+        }}
+      />
+      <section aria-labelledby="ph-bet-cmp-now">
+        <h2 class="ph-bet-h" id="ph-bet-cmp-now">
+          Your slip now
+        </h2>
         {ws.draft.legs.length ? (
-          <>
+          <details class="ph-bet-disclose">
+            <summary>
+              Cost {money(ev.totalCost)} · {ev.rows.length ? `${String(ev.rows.length)} listed outcomes` : "outcomes not listed yet"}: show before and after the planned legs
+            </summary>
             <p class="small muted">{ARITHMETIC_NOTE} "Recorded only" is the positions you already hold; "with planned legs" adds every included planned leg.</p>
             <CoverageBlock coverage={ev.coverage} />
             <OutcomeTable evaluation={ev} />
             {!ev.rows.length ? <p class="small">No outcome table yet: {ev.warnings[0] ?? "a leg is incomplete."}</p> : null}
-          </>
+          </details>
         ) : (
           <p class="small">Nothing in the slip yet. Add a venue above, or log a bet you already placed.</p>
         )}
       </section>
+      {dialog?.kind === "type" ? <TypePriceDialog provider={dialog.provider} market={market} side={side} actions={bet.actions} onClose={() => { setDialog(null); }} /> : null}
+      {dialog?.kind === "existing" ? (
+        <Dialog title="Log a bet you already placed" onClose={() => { setDialog(null); }}>
+          <div class="ph-bet">
+            <p class="small">{marketWords(market, side)}</p>
+            <ExistingBetForm market={market} side={side} providers={st.providers} actions={bet.actions} onDone={() => { setDialog(null); }} />
+          </div>
+        </Dialog>
+      ) : null}
     </>
   );
 }

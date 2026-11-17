@@ -4,8 +4,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { useIdentity } from "../identity";
 import { readKey, writeKey } from "../prefs";
-import { pushToast } from "../toast";
 import BET_CSS from "./betting.css?inline";
+import { createNoticeStore, placeAwayFrom, type Notice, type NoticeStore, type NoticeTone } from "./notice";
 import { scopeForViewer, scopeId, storageKey, type StorageLike, type WorkspaceScope } from "./repository";
 import { betActions, createBetStore, type BetActions, type BetStore, type BetView, type Done } from "./store";
 
@@ -79,13 +79,58 @@ export function useBet(): BetHook {
   return { ready: true, scope, store: entry.store, view: entry.store.get(), actions: entry.actions };
 }
 
-/** Says how an action went, in a toast. Returns whether it worked. */
-export function say(done: Done, title = "Slip"): boolean {
+// ------------------------------------------------------------------------------------------------ notices (toasts)
+
+let notices: NoticeStore | null = null;
+
+function noticeStore(): NoticeStore {
+  notices ??= createNoticeStore({
+    set: (fn, ms) => window.setTimeout(fn, ms),
+    clear: (h) => {
+      window.clearTimeout(h as number);
+    },
+  });
+  return notices;
+}
+
+const PHONE = "(max-width: 767px)";
+
+/**
+ * One notice for one action. A newer notice of the same kind replaces the older; a phone shows one at a time; the notice
+ * goes to the top or bottom band, whichever does not cover the control that was just used (the focused element).
+ */
+export function notify(n: { kind: string; title: string; text: string; tone?: NoticeTone; ms?: number }): void {
+  if (typeof window === "undefined") return;
+  const phone = typeof window.matchMedia === "function" && window.matchMedia(PHONE).matches;
+  const el = typeof document !== "undefined" ? document.activeElement : null;
+  const box = el instanceof HTMLElement && el !== document.body ? el.getBoundingClientRect() : null;
+  const place = placeAwayFrom(box, window.innerHeight, { top: 170, bottom: phone ? 230 : 140 });
+  noticeStore().push({ ...n, place }, phone ? 1 : 2);
+}
+
+export function dismissNotice(id: number): void {
+  noticeStore().dismiss(id);
+}
+
+export function useNotices(): readonly Notice[] {
+  const [list, setList] = useState<readonly Notice[]>(() => (notices ? notices.get() : []));
+  useEffect(() => {
+    const s = noticeStore();
+    setList(s.get());
+    return s.subscribe(() => {
+      setList(s.get());
+    });
+  }, []);
+  return list;
+}
+
+/** Says how an action went, in one notice (replacing the last one of its kind). Returns whether it worked. */
+export function say(done: Done, title = "Slip", kind = title): boolean {
   if (done.ok) {
-    if (done.text) pushToast(title, done.text);
+    if (done.text) notify({ kind, title, text: done.text });
     return true;
   }
-  pushToast(`${title}: not done`, done.text, 8000);
+  notify({ kind, title: `${title}: not done`, text: done.text, tone: "failed" });
   return false;
 }
 
@@ -159,7 +204,26 @@ export function useWide(min = 1024): boolean {
   return wide;
 }
 
-/** After an add: open the side panel on a wide screen; on a phone the toast is enough (the sheet is modal). */
+/** The width from which the slip sits beside the page (the shell's side-panel rail); below it, a bottom sheet. */
+export const RAIL_MIN = 1280;
+
+/** After an add: open the side rail on a wide screen; below that the notice is enough (the sheet is modal). */
 export function revealSlip(): void {
-  if (typeof window.matchMedia === "function" && window.matchMedia("(min-width: 1024px)").matches) setPanelOpen(true);
+  if (typeof window.matchMedia === "function" && window.matchMedia(`(min-width: ${String(RAIL_MIN)}px)`).matches) setPanelOpen(true);
+}
+
+/** The address's hash, kept current. */
+export function useHash(): string {
+  const [hash, setHash] = useState(() => (typeof window === "undefined" ? "" : window.location.hash));
+  useEffect(() => {
+    const on = (): void => {
+      setHash(window.location.hash);
+    };
+    window.addEventListener("hashchange", on);
+    on();
+    return () => {
+      window.removeEventListener("hashchange", on);
+    };
+  }, []);
+  return hash;
 }
