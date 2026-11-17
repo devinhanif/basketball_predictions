@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { SoWhat } from "../ui";
+import { PageHead, SectionHead, SoWhat, StateBlock } from "../ui";
 import { count } from "../format";
 import { Attribution, LiveGame } from "../LiveParts";
 import { ageNow, ageText, clockLabel, etDate, previousDate, type LiveGameSummary } from "../live";
@@ -45,8 +45,8 @@ function GameCard({ g, date, receivedMs }: { g: LiveGameSummary; date: string; r
 function Section(props: { title: string; games: { g: LiveGameSummary; date: string }[]; receivedMs: number }) {
   if (props.games.length === 0) return null;
   return (
-    <section class="panel">
-      <h2>{props.title}</h2>
+    <section class="panel live-sec">
+      <SectionHead title={props.title} level={2} />
       <ul class="live-cards">
         {props.games.map(({ g, date }) => (
           <GameCard key={g.game_id} g={g} date={date} receivedMs={props.receivedMs} />
@@ -77,17 +77,23 @@ function List({ date }: { date: string | null }) {
           {count(now.length)} live now, {count(later.length)} later, {count(done.length)} final on the live feed.
         </SoWhat>
       ) : null}
-      {st.error ? <p role="alert">Could not reach the live feed. Retrying.</p> : null}
+      {st.error ? (
+        <StateBlock kind="reconnecting" inline title="Could not reach the live feed.">
+          Retrying.
+        </StateBlock>
+      ) : null}
       {all.length === 0 && !st.error ? (
-        <section class="panel empty">
-          <h2>No games on the live feed</h2>
-          <p>
-            Nothing was captured for {dates.join(" or ")}. Games appear here a few minutes before tip-off and stay after the final.
-          </p>
-          <a class="btn primary" href="#/">
-            See tonight's games and forecasts
-          </a>
-        </section>
+        <StateBlock
+          kind="empty"
+          title="No games on the live feed"
+          action={
+            <a class="btn primary" href="#/">
+              See tonight's games and forecasts
+            </a>
+          }
+        >
+          Nothing was captured for {dates.join(" or ")}. Games appear here a few minutes before tip-off and stay after the final.
+        </StateBlock>
       ) : null}
       <Section title="Live now" games={now} receivedMs={st.receivedMs} />
       <Section title="Later tonight" games={later} receivedMs={st.receivedMs} />
@@ -104,7 +110,7 @@ function Detail({ id, date }: { id: string; date: string | null }) {
   const app = useAppGame(hit?.date ?? null, hit?.g.home.abbr ?? null, hit?.g.away.abbr ?? null);
   return (
     <div class="stack">
-      <p class="back-row" style={{ margin: 0 }}>
+      <p class="back-row live-back">
         <a class="back-link" href={liveHref()}>
           All live games
         </a>
@@ -118,13 +124,12 @@ function Detail({ id, date }: { id: string; date: string | null }) {
 export function Live({ id, date }: { id: string | null; date: string | null }) {
   if (id !== null) return <Detail id={id} date={date} />;
   return (
-    <div class="stack">
-      <section class="panel">
-        <h1>Live</h1>
-        <p class="small muted">
-          Pick a game to follow the score, plays, box score and player trackers. A few moments behind the arena; each screen says how old it is.
-        </p>
-      </section>
+    <div class="stack pb-page">
+      <PageHead
+        kicker="Game night"
+        title="Live"
+        description="Pick a game to follow the score, plays, box score and player trackers. A few moments behind the arena; each screen says how old it is."
+      />
       <List date={date} />
       <Attribution />
     </div>

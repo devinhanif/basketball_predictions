@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { PageHead, StateBlock } from "./ui";
 import { CERTAINTY_LABEL, certaintyOf, type Desk, type DeskObservation } from "./desk";
 import { useDesk, deskOf } from "./deskStore";
 import { Loading } from "./components";
@@ -12,20 +13,20 @@ export function DeskGate(props: { title: string; children: (desk: Desk) => Compo
   if (d) return <>{props.children(d)}</>;
   return (
     <div class="stack">
-      <header class="page-head">
-        <h1>{props.title}</h1>
-      </header>
-      <section class="panel empty" aria-label="Desk not available">
-        <h2>{h.kind === "refused" ? "We are holding this screen back" : "Nothing to show here yet"}</h2>
-        <p class="muted">
-          {h.kind === "refused"
-            ? `Its data did not pass our safety checks, so we are not showing it. Reason: ${h.detail}`
-            : "The desk has not published its numbers yet. The game forecasts and your picks are not affected."}
-        </p>
-        <a class="btn" href="#/">
-          Back to Discover
-        </a>
-      </section>
+      <PageHead kicker="The desk" title={props.title} />
+      <StateBlock
+        kind={h.kind === "refused" ? "partial" : "empty"}
+        title={h.kind === "refused" ? "We are holding this screen back" : "Nothing to show here yet"}
+        action={
+          <a class="btn" href="#/">
+            Back to Discover
+          </a>
+        }
+      >
+        {h.kind === "refused"
+          ? `Its data did not pass our safety checks, so we are not showing it. Reason: ${h.detail}`
+          : "The desk has not published its numbers yet. The game forecasts and your picks are not affected."}
+      </StateBlock>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { CalTag, View } from "../components";
+import { StateBlock } from "../ui";
 import { longDate, lineText, num, pct } from "../format";
 import { LOCK_NOTE, loadRounds, makeRound, newSeed, saveRounds, scoreOf, type Guess, type GuessRound, type Score } from "../record";
 import { STAT_LABEL, type GuessCard, type GuessDeck, type GuessReveal } from "../types";
@@ -15,6 +16,7 @@ function ScoreBoard({ score, onReset }: { score: Score; onReset: () => void }) {
   const range = (r: [number, number] | null): string => (r === null ? "not enough rounds for a range" : `95% range ${pct(r[0])} to ${pct(r[1])}`);
   return (
     <section class="panel gs-score" aria-label="Score">
+      <div class="kicker">Your score, this device only</div>
       <div class="gs-cols">
         <div>
           <div class="label">You</div>
@@ -70,7 +72,7 @@ function Round(props: { card: GuessCard; index: number; total: number; onDone: (
   const f = card.form;
   return (
     <section class="panel gs-card">
-      <p class="small muted num">
+      <p class="small muted num gs-round">
         Round {S(props.index + 1)} of {S(props.total)} · {longDate(card.date)}
       </p>
       <h2>{card.player}</h2>
@@ -137,23 +139,26 @@ function GuessPlay(props: { d: GuessDeck; played: ReadonlySet<string>; onDone: (
   const card = cards[index];
   if (d.cards.length === 0) {
     return (
-      <section class="panel empty">
-        <h2>Nothing to guess on yet</h2>
-        <p>{d.note}</p>
-      </section>
+      <StateBlock kind="empty" title="Nothing to guess on yet">
+        {d.note}
+      </StateBlock>
     );
   }
   if (!card) {
     return (
-      <section class="panel empty">
-        <h2>{cards.length === 0 ? "You have played all of these" : "That was the deck"}</h2>
-        <p class="num">
+      <StateBlock
+        kind="empty"
+        title={cards.length === 0 ? "You have played all of these" : "That was the deck"}
+        action={
+          <button type="button" class="btn primary" onClick={props.onAgain}>
+            New deck
+          </button>
+        }
+      >
+        <span class="num">
           {S(cards.length)} rounds, drawn from {S(d.n_available)} played props with a posted line. {d.note}
-        </p>
-        <button type="button" class="btn primary" onClick={props.onAgain}>
-          New deck
-        </button>
-      </section>
+        </span>
+      </StateBlock>
     );
   }
   return (
@@ -191,7 +196,8 @@ export function Guess() {
   const score = scoreOf(rounds);
   return (
     <div class="stack">
-      <section class="panel">
+      <section class="panel rp-pick">
+        <div class="kicker">You against the outcomes</div>
         <h2>Guess the line</h2>
         <p class="small muted">
           Real player lines from games already played. You see the line and his recent games; the result and the model's chance stay hidden until you

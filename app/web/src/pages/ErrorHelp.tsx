@@ -6,6 +6,7 @@ import { allCopies, knownCode, searchCodes } from "../errorCodes";
 import { IS_ARTIFACT } from "../env";
 import { count } from "../format";
 import { helpHref } from "../router";
+import { PageHead, StateBlock } from "../ui";
 
 export function ErrorHelp(props: { code: string | null; q: string | null }) {
   const [q, setQ] = useState(props.q ?? "");
@@ -20,17 +21,14 @@ export function ErrorHelp(props: { code: string | null; q: string | null }) {
     el?.focus({ preventScroll: true });
   }, [wanted]);
   return (
-    <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Help</div>
-        <h1>What each error code means</h1>
-        <p class="lead">Every failure screen names a code. Here is what happened, why, and what to do, for each of the {count(list.length)} codes.</p>
-      </header>
+    <div class="stack pb-page pb-codes">
+      <PageHead kicker="Help" title="What each error code means" description={`Every failure screen names a code. Here is what happened, why, and what to do, for each of the ${count(list.length)} codes.`} />
       {unknown ? (
         <p class="kbanner tone-notice" role="status">
           There is no code called "{wanted}". Search below instead.
         </p>
       ) : null}
+      <div class="pb-toolbar">
       <label class="field terms-search" for="codes-q">
         <span class="label">Search codes</span>
         <input
@@ -49,11 +47,11 @@ export function ErrorHelp(props: { code: string | null; q: string | null }) {
       <p class="small muted num" aria-live="polite">
         {q.trim() === "" ? `${count(list.length)} codes` : `${count(shown.length)} of ${count(list.length)} codes match "${q.trim()}"`}
       </p>
+      </div>
       {shown.length === 0 ? (
-        <div class="panel empty">
-          <h2>No code matches</h2>
-          <p class="muted">Try one word from the failure screen, such as "offline" or "forecast".</p>
-        </div>
+        <StateBlock kind="empty" title="No code matches">
+          Try one word from the failure screen, such as "offline" or "forecast".
+        </StateBlock>
       ) : (
         <div class="code-list">
           {shown.map((c) => (
@@ -65,15 +63,20 @@ export function ErrorHelp(props: { code: string | null; q: string | null }) {
                 </a>
                 {c.status !== null ? ` · answer status ${c.status.toString()}` : " · raised by this page"}
               </p>
-              <p>
-                <strong>What happened:</strong> {c.what}
-              </p>
-              <p>
-                <strong>Why:</strong> {c.why}
-              </p>
-              <p>
-                <strong>What to do:</strong> {c.todo}
-              </p>
+              <dl class="pb-code-rows">
+                <div>
+                  <dt>What happened</dt>
+                  <dd>{c.what}</dd>
+                </div>
+                <div>
+                  <dt>Why</dt>
+                  <dd>{c.why}</dd>
+                </div>
+                <div>
+                  <dt>What to do</dt>
+                  <dd>{c.todo}</dd>
+                </div>
+              </dl>
             </section>
           ))}
         </div>

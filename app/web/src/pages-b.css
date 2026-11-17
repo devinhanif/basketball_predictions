@@ -1,0 +1,567 @@
+/* Lane J2b-B: the Jarvis finish for Track record, Scorecard, Forward tests, Live, Parlay, Signals, Hedge, History,
+   Alerts, Preferences, Key terms, Error help, Admin and the not-found screen. Loaded right after jarvis.css; tokens only
+   (no raw colours, spacing from --sp-*). Removing the import from both entries reverts the look. */
+
+/* ---------------------------------------------------------------- shared page rhythm */
+.pb-page > .page-heading {
+  margin-bottom: 0;
+}
+.pb-page .page-heading-desc {
+  max-width: 68ch;
+}
+.pb-page .panel > .section-head:first-child,
+.pb-page .panel > .kicker + h2 {
+  margin-top: 0;
+}
+.pb-page .section-head {
+  margin-bottom: var(--sp-3);
+}
+.pb-page .section-head p {
+  max-width: 72ch;
+}
+
+/* Plain-sentence lists: one line per item, separated by a rule instead of a bullet wall. */
+.pb-lines > li {
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--line);
+  line-height: 1.5;
+}
+.pb-lines > li:first-child {
+  border-top: 0;
+  padding-top: var(--sp-1);
+}
+.pb-foot {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+/* "What we cannot show yet": the thing named on the left, what it needs on the right (stacked on a phone). */
+.pb-needs > li {
+  display: grid;
+  grid-template-columns: minmax(10rem, 16rem) 1fr;
+  gap: var(--sp-1) var(--sp-4);
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.pb-needs > li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.pb-needs > li > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .pb-needs > li {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Simple mode: the method behind one disclosure, styled as a quiet card row. */
+.pb-how {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-3) var(--sp-4);
+}
+.pb-how > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: var(--fw-bold);
+}
+.pb-tiles {
+  margin: var(--sp-3) 0;
+}
+.pb-tiles .tile-v {
+  font-size: var(--fs-xl);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- forward tests: one card, the same rows in the same place */
+.pb-tests {
+  display: grid;
+  gap: var(--sp-4);
+}
+@media (min-width: 1100px) {
+  .pb-tests {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pb-test {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.pb-test .card-head {
+  margin-bottom: 0;
+}
+.pb-test h2 {
+  font-size: var(--fs-lg);
+  margin: 0;
+}
+.pb-test-id {
+  overflow-wrap: anywhere;
+}
+.pb-test dl {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: 0;
+}
+.pb-test dl > div {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 8rem) 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.pb-test dt {
+  color: var(--muted);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+}
+.pb-test dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pb-test dd ul {
+  display: grid;
+  gap: var(--sp-1);
+}
+.pb-test .pb-rule {
+  margin-top: auto;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 520px) {
+  .pb-test dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--sp-1);
+  }
+}
+
+/* ---------------------------------------------------------------- scorecard tables */
+.pb-lines,
+.pb-needs {
+  padding-left: 0;
+}
+.sc-table .sc-int {
+  display: block;
+  white-space: nowrap;
+}
+/* On a phone each stored row becomes a small card: the measure and row on top, each number with its column name. The
+   header row stays as the sort buttons (sorting still works); the names come from the header text, repeated by CSS. */
+@media (max-width: 640px) {
+  .ktable.sc-table {
+    min-width: 0;
+    display: block;
+  }
+  .sc-table caption {
+    display: block;
+    text-align: left;
+    margin-bottom: var(--sp-2);
+  }
+  .sc-table thead,
+  .sc-table tbody {
+    display: block;
+  }
+  .sc-table thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-2);
+    padding-bottom: var(--sp-2);
+  }
+  .sc-table thead th {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .sc-table thead th:not([aria-sort]) {
+    display: none;
+  }
+  .sc-table thead .sort-btn {
+    border: 1px solid var(--line);
+    border-radius: var(--pill);
+    padding: 0 var(--sp-3);
+    min-height: 44px;
+  }
+  .sc-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-2) var(--sp-3);
+    padding: var(--sp-3) 0;
+    border-top: 1px solid var(--line);
+  }
+  .sc-table tbody td,
+  .sc-table tbody td.num {
+    display: block;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    min-width: 0;
+  }
+  .sc-table tbody td:nth-child(1) {
+    font-weight: var(--fw-bold);
+  }
+  .sc-table tbody td:nth-child(1),
+  .sc-table tbody td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  .sc-table tbody td:nth-child(n + 3)::before {
+    display: block;
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    font-weight: var(--fw-bold);
+  }
+  .sc-shown tbody td:nth-child(3)::before {
+    content: "Mean [95% interval]";
+  }
+  .sc-shown tbody td:nth-child(4)::before {
+    content: "n rows";
+  }
+  .sc-shown tbody td:nth-child(5)::before {
+    content: "n dates";
+  }
+  .sc-shown tbody td:nth-child(6)::before {
+    content: "Better, worse or same";
+  }
+  .sc-shown tbody td:nth-child(7)::before {
+    content: "Locked dates (hidden until the look)";
+  }
+  .sc-shown tbody td:nth-child(3),
+  .sc-shown tbody td:nth-child(6),
+  .sc-shown tbody td:nth-child(7) {
+    grid-column: 1 / -1;
+  }
+  .sc-hidden tbody td:nth-child(3)::before {
+    content: "n rows";
+  }
+  .sc-hidden tbody td:nth-child(4)::before {
+    content: "n dates";
+  }
+  .sc-hidden tbody td:nth-child(5)::before {
+    content: "Locked dates (hidden until the look)";
+  }
+  .sc-hidden tbody td:nth-child(6)::before {
+    content: "Hidden until its look, because";
+  }
+  .sc-hidden tbody td:nth-child(5),
+  .sc-hidden tbody td:nth-child(6) {
+    grid-column: 1 / -1;
+  }
+  .pd-table tbody td:nth-child(3)::before {
+    content: "Side";
+  }
+  .pd-table tbody td:nth-child(4)::before {
+    content: "Legs";
+  }
+  .pd-table tbody td:nth-child(5)::before {
+    content: "Stored joint chance";
+  }
+  .pd-table tbody td:nth-child(6)::before {
+    content: "Independent legs";
+  }
+  .pd-table tbody td:nth-child(7)::before {
+    content: "Copula";
+  }
+  .pd-table tbody td:nth-child(8)::before {
+    content: "After shrinking to the market";
+  }
+  .pd-table tbody td:nth-child(9)::before {
+    content: "Model weight";
+  }
+  .pd-table tbody td:nth-child(6),
+  .pd-table tbody td:nth-child(7),
+  .pd-table tbody td:nth-child(8) {
+    grid-column: auto;
+  }
+  .sc-table .sc-int {
+    display: inline;
+  }
+}
+
+/* ---------------------------------------------------------------- track record */
+.pb-sowhat {
+  display: block;
+  color: var(--ink);
+  font-size: var(--fs-lg);
+  line-height: 1.4;
+  margin-bottom: var(--sp-1);
+}
+.record > nav.tabs {
+  gap: var(--sp-2);
+}
+.rp-pick > h2 {
+  margin-top: 0;
+}
+.rp-pick .card-head {
+  margin-bottom: var(--sp-2);
+}
+.rp-pick .tabs {
+  margin-top: var(--sp-3);
+}
+.rp-grid {
+  display: grid;
+  gap: var(--sp-4);
+}
+@media (min-width: 1100px) {
+  .rp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+.rp-game.panel {
+  gap: var(--sp-3);
+}
+.rp-game .score-row {
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+.rp-game .rp-when {
+  margin: 0;
+}
+.rp-game .rp-fav {
+  margin: 0;
+  line-height: 1.5;
+}
+.rp-game > .btn:not(.rp-toggle) {
+  justify-self: stretch;
+}
+.rp-game .rp-toggle {
+  justify-self: stretch;
+}
+.rp-player {
+  border-radius: var(--radius);
+  padding: var(--sp-3);
+}
+.gs-score .kicker,
+.gs-round {
+  margin: 0;
+}
+/* An opened game (player forecasts shown) takes the full width; its players sit two across on a wide screen. */
+.rp-grid > .rp-game:has(.rp-players) {
+  grid-column: 1 / -1;
+}
+@media (min-width: 900px) {
+  .rp-players {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------------- parlay */
+.pb-two {
+  display: grid;
+  gap: var(--sp-4);
+}
+@media (min-width: 1000px) {
+  .pb-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}
+.pb-two > .panel h1 {
+  font-size: var(--fs-xl);
+}
+.pb-ways ul {
+  padding-left: 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+@media (min-width: 900px) {
+  .pb-ways ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.pb-ways li {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.pb-ways li .kbadge {
+  justify-self: start;
+}
+.pb-exact h3 {
+  margin: 0 0 var(--sp-2);
+}
+.pb-pager {
+  gap: var(--sp-2);
+}
+
+/* ---------------------------------------------------------------- key terms */
+.pb-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-4);
+}
+.pb-toolbar > p {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.terms-page .terms-search {
+  flex: 1 1 18rem;
+  max-width: 32rem;
+}
+@media (min-width: 1000px) {
+  .terms-page .terms-dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+}
+.terms-page .term {
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+  padding: var(--sp-3) var(--sp-4);
+}
+.terms-page .term dd {
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- preferences */
+.pb-prefs .panel > .kicker + h2 {
+  margin-bottom: var(--sp-3);
+}
+.pb-prefs .acct {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.pb-prefs form.row {
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+.pb-prefs .setting + .setting {
+  margin-top: var(--sp-4);
+}
+
+/* ---------------------------------------------------------------- desk pages (Signals, History, Hedge, Alerts, Admin) */
+.pb-answer .page-heading-title {
+  max-width: 30ch;
+  line-height: 1.15;
+}
+.pb-answer .page-heading-desc {
+  max-width: 72ch;
+}
+.pb-nights {
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+/* History: the dated review figures are fixed text; the callout and its badge make that impossible to miss. */
+.pb-fixed.on {
+  display: grid;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px dashed var(--amber);
+  border-radius: var(--radius-sm);
+  background: var(--amber-soft);
+  color: var(--ink);
+}
+.pb-fixed-badge {
+  justify-self: start;
+}
+.pb-fixed.on {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pb-fixed-badge.kbadge {
+  white-space: normal;
+  height: auto;
+  max-width: 100%;
+}
+@media (max-width: 520px) {
+  .tiles.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------- failure screen and error help */
+.pb-problem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-2);
+}
+.pb-problem > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pb-problem > p {
+  margin: 0;
+}
+.pb-problem-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.pb-problem-head h1,
+.pb-problem-head h2 {
+  margin: 0;
+}
+.pb-problem-head .state-mark {
+  flex: none;
+  color: var(--loss);
+}
+.pb-problem-what {
+  font-size: var(--fs-lg);
+}
+.pb-problem-code {
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.pb-problem-actions {
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.pb-codes .terms-search {
+  flex: 1 1 18rem;
+  max-width: 32rem;
+}
+@media (min-width: 1100px) {
+  .pb-codes .code-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pb-code-rows {
+  margin: var(--sp-2) 0 0;
+}
+.pb-code-rows > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 8rem) 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--line);
+}
+.pb-code-rows dt {
+  color: var(--muted);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+}
+.pb-code-rows dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .pb-code-rows > div {
+    grid-template-columns: 1fr;
+    gap: var(--sp-1);
+  }
+}

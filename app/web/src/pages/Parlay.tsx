@@ -1,11 +1,11 @@
 import { api } from "../api";
-import { SoWhat } from "../ui";
+import { Badge, Card, PageHead } from "../ui";
 import { Explain, View } from "../components";
 import { longDate, stamp } from "../format";
 import { engineSpeaksFor } from "../nights";
 import { LatestTopParlays } from "../TopParlaysPanel";
 import { useLoad } from "../useLoad";
-import { useLens } from "../prefs";
+import { useLens, useMode } from "../prefs";
 import { MarketOnly } from "../Lens";
 import { ParlayDiagnostics } from "../ParlayDiag";
 import type { ParlayState } from "../types";
@@ -40,9 +40,42 @@ export function gateSentence(g: ParlayState["gate"]): string {
 
 export function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
   const market = useLens() === "market";
+  const analyst = useMode() === "analyst";
   const g = p.gate;
+  const exact = (
+    <ul class="plain small">
+      <li>
+        The engine's own label: <span class="mono">{p.headline_verdict}</span>. Its note: {p.reason}
+      </li>
+      {p.model_weight !== null ? (
+        <li>
+          Model weight: <span class="num">{p.model_weight.toFixed(2)}</span>. {p.model_weight_note}
+        </li>
+      ) : null}
+      {g !== null ? (
+        <li>
+          Track record: {g.describe}; gate open: {g.gate_open ? "yes" : "no"}.
+        </li>
+      ) : null}
+      {market && p.fee_model !== null ? (
+        <li>
+          Fee schedule used: {p.fee_model.name} (formula {p.fee_model.formula}, coefficient {p.fee_model.coefficient}),
+          verified: {p.fee_model.verified ? "yes" : "no"}. Source: {p.fee_model.source}.
+        </li>
+      ) : null}
+      {market && p.price_basis ? (
+        <li>
+          How a ticket would be priced: {p.price_basis}. {p.historical_note}
+        </li>
+      ) : null}
+      <li>
+        Engine: {p.engine}. As of {stamp(p.as_of)}. Source: <span class="mono">{p.source}</span>.
+      </li>
+      <li>{p.disclaimer}</li>
+    </ul>
+  );
   return (
-    <section class="panel verdict" aria-labelledby="parlay-h">
+    <section class={`panel verdict${compact ? "" : " card-header pb-verdict"}`} aria-labelledby="parlay-h">
       <div class="kicker">Parlay of the day</div>
       <h2 id="parlay-h">{p.title}</h2>
       <p class="lead">{verdictText(p)}</p>
@@ -65,40 +98,14 @@ export function Body({ p, compact }: { p: ParlayState; compact: boolean }) {
           honestly.
         </p>
       </Explain>
-      {!compact ? (
-        <Explain label="Show the exact details">
-          <ul class="plain small">
-            <li>
-              The engine's own label: <span class="mono">{p.headline_verdict}</span>. Its note: {p.reason}
-            </li>
-            {p.model_weight !== null ? (
-              <li>
-                Model weight: <span class="num">{p.model_weight.toFixed(2)}</span>. {p.model_weight_note}
-              </li>
-            ) : null}
-            {g !== null ? (
-              <li>
-                Track record: {g.describe}; gate open: {g.gate_open ? "yes" : "no"}.
-              </li>
-            ) : null}
-            {market && p.fee_model !== null ? (
-              <li>
-                Fee schedule used: {p.fee_model.name} (formula {p.fee_model.formula}, coefficient {p.fee_model.coefficient}),
-                verified: {p.fee_model.verified ? "yes" : "no"}. Source: {p.fee_model.source}.
-              </li>
-            ) : null}
-            {market && p.price_basis ? (
-              <li>
-                How a ticket would be priced: {p.price_basis}. {p.historical_note}
-              </li>
-            ) : null}
-            <li>
-              Engine: {p.engine}. As of {stamp(p.as_of)}. Source: <span class="mono">{p.source}</span>.
-            </li>
-            <li>{p.disclaimer}</li>
-          </ul>
-        </Explain>
-      ) : null}
+      {compact ? null : analyst ? (
+        <div class="pb-foot pb-exact">
+          <h3 class="small">The exact details</h3>
+          {exact}
+        </div>
+      ) : (
+        <Explain label="Show the exact details">{exact}</Explain>
+      )}
     </section>
   );
 }
@@ -135,40 +142,44 @@ export function ParlayCard({ compact, date }: { compact: boolean; date?: string 
 export function ParlayPage(props: { date: string | null }) {
   const market = useLens() === "market";
   return (
-    <div class="stack">
-      <h1>Parlay of the day</h1>
-      {market ? null : (
-        <SoWhat>The engine's card belongs to the market side, so this lens gives the standing answer: keep your money.</SoWhat>
-      )}
+    <div class="stack pb-page">
+      <PageHead
+        kicker="Market side"
+        title="Parlay of the day"
+        description={market ? "The engine's check of tonight's open parlay markets, after fees. Nothing worth betting is a normal answer." : <strong class="pb-sowhat">The engine's card belongs to the market side, so this lens gives the standing answer: keep your money.</strong>}
+      />
       {/* The engine's card speaks of prices, fees and a book: Market lens only, like the ticket list below. */}
       {market ? (
         <ParlayCard compact={false} date={props.date} />
-      ) : (
-        <MarketOnly name="The parlay engine's card" what="The engine's card is the market side of the night." />
-      )}
+      ) : null}
       {market ? <ParlayDiagnostics date={props.date} /> : null}
       {market ? (
         <LatestTopParlays date={props.date} />
       ) : (
-        <MarketOnly name="The ticket list" what="The ticket list is the market side of a night's tickets." />
+        <div class="pb-two">
+          <MarketOnly name="The parlay engine's card" what="The engine's card is the market side of the night." />
+          <MarketOnly name="The ticket list" what="The ticket list is the market side of a night's tickets." />
+        </div>
       )}
-      <section class="panel flat">
-        <h3>The three ways a day can go</h3>
+      <Card kicker="Reading the verdict" title="The three ways a day can go" class="pb-ways">
         <ul class="plain">
           <li>
+            <Badge tone="better" icon="check" word="Trusted" />
             <strong>We have a bet we trust.</strong> The model has a track record and a ticket still looks good after the
             sportsbook's cut. We show it, with the record next to it, and it stays a paper ticket.
           </li>
           <li>
+            <Badge tone="amber" icon="info" word="Unproven" />
             <strong>We have a guess, but it is unproven.</strong> The model has no track record yet. We may show its best
             idea, clearly marked as unproven. Keep your money.
           </li>
           <li>
+            <Badge tone="none" icon="close" word="Keep your money" />
             <strong>Nothing today.</strong> No ticket was worth it, or there was nothing we could check. This is a normal
             day, not an error.
           </li>
         </ul>
-      </section>
+      </Card>
     </div>
   );
 }

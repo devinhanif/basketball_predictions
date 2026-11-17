@@ -2,6 +2,7 @@
 // server's reason when it gave one, the code and a reference id to quote, and always a way on. Built from existing
 // classes only (panel error, btn, mono, explain); the design lane owns how it looks.
 import { codeCopy } from "./errorCodes";
+import { Icon } from "./icons";
 import { helpHref, topHref } from "./router";
 
 export interface ProblemProps {
@@ -23,9 +24,14 @@ export function ProblemPanel(props: ProblemProps) {
   const c = codeCopy(props.code);
   const Heading = props.level === 2 ? "h2" : "h1";
   return (
-    <div class="panel error" role="alert" data-code={props.code}>
-      <Heading>{c.title}</Heading>
-      <p>{c.what}</p>
+    <div class="panel error pb-problem" role="alert" data-code={props.code}>
+      <div class="pb-problem-head">
+        <span class="state-mark" aria-hidden="true">
+          <Icon name="warn" />
+        </span>
+        <Heading>{c.title}</Heading>
+      </div>
+      <p class="pb-problem-what">{c.what}</p>
       {props.reason ? (
         <p>
           Reason: <span class="mono">{props.reason}</span>
@@ -33,7 +39,7 @@ export function ProblemPanel(props: ProblemProps) {
       ) : null}
       {props.note ? <p class="small muted">{props.note}</p> : null}
       <p>{c.todo}</p>
-      <p class="small muted">
+      <p class="small muted pb-problem-code">
         Code{" "}
         <a class="mono" href={helpHref(props.code)} title="What this code means">
           {props.code}
@@ -52,13 +58,13 @@ export function ProblemPanel(props: ProblemProps) {
           {props.detail ? <p class="small mono">{props.detail}</p> : null}
         </div>
       </details>
-      <p class="row wrap">
+      <p class="row wrap pb-problem-actions">
         {props.retry ? (
-          <button type="button" class="btn" onClick={props.retry}>
+          <button type="button" class="btn primary" onClick={props.retry}>
             Try again
           </button>
         ) : null}
-        <a class="btn" href={topHref("today")}>
+        <a class={props.retry ? "btn" : "btn primary"} href={topHref("today")}>
           Back to Discover
         </a>
       </p>

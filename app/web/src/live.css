@@ -5,7 +5,7 @@
 }
 
 .live-head {
-  padding: 14px 16px;
+  padding: var(--sp-4) var(--sp-5);
 }
 .live-score {
   display: grid;
@@ -65,8 +65,8 @@
 
 .live-asof {
   margin: 0;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--line);
 }
@@ -77,8 +77,8 @@
 }
 .live-phase {
   margin: 0;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius);
   background: var(--notice-bg);
   color: var(--notice-ink);
 }
@@ -150,7 +150,7 @@ table.box {
 .box thead th {
   border-top: 0;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0.04em;
 }
 .box th[scope="row"],
@@ -246,7 +246,7 @@ table.box {
 /* the live screen's game cards */
 .live-cards {
   list-style: none;
-  margin: 8px 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
   gap: var(--sp-2);
@@ -256,15 +256,18 @@ table.box {
   justify-content: space-between;
   align-items: center;
   gap: var(--sp-3);
-  padding: 12px 14px;
+  min-height: 44px;
+  padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
   color: var(--ink);
   text-decoration: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
 }
 .live-card:hover {
-  border-color: var(--accent);
+  border-color: var(--line-strong);
+  box-shadow: var(--elev-1);
 }
 .lc-teams {
   display: grid;
@@ -286,7 +289,7 @@ table.box {
 
 @media (min-width: 720px) {
   .live-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   }
   .ls-pts {
     font-size: 3.2rem;
@@ -295,9 +298,25 @@ table.box {
 
 .live-tabs {
   display: flex;
-  gap: 6px;
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 .live-track .seg {
   flex-wrap: wrap;
+}
+
+/* Detail: the back link sits flush; the section heads inside the live sections keep the card rhythm. */
+.live-back {
+  margin: 0;
+}
+.live-sec .section-head {
+  margin-bottom: var(--sp-3);
+}
+.live-game .tabpanel {
+  min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-card {
+    transition: none;
+  }
 }
