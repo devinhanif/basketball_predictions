@@ -42,7 +42,10 @@ build-backend = "setuptools.build_meta"
 include = ["nba*", "research*"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=nba --cov=research --cov-report=term-missing --cov-fail-under=70"
+# --cov-branch is required, not cosmetic: pytest-cov hands subprocesses only the CLI flag (not
+# [tool.coverage.run] branch = true), so tests that spawn python wrote statement-only data and the
+# final combine died with "Can't combine statement coverage data with branch data" (full run, 2026-11-16).
+addopts = "--cov=nba --cov=research --cov-branch --cov-report=term-missing --cov-fail-under=70"
 testpaths = ["tests"]
 markers = [
   "slow: takes more than about 10 s (training loops, large fixtures, subprocess replays); excluded by `make test-fast` (-m 'not slow'), included by `make test`",
