@@ -16,6 +16,7 @@ import "./ux.css";
 import "./kit.css";
 import "./honesty.css";
 import "./jarvis.css";
+import "./pages-b.css";
 
 applyTheme(getPrefs().theme);
 applyDensity(getPrefs().density);

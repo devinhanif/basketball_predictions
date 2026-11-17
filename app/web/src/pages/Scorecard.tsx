@@ -1,15 +1,16 @@
 // The honest scorecard (#/scorecard; scorecard_v1): the production model against its declared baseline on stored scores,
 // each mean with its n rows, n dates and date-clustered interval; frozen-test rows and locked dates as counts only; the
 // rule the scores follow, verbatim; and what cannot be shown yet. Every number is a field of the answer.
+import type { ComponentChildren } from "preact";
 import { View } from "../components";
 import { count, decimal, MISSING } from "../format";
 import { hasPriceWords, honestyApi, type Maybe, type Metric, type ScoreTarget, type Scorecard } from "../honesty";
 import { LensSwitch } from "../Lens";
-import { useLens } from "../prefs";
+import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
 import { stamp } from "../time";
-import { CompareBadge, SoWhat, Table, type Column } from "../ui";
+import { Card, CompareBadge, PageHead, SectionHead, StateBlock, Table, Tile, type Column } from "../ui";
 import { useLoad } from "../useLoad";
 
 const TARGET_LABEL: Record<string, string> = { pts: "Points", reb: "Rebounds", ast: "Assists", fg3m: "Threes", win_prob_home: "Game winner" };
@@ -76,7 +77,7 @@ function Mean({ r }: { r: ScoreRow }) {
   return (
     <span class="num">
       {decimal(v.value, 3)}{" "}
-      <span class="small muted">
+      <span class="small muted sc-int">
         [{decimal(v.lo, 3)}, {decimal(v.hi, 3)}]
       </span>
     </span>
@@ -121,15 +122,31 @@ const HIDDEN_COLS: readonly Column<ScoreRow>[] = [
   { key: "why", head: "Hidden until its look, because", cell: (r) => <span class="small">{r.withheld ?? MISSING}</span> },
 ];
 
-function Body({ s, market }: { s: Scorecard; market: boolean }) {
+/** Simple: the method behind one "how this is measured" disclosure. Analyst: laid out as its own card. */
+function Method(props: { analyst: boolean; children: ComponentChildren }) {
+  if (props.analyst) {
+    return (
+      <Card kicker="Method" title="Which rows these scores follow" class="pb-method" id="sc-rule">
+        {props.children}
+      </Card>
+    );
+  }
+  return (
+    <details class="explain pb-how" id="sc-rule">
+      <summary>How this is measured: which rows these scores follow</summary>
+      <div class="explain-body">{props.children}</div>
+    </details>
+  );
+}
+
+function Body({ s, market, analyst }: { s: Scorecard; market: boolean; analyst: boolean }) {
   const say = (t: string | null | undefined): string | null => (t && (market || !hasPriceWords(t)) ? t : null);
   if (!s.available) {
     return (
-      <section class="panel empty">
-        <h2>No scores to show</h2>
+      <StateBlock kind="empty" title="No scores to show">
         <p>{s.reason ?? "This data carries no settled scores."}</p>
         <p class="small muted">That is a state of the data, not a fault: the scorecard fills in once a nightly export with settled games is served.</p>
-      </section>
+      </StateBlock>
     );
   }
   const rows = scoreRows(s.targets);
@@ -138,90 +155,128 @@ function Body({ s, market }: { s: Scorecard; market: boolean }) {
   const rule = s.score_rule;
   return (
     <>
-      <section class="panel verdict" aria-labelledby="sc-say">
+      <section class="panel verdict pb-say" aria-labelledby="sc-say">
+        <div class="kicker">In plain words</div>
         <h2 id="sc-say">Where the baseline or the market wins</h2>
-        <ul class="plain">
+        <ul class="plain pb-lines">
           {s.targets.map((t) => {
             const line = say(t.sentence);
             return line ? <li key={t.target}>{line}</li> : null;
           })}
         </ul>
         {hiddenSentences > 0 ? <p class="small muted">Further lines speak of the market side; they show in the Market lens.</p> : null}
-        <p class="small">{say(s.market.reason) ? `The market column: ${s.market.reason ?? ""}.` : "There is no market column: nothing from the market side is stored beside the scored rows."}</p>
+        <p class="small pb-foot">{say(s.market.reason) ? `The market column: ${s.market.reason ?? ""}.` : "There is no market column: nothing from the market side is stored beside the scored rows."}</p>
       </section>
-      <section class="panel" aria-labelledby="sc-rule">
-        <h2 id="sc-rule">Which rows these scores follow</h2>
-        <p>
-          Rule: <span class="mono">{rule.rule}</span>. {rule.t60_filter ?? ""}
-        </p>
-        {rule.limitation ? <p class="small">{rule.limitation}</p> : null}
-        {s.lock_text ? <p class="small">{s.lock_text}</p> : null}
-        <p class="small num">
-          Over all measures: {count(rule.n_rows_read)} stored rows read, {count(rule.n_late_excluded)} made too late and left out, {count(rule.n_t60_unknown)} kept whose
-          tip-off this data does not hold. Seasons {s.seasons.join(", ") || MISSING}; scores as of {s.as_of ? stamp(s.as_of) : MISSING}.
-        </p>
-        <details class="explain">
-          <summary>How the means and intervals are made</summary>
-          <div class="explain-body">
-            <p class="small">{s.method}</p>
-            <p class="small">{s.population}</p>
-            <p class="small">
-              <a href={termHref("crps")}>CRPS</a> · <a href={termHref("n-interval")}>n and clustered interval</a> · <a href={termHref("prereg")}>Frozen rule</a>
-            </p>
-          </div>
-        </details>
+      <section class="panel" aria-labelledby="sc-shown">
+        <SectionHead
+          id="sc-shown"
+          title="The scores we can show"
+          sub={
+            <>
+              Lower is better. Each mean carries its n rows, n dates and 95% interval. <a href={termHref("crps")}>CRPS</a> · <a href={termHref("n-interval")}>n and interval</a>
+            </>
+          }
+        />
+        <Table caption="Stored scores, lower is better" rows={rows.filter((r) => r.shown)} columns={SHOWN_COLS} rowKey={(r) => r.key} noun="rows" class="sc-table sc-shown" />
       </section>
-      <section class="panel" aria-label="Scores">
-        <Table caption="Stored scores, lower is better" rows={rows.filter((r) => r.shown)} columns={SHOWN_COLS} rowKey={(r) => r.key} noun="rows" class="sc-table" />
-      </section>
-      <section class="panel" aria-label="Counts only">
+      <section class="panel" aria-labelledby="sc-hidden">
+        <SectionHead
+          id="sc-hidden"
+          title="Counts only, until the look"
+          sub={
+            <>
+              Rows under a frozen test keep their counts and say why they are hidden; no score is filled in. <a href={topHref("tests")}>Forward tests</a>
+            </>
+          }
+        />
         <Table
           caption={<>Counts only: rows under a frozen test, hidden until its look (<a href={topHref("tests")}>forward tests</a>)</>}
           rows={rows.filter((r) => !r.shown)}
           columns={HIDDEN_COLS}
           rowKey={(r) => r.key}
           noun="rows"
-          class="sc-table"
+          class="sc-table sc-hidden"
+          sticky
         />
       </section>
       <section class="panel" aria-labelledby="sc-na">
-        <h2 id="sc-na">What we cannot show yet, and why</h2>
-        <ul class="plain">
+        <SectionHead id="sc-na" title="What we cannot show yet, and why" sub="Each item names the stored field it would need." />
+        <ul class="plain pb-needs">
           {s.not_available.map((x) => {
             const ok = say(`${x.metric} ${x.needs} ${x.why}`);
             return ok ? (
               <li key={x.metric}>
-                <strong>{x.metric}</strong>: needs {x.needs}. {x.why}.
+                <strong>{x.metric}</strong>
+                <span>
+                  Needs {x.needs}. {x.why}.
+                </span>
               </li>
             ) : null;
           })}
         </ul>
         {hiddenNotes > 0 ? <p class="small muted">Further items are about the market side; they are listed in the Market lens.</p> : null}
       </section>
+      <Method analyst={analyst}>
+        <p>
+          Rule: <span class="mono">{rule.rule}</span>. {rule.t60_filter ?? ""}
+        </p>
+        {rule.limitation ? <p class="small">{rule.limitation}</p> : null}
+        {s.lock_text ? <p class="small">{s.lock_text}</p> : null}
+        {analyst ? (
+          <div class="tiles pb-tiles">
+            <Tile label="Stored rows read" value={count(rule.n_rows_read)} note="over all measures" />
+            <Tile label="Made too late, left out" value={count(rule.n_late_excluded)} />
+            <Tile label="Kept, tip-off not held" value={count(rule.n_t60_unknown)} />
+            <Tile label="Seasons" value={s.seasons.join(", ") || MISSING} note={`scores as of ${s.as_of ? stamp(s.as_of) : MISSING}`} />
+          </div>
+        ) : (
+          <p class="small num">
+            Over all measures: {count(rule.n_rows_read)} stored rows read, {count(rule.n_late_excluded)} made too late and left out, {count(rule.n_t60_unknown)} kept whose
+            tip-off this data does not hold. Seasons {s.seasons.join(", ") || MISSING}; scores as of {s.as_of ? stamp(s.as_of) : MISSING}.
+          </p>
+        )}
+        {analyst ? (
+          <>
+            <p class="small">{s.method}</p>
+            <p class="small">{s.population}</p>
+          </>
+        ) : (
+          <details class="explain">
+            <summary>How the means and intervals are made</summary>
+            <div class="explain-body">
+              <p class="small">{s.method}</p>
+              <p class="small">{s.population}</p>
+            </div>
+          </details>
+        )}
+        <p class="small">
+          <a href={termHref("crps")}>CRPS</a> · <a href={termHref("n-interval")}>n and clustered interval</a> · <a href={termHref("prereg")}>Frozen rule</a>
+        </p>
+      </Method>
     </>
   );
 }
 
 export function ScorecardPage() {
   const market = useLens() === "market";
+  const analyst = useMode() === "analyst";
   const [state, reload] = useLoad(() => honestyApi.scorecard(), []);
   return (
-    <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Track record</div>
-        <h1>Scorecard: the model against its baseline</h1>
-      </header>
-      <SoWhat>Lower scores are better. A row we may not show yet keeps its counts and says when it opens; nothing is filled in.</SoWhat>
-      <LensSwitch compact />
+    <div class="stack pb-page">
+      <PageHead
+        kicker="Track record"
+        title="Scorecard: the model against its baseline"
+        description="Lower scores are better. A row we may not show yet keeps its counts and says when it opens; nothing is filled in."
+        actions={<LensSwitch compact />}
+      />
       <View state={state} reload={reload} what="the scorecard">
         {(m: Maybe<Scorecard>) =>
           m.kind === "absent" ? (
-            <section class="panel empty">
-              <h2>Not in this copy of the data</h2>
+            <StateBlock kind="empty" title="Not in this copy of the data">
               <p>{m.why}</p>
-            </section>
+            </StateBlock>
           ) : (
-            <Body s={m.data} market={market} />
+            <Body s={m.data} market={market} analyst={analyst} />
           )
         }
       </View>
