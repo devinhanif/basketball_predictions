@@ -20,11 +20,12 @@ import duckdb
 import numpy as np
 
 from nba.daily.injury import to_report_dt
+from nba.leadtime import LEAD as _PROD_LEAD
 from nba.lineups.source import CONFIRMED
 
 LEAD = timedelta(minutes=30)
 LEAD_T15 = timedelta(minutes=15)
-T60 = timedelta(minutes=60)
+T60 = _PROD_LEAD  # timedelta(minutes=60), nba.leadtime (LEAD here is the T-30 lead)
 MAX_REPORT_AGE = timedelta(hours=36)
 GTD_STATUSES = ("questionable", "doubtful")
 

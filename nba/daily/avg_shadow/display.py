@@ -11,9 +11,10 @@ from typing import Any
 
 import duckdb
 
+from nba.leadtime import LEAD_MINUTES
 from nba.ops.exclusions import avg_split
 
-LEAD = 60
+LEAD = LEAD_MINUTES  # 60, nba.leadtime
 
 
 def _one(con: duckdb.DuckDBPyConnection, sql: str, args: list[Any] | None = None) -> int:

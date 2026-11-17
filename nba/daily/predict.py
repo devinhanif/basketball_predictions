@@ -17,6 +17,7 @@ from nba.features.injury_report import (
     load_report_rows,
     serve_pretip_flagged,
 )
+from nba.leadtime import LEAD_MINUTES
 from nba.models.injury_elo import InjuryFeatureConfig, feature_config_from
 from nba.models.rung0_baselines import MovEloBaseline
 from nba.props.forward import (
@@ -45,7 +46,7 @@ CONTEXT_LT_PROPS_MODEL_NAME = "props_context_residual_lt"
 RECENCY_PROPS_MODEL_NAME = "props_recency_v1"
 RECENCY_PROPS_VERSION = "recency-v1"
 DEFAULT_CONTEXT_CACHE = REPO_ROOT / "data" / "models" / "context_residual"
-REPORT_LEAD_MINUTES = 60  # same pre-tip rule as injury Elo: real tip-off minus 60 min
+REPORT_LEAD_MINUTES = LEAD_MINUTES  # 60; same pre-tip rule as injury Elo: real tip-off minus 60 min
 PROP_LOOKBACK_GAMES = 82
 PROP_MIN_GAMES = 5
 PROP_ROSTER_WINDOW = 10  # team games used to find who is currently on the roster
