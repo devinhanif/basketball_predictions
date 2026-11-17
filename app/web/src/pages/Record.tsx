@@ -23,8 +23,10 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
   const q = prop.q;
   const posted = prop.line_source === "posted";
   const a = props.actual;
+  // A locked night with no usable line has nothing to say beside the name: one row, name and a reveal button.
+  const bare = props.locked && !posted;
   return (
-    <li class="rp-player">
+    <li class={bare ? "rp-player bare" : "rp-player"}>
       <div class="rp-line">
         <strong>{props.p.name}</strong>
         {props.locked ? null : (
@@ -34,6 +36,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
           </span>
         )}
       </div>
+      {bare ? null : (
       <div class="rp-call num">
         {posted ? (
           <>
@@ -49,6 +52,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
           <>{props.locked ? "No usable sportsbook line." : `No usable sportsbook line; reference line ${lineText(prop.line)} (the middle of our forecast).`}</>
         )}
       </div>
+      )}
       {props.open ? (
         !props.ready ? (
           <p class="small muted">Loading what happened...</p>
@@ -61,8 +65,8 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
           </p>
         )
       ) : (
-        <button type="button" class="btn rp-reveal" onClick={props.onOpen}>
-          Tap to reveal what happened
+        <button type="button" class="btn rp-reveal" onClick={props.onOpen} aria-label={bare ? `Reveal what happened for ${props.p.name}` : undefined}>
+          {bare ? "Reveal" : "Tap to reveal what happened"}
         </button>
       )}
     </li>
@@ -137,6 +141,9 @@ function ReplayGame({ g, locked, analyst }: { g: GameSummary; locked: boolean; a
                 Each forecast is the latest one stored before tip. Showing {S(players.length)} players, biggest forecast first.{" "}
                 <a href={legHref(g.game_id, d.players[0]?.player_id ?? 0, stat)}>Open a full breakdown</a> from the game page.
               </p>
+              {locked && players.length > 0 && players.every((p) => p.props[stat]?.line_source !== "posted") ? (
+                <p class="small muted">These players have no usable sportsbook line for this stat, so there is nothing to check a forecast against here. Reveal a row to see what happened.</p>
+              ) : null}
               <ModelNote items={d.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
               <ul class="plain rp-players">
                 {players.map((p) => (

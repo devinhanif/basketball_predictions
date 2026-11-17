@@ -310,6 +310,9 @@
 .rp-players {
   display: grid;
   gap: 10px;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
 }
 .rp-player {
   display: grid;
@@ -318,6 +321,14 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
+}
+.rp-player.bare {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.rp-player.bare .rp-result {
+  grid-column: 1 / -1;
 }
 .rp-line {
   display: flex;

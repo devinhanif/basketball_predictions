@@ -1100,7 +1100,7 @@ textarea:focus-visible {
   border-radius: 0;
   background: transparent;
   margin: 0 -16px;
-  width: calc(100% + 32px);
+  width: calc(100% + 48px);
   padding: 14px 18px;
   min-height: 64px;
 }
@@ -1323,7 +1323,7 @@ h1.answer {
 }
 .drawer-head .brand svg {
   width: 30px;
-  height: 32px;
+  height: 48px;
   transform: rotate(-7deg);
 }
 .drawer .side-label {
@@ -1955,6 +1955,48 @@ main h2 {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: var(--sp-1);
+  }
+}
+
+/* A row of chips that scrolls sideways (the night pickers, the stat tabs) fades at the edge that has more behind it, so a
+   cut-off chip reads as "keep going", in both themes. The fade follows the scroll: it is gone at the end, and a row that
+   fits has none. Where scroll-driven animation is not supported the row simply scrolls with its cut-off chip as the cue. */
+@property --tabs-fade-l {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --tabs-fade-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes tabs-fade-in {
+  from {
+    --tabs-fade-l: 0px;
+  }
+  to {
+    --tabs-fade-l: 48px;
+  }
+}
+@keyframes tabs-fade-out {
+  from {
+    --tabs-fade-r: 48px;
+  }
+  to {
+    --tabs-fade-r: 0px;
+  }
+}
+@supports (animation-timeline: scroll(self inline)) {
+  .tabs {
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--tabs-fade-l), #000 calc(100% - var(--tabs-fade-r)), transparent 100%);
+    animation:
+      tabs-fade-in linear both,
+      tabs-fade-out linear both;
+    animation-timeline: scroll(self inline), scroll(self inline);
+    animation-range:
+      0 48px,
+      calc(100% - 48px) 100%;
   }
 }
 
