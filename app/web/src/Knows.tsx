@@ -5,6 +5,7 @@ import { legHref } from "./router";
 import { percentAlong } from "./slider";
 import { STAT_LABEL, type GameKnows, type KnowsNews, type KnowsSnap, type PlayerKnows, type PSource } from "./types";
 import { useLoad } from "./useLoad";
+import { instantMs } from "./time";
 
 /** "5 h 30 min before tip", "42 min before tip". */
 export function leadText(min: number): string {
@@ -137,11 +138,11 @@ function Timeline({ d }: { d: PlayerKnows }) {
   const events: { t: number; node: preact.JSX.Element }[] = [];
   snaps.forEach((s, i) => {
     events.push({
-      t: Date.parse(s.made_at),
+      t: instantMs(s.made_at),
       node: <ForecastRow key={`f-${s.made_at}`} s={s} prev={i > 0 ? (snaps[i - 1] ?? null) : null} scale={scale} line={d.line_source === "posted" ? d.line : null} stat={d.stat} source={d.p_over_source} />,
     });
   });
-  for (const g of groupNews(d.news)) events.push({ t: Date.parse(g.at), node: <NewsBlock key={`n-${g.at}`} g={g} /> });
+  for (const g of groupNews(d.news)) events.push({ t: instantMs(g.at), node: <NewsBlock key={`n-${g.at}`} g={g} /> });
   events.sort((a, b) => a.t - b.t);
   return (
     <>
@@ -195,7 +196,7 @@ export function PlayerKnowsPanel(props: { gameId: string; playerId: number; stat
   return (
     <section class="panel knows" aria-label="What the game knew">
       <h2>What the game knew, and when</h2>
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(d) => (
           <div class="stack">
             <Timeline d={d} />
@@ -236,7 +237,7 @@ export function GameKnowsPanel(props: { gameId: string }) {
   return (
     <section class="panel knows" aria-label="What the game knew">
       <h2>What the game knew, and when</h2>
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(d) => {
           const groups = groupNews(d.news);
           return (

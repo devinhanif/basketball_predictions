@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 import { api } from "./api";
-import { american, bookName, lineText, num, pct } from "./format";
+import { priceText, bookName, lineText, num, pct } from "./format";
 import { Explain, View } from "./components";
 import { plainModel } from "./plain";
 import { gameHref } from "./router";
@@ -100,6 +100,7 @@ function Facts(props: { s: CardStats; card: CardView }) {
             {h.hits} of {h.n}
             {h.pushes > 0 ? <span class="muted"> ({h.pushes} push)</span> : null}
             {ci ? <span class="muted"> · 95% range {pct(ci[0])} to {pct(ci[1])}</span> : null}
+            {ci ? <span class="browser-note">The range is computed in your browser from the stored hits and n = {h.n}, not by the engine.</span> : null}
           </dd>
         </div>
         <div>
@@ -259,7 +260,7 @@ export function LineSlider({ card }: { card: CardView }) {
         {!market
           ? `The line on this card is ${lineText(card.line)}.`
           : posted !== null && card.over_price !== null && card.under_price !== null
-          ? `Posted line ${lineText(posted)}${card.price_book ? ` at ${bookName(card.price_book)}` : ""}: over ${american(card.over_price)}, under ${american(card.under_price)}. Prices exist only at the posted line.`
+          ? `Posted line ${lineText(posted)}${card.price_book ? ` at ${bookName(card.price_book)}` : ""}: over ${priceText(card.over_price)}, under ${priceText(card.under_price)}. Prices exist only at the posted line.`
           : "No posted price is stored for this prop."}
       </p>
     </div>
@@ -288,7 +289,7 @@ function Body(props: { game_id: string; player_id: number; stat: string }) {
   const market = useLens() === "market";
   const [state, reload] = useLoad(() => api.card(props.game_id, props.player_id, props.stat), [props.game_id, props.player_id, props.stat]);
   return (
-    <View state={state} reload={reload}>
+    <View state={state} reload={reload} errorLevel={2}>
       {(card) => (
         <div class="card-detail-body">
           <p class="small muted">

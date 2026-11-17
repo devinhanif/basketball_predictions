@@ -1,6 +1,6 @@
 import { api } from "./api";
 import { Explain, View } from "./components";
-import { american, bookName, lineText, longDate, pct, signed, stamp } from "./format";
+import { priceText, bookName, lineText, longDate, pct, signed, stamp } from "./format";
 import { capBooks, evCautious, evVerdict, plainText, testCodesIn, ticketBook } from "./plain";
 import { defaultNight } from "./nights";
 import { legHref } from "./router";
@@ -39,7 +39,7 @@ function LegRow({ leg, illustration }: { leg: TpLeg; illustration: boolean }) {
             {leg.tail_flag === true ? <span class="tag tail-flag">65%+ leg: ran high in tests</span> : null}
           </span>
           <span class="tp-leg-price num">
-            {bookName(leg.book)} {american(leg.price_american)}
+            {bookName(leg.book)} {priceText(leg.price_american)}
           </span>
         </summary>
         <div class="tp-leg-why">
@@ -307,7 +307,7 @@ function PanelInner({ date, checkToday }: { date: string; checkToday: boolean })
           This is a saved copy from earlier, not a fresh load.
         </p>
       ) : null}
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(r) =>
           r.kind === "ok" ? (
             <Body d={r.data} checkToday={checkToday} />
@@ -332,7 +332,7 @@ function PanelInner({ date, checkToday }: { date: string; checkToday: boolean })
 export function LatestTopParlays({ date }: { date: string | null }) {
   const [list, reload] = useLoad(() => api.slates(), []);
   return (
-    <View state={list} reload={reload}>
+    <View state={list} reload={reload} errorLevel={2}>
       {(slates) => {
         const night = date ?? defaultNight(slates);
         return night ? <TopParlaysPanel date={night} checkToday /> : <p>No nights are loaded.</p>;

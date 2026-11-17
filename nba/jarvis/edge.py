@@ -16,10 +16,10 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
-from decimal import ROUND_HALF_EVEN, Decimal
 
 from nba.jarvis.config import JarvisConfig
 from nba.jarvis.models import PlayLeg, Quote
+from nba.markets.fees import bankers_cent_fee, bankers_cent_fee_scaled
 from nba.parlay.ev import order_fee
 
 CENT = 0.01
@@ -48,9 +48,14 @@ def _order_fee(cfg: JarvisConfig, venue: str, price: float, contracts: int, seri
     if cfg.fee_rounding.get(venue) != "bankers_cent":
         return order_fee(price, cfg.fee(venue), contracts, series=series)
     fee = cfg.fee(venue)
-    raw = Decimal(str(fee.multiplier(series))) * Decimal(str(fee.rate("taker"))) * contracts
-    raw *= Decimal(str(price)) * (Decimal(1) - Decimal(str(price)))
-    return float(raw.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN))
+    mult = fee.multiplier(series)
+    if mult == 1.0:
+        # The fast-arb form, the documented formula as written: coefficient x C x p x (1 - p).
+        # Devin, 2026-11-16: one Polymarket US evaluation order, fast-arb's. No multiplier here.
+        return bankers_cent_fee(fee.rate("taker"), contracts, price)
+    # A multiplier other than 1 has no fast-arb equivalent; the scaled form is kept for it. No
+    # Polymarket config carries one today (tests/markets/test_fees_differential.py guards that).
+    return bankers_cent_fee_scaled(mult, fee.rate("taker"), contracts, price)
 
 
 def devig_pair(p_a: float, p_b: float) -> tuple[float, float]:

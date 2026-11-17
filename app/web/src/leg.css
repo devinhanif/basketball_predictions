@@ -1,11 +1,13 @@
 /* Leg breakdown screen. Uses the theme variables from styles.css, so light and dark both follow. */
-.leg-open {
+.btn.leg-open {
   min-height: 44px;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   padding: 8px 12px;
   max-width: 100%;
   box-sizing: border-box;
   text-align: center;
+  white-space: normal;
+  line-height: 1.3;
 }
 .leg-title h1 {
   font-size: 1.9rem;
@@ -32,7 +34,7 @@
   color: var(--ink);
   font-weight: 600;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
 }
 .leg-tab[aria-current="true"] {
   background: var(--ink);
@@ -62,7 +64,7 @@
 .leg-sides {
   display: inline-flex;
   border: 1px solid var(--ink);
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 .leg-side {
@@ -91,7 +93,7 @@
 .leg-tiles {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .leg-tile {
   border: 1px solid var(--line);
@@ -116,13 +118,13 @@
   margin: 2px 0;
 }
 .leg-sub {
-  font-size: 0.82rem;
+  font-size: var(--fs-s);
   color: var(--muted);
 }
 .leg-sub.strong {
   color: var(--ink);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 .leg-flag,
 .leg-notice {
@@ -131,7 +133,7 @@
   border-left: 4px solid var(--accent);
   padding: 10px 12px;
   margin: 10px 0 0;
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
 }
 .leg-notice {
   margin: 0;
@@ -190,7 +192,7 @@
   line-height: 1.1;
 }
 .leg-chip-mark {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
 }
@@ -204,14 +206,14 @@
   color: var(--muted);
 }
 .leg-chip-meta {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   white-space: nowrap;
 }
 .leg-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
 }
 .leg-table th,
 .leg-table td {
@@ -221,7 +223,7 @@
   white-space: nowrap;
 }
 .leg-table thead th {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -255,7 +257,7 @@
 .leg-cells {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .leg-cell {
   min-width: 0;
@@ -312,7 +314,7 @@
    steady role is a description of the past, not a good or bad sign. */
 .steady {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   line-height: 1.3;
   padding: 2px 8px;
@@ -344,7 +346,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: 4px;
+  column-gap: var(--sp-1);
 }
 .role-sum {
   font-weight: 600;
@@ -374,7 +376,7 @@
 .role-win-cells {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .role-net {
   font-size: 1.3rem;
@@ -386,7 +388,7 @@
   font-weight: 600;
 }
 .role-36 {
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   line-height: 1.25;
 }
@@ -411,7 +413,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "name val" "sub sub";
   align-items: baseline;
-  column-gap: 8px;
+  column-gap: var(--sp-2);
   padding: 4px 0;
   border-top: 1px solid var(--line);
 }
@@ -429,7 +431,7 @@
   text-align: right;
 }
 .beyond-val.none {
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--muted);
 }
@@ -443,7 +445,7 @@
 }
 .past-games .leg-cell-main,
 .past-games .role-36 {
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--muted);
 }

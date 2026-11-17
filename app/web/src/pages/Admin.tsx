@@ -1,4 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
+import { PageHead, StateBlock } from "../ui";
 import { api } from "../api";
 import { Avatar } from "../Avatar";
 import { deskOf, useDesk } from "../deskStore";
@@ -275,37 +276,33 @@ export function Admin() {
   if (!isAdmin) {
     return (
       <div class="stack">
-        <header class="page-head">
-          <h1>Admin studio</h1>
-        </header>
-        <section class="panel empty">
-          <h2>These are the owner's tools</h2>
-          <p class="muted">
-            {IS_ARTIFACT
-              ? "The platform decides who can edit this page; there is no password to enter here."
-              : "Photos, the activity log and data tools are for whoever runs this page, so visitors do not see them. Everything else in the app is open to you."}
-          </p>
-          <a class="btn" href="#/">
-            Back to Discover
-          </a>
-        </section>
+        <PageHead kicker="Management" title="Admin studio" />
+        <StateBlock
+          kind="empty"
+          title="These are the owner's tools"
+          action={
+            <a class="btn" href="#/">
+              Back to Discover
+            </a>
+          }
+        >
+          {IS_ARTIFACT
+            ? "The platform decides who can edit this page; there is no password to enter here."
+            : "Photos, the activity log and data tools are for whoever runs this page, so visitors do not see them. Everything else in the app is open to you."}
+        </StateBlock>
       </div>
     );
   }
   return (
     <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Admin studio</div>
-        <h1 class="answer">Photos, activity, people and data tools</h1>
-        <p class="muted answer-src">Visible to you because the platform says you can edit this page. No password is involved.</p>
-        <nav class="tabs" aria-label="Admin sections">
+      <PageHead kicker="Admin studio" class="pb-answer" title="Photos, activity, people and data tools" description="Visible to you because the platform says you can edit this page. No password is involved." />
+      <nav class="tabs pb-nights" aria-label="Admin sections">
           {TABS.map((t) => (
             <button key={t.v} type="button" class="tab" aria-current={tab === t.v ? "true" : undefined} onClick={() => { setTab(t.v); }}>
               {t.l}
             </button>
           ))}
-        </nav>
-      </header>
+      </nav>
       {tab === "photos" ? <Photos /> : null}
       {tab === "activity" ? <Activity /> : null}
       {tab === "people" ? <People /> : null}

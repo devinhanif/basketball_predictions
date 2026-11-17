@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { american, lineText, longDate } from "./format";
+import { priceText, lineText, longDate } from "./format";
 import { loadLedger, onLedgerChange, settle, type Pick } from "./ledger";
 import { getShared, onIt, subscribeShared, toPick, type SharedState } from "./sharedPicks";
 import { useLens } from "./prefs";
@@ -108,7 +108,7 @@ export function FriendsPicks() {
                     <div class="pick-body">
                       <div class="pick-title">{g ? `${p.player} ${didText(p.stat, g.row.actual)}` : p.player}</div>
                       <div class="pick-sub num">
-                        Took {p.side} {lineText(p.line)}{market ? ` (${american(p.side === "over" ? p.over_price : p.under_price)})` : ""}. {p.team} vs {p.opponent}, {longDate(p.slate_date)}
+                        Took {p.side} {lineText(p.line)}{market ? ` (${priceText(p.side === "over" ? p.over_price : p.under_price)})` : ""}. {p.team} vs {p.opponent}, {longDate(p.slate_date)}
                       </div>
                     </div>
                   </li>

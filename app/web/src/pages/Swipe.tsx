@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "preact/hooks";
 import { api } from "../api";
 import { CardDetail } from "../CardDetail";
 import { Explain, RecordBoard, ResetPicks, TeamTag, View } from "../components";
-import { american, bookName, lineText, longDate, tipTime } from "../format";
+import { priceText, bookName, lineText, longDate, tipTime } from "../format";
 import { addPick, loadLedger, type Pick } from "../ledger";
 import { IS_ARTIFACT } from "../env";
 import { ShareNote } from "../SharedUI";
@@ -14,6 +14,8 @@ import { STAT_LABEL } from "../types";
 import { didText, sideText } from "../words";
 import { useLens } from "../prefs";
 import { swipeKeyChoice } from "../swipeKeys";
+import { PageHead } from "../ui";
+import { useCurrentTab } from "../useCurrentTab";
 
 function newSeed(): number {
   const a = new Uint32Array(1);
@@ -45,7 +47,7 @@ function Card(props: {
   const [drag, setDrag] = useState(false);
   const start = useRef<number | null>(null);
   const label = market
-    ? `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}. Over pays ${american(card.over_price)}, under pays ${american(card.under_price)}.`
+    ? `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}. Over pays ${priceText(card.over_price)}, under pays ${priceText(card.under_price)}.`
     : `${card.player}, ${STAT_LABEL[card.stat]}, line ${card.line.toString()}.`;
   const lean = dx > 40 ? "over" : dx < -40 ? "under" : null;
   return (
@@ -183,13 +185,13 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
               <span class="btn-top">
                 <Arrow up={false} /> Under
               </span>
-              <span class="btn-sub num">{market ? american(card.under_price) : sideText(card.stat, card.line, "under")}</span>
+              <span class="btn-sub num">{market ? priceText(card.under_price) : sideText(card.stat, card.line, "under")}</span>
             </button>
             <button type="button" class="btn big over" onClick={() => { choose("over"); }}>
               <span class="btn-top">
                 <Arrow up /> Over
               </span>
-              <span class="btn-sub num">{market ? american(card.over_price) : sideText(card.stat, card.line, "over")}</span>
+              <span class="btn-sub num">{market ? priceText(card.over_price) : sideText(card.stat, card.line, "over")}</span>
             </button>
           </div>
           <button type="button" class="btn skip" onClick={() => { choose("skip"); }}>
@@ -241,13 +243,26 @@ function Deck(props: { date: string; clock: string; cards: SwipeCardData[]; rero
   );
 }
 
+function NightTabs(props: { dates: string[]; date: string | null }) {
+  const ref = useCurrentTab(`${props.date ?? ""}|${props.dates.length}`);
+  return (
+    <nav class="tabs night-tabs" aria-label="Choose a night" ref={ref}>
+      {props.dates.map((d) => (
+        <a key={d} class="tab" href={`#/swipe?date=${d}`} aria-current={d === props.date ? "true" : undefined}>
+          {longDate(d).replace(/, \d{4}$/, "")}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export function Swipe(props: { date: string | null; onStale: (s: boolean) => void }) {
   const market = useLens() === "market";
   const [list, reloadList] = useLoad(() => api.slates(), []);
   return (
     <div class="stack">
-      <div class="page-head">
-        <h1>Over or under?</h1>
+      <PageHead kicker="Pretend picks" title="Over or under?" description="Real player lines. Pick a side before tip-off; each pick is graded against what happened." />
+      <div class="swipe-how">
         <Explain label="How does this work?">
           <p>
             These are real player lines. By default you see the number{market ? " and the price" : ""}, nothing else: no forecast, no
@@ -258,7 +273,7 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
         </Explain>
       </div>
       <ShareNote />
-      <View state={list} reload={reloadList} onStale={props.onStale}>
+      <View state={list} reload={reloadList} onStale={props.onStale} errorLevel={2}>
         {(list) => {
           const all = chronological(list);
           // A snapshot can hold nights that have not been played: there is nothing to grade a pick against, so only the
@@ -268,14 +283,8 @@ export function Swipe(props: { date: string | null; onStale: (s: boolean) => voi
           const date = props.date ?? defaultNight(slates);
           return (
             <>
+              <NightTabs dates={slates.map((x) => x.date)} date={date} />
               {date ? <DeckLoader date={date} onStale={props.onStale} /> : null}
-              <nav class="tabs night-tabs" aria-label="Choose a night">
-                {slates.map((s) => (
-                  <a key={s.date} class="tab" href={`#/swipe?date=${s.date}`} aria-current={s.date === date ? "true" : undefined}>
-                    {longDate(s.date).replace(/, \d{4}$/, "")}
-                  </a>
-                ))}
-              </nav>
             </>
           );
         }}
@@ -295,7 +304,7 @@ function DeckLoader({ date, onStale }: { date: string; onStale: (s: boolean) => 
   const [seed, setSeed] = useState(newSeed);
   const [state, reload] = useLoad(() => api.swipe(date, seed, 60), [date, seed]);
   return (
-    <View state={state} reload={reload} onStale={onStale} what="the cards">
+    <View state={state} reload={reload} onStale={onStale} what="the cards" errorLevel={2}>
       {(deck) =>
         deck.cards.length === 0 ? (
           <div class="panel empty">

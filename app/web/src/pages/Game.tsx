@@ -4,25 +4,30 @@ import { AltLine } from "../AltLine";
 import { RoleSection } from "../RoleSection";
 import { SteadyBadge } from "../RoleCards";
 import { Avatar } from "../Avatar";
-import { CalTag, DistBar, DistLegend, Explain, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
+import { CalTag, DistBar, DistLegend, Explain, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { OnItChip } from "../SharedUI";
 import { useLens, useMode, type Lens, type Mode } from "../prefs";
-import { LensSwitch } from "../Lens";
+import { PageControls } from "../Lens";
 import { GameKnowsPanel } from "../Knows";
 import { GameLive } from "../LiveParts";
 import { IS_ARTIFACT } from "../env";
 import { plainPlay } from "../plain";
-import { american, bookName, lineText, num, pct, pctBounded, tipTime } from "../format";
+import { priceText, bookName, lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
 import { legHref, nightHref } from "../router";
 import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
 import { STATS, STAT_LABEL, STAT_SHORT } from "../types";
 import { RESULT_HIDDEN, isLockedNight } from "../record";
-import { chanceSentence, didText, rangeSentence } from "../words";
+import { chanceSentence, didText, rangeSentence, winSentence } from "../words";
+import { OnThisPage, PageHead, SoWhat, Tabs } from "../ui";
+import { count } from "../format";
+import { SourceButton } from "../Provenance";
+import { AddToSlipSlot } from "../BetSlots";
 
-function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens }) {
+function PropBlock(props: { gameId: string; playerId: number; player: string; prop: PropView; actual: number | undefined; hidden: boolean; lens: Lens; analyst?: boolean }) {
   const { prop, player, actual } = props;
+  const qn = (name: string): string => (props.analyst ? ` (${name})` : "");
   const market = props.lens === "market";
   const q = prop.q;
   return (
@@ -35,7 +40,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
             : !market
               ? `Line ${lineText(prop.line)}`
               : prop.over_price !== null && prop.under_price !== null
-              ? `Line ${lineText(prop.line)} · Over ${american(prop.over_price)} · Under ${american(prop.under_price)}${prop.price_book ? ` (${bookName(prop.price_book)})` : ""}`
+              ? `Line ${lineText(prop.line)} · Over ${priceText(prop.over_price)} · Under ${priceText(prop.under_price)}${prop.price_book ? ` (${bookName(prop.price_book)})` : ""}`
               : `Line ${lineText(prop.line)} (no usable price for both sides)`}
         </span>
       </div>
@@ -48,6 +53,7 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
             Explore: move the line and the minutes
           </a>
         ) : null}
+        <AddToSlipSlot gameId={props.gameId} playerId={props.playerId} stat={prop.stat} side={null} line={prop.line} from="game" />
       </p>
       <OnItChip propId={prop.prop_id} />
       <p class="prop-say">
@@ -71,15 +77,20 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
       ) : null}
       <div class="kv num">
         <span>
-          Typical night: <b>{num(q[9] ?? 0)}</b>
+          Typical night{qn("q50")}: <b>{num(q[9] ?? 0)}</b>
         </span>
         <span>
-          Half of nights: <b>{num(q[4] ?? 0)}</b> to <b>{num(q[14] ?? 0)}</b>
+          Half of nights{qn("q25 to q75")}: <b>{num(q[4] ?? 0)}</b> to <b>{num(q[14] ?? 0)}</b>
         </span>
         <span>
-          Nine in ten: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
+          Nine in ten{qn("q5 to q95")}: <b>{num(q[0] ?? 0)}</b> to <b>{num(q[18] ?? 0)}</b>
         </span>
       </div>
+      {props.analyst ? (
+        <p class="small muted prop-model">
+          Model <span class="mono">{prop.model_source}</span>
+        </p>
+      ) : null}
       <Chips model="" stampText={prop.forecast_stamp} tipUtc={null} />
       {prop.p_play !== null && prop.p_play_label ? (
         <p class="small muted" data-model-source={prop.model_source} title={`${prop.model_label} ${prop.p_play_label}`}>
@@ -98,12 +109,12 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
   );
 }
 
-function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result: GameResult | null; final: boolean; locked: boolean; mode: Mode; lens: Lens }) {
+function PlayerRow(props: { open: boolean; team: string; gameId: string; p: PlayerView; result: GameResult | null; final: boolean; locked: boolean; mode: Mode; lens: Lens }) {
   const first = STATS.map((s) => props.p.props[s]).find((x) => x !== undefined);
   const res = props.result?.players.find((r) => r.player_id === props.p.player_id);
   const lead = props.p.props.pts ?? first;
   return (
-    <details class="player" open={props.mode === "analyst" ? true : undefined}>
+    <details class="player" open={props.open ? true : undefined}>
       <summary>
         <span class="player-sum">
           <span class="player-name">
@@ -121,7 +132,7 @@ function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result:
               {lead.line_source === "reference" ? (
                 <>
                   <span class="muted small nowrap">Typical {STAT_SHORT[lead.stat]}</span>
-                  <span class="big-num">{num(lead.q[9] ?? 0)}</span>
+                  <span class="big-num">{(lead.q[9] ?? 0).toFixed(1)}</span>
                 </>
               ) : (
                 <>
@@ -147,10 +158,12 @@ function PlayerRow(props: { team: string; gameId: string; p: PlayerView; result:
         <p class="small muted">We do not forecast minutes yet.</p>
       )}
       {props.p.role ? <RoleSection role={props.p.role} player={props.p.name} /> : null}
+      <div class="prop-grid">
       {STATS.map((s: Stat) => {
         const prop = props.p.props[s];
-        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={props.locked ? undefined : res?.actual[s]} hidden={props.locked && res?.actual[s] !== undefined} lens={props.lens} /> : null;
+        return prop ? <PropBlock key={s} gameId={props.gameId} playerId={props.p.player_id} player={props.p.name} prop={prop} actual={props.locked ? undefined : res?.actual[s]} hidden={props.locked && res?.actual[s] !== undefined} lens={props.lens} analyst={props.mode === "analyst"} /> : null;
       })}
+      </div>
     </details>
   );
 }
@@ -160,6 +173,8 @@ function Body({ g }: { g: GameDetail }) {
   const [result, reloadResult] = useLoad(() => (show ? api.gameResult(g.game_id) : Promise.resolve({ data: null, fromCache: false })), [g.game_id, show]);
   const res: GameResult | null = result.status === "ready" ? result.data : null;
   const [side, setSide] = useState<"away" | "home">("away");
+  // Analyst opens the three top scorers of a team; the rest wait for a tap, or "Open all". Sixteen open players were 38,000 px on a phone.
+  const [openAll, setOpenAll] = useState<boolean | null>(null);
   const mode = useMode();
   const lens = useLens();
   const team = side === "home" ? g.home : g.away;
@@ -168,19 +183,25 @@ function Body({ g }: { g: GameDetail }) {
   const winner = res ? (res.home_won ? g.home : g.away) : null;
   return (
     <div class="stack">
-      <div class="row between wrap">
-        <p class="back-row" style={{ margin: 0 }}>
-          <a class="back-link" href={nightHref(g.date)}>
-            Back to all games
-          </a>
-        </p>
-        <ModeToggle />
-      </div>
-      <LensSwitch />
+      <p class="back-row" style={{ margin: 0 }}>
+        <a class="back-link" href={nightHref(g.date)}>
+          Back to all games
+        </a>
+      </p>
+      <PageHead
+        class="game-head"
+        kicker={`${longDate(g.date)} · tip-off ${tipTime(g.tip_utc)}`}
+        title={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}`}
+        actions={<PageControls lens detail />}
+      />
+      <SoWhat>
+        {modelHome === null
+          ? `${g.away.name} at ${g.home.name}: we have no forecast for this game.`
+          : `${g.away.name} at ${g.home.name}: by our model, ${winSentence(modelHome, g.home.name, g.away.name).replace(/^Close/, "close")}.`}{" "}
+        {`${count(g.players.length)} ${g.players.length === 1 ? "player has" : "players have"} a forecast. Nothing here is a pick.`}
+      </SoWhat>
+      <OnThisPage />
       <section class="panel scoreboard">
-        <h1 class="sr">
-          {g.away.city} {g.away.name} at {g.home.city} {g.home.name}
-        </h1>
         <div class="score-row">
           <div class="score-team">
             <TeamTag abbr={g.away.abbr} big />
@@ -218,6 +239,12 @@ function Body({ g }: { g: GameDetail }) {
             built without ever seeing this game or any later one.
           </p>
         </Explain>
+        {modelHome !== null ? (
+          <p class="small score-foot">
+            <SourceButton gameId={g.game_id} what="the win chance" />
+            <span class="muted">the stored record behind this win chance</span>
+          </p>
+        ) : null}
       </section>
 
       {IS_ARTIFACT ? null : <GameLive g={g} />}
@@ -255,38 +282,41 @@ function Body({ g }: { g: GameDetail }) {
       </section>
       ) : null}
 
-      {IS_ARTIFACT ? null : <GameKnowsPanel gameId={g.game_id} />}
-
       <section class="panel">
         <div class="row between wrap">
           <h2>Player lines</h2>
-          <div class="tabs" role="tablist" aria-label="Team">
-            {(["away", "home"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                role="tab"
-                aria-selected={side === s}
-                class="tab"
-                aria-current={side === s ? "true" : undefined}
-                onClick={() => { setSide(s); }}
-              >
-                {(s === "home" ? g.home : g.away).abbr}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            label="Team"
+            idBase="game-team"
+            value={side}
+            onChange={setSide}
+            tabs={[
+              { key: "away", label: g.away.abbr },
+              { key: "home", label: g.home.abbr },
+            ]}
+          />
         </div>
         <p class="small muted">
           {team.city} {team.name}: {players.length} players with {g.players.some((p) => p.props.pts?.line_source === "reference") ? "a forecast" : "a line from the sportsbook"}, highest forecast scorer first.
           Tap a name to open them up.
         </p>
+        {mode === "analyst" && players.length > 3 ? (
+          <p class="row wrap" style={{ margin: 0 }}>
+            <button type="button" class="btn quiet" onClick={() => { setOpenAll(true); }}>
+              Open all {count(players.length)} players
+            </button>
+            <button type="button" class="btn quiet" onClick={() => { setOpenAll(false); }}>
+              Close all
+            </button>
+          </p>
+        ) : null}
         <ModelNote items={g.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
         <DistLegend reference={g.players.some((p) => Object.values(p.props).some((x) => x.line_source === "reference"))} />
-        <div class="players">
+        <div class="players" role="tabpanel" id="game-team-panel" aria-labelledby={`game-team-tab-${side}`}>
           {players.length === 0 ? (
             <p class="muted">We have no forecasts for this team in this game.</p>
           ) : (
-            players.map((p) => <PlayerRow team={(side === "home" ? g.home : g.away).abbr} key={`${p.player_id.toString()}-${mode}`} gameId={g.game_id} p={p} result={res} final={g.final} locked={isLockedNight(g.date)} mode={mode} lens={lens} />)
+            players.map((p, i) => <PlayerRow open={openAll ?? (mode === "analyst" && i < 3)} team={(side === "home" ? g.home : g.away).abbr} key={`${p.player_id.toString()}-${mode}-${String(openAll)}`} gameId={g.game_id} p={p} result={res} final={g.final} locked={isLockedNight(g.date)} mode={mode} lens={lens} />)
           )}
         </div>
         <ul class="plain small muted">
@@ -295,6 +325,9 @@ function Body({ g }: { g: GameDetail }) {
           ))}
         </ul>
       </section>
+
+      {/* Below the players: the page's main business is the player lines; the timeline is the depth behind them. */}
+      {IS_ARTIFACT ? null : <GameKnowsPanel gameId={g.game_id} />}
     </div>
   );
 }

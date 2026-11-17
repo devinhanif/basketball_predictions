@@ -26,6 +26,7 @@ const RE = [
   /\bfees?\b/i,
   /\bprices?\b/i,
   /\b(DraftKings|FanDuel|BetMGM|Caesars|ESPN ?BET|Fanatics|Kalshi|Polymarket|Novig)\b/i,
+  /\bbook \d{1,3}(\.\d)?%/i, // a book's chance beside ours ("book 51%")
 ];
 
 const tabs = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
@@ -76,6 +77,10 @@ const ROUTES = [
   ["record-replay", `#/record?date=${NIGHT}`, `${wait(900)}; ${click(".rp-toggle")}; ${wait(900)}; ${click(".rp-reveal")}; ${wait(500)}`],
   ["record-calibration", "#/record?tab=calibration", `${wait(900)}`],
   ["record-guess", "#/record?tab=guess", `${wait(900)}; ${click(".gs-actions .btn.over")}; ${wait(900)}`],
+  ["source-prop", `#/source/${GAME}/${PLAYER}/pts`, `${wait(900)}`],
+  ["scorecard", "#/scorecard", `${wait(900)}`],
+  ["tests", "#/tests", `${wait(900)}`],
+  ["help-errors", "#/help/errors", ""],
 ];
 
 async function crawl(lens, name, hash, action) {

@@ -4,4 +4,6 @@ Only shims for research importers: ``shrinkage`` and ``sb_classification`` re-ex
 ``nba.features``. Archived to ``research/coldstart``: ``archetypes`` (M3A, T048-T060),
 ``rookie_priors``, ``carryover`` (TIME_DECAY_2026-10-08) and ``config`` (``ColdStartConfig``, the
 cold-start threshold read by the rung ladder's ``research.features.player_features``).
+
+STUB: not used by the live path (2026-11-17). Importers: ``research.features.possession_features``.
 """

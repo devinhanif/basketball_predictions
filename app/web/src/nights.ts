@@ -1,9 +1,8 @@
 import type { SlateListItem } from "./types";
+import { todayET } from "./time";
 
 /** Today's calendar date in US Eastern time, "YYYY-MM-DD" (NBA nights are dated in ET). */
-export function todayET(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
-}
+export { todayET };
 
 /** Nights oldest to newest, whatever order the API sent them in (F17). */
 export function chronological<T extends { date: string }>(slates: readonly T[]): T[] {

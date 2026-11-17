@@ -104,7 +104,7 @@ export function SitsPicker(props: { gameId: string; playerId: number; playerName
       <div class="row between wrap">
         <h3>If a teammate sits</h3>
       </div>
-      <View state={state} reload={reload} what="scenarios">
+      <View state={state} reload={reload} errorLevel={2} what="scenarios">
         {(v) => <Picker key={props.playerId} view={v} playerId={props.playerId} playerName={props.playerName} />}
       </View>
     </div>

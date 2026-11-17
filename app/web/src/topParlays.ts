@@ -1,6 +1,7 @@
 // Top-parlays panel: shapes of /api/top-parlays/<date> (contract docs/contracts/top_parlays_v2.md)
 // and the small pure helpers the panel uses. No number is made up here: all come from the payload.
 import type { Side } from "./legTypes";
+import { etDateOf, instantMs } from "./time";
 
 export interface TpLeg {
   game_id: string;
@@ -66,27 +67,21 @@ export type TpResult =
   | { kind: "missing" }
   | { kind: "refused"; detail: string };
 
-const ET_DATE = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/New_York",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-/** The Eastern calendar date (YYYY-MM-DD) of an instant: slate dates are ET dates. */
+/** The Eastern calendar date (YYYY-MM-DD) of an instant: slate dates are ET dates (naive stored times are UTC). */
 export function etDate(when: string | Date): string {
-  return ET_DATE.format(typeof when === "string" ? new Date(when) : when);
+  return etDateOf(when);
 }
 
 /** Stale: the file was made before its slate's Eastern date began. */
 export function isStale(madeAt: string, slateDate: string): boolean {
-  return etDate(madeAt) < slateDate;
+  const made = etDate(madeAt);
+  return made !== "" && made < slateDate;
 }
 
 /** Made at or after the first tip: not a forecast. */
 export function madeAfterTip(d: TopParlays): boolean {
-  const tips = [...d.sizes["2"], ...d.sizes["3"]].flatMap((t) => t.legs.map((l) => Date.parse(l.tipoff)));
-  return tips.length > 0 && Date.parse(d.made_at) >= Math.min(...tips);
+  const tips = [...d.sizes["2"], ...d.sizes["3"]].flatMap((t) => t.legs.map((l) => instantMs(l.tipoff))).filter((t) => !Number.isNaN(t));
+  return tips.length > 0 && instantMs(d.made_at) >= Math.min(...tips);
 }
 
 export function hasTickets(d: TopParlays): boolean {

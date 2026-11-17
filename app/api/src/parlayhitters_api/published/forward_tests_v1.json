@@ -1,0 +1,152 @@
+{
+ "version": 1,
+ "as_of": "2026-11-17",
+ "source": "Copied by hand from the frozen rules in the main checkout (read only) on 2026-11-17; each entry cites file:line. The list of tests is section 3.3 of nba_project_reference.md (lines 131-144). No outcome of any test is here or anywhere on this route.",
+ "note": "Scheduled reads and minimum n are the rules' own words, shortened. A test's result is published only at its look, by the project, not by this app.",
+ "tests": [
+  {
+   "id": "FORWARD_PREREG_T30",
+   "title": "Confirmed lineups at T-30 vs the T-60 production model (props)",
+   "source": "docs/FORWARD_PREREG_2026_27.md:22 (arm), 177-185 (looks L14, L30, L60, L120, END), 190-200 (minimums)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Looks by distinct-date count: L14 (monitoring), L30, L60, L120, END; first efficacy look L60 (pts, reb) or L120 (ast, fg3m).",
+   "n_needed": "pts and reb: 60 dates and 5,000 paired player-games; ast and fg3m: 120 dates and 10,000.",
+   "arms": ["props_context_residual_t30"]
+  },
+  {
+   "id": "FORWARD_PREREG_INT",
+   "title": "Integer quantiles vs as-is quantiles (pipeline fidelity, not skill)",
+   "source": "docs/FORWARD_PREREG_2026_27.md:23 (arm), 140-158 (rule), 198 (minimum)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Deterministic check at L14; first efficacy look L30.",
+   "n_needed": "reb, ast, fg3m: 14 dates and 1,500 paired player-games.",
+   "arms": ["props_context_residual_int"]
+  },
+  {
+   "id": "FORWARD_PREREG_LT",
+   "title": "Short-minutes lower-tail mixture vs production (pts)",
+   "source": "docs/FORWARD_PREREG_2026_27.md:24 (arm), 160-173 (rule), 199 (minimum)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "First efficacy look L120; END within 7 days of the regular season's end.",
+   "n_needed": "pts: 120 dates and 10,000 paired player-games.",
+   "arms": ["props_context_residual_lt"]
+  },
+  {
+   "id": "FORWARD_PREREG_WIN",
+   "title": "Injury-adjusted Elo vs MOV-Elo (game winner, harm tripwire only)",
+   "source": "docs/FORWARD_PREREG_2026_27.md:25 (arm), 249-261 (tripwire), 200 (no minimum)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Tripwire read at L30, L60, L120, END; never an efficacy claim.",
+   "n_needed": "None (tripwire only).",
+   "arms": ["rung0_injury_elo", "rung0_mov_elo"]
+  },
+  {
+   "id": "FORWARD_T15",
+   "title": "Confirmed lineups at T-15 vs production (props)",
+   "source": "docs/prereg/FORWARD_T15_2026_27.md:3 (frozen 2026-10-12), 83-91 (looks and minimums)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "L14 and L30 kill-only; efficacy looks L60, L120, END.",
+   "n_needed": "pts and reb: 60 dates and 5,000 pairs; ast and fg3m: 120 dates and 10,000 pairs.",
+   "arms": ["props_context_residual_t15"]
+  },
+  {
+   "id": "LINE_CAL_LIVE",
+   "title": "Does the frozen line-calibration map make production's P(over) honest at Pinnacle's line? (T524)",
+   "source": "docs/prereg/LINE_CAL_LIVE.md:3 (frozen 2026-10-29), 63-70 (one look); nba_project_reference.md:135",
+   "as_of": "2026-11-17",
+   "scheduled_read": "One look: the first slate date with >= 200 games with a leg and >= 5,000 legs (projected 2026-12-01); backstop 2027-01-31.",
+   "n_needed": "200 games and 5,000 legs.",
+   "arms": []
+  },
+  {
+   "id": "BEST_PRICE_FORWARD",
+   "title": "Model side at the best available price, forward window",
+   "source": "docs/prereg/BEST_PRICE_FORWARD.md:3 (frozen 2026-11-09), 62-67 (window), 153-154 (minimums), 169-170 (reads); nba_project_reference.md:136",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Read 1 on 2027-01-15 (dates through 2027-01-13); Read 2 (final) on 2027-04-14 (through 2027-04-12).",
+   "n_needed": "Read 1: 250 games, 35 dates, 2,500 non-void picks; Read 2: 500 games, 70 dates, 6,000 non-void picks.",
+   "arms": []
+  },
+  {
+   "id": "LINE_MOVE_TOWARD_MODEL",
+   "title": "Do lines move toward the model? (T510)",
+   "source": "docs/prereg/LINE_MOVE_TOWARD_MODEL.md:3 (frozen), 53-54 (scored once); nba_project_reference.md:137",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Scored once, on the first date by which the window (from 2026-10-22) holds the minimum.",
+   "n_needed": "300 part-1 qualifying markets and 14 distinct dates.",
+   "arms": []
+  },
+  {
+   "id": "FAV_DIP_PAPER",
+   "title": "Buying an in-game dip on the pre-game favourite, paper only (T511)",
+   "source": "docs/prereg/FAV_DIP_PAPER.md:3 (frozen), 50-51 (scored once); nba_project_reference.md:138",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Scored once, on the first date by which the window (from 2026-10-22) holds the minimum.",
+   "n_needed": "100 trades and 14 distinct dates.",
+   "arms": []
+  },
+  {
+   "id": "STAR_FLOOR_PAPER",
+   "title": "Star floor props, paper only (T514)",
+   "source": "docs/prereg/STAR_FLOOR_PAPER.md:3 (frozen), 49-50 (scored once); nba_project_reference.md:139",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Scored once, on the first slate date at whose end the minimum holds; else once at the last regular-season date.",
+   "n_needed": "100 settled trades over 14 distinct dates.",
+   "arms": []
+  },
+  {
+   "id": "INGAME_WINPROB_V2",
+   "title": "In-game win probability v2 (T513)",
+   "source": "nba_project_reference.md:140; docs/TEST_LEDGER.md:762 (frozen stage 1 2026-10-22)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Stage 1 (no read date found in the sources read for this list).",
+   "n_needed": "Not stated in the sources read for this list.",
+   "arms": []
+  },
+  {
+   "id": "AVG_SHADOW_LIVE",
+   "title": "AVG sequence-plus-FULL mixture vs FULL (pts), live shadow",
+   "source": "docs/prereg/AVG_SHADOW_LIVE.md:3 (frozen 2026-10-13), 12 (n and looks); docs/prereg/AVG_SHADOW_LIVE_2.md:3 (frozen 2026-10-14), 57; nba_project_reference.md:141",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Kill-only interim Sun 2026-11-15 if pts triples >= 3,450 (else the first Sunday after); final the first Sunday on or after 2027-01-10 with the minimum.",
+   "n_needed": "pts 6,900 eligible triples (reb 3,500, ast 1,500, fg3m 1,100).",
+   "arms": ["props_avg_live2"]
+  },
+  {
+   "id": "FULL_SHADOW_LIVE",
+   "title": "FULL (production plus recent-role columns) vs the lower-tail arm (pts), live shadow",
+   "source": "docs/prereg/FULL_SHADOW_LIVE_2026_27.md:3 (frozen 2026-10-12), 11 (n and looks); nba_project_reference.md:142",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Kill-only interim at 7,300 rows (base estimate Sun 2026-12-27); final at 14,600 rows (base estimate Sun 2027-02-14).",
+   "n_needed": "14,600 eligible conditional pts rows with a lower-tail arm row.",
+   "arms": []
+  },
+  {
+   "id": "COMBO_STOCKS_SHADOW",
+   "title": "Six-stat joint (blk, stl and combos) vs recent form, live shadow",
+   "source": "docs/prereg/COMBO_STOCKS_SHADOW.md:3 (frozen 2026-10-14), 21 (looks); nba_project_reference.md:143",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Kill-only interim Sun 2026-11-15 if every target has >= 1,500 rows (else the first Sunday after); final the first Sunday on or after 2027-01-10 with >= 3,000 rows per target.",
+   "n_needed": "3,000 rows per target.",
+   "arms": []
+  },
+  {
+   "id": "PPLAY_INTO_PROPS_LIVE",
+   "title": "Holdout-confirmed P(play) inside the props distribution, live shadow",
+   "source": "docs/prereg/PPLAY_INTO_PROPS_LIVE.md:3 (frozen 2026-10-12), 11 (n_min and looks)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "One final look per stat at the first Sunday night with eligible rows >= n_min (reb and pts: end of the regular season at the latest); kill-only interim at half n.",
+   "n_needed": "fg3m 2,200, ast 7,400, reb 29,700 rows; pts unreachable (about 138,000).",
+   "arms": []
+  },
+  {
+   "id": "GAME_SCRIPTS_FORWARD",
+   "title": "Game scripts, forward (rev 2)",
+   "source": "nba_project_reference.md:144; docs/DECISIONS.md (2026-11-10 16:29 row)",
+   "as_of": "2026-11-17",
+   "scheduled_read": "Not frozen: drafted, the freeze waits on a branch merge.",
+   "n_needed": "Not frozen.",
+   "arms": []
+  }
+ ]
+}

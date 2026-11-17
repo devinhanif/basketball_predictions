@@ -40,7 +40,9 @@ def test_store_rejects_a_slate_beyond_the_season_cap(tmp_path: Path) -> None:
 
 
 def test_health_and_meta(client: TestClient) -> None:
-    assert client.get("/api/health").json() == {"status": "ok", "mode": "fixture_replay"}
+    health = client.get("/api/health").json()
+    # the two original keys are unchanged; the system-health detail is added beside them
+    assert {k: health[k] for k in ("status", "mode")} == {"status": "ok", "mode": "fixture_replay"}
     meta = client.get("/api/meta").json()
     assert meta["data_version"] == Store().manifest["source_data_version"]
     assert DATE in meta["slates"]

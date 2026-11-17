@@ -1,6 +1,4 @@
 import { useEffect, useState } from "preact/hooks";
-import { api } from "./api";
-import { ageNote, stamp } from "./format";
 import { Shell } from "./Shell";
 import { useRoute } from "./router";
 import { Game } from "./pages/Game";
@@ -17,41 +15,31 @@ import { Admin } from "./pages/Admin";
 import { Welcome } from "./Welcome";
 import { Record } from "./pages/Record";
 import { Live } from "./pages/Live";
+import { Terms } from "./pages/Terms";
+import { SourcePage } from "./Provenance";
+import { ScorecardPage } from "./pages/Scorecard";
+import { TestsPage } from "./pages/Tests";
+import { ErrorHelp } from "./pages/ErrorHelp";
 import { Tour } from "./Tour";
 import { MarketOnly } from "./Lens";
 import { useLens } from "./prefs";
-import { openTour, tourSeen } from "./tourState";
-import { hasWelcomed } from "./identity";
 import { Today } from "./pages/Today";
 import { IS_ARTIFACT } from "./env";
+import { NotFound } from "./Problem";
+import { Boundary } from "./Boundary";
+import { useMetaLine } from "./metaWatch";
+import { BETTING } from "./features";
+import { renderBet } from "./betting";
 
 export function App() {
   const route = useRoute();
   const market = useLens() === "market";
   const [stale, setStale] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
 
+  const meta = useMetaLine();
   useEffect(() => {
-    // First visit: the tour opens once (after the welcome, which opens it itself when it finishes).
-    if (!IS_ARTIFACT && hasWelcomed() && !tourSeen()) openTour();
-  }, []);
-
-  useEffect(() => {
-    api.meta().then(
-      (r) => {
-        const m = r.data;
-        setNote(
-          m.mode === "fixture_replay"
-            ? "A replay of real 2024-25 games, not tonight's slate. Nothing here is advice."
-            : `${IS_ARTIFACT ? "A saved snapshot of the nightly export; it does not update. " : ""}Data as of ${stamp(m.data_as_of)}. ${ageNote(m.data_as_of) ?? ""} ${m.mode_note}`.replace(/\s{2,}/g, " "),
-        );
-        if (r.fromCache) setStale(true);
-      },
-      () => {
-        setNote("The data server is not answering, so what you see may be old. Nothing here is advice.");
-      },
-    );
-  }, []);
+    if (meta.fromCache) setStale(true);
+  }, [meta.fromCache]);
 
   let page;
   switch (route.name) {
@@ -107,16 +95,38 @@ export function App() {
     case "admin":
       page = <Admin />;
       break;
+    case "terms":
+      page = <Terms term={route.term} q={route.q} />;
+      break;
+    case "source":
+      page = <SourcePage gameId={route.gameId} playerId={route.playerId} stat={route.stat} />;
+      break;
+    case "scorecard":
+      page = <ScorecardPage />;
+      break;
+    case "tests":
+      page = <TestsPage />;
+      break;
+    case "help":
+      page = <ErrorHelp code={route.code} q={route.q} />;
+      break;
+    case "notfound":
+      page = <NotFound hash={route.hash} />;
+      break;
+    case "bet":
+      // The router parses a betting address only with the betting switch on; this line drops out of a build with it off.
+      page = BETTING ? renderBet(route) : null;
+      break;
     default:
       page = <Today date={route.date} onStale={setStale} />;
   }
   return (
-    <>
-      <Shell route={route} replayNote={note} offline={stale}>
-        {page}
+    <Boundary outer>
+      <Shell route={route} meta={meta} offline={stale}>
+        <Welcome deep={route.name !== "today"} />
+        <Boundary resetKey={JSON.stringify(route)}>{page}</Boundary>
       </Shell>
-      <Welcome />
       {IS_ARTIFACT ? null : <Tour />}
-    </>
+    </Boundary>
   );
 }

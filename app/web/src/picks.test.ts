@@ -143,3 +143,11 @@ describe("headshots", () => {
     expect(readFileSync(join(SRC, "components.tsx"), "utf8")).toContain("Player photos: NBA");
   });
 });
+
+describe("headshots in the single-file artifact", () => {
+  it("the stand-in holds no address and returns none, so Avatar shows initials", async () => {
+    const s = await import("./headshot.static");
+    expect(s.HEADSHOT_HOST).toBe("");
+    expect(s.headshotUrl(1628401)).toBeNull();
+  });
+});

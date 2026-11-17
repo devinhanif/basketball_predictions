@@ -16,6 +16,7 @@ from parlayhitters_api.main import create_app, reset_store
 
 EXPORT_SMALL = Path(__file__).resolve().parents[2] / "fixtures" / "export_small"
 EXPORT_DAY = "2024-11-12"
+LOOPBACK_PEER = ("127.0.0.1", 50000)
 os.environ.pop("APP_EXPORT_DIR", None)  # tests choose their data source explicitly
 
 
@@ -120,9 +121,19 @@ def v1_client(v1_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestCli
 
 @pytest.fixture
 def export_client(export_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    """The API pointed at the small export through APP_EXPORT_DIR."""
+    """The API pointed at the small export through APP_EXPORT_DIR. The peer is loopback, as it is
+    for every request the API sees when bound to 127.0.0.1 (a tunnel connects from loopback too)."""
     monkeypatch.setenv("APP_EXPORT_DIR", str(export_dir))
     reset_store()
-    with TestClient(create_app()) as c:
+    with TestClient(create_app(), client=LOOPBACK_PEER) as c:
         yield c
     reset_store()
+
+
+@pytest.fixture
+def planted(export_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """The small export with the settled_scores rows of honesty_helpers.plant (honesty routes)."""
+    from honesty_helpers import export_api, plant
+
+    plant(export_dir)
+    yield from export_api(export_dir, monkeypatch)

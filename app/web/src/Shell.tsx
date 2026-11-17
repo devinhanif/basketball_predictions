@@ -7,85 +7,86 @@ import { IS_ARTIFACT } from "./env";
 import { clearLocalIdentity, useIdentity } from "./identity";
 import { Icon, Logo, type IconName } from "./icons";
 import { moveSelection, search, KIND_LABEL, type SearchItem } from "./search";
-import { useIsAdmin, useNotices, useSearchIndex } from "./shellData";
+import { MARKET_ONLY, useIsAdmin, useNotices, useSearchIndex } from "./shellData";
 import { useLens } from "./prefs";
 import { topHref, type Route, type TopName } from "./router";
+import type { MetaLine } from "./metaWatch";
+import { Banner, Dialog } from "./ui";
+import { ShortcutsDialog, isTypingTarget } from "./Shortcuts";
 import { dismissToast, useToasts } from "./toast";
 import { openTour } from "./tourState";
+import { HealthStrip } from "./HealthStrip";
+import { BETTING } from "./features";
+import { BETTING_MODULE, betCrumbs, betHref, type BettingNavEntry } from "./betting";
+import { BetShellPanel } from "./BetSlots";
+import { MenuDrawer } from "./MenuDrawer";
+import { SidePanelHost } from "./ui/SidePanel";
 
 interface NavDef {
   name: TopName;
   label: string;
   icon: IconName;
 }
-// Track record and the Desk of earlier plans are now Model History and Signals; nothing else is listed until it exists.
+// Every top-level view, by name. The sidebar groups them below; the order inside a group is the order on screen.
 const ALL_WORKSPACE: NavDef[] = [
   { name: "today", label: "Discover", icon: "discover" },
   { name: "live", label: "Live", icon: "live" },
+  { name: "swipe", label: "Swipe", icon: "swipe" },
+  { name: "picks", label: "My picks", icon: "picks" },
+  { name: "record", label: "Track record", icon: "record" },
+  { name: "scorecard", label: "Scorecard", icon: "same" },
+  { name: "tests", label: "Forward tests", icon: "flag" },
   { name: "signals", label: "Signals", icon: "signals" },
   { name: "hedge", label: "Hedge Finder", icon: "hedge" },
   { name: "history", label: "Model History", icon: "history" },
-  { name: "record", label: "Track record", icon: "record" },
+  { name: "terms", label: "Key terms", icon: "book" },
+  { name: "help", label: "Error codes", icon: "info" },
   { name: "alerts", label: "Alerts", icon: "alerts" },
-  { name: "swipe", label: "Swipe", icon: "swipe" },
-  { name: "picks", label: "My picks", icon: "picks" },
 ];
 // The track record reads the live API, which the single-file snapshot does not have.
 const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name === "record" || n.name === "live")));
-const TABS: TopName[] = ["today", "live", "record", "signals", "swipe", "picks"];
-/** Screens whose whole subject is prices and edges: they leave the nav outside the Market lens. */
-export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
+/**
+ * The sidebar's sections, in the order a visitor uses them: tonight's slate first, then how the model has done, then the
+ * Market lens's tools (the betting module's entries join that group), then reference. Preferences and Admin follow in
+ * "You". A section with nothing visible in the current lens is not drawn.
+ */
+const GROUPS: readonly { label: string; names: readonly TopName[]; bet?: true }[] = [
+  { label: "Tonight", names: ["today", "live", "swipe", "picks"] },
+  { label: "Record and tests", names: ["record", "scorecard", "tests"] },
+  { label: "Market tools", names: ["signals", "hedge", "history"], bet: true },
+  { label: "Reference", names: ["terms", "help"] },
+];
+/** The phone's bottom bar: the five most used, the same in every lens (everything else is in the menu drawer). */
+const TABS: TopName[] = ["today", "live", "record", "swipe", "picks", "terms"];
+export { MARKET_ONLY };
 
+// The nav entry marked current on each route (a game, a leg and the source page belong to Discover).
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
+  terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
+  // A betting screen has no TopName of its own (the module brings its own nav); crumbs() names it and `here` is null.
+  bet: "today",
 };
 const TITLES: Record<TopName, string> = {
-  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences",
+  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
+  scorecard: "Scorecard", tests: "Forward tests", help: "Error codes",
 };
-const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day" };
+const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };
 
 function crumbs(route: Route): string[] {
+  if (BETTING && route.name === "bet") return betCrumbs(route);
   const top = TITLES[ROUTE_TOP[route.name]];
   const sub = CRUMB[route.name];
   return sub ? [top, sub] : [top];
 }
 
-/** Modal shell: Escape and the backdrop close it; focus moves in and returns. */
+/** The app's modal: the one Dialog (focus trap, Escape, focus returns to the opener). */
 export function Modal(props: { title: string; onClose: () => void; children: ComponentChildren; wide?: boolean }) {
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
-    box.current?.querySelector<HTMLElement>("input, button, a")?.focus();
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        props.onClose();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      prev?.focus();
-    };
-  }, []);
   return (
-    <div
-      class="modal-back"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) props.onClose();
-      }}
-    >
-      <div class={`modal${props.wide ? " wide" : ""}`} role="dialog" aria-modal="true" aria-label={props.title} ref={box}>
-        <div class="modal-head">
-          <h2>{props.title}</h2>
-          <button type="button" class="icon-btn" aria-label="Close" onClick={props.onClose}>
-            <Icon name="close" />
-          </button>
-        </div>
-        <div class="modal-body">{props.children}</div>
-      </div>
-    </div>
+    <Dialog title={props.title} onClose={props.onClose} wide={props.wide}>
+      {props.children}
+    </Dialog>
   );
 }
 
@@ -221,11 +222,35 @@ export function Bell({ unread }: { unread: number }) {
   );
 }
 
-function ProfileMenu(props: { onClose: () => void; onAbout: () => void }) {
+/** The profile popover: a labelled group of links (not an ARIA menu); Escape or a click outside closes it and focus goes back to the button that opened it. */
+function ProfileMenu(props: { onClose: () => void; onAbout: () => void; onKeys: () => void }) {
   const id = useIdentity();
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
+  const box = useRef<HTMLDivElement>(null);
+  const close = useRef(props.onClose);
+  close.current = props.onClose;
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape" && document.querySelector('[role="dialog"]') === null) {
+        e.preventDefault();
+        if (opener?.isConnected) opener.focus();
+        close.current();
+      }
+    };
+    const onDown = (e: MouseEvent): void => {
+      const t = e.target as Node | null;
+      if (box.current && t && !box.current.contains(t) && !(t instanceof Element && t.closest('[aria-label="Profile menu"]'))) close.current();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, []);
   return (
-    <div class="popover" role="menu" aria-label="Profile">
+    <div class="popover" role="group" aria-label="Profile" ref={box}>
       <div class="pop-who">
         <Avatar name={name} src={id.avatarUrl} size="md" />
         <div>
@@ -249,6 +274,16 @@ function ProfileMenu(props: { onClose: () => void; onAbout: () => void }) {
         }}
       >
         About this app and how it works
+      </button>
+      <button
+        type="button"
+        class="pop-link"
+        onClick={() => {
+          props.onClose();
+          props.onKeys();
+        }}
+      >
+        Keyboard shortcuts <kbd class="kbd">?</kbd>
       </button>
       {IS_ARTIFACT ? null : (
         <button
@@ -306,7 +341,7 @@ export function Toasts() {
   );
 }
 
-export function Shell(props: { route: Route; replayNote: string | null; offline: boolean; children: ComponentChildren }) {
+export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; children: ComponentChildren }) {
   const desk = useDesk();
   const id = useIdentity();
   const isAdmin = useIsAdmin();
@@ -315,11 +350,13 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
   const [aboutOpen, setAboutOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
   const index = useSearchIndex(searchOpen, isAdmin);
   const lens = useLens();
   const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
-  const tabs = TABS.filter((t) => visible.some((w) => w.name === t));
-  const here = ROUTE_TOP[props.route.name];
+  const tabs = TABS.filter((t) => visible.some((w) => w.name === t)).slice(0, 5);
+  // On a betting screen no top-level view is current (the module's own nav entry is).
+  const here: TopName | null = BETTING && props.route.name === "bet" ? null : ROUTE_TOP[props.route.name];
   const ready = deskOf(desk);
   const workspace = ready?.privacy === "private" ? "Jarvis Desk (private)" : "Public";
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
@@ -329,6 +366,12 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setSearchOpen((o) => !o);
+        return;
+      }
+      // "?" opens the shortcut sheet, except while typing or inside an open dialog.
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey && !isTypingTarget(e.target) && document.querySelector('[role="dialog"]') === null) {
+        e.preventDefault();
+        setKeysOpen(true);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -343,7 +386,11 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
 
   const signalsToday = ready ? ready.observations.filter((o) => o.slate_date === (ready.observations.map((x) => x.slate_date).sort().at(-1) ?? "")).length : 0;
   const badge = (n: TopName): number => (n === "alerts" ? unread : n === "signals" ? signalsToday : 0);
-  const mgmt: NavDef[] = [...(isAdmin ? [{ name: "admin" as const, label: "Admin studio", icon: "admin" as const }] : []), { name: "settings", label: "Preferences", icon: "prefs" }];
+  const mgmt: NavDef[] = [
+    ...visible.filter((n) => n.name === "alerts"),
+    { name: "settings", label: "Preferences", icon: "prefs" },
+    ...(isAdmin ? [{ name: "admin" as const, label: "Admin studio", icon: "admin" as const }] : []),
+  ];
   const link = (n: NavDef, cls: string) => (
     <a key={n.name} class={cls} href={topHref(n.name)} aria-current={here === n.name ? "page" : undefined}>
       <Icon name={n.icon} />
@@ -352,6 +399,58 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
     </a>
   );
   const crumb = crumbs(props.route);
+  const crumbKey = crumb.join("/");
+  // The tab's title names the page ("Scorecard · parlayhitters"); a game or a player adds its own name once it loads.
+  useEffect(() => {
+    const label = crumb[crumb.length - 1] ?? "Discover";
+    const named = props.route.name === "game" || props.route.name === "leg";
+    const set = (): void => {
+      let t = "";
+      const h = named ? document.querySelector("main h1") : null;
+      if (h) {
+        const copy = h.cloneNode(true) as HTMLElement;
+        copy.querySelectorAll('[aria-hidden="true"]').forEach((e) => {
+          e.remove();
+        });
+        t = copy.textContent.replace(/\s+/g, " ").trim();
+      }
+      const next = t ? `${t} · ${label} · parlayhitters` : `${label} · parlayhitters`;
+      if (document.title !== next) document.title = next;
+    };
+    set();
+    const main = document.getElementById("main");
+    const mo = named && main ? new MutationObserver(set) : null;
+    if (mo && main) mo.observe(main, { childList: true, subtree: true, characterData: true });
+    return () => {
+      mo?.disconnect();
+    };
+  }, [props.route, crumbKey]);
+  // The betting module's nav entries (none in a build with the switch off).
+  const betNav: readonly BettingNavEntry[] = BETTING ? BETTING_MODULE.nav.filter((n) => lens === "market" || !n.marketOnly) : [];
+  const betLink = (n: BettingNavEntry) => (
+    <a key={n.href} class="side-link" href={n.href} aria-current={props.route.name === "bet" && n.href === betHref(props.route.path.join("/")) ? "page" : undefined}>
+      <Icon name={n.icon} />
+      <span>{n.label}</span>
+    </a>
+  );
+
+  // One list of sections for the sidebar and the phone drawer: a labelled group per section (heading + links).
+  const sectionsFor = (where: "side" | "drawer") => [
+    ...GROUPS.map((g) => ({ label: g.label, links: [...visible.filter((n) => g.names.includes(n.name)).sort((a, b) => g.names.indexOf(a.name) - g.names.indexOf(b.name)).map((n) => link(n, "side-link")), ...(g.bet && BETTING ? betNav.map(betLink) : [])] })),
+    { label: "You", links: mgmt.map((n) => link(n, "side-link")) },
+  ]
+    .filter((g) => g.links.length > 0)
+    .map((g) => {
+      const gid = `${where}-nav-${g.label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+      return (
+        <div key={g.label} class="side-group" role="group" aria-labelledby={gid}>
+          <div class="side-label" id={gid}>
+            {g.label}
+          </div>
+          {g.links}
+        </div>
+      );
+    });
 
   return (
     <div class="shell">
@@ -368,7 +467,10 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
       <aside class="sidebar" aria-label="Sidebar">
         <a class="brand" href={topHref("today")} aria-label="parlayhitters, home">
           <Logo />
-          parlayhitters
+          <span class="brand-words">
+            parlayhitters
+            <small>NBA forecasts</small>
+          </span>
         </a>
         <button
           type="button"
@@ -385,14 +487,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
             <span class="small muted">{ready?.fixture ? "synthetic desk fixture" : IS_ARTIFACT ? "shared page, snapshot" : "this machine"}</span>
           </span>
         </button>
-        <div class="side-label">Workspace</div>
-        <nav class="side-nav" aria-label="Main">
-          {visible.map((n) => link(n, "side-link"))}
-        </nav>
-        <div class="side-label">Management</div>
-        <nav class="side-nav" aria-label="Management">
-          {mgmt.map((n) => link(n, "side-link"))}
-        </nav>
+        <nav class="side-nav side-groups" aria-label="Main">{sectionsFor("side")}</nav>
         <div class="side-foot">
           <div class="side-card">
             <strong class="small">Paper only</strong>
@@ -435,7 +530,9 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
               <span class="muted">Workspace</span>
               {crumb.map((c, i) => (
                 <span key={c}>
-                  <span class="muted"> / </span>
+                  <span class="crumb-sep" aria-hidden="true">
+                    <Icon name="chevron" />
+                  </span>
                   <span aria-current={i === crumb.length - 1 ? "page" : undefined}>{c}</span>
                 </span>
               ))}
@@ -478,14 +575,48 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
               <Avatar name={name} src={id.avatarUrl} size="sm" />
             </button>
           </div>
-          {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} onAbout={() => { setAboutOpen(true); }} /> : null}
+          {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} onAbout={() => { setAboutOpen(true); }} onKeys={() => { setKeysOpen(true); }} /> : null}
           {menuOpen ? (
-            <nav class="nav-sheet" aria-label="All screens">
-              {[...visible, ...mgmt].map((n) => link(n, "side-link"))}
-            </nav>
+            <MenuDrawer
+              onClose={() => {
+                setMenuOpen(false);
+              }}
+              note={
+                <div class="side-card">
+                  <strong class="small">Paper only</strong>
+                  <p class="small muted">Nothing here places an order. Every number is from a stored row.</p>
+                </div>
+              }
+            >
+              {sectionsFor("drawer")}
+            </MenuDrawer>
           ) : null}
         </header>
-        {props.replayNote ? <div class="datanote" role="status">{props.replayNote}</div> : null}
+        {props.meta.text ? (
+          <Banner tone={props.meta.kind === "problem" ? "notice" : "info"} class="dataline">
+            {props.meta.text}
+          </Banner>
+        ) : null}
+        {props.meta.text ? <HealthStrip /> : null}
+        {props.meta.newer !== null ? (
+          <Banner
+            tone="fresh"
+            role="alert"
+            action={
+              <button
+                type="button"
+                class="btn small"
+                onClick={() => {
+                  window.location.reload();
+                }}
+              >
+                Reload
+              </button>
+            }
+          >
+            Newer data exists (built {props.meta.newer}). Reload to see it; nothing changes until you do.
+          </Banner>
+        ) : null}
         {props.offline ? (
           <div class="banner" role="status">
             You are offline, or the data server is not answering. Showing the last copy we saved.
@@ -497,8 +628,10 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
           </div>
         ) : null}
         <main id="main" tabIndex={-1}>{props.children}</main>
+        {BETTING ? <BetShellPanel onBetRoute={props.route.name === "bet"} /> : null}
         <Footer />
       </div>
+      <SidePanelHost />
       <nav class="nav-bottom" aria-label="Main">
         {tabs.map((t) => {
           const n = visible.find((w) => w.name === t) as NavDef;
@@ -511,6 +644,7 @@ export function Shell(props: { route: Route; replayNote: string | null; offline:
           );
         })}
       </nav>
+      {keysOpen ? <ShortcutsDialog onClose={() => { setKeysOpen(false); }} /> : null}
       {searchOpen ? <SearchModal index={index} onClose={() => { setSearchOpen(false); }} /> : null}
       {aboutOpen ? <AboutModal onClose={() => { setAboutOpen(false); }} private_={ready?.privacy === "private"} fixture={ready?.fixture != null} asOf={ready?.data_as_of ?? null} /> : null}
       <Toasts />
