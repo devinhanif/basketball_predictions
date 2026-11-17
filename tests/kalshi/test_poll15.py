@@ -519,7 +519,7 @@ def test_no_order_credential_or_websocket_code_in_the_new_modules() -> None:
         r"api_key|private_key|websocket|wss://|os\.environ|getenv",
         re.IGNORECASE,
     )
-    for name in ("poll15.py", "candles15.py", "client.py"):
+    for name in ("poll15.py", "poll15_parse.py", "candles15.py", "client.py"):
         text = (root / name).read_text()
         # docstrings and comments may say "no order, portfolio or credential path": code is judged
         code = re.sub(r'"""[\s\S]*?"""', "", text)
