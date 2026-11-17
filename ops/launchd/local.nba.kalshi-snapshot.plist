@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Kalshi snapshot, every 15 min (python -m nba.kalshi snapshot; read-only public market data, no credentials,
+  no EnvironmentVariables). TEMPLATE: NOT loaded by anything in the repo; the maintainer installs it by hand.
+  Recorded from the copy installed at ~/Library/LaunchAgents (mtime 2026-10-08), which was never in the repo
+  and is NOT created by ops/install_launchd.sh. Watched by nba.ops.watchdog (KALSHI_LABEL).
+  Differs from the installed copy in ONE line: this template adds <string>--no-sync</string> after "run"
+  (every other repo job uses `uv run --no-sync`; without it each 15-min tick may re-resolve/sync the env).
+  The installed copy was not touched. To adopt it (maintainer only):
+    cp ops/launchd/local.nba.kalshi-snapshot.plist ~/Library/LaunchAgents/ \
+      && launchctl bootout gui/$(id -u)/local.nba.kalshi-snapshot ; \
+      launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.kalshi-snapshot.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.kalshi-snapshot</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/uv</string>
+    <string>run</string><string>--no-sync</string><string>python</string><string>-m</string><string>nba.kalshi</string>
+    <string>snapshot</string>
+  </array>
+  <key>StartInterval</key><integer>900</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/kalshi/snapshot.log</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/kalshi/snapshot.err</string>
+</dict>
+</plist>

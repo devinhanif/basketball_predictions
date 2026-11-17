@@ -18,7 +18,7 @@ nothing was pushed, the main checkout was not edited. Times are Central, from th
 | E2b, markets | `agent/market-1117-live-markets` | One pure fee module (`nba/markets/fees.py`) with the three distinct formulas, old names kept as wrappers; fee-config guard test; comment drift; two verbatim section moves (`poll15_parse.py`, `book_summary.py`). |
 | fee order | `agent/market-1117-polymarket-fee-fastarb` | JARVIS's Polymarket fee uses fast-arb's evaluation order (decision row 16). Separate branch so it can be left out. |
 | E2a, daily/props | `agent/steward-1117-live-daily` | One T-60 lead constant (`nba/leadtime.py`) imported by six modules; pplay shadow config path resolved from the module file; DDL and config parity guard tests; stub docstrings. |
-| E1, CI health | `agent/steward-1117-ci-health` | E1_PENDING |
+| E1, CI health | `agent/steward-1117-ci-health` | `make lint` clean (ruff 81 → 0, format 3 files → 0, mypy 38 → 0); a `slow` marker (284 of 6,158 tests) and `make test-fast`; `make test` could not finish before (coverage combine crashed) and now can; five tests made deterministic; `.gitignore` for the daily outputs; a `kalshi-snapshot` plist template (not installed); `ops/cleanup_2026-11-17.sh` (never run); `ci.yml` reworked (unverified: nothing pushed). |
 
 Each lane's own report, with file:line findings, is beside this file (`lane_*.md`).
 
@@ -36,9 +36,12 @@ Each lane's own report, with file:line findings, is beside this file (`lane_*.md
 | Single-file artifact (real export) | build failed | 6.45 MB, checks passed (lane C2b's measurement) |
 | Real-export load | 4.7–5.8 s, about 1,135 MB after load | 3.6–3.7 s, about 767 MB (lane A's measurement) |
 | Largest route, warm, `/api/games/{id}` | 255 KB, 6 ms (Phase 0, on the 18:35 export) | 224 KB, 9.5 ms (lane A, on a frozen copy of the 19:05 export; different data, so not a before/after of the code) |
+| Repo lint (`ruff check`, `ruff format --check`, `mypy` on nba/ research/ tests/) | 81 errors / 3 files / 38 errors | 0 / 0 / 0 on the merged branch (run by the main session at 00:11 CST) |
+| Repo fast suite (`make test-fast`) | did not exist | lane E1: 5,861 passed, 13 skipped, 284 deselected, 20:59 min; on the merged integration branch (main session, 00:11–00:33 CST): 5,905 passed, 13 skipped, 284 deselected, 1 expected failure, exit 0, 21:45 min |
+| Repo full suite (`make test`) | 2 failed, then crashed at the coverage combine (42:49) | lane E1: 6,133 passed, 15 skipped, 53:10; rung-4 file 10 passed; coverage 72% (floor 70). The three steps were each seen passing, not in one uninterrupted run after the last fix |
 | Fee differential test | none | 552,150 cases, 0 mismatches at the bit level |
 | Replay oracle, baseline (694ae69b) | | IDENTICAL `89889f6d`, 46,658 predictions, 44,562 scores, 20/20 dates |
-| Replay oracle, merged tip | | E2_ORACLE_PENDING |
+| Replay oracle, merged tip (59625c3c, with the live-path lanes) | | IDENTICAL `89889f6d`, 46,658 predictions, 44,562 scores, 20/20 dates, ran 23:13–23:25 CST |
 
 Last full app gate on the merged branch: `app/scripts/check.sh --bake --browser`, ALL CHECKS PASSED at 21:57 CST (before
 the repo lanes merged; they do not touch `app/`).
@@ -92,7 +95,13 @@ Learn), 5 (not-found screen), 8 (intro replaces the welcome modal), 15 (forward 
 
 ## 7. Devin-only checklist
 
-- Mac power: it was on battery all evening (69% at 22:57 CST).
+- Mac power: it was on battery all evening (69% at 22:57 CST, 60% at 23:21).
+- From the CI lane (`lane_ci.md`, "ACTION NEEDED"): install the `kalshi-snapshot` template by hand if wanted (the installed
+  copy lacks `--no-sync`); on `main` after merge, decide the generated-output proposals (the daily job rewrites tracked
+  `reports/forward_scorecard/2026-10-20.*` and `docs/data_manifests/latest.json`); the F1 pin test skips because the rule
+  pins Python 3.12.13 and a fresh `uv sync` gives 3.12.15; torch and LightGBM segfault in one pytest process depending on
+  import order (`tests/conftest.py` now preloads LightGBM except for the rung-4 file), so re-run `make test` after adding a
+  torch or LightGBM test file; review `ops/cleanup_2026-11-17.sh` in dry-run before using it.
 - Confirm the new odds key works (not checked by this run).
 - AVG November Colab refit: the app's health strip shows 15,276 AVG rows marked stale and 6,604 shown rows on the fallback.
 - Roster-source flip on 2026-11-30; launchd installs; `settings.local.json` `bypassPermissions`; data-source licensing.
@@ -107,7 +116,15 @@ Learn), 5 (not-found screen), 8 (intro replaces the welcome modal), 15 (forward 
 - Splitting `pipeline.py`, `runner.py`, `the_odds_api.py`, `live_close.py`: tests patch functions at the cut points.
 - Typed route table driving router, nav and palette: budget; the plan is in `lane_dx.md`.
 - A separate app polish pass and five suggested registry codes: superseded by the follow-up work (Jarvis look).
-- Phase 6 (math diagnostics): PHASE6_PENDING
+- Phase 6 (math diagnostics) was done as analysis and draft rules only (`lane_math_diagnostics.md`, two reading-log
+  entries under `docs/research/`, two DRAFT rules under `docs/prereg/`); nothing was fitted or scored.
+  - TDA regime flag: PARK. The mathematics is established; that it says more about forecast reliability than three
+    simple flags (minutes spread, games since a starter change, distance from the training rows) is not. Its minimum-data
+    gate could not be counted without opening `nba.duckdb`.
+  - Spectral parlay graph: DROP. The engine pools correlations by relation and stat pair, so the graph's spectrum is
+    fixed by which legs share a player or a game (for two legs the Fiedler value is |r|). The draft rule fails its own
+    gate: 0 of 1,355 parlay records in tonight's export have more than one leg. The copula's lift over the product of
+    marginals is the better thing to show once the export carries it.
 
 ## 9. Not verified
 
@@ -118,3 +135,10 @@ Learn), 5 (not-found screen), 8 (intro replaces the welcome modal), 15 (forward 
 - Whether the export job is meant to stop after first tips (no export after 19:35 CST on 11-16).
 - The markets-side changes are outside what the replay oracle hashes; their evidence is tests only.
 - One walker rule misfires when a desk file is served (see `WORKLOG.md`); the default walk is clean.
+
+## 10. Status of this report
+
+The first run (SUPER PROMPT v3) is finished as of 00:35 CST on 2026-11-17: every lane is merged into the integration branch
+and the gates above were run on the merged tree. The follow-up run (Jarvis look and betting tools behind one switch) is in
+progress on `agent/app-jarvis-followup`; its report will be `REPORT_JARVIS.md`. The completion line that the terminal resume
+loop waits for is written only when that follow-up is finished too.

@@ -56,6 +56,11 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
+- **First run finished** (00:38 CST): `make test-fast` on the merged integration branch: 5,905 passed, 13 skipped, 284 deselected, 1 xfailed, exit 0, 21:45 min. `REPORT.md` is complete except for the completion line (held back on purpose, see the follow-up section).
+- Follow-up: J1 (switch) merged into `agent/app-jarvis-followup` as 50d6e9b6 (conflict: seam types moved to `betting/seam.ts`). On that branch: `app/scripts/check.sh` OFF and `--betting` ON both ALL CHECKS PASSED (API 582/581+1 skipped, web 495, flag parity pass); layering 15 passed after allowing test files to import the test runner. J4a `agent/app-jarvis-betting-api` (`~/Downloads/nba-wt-1117-jv-betapi`) and J4b `agent/app-jarvis-betting-screens` (`~/Downloads/nba-wt-1117-jv-screens`) launched about 00:40 CST. J2a (visual) still running.
+- Lane E1 (CI health) merged as 8a6394af at 00:10 CST on 11-17. On the merged branch I ran `ruff check`, `ruff format --check` and `mypy` on nba/ research/ tests/: all exit 0. `make test-fast` started on the merged branch at 00:11 CST as a background job (log: scratchpad `int_fast.log`); result goes into `REPORT.md` section 2.
+- Phase 6 note merged (docs only): TDA regime flag PARK, spectral parlay graph DROP (its draft rule fails its own gate: 0 multi-leg parlay records).
+- Follow-up: J3 (betting pure logic) merged into `agent/app-jarvis-followup` as 8b062459; web check there 485 tests, bundle bytes unchanged.
 - Lane E2a (daily/props) merged as d375aeb9 at 23:10 CST: lead constant (`f20c535a`), pplay shadow config path (`fe5c7efb`), DDL and config parity guard tests, stub docstrings. Its own runs: tests/daily 365 passed, layering 10 passed. `forward_withdrawals` exists only in `nba/daily/store.py`, not `schema.sql` (xfail test documents it). Pre-existing failure it met: `tests/shadow_llm/test_runner.py::test_mixed_forward_table_still_settles` (lane E1 owns it).
 - Fee decision branch `agent/market-1117-polymarket-fee-fastarb` (e05667b1) merged as 59625c3c: fee tests + tests/jarvis + layering 504 passed, 1 skipped, exit 0.
 - Open wording item for the app: the health strip's "Stale-model marks: props_avg_live2 15,276 (writer_flag); shown rows on a stale fallback 6,604" reads as if the app were stale. It means the AVG shadow is on October weights and the export fell back to the production row. Reword in `app/web/src/HealthStrip.tsx`.
@@ -110,9 +115,27 @@ for the replay oracle, for the end of the game window about 22:00 CST).
   Output: `~/Downloads/nba-scratch-1117/oracle_base.log`, `.hash`, `.start`, `.end`. Expected `89889f6d`.
 - If the session died before 22:15 the job died with it: check for `oracle_base.start`; if absent, run the command by hand
   from the oracle worktree (the row is already logged).
+- **E2 result: IDENTICAL `89889f6d`** at 59625c3c (46,658 predictions, 44,562 scores, 20/20 dates, failures 0), 23:13 to 23:25 CST. Result row in the holdout log.
 - **E2 run started 23:13 CST** on the integration tip 59625c3c (holdout row 7470f7fa logged first, at d375aeb9, before the fee-order merge): output `~/Downloads/nba-scratch-1117/oracle_e2.{log,hash,start,end,commit}`. Expected `89889f6d`.
 - The plan that led to it: after E2a and E2b merge, log a second row, `git checkout --detach <integration tip>` in the oracle worktree, run again
   into `oracle_e2.duckdb`. A different hash means bisecting E2a's commits (one per task) and reverting the offender.
+
+## Follow-up run (Devin, 23:17 and 23:22 CST on 11-16): Jarvis look + betting tools behind one switch
+Brief: `/Users/devin/Downloads/jarvis-followup/FOLLOWUP_PROMPT.md` (kit files flat in that folder). Devin: run until
+09:00 CST on 11-17, usage is not a constraint. Do NOT write `RUN COMPLETE` into `REPORT.md` until this follow-up is also
+finished: the terminal resume loop stops on that line.
+- Follow-up integration branch: `agent/app-jarvis-followup`, worktree `~/Downloads/nba-wt-1117-jarvis`, cut from
+  integration at 7bc6a0ae-or-later. Lane branches merge into it; never into `main`. Final report `REPORT_JARVIS.md`.
+- Lanes: J1 `agent/app-jarvis-flag` (`~/Downloads/nba-wt-1117-jv-flag`): the one switch `VITE_PH_BETTING` / `PH_BETTING`,
+  seam under `#/bet`, OFF-parity tests. J3 `agent/app-jarvis-betting-logic` (`~/Downloads/nba-wt-1117-jv-logic`): pure
+  logic port into `app/web/src/betting/`. J2a `agent/app-jarvis-look` (`~/Downloads/nba-wt-1117-jv-look`): tokens,
+  components, shell, Simple/Analyst chooser, state components.
+- Then: J2b lens restyle (after J2a), J4 betting screens (after J1, J3, J2a), J5 visual regression, donor map, report.
+- Worktree names keep "nba-wt-1117" so the resume loop's activity check sees them; a keep-awake with that marker runs
+  as a background task of the session.
+
+**The follow-up's own worklog is `docs/handoff_2026-11-17/JARVIS_WORKLOG.md` on branch `agent/app-jarvis-followup`
+(worktree `~/Downloads/nba-wt-1117-jarvis`). A resumed session reads that file first.**
 
 ## Auto-resume (Devin started it in a terminal about 19:04 CST on 11-16; if it was the one-shot with `sleep 14700`, it fires about 23:09 CST)
 A terminal command resumes this session headless (`claude --resume ... -p "Continue the autonomous run..."`), either once

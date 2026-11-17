@@ -620,7 +620,10 @@ def test_the_full_reader_honours_a_counting_start_when_its_meta_table_exists() -
     assert len(base["pid"]) > 0 and F.counting_start(con) == date.min
     con.execute("CREATE TABLE forward_full_meta (key VARCHAR, value VARCHAR, written_at TIMESTAMP)")
     assert len(F.load_live(con, "pts")["pid"]) == 0
-    day = base["day"][len(base["day"]) // 2]
+    # the SQL has no ORDER BY, so row order varies run to run: take the median DISTINCT day, not
+    # the median row (which could be the first day and exclude nothing: the 72 < 72 flake)
+    days = sorted(set(base["day"]))
+    day = days[len(days) // 2]
     con.execute(
         "INSERT INTO forward_full_meta VALUES ('counting_start', ?, TIMESTAMP '2026-10-19 00:00:00')",
         [str(day)],
