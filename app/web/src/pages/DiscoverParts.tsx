@@ -48,7 +48,7 @@ export function Hero({ row, nPriced, fixture, desk }: { row: RadarRow | null; nP
   const isDesk = row.source === "desk";
   const wModel = desk?.status.w_model ?? null;
   return (
-    <section class="panel hero" aria-label="The closest look">
+    <section class="panel hero card-header" aria-label="The closest look">
       <div class="hero-main">
         <div class="label">The closest look{isDesk ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced player contracts` : ""}</div>
         <div class="hero-who">

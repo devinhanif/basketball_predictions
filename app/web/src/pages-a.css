@@ -1,0 +1,99 @@
+/* Lane J2b-A: the Jarvis finish for Discover (below its heading), Game, the Leg family and the #/source page, My picks
+   and Swipe. Loaded right after jarvis.css; everything here is a token (theme.css) on the pages' own classes. No raw
+   colour and no text under 12 px. One section per page. */
+
+/* ================================================================ Discover */
+/* The toolbar: which night and which lens, on one rule under the heading. */
+.disc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+.disc-toolbar > nav.tabs {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin: 0;
+}
+.disc-toolbar > .view-opts {
+  flex: 0 1 auto;
+  margin: 0;
+}
+.disc-toolbar > .view-opts[open] {
+  flex-basis: 100%;
+}
+
+/* The closest look takes the quiet header-card finish (the purple feature gradient fails AA for small text at its light
+   centre, 3.4:1, so no card with small text uses it). Its three numbers sit in tiles. */
+.disc-feature .hero.card-header {
+  background: var(--grad-card);
+}
+.disc-feature .hero-nums > div {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+
+/* Today's picks: a header row, then the picks as a card grid. */
+.todays-picks .tp-head {
+  max-width: 70ch;
+}
+
+/* The games: a section head over the card grid. */
+.disc-games > .section-head {
+  margin-top: var(--sp-4);
+}
+/* Analyst: the stored quantile row and the model id under each key player. */
+.prop-q {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-4);
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-xs);
+}
+.prop-q > div {
+  display: flex;
+  gap: var(--sp-1);
+  align-items: baseline;
+}
+.prop-q dt {
+  color: var(--muted);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--track-kicker);
+}
+.prop-q dd {
+  margin: 0;
+  font-weight: var(--fw-bold);
+}
+.prop-q .prop-q-model dd {
+  font-weight: var(--fw-regular);
+  overflow-wrap: anywhere;
+}
+
+/* Phones: the pick's Open button drops under its words instead of squeezing them. */
+@media (max-width: 599px) {
+  .tp-top {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .tp-top > .tp-open {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* Key players, one line each: a long forecast wraps under the name at any width (two game columns at 768 px squeezed
+   names letter by letter in the Market lens). */
+.games .props.one-line li {
+  flex-wrap: wrap;
+}
+.games .props.one-line .ol-name {
+  flex: 1 1 9em;
+}
+.games .props.one-line .ol-say {
+  margin-left: auto;
+}

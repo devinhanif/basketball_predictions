@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { api, warmGames } from "../api";
 import { CalTag, ModeToggle, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
@@ -18,6 +18,7 @@ import { Court, DeskTiles, Discipline, Hero, Insight, Radar, useRadar } from "./
 import { compareLine, doesText, rangeSentence } from "../words";
 import { hasTickets, type TpResult } from "../topParlays";
 import { TodaysPicks } from "../TodaysPicks";
+import { SectionHead } from "../ui";
 import { instantMs } from "../time";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
@@ -45,6 +46,24 @@ function KeyPropsFull({ game, market }: { game: GameSummary; market: boolean }) 
                 </div>
               ) : null}
               {compare ? <div class="small prop-compare">{compare}</div> : null}
+              <dl class="prop-q num" aria-label={`${p.name}: stored forecast quantiles`}>
+                <div>
+                  <dt>q25</dt>
+                  <dd>{num(p.q25)}</dd>
+                </div>
+                <div>
+                  <dt>q50</dt>
+                  <dd>{num(p.q50)}</dd>
+                </div>
+                <div>
+                  <dt>q75</dt>
+                  <dd>{num(p.q75)}</dd>
+                </div>
+                <div class="prop-q-model">
+                  <dt>model</dt>
+                  <dd class="mono">{p.model_source}</dd>
+                </div>
+              </dl>
             </div>
             <div class="prop-nums num">
               {reference ? (
@@ -200,6 +219,13 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
     slate.status === "ready" ? (slate.data.games.find((g) => g.game_id === pickHero(radar.rows)?.gameId) ?? slate.data.games[0] ?? null) : null;
   const played = featured !== null && instantMs(featured.tip_utc) < Date.now() - 3.5 * 3600 * 1000;
   const lens = useLens();
+  // The chosen night is the newest tab, at the scrolling row's far end: bring it into view (the row only, never the page).
+  const tabsRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = tabsRef.current;
+    const on = nav?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (nav && on) nav.scrollLeft = Math.max(0, on.offsetLeft - nav.offsetLeft - nav.clientWidth + on.offsetWidth + 8);
+  }, [date]);
   const liveSt = useLiveList([date], 20000);
   const liveGames = liveSt.lists[0]?.games ?? [];
   const market = lens === "market";
@@ -238,29 +264,32 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
           <ModeToggle />
         </div>
       </header>
-      {/* Prices, fees and a book's name: never in the Learn lens (scripts/learn-dom.mjs). */}
-      {lens === "learn" ? null : <TodaysPicks date={date} engine={engine} onStale={props.onStale} />}
+      {/* The page's toolbar: which night, and which lens. Navigation sits above the content it changes. */}
+      <div class="disc-toolbar">
+        <nav class="tabs" aria-label="Choose a night" ref={tabsRef}>
+          {props.nights.map((d) => (
+            <a key={d} class="tab" href={`#/?date=${d}`} aria-current={d === date ? "true" : undefined}>
+              {longDate(d).replace(/, \d{4}$/, "")}
+            </a>
+          ))}
+        </nav>
+        <details class="view-opts">
+          <summary>View: {LENS_LABEL[lens]} lens (change)</summary>
+          <LensSwitch />
+        </details>
+      </div>
       <LiveStrip date={date} games={liveGames} />
-      <nav class="tabs" aria-label="Choose a night">
-        {props.nights.map((d) => (
-          <a key={d} class="tab" href={`#/?date=${d}`} aria-current={d === date ? "true" : undefined}>
-            {longDate(d).replace(/, \d{4}$/, "")}
-          </a>
-        ))}
-      </nav>
-      <details class="view-opts">
-        <summary>View: {LENS_LABEL[lens]} lens (change)</summary>
-        <LensSwitch />
-      </details>
       {market ? (
         <VerdictStrip date={date} eng={eng} tp={tp} reloadEng={reloadEng} reloadTp={reloadTp} />
       ) : null}
       {market ? (
-        <div class="two-col">
+        <div class="two-col disc-feature">
           <Hero row={pickHero(radar.rows)} nPriced={radar.nPriced} fixture={radar.desk?.fixture != null} desk={radar.desk} />
           <Court game={featured} final_={played} market />
         </div>
       ) : null}
+      {/* Prices, fees and a book's name: never in the Learn lens (scripts/learn-dom.mjs). */}
+      {lens === "learn" ? null : <TodaysPicks date={date} engine={engine} onStale={props.onStale} />}
       {market && radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}
       {market ? (
         <div class="two-col wide-left">
@@ -292,11 +321,18 @@ function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolea
   const { s, engine, speaks, mode, market } = props;
   const liveOf = (g: GameSummary): LiveGameSummary | null => props.liveGames.find((l) => l.home.abbr === g.home.abbr && l.away.abbr === g.away.abbr) ?? null;
   const gamesList = (
+    <section class="disc-games" aria-labelledby="disc-games-h">
+      <SectionHead
+        id="disc-games-h"
+        title="The games"
+        sub={mode === "analyst" ? "Each game with our win chances and its top scorers, with the stored quantiles and the model behind each forecast." : "Tap a game for its players, minutes and lines."}
+      />
     <div class="games">
       {s.games.map((g) => (
         <GameRow key={g.game_id} g={g} mode={mode} market={market} live={liveOf(g)} />
       ))}
     </div>
+    </section>
   );
   const gateClosed = engine?.gate != null ? !engine.gate.gate_open : null;
   const priced = market && speaks && engine ? engine.counts["n_contracts"] : undefined;
