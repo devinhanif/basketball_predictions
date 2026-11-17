@@ -100,7 +100,7 @@ Test names are quoted as `file` "describe" > "it".
 |---|---|---|
 | Verify client boundaries/SSR. | not applicable | Client-only SPA, no server render. |
 | Exercise 375 / 768 / 1280+ layouts with a populated slip and long player names/theses. | met | 375/768/1280, both themes, both modes: captures `bet-slip-demo` and `bet-hedge-demo` (populated with the demo) tonight, plus `bet-journey.mjs` at 375 and 1280. Long names and long theses were not exercised. Update 05:53 CST (lane K1): the journey uses a 40-character name, a 600-character thesis and two 60-character unbroken tags on the slip, the ideas list and the idea page at 375 and 1280, dark and light: no page scroll, no control outside the viewport (`15_long-slip`, `16_long-ideas`, `17_long-idea`). The outcome table stacks below 640 px (ce624bd3). |
-| Desktop slip stays alongside content; phone/tablet overlay scrollable, including close and placement confirmation. | partly | Desktop: the slip is a rail beside the page from 1280 px (journey screenshot `35_hedge_1280_dark.png`; `notice.test.ts` "rail when wide and open, the Slip button when wide and hidden, a sheet below 1280 px" green). Phone: the shared sheet (focus trap, Escape) and the placement dialog pass the journey at 375; scrolling a long slip in the sheet was not checked. |
+| Desktop slip stays alongside content; phone/tablet overlay scrollable, including close and placement confirmation. | met | Desktop: the slip is a rail beside the page from 1280 px (journey screenshot `35_hedge_1280_dark.png`; `notice.test.ts` "rail when wide and open, the Slip button when wide and hidden, a sheet below 1280 px" green). Phone: the shared sheet (focus trap, Escape) and the placement dialog pass the journey at 375; scrolling a long slip in the sheet was not checked. Update 06:44 CST (lane K4): the journey seeds 8 planned legs, opens the phone sheet at 375, and checks it fits the screen, scrolls inside, and that "Mark slip as placed" can be scrolled into view. |
 | Phone keyboard does not cover required actions; inputs can be cleared and retyped. | not met | Not checked: headless Chrome has no on-screen keyboard. |
 | Keyboard navigation, visible focus, dialog focus trapping/restoration, Escape, labels, screen-reader state changes. | partly | Visible focus on the first Tab stop: every visual capture on the first pass. Dialog focus in and back: journey steps "focus returned after Cancel", "typed prices in dialogs; focus back on each row". No screen reader used. Touch targets under 44 px at 375 (first-pass visual check): **pending the last polish lane**. Update 04:56 CST: the touch-target findings are fixed (visual check quick set, 0 gating findings off and on). Still no screen reader. |
 | Preserve `vh` fallback before `dvh`; avoid unguarded `structuredClone`, `crypto.randomUUID`, `Array.at`. | partly | `app/web/src/betting/ids.ts` replaces the donor's id helper (lane J3). Not audited tonight for `dvh` order or `Array.at` across the app. Update 05:53 CST (lane K1): enforced for `app/web/src/betting/` by a new `hygiene.test.ts` test (no `dvh` without `vh` first, no unguarded `structuredClone`, `crypto.randomUUID`, `Array.at`). The rest of the app is not audited. |
@@ -119,12 +119,12 @@ Test names are quoted as `file` "describe" > "it".
 
 | State | Items |
 |---|---|
-| met | 40 |
-| partly | 14 |
+| met | 41 |
+| partly | 13 |
 | not met | 1 |
 | not applicable | 5 |
 | Total | 60 |
 
 Nothing is pending a lane. Refreshed 05:59 CST after the last polish pass (`0e1d18a3`) and the checklist lane
-(`1f05972b`, `ce624bd3`): five rows moved from partly to met (out-of-order boards, remove-record wording, paper-outcome
-history, long content, the full journey). The one "not met" is the phone on-screen keyboard (headless Chrome has none).
+(`1f05972b`, `ce624bd3`): six rows moved from partly to met (out-of-order boards, remove-record wording, paper-outcome
+history, long content, the full journey, and at 06:44 the scrolling phone sheet). The one "not met" is the phone on-screen keyboard (headless Chrome has none).

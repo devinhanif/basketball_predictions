@@ -59,25 +59,22 @@ Verification of the tree at e5b789b5 (04:45 to 04:57 CST): walk 0 violations at 
 captures and ON 148 captures, 0 with a gating finding; journey PASSED on the real export (98 ok steps). The same set was
 rerun on 5b94a4ea (see REPORT_JARVIS.md section 3 for the last numbers).
 
-## Running (wave 4, launched 05:01 CST, hard stop 07:10 CST)
+## Wave 4 (05:01 to 06:44 CST; all five lanes merged)
 | Lane | Branch | Worktree | Scope |
 |---|---|---|---|
 | K1 | `agent/app-jarvis-close` | `~/Downloads/nba-wt-1117-jv-close` | DONE, merged 05:54 CST (1f05972b): cross-tab sync in the store, select / deselect / remove in the journey, paper-outcome history (schema v2 with migration), Compare board match guard, long content, hygiene test, memory-only slip when storage is blocked. Web check OFF and ON 573 tests; parity 18 markers; layering 15; journey PASSED on the real export (138 steps). Skipped: add to slip from Discover's cards (the card has an integer threshold, not a line; deriving one is not allowed). Main session after it (ce624bd3): outcome table stacks on phones; "Prices as of" without "Morning run". Checklist refreshed (6b37acdd): 40 met, 14 partly, 1 not met, 5 n/a |
 | K2 | `agent/app-jarvis-friend` | `~/Downloads/nba-wt-1117-jv-friend` | DONE, merged 05:39 CST (29aef787): tighter phone first screen, one-line hints, no result request for unfinished games, one h1 when the data service is down, plain empty states, search lists a player once; web check OFF and ON 559 tests. Left for Devin: whether Explore shows Today's picks above the games; Learn Scorecard prose |
-| K3 | `agent/app-jarvis-depth` | `~/Downloads/nba-wt-1117-jv-depth` | launched 05:41 CST from 29aef787: the game and prop pages read top to bottom in every lens and mode, phone and desktop, then the record pages; night-chip scroll cue; what-if slider gap. Ports 8180-8181 / 5330-5331. Same files as K2 (everything except the betting module and `TodaysPicks.tsx`) |
-| K4 | `agent/app-jarvis-night` | `~/Downloads/nba-wt-1117-jv-night` | launched 06:00 CST from 6b37acdd: the betting tools used as on a game night on a phone and at 1280 (Compare's explanation folded, hub as a start, one glossary, slip rail, 8-leg sheet). Betting module files only. Ports 8190-8191 / 5340-5341 |
+| K3 | `agent/app-jarvis-depth` | `~/Downloads/nba-wt-1117-jv-depth` | DONE, merged 06:33 CST (8d5bf91b): Analyst opens three players per team, Scorecard folds kept-back rows and strips source paths in Simple, plain words on the prop page, locked replay rows are one line, scroll cue on chip rows, section failures are h2, jump links open folds. Web check OFF and ON 573; parity 18 markers. Main session after it (f539d623): a failed Today's picks section is an h2 |
+| K4 | `agent/app-jarvis-night` | `~/Downloads/nba-wt-1117-jv-night` | DONE, merged 06:44 CST (8a614f48): Compare folds its secondary notes and fee form, the hub is four numbered steps with the slip's state, one glossary, one primary action per slip stage, 8-leg phone sheet step in the journey. Web check OFF and ON 573; parity 18 markers; layering 15 |
 
 ## Next
-1. When K1 and K2 report (by 07:10 CST): merge each into the follow-up branch (`git merge --no-ff --no-commit`), then the
-   gate: `npm run check` OFF and ON, `flag-parity.mjs`, API tests OFF and ON, layering, `check.sh --browser`,
-   `walk.sh --widths`, `visual.sh --quick` and `--quick --betting`, the journey against 5186. Heavy work ends before
+1. The final gate on 8a614f48 started 06:46 CST (`scratchpad/final/gate.log`): `check.sh --browser`, `walk.sh --widths`,
+   `visual.sh --quick` and `--quick --betting`, the journey against 5186, API tests with `PH_BETTING=1`.
+   A walk that ran while a merge changed the working tree showed two false violations (the dev server reloaded the page
+   mid-step); do not edit `app/web` while a walk runs.
+2. Then: rebuild the real-data single-file pages into `~/Downloads/parlayhitters-artifacts-2026-11-17/`, put the last
+   numbers in `REPORT_JARVIS.md`, and write the completion line in `REPORT.md` on both branches. Heavy work ends before
    08:20 CST (live jobs).
-2. Rebuild the real-data single-file pages into `~/Downloads/parlayhitters-artifacts-2026-11-17/` (`artifact.sh --export`
-   and `--export --betting`), refresh the numbers in `REPORT_JARVIS.md`, add decision rows, refresh the checklist rows K1
-   closed.
-3. Only then the completion line in `REPORT.md` on both branches.
-4. If a lane does not report in time: leave its branch unmerged, say so in the report; the follow-up branch at 5b94a4ea
-   is already verified and complete on its own.
 
 ## Decisions so far (rows go to DECISIONS_ROWS.md at the end)
 - "fast arb" (Devin, about 22:55 CST): JARVIS Polymarket fee uses fast-arb's order. On the integration branch, row 16.
