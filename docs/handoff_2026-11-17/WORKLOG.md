@@ -46,15 +46,30 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
-- Phase 0 (above).
+- Phase 0 (above), commit 72924903. Shared error-code registry seeded (`app/error_codes.json`), commit d5d9b058.
 
-## In progress
-- Phases 1–3 on `app/`, by lane (see below).
+## In progress (launched 19:00 CST, each in its own worktree, branched from d5d9b058)
+| Lane | Branch | Worktree | Scope | Report |
+|---|---|---|---|---|
+| A | `agent/app-1117-api` | `~/Downloads/nba-wt-1117-api` | `app/api`: audit, contract/hostile/failure tests, validation layer, typed errors, request ids, file splits | `docs/handoff_2026-11-17/lane_api.md` |
+| B | `agent/app-1117-web` | `~/Downloads/nba-wt-1117-web` | `app/web`: audit, route walk, not-found, error screen and boundary, time helper, SSE lifecycle | `docs/handoff_2026-11-17/lane_web.md` |
+| D | `agent/app-1117-dx` | `~/Downloads/nba-wt-1117-dx` | `app/scripts` (dev, check, artifact), `app/README.md`, architecture page, docs drift | `docs/handoff_2026-11-17/lane_dx.md` |
+
+Not started: lane C (design system and UX; waits for B, same files), lane E (repo-wide fixes; waits for a free slot and,
+for the replay oracle, for the end of the game window about 22:00 CST).
 
 ## Next three steps
-1. Launch lanes a (app/api), b (app/web hardening), d (DX scripts and docs) in their own worktrees.
-2. Merge each lane into the integration branch only with its tests green.
-3. Lane c (design system and UX) after b lands, then lane e (repo-wide fixes).
+1. When a lane reports: run its checks myself in its worktree, then `git merge --no-ff` it into `agent/integration-2026-11-17`
+   (worktree `~/Downloads/nba-wt-int-1117`), run `npm run check`, `npm run build:artifact` and the API suite there.
+2. Launch lane E (steward) when D finishes; launch lane C when B is merged.
+3. Replay oracle after 22:00 CST for any live-path change: holdout row first, DB copy under a scratch directory.
+
+## Notes for whoever resumes
+- Servers left running by this run: API 8010 (fixtures), API 8011 (real export, read-only), Vite 5183 and 5184, all from the
+  integration worktree. They are plain foreground processes of the session; start them again with the quickstart.
+- Repo lint baseline: `ruff check .` finds 82 errors, 81 of them in three `research/scratch/gate_*.py` files and one in
+  `app/fixtures/build_export_best_real.py`.
+- The Mac was on battery at 19:05 CST (90%). Power on game nights is Devin's item.
 
 ## Failures and things not run
 - The repo-wide suites and the replay oracle have not been run yet (game window until about 22:00 CST).
