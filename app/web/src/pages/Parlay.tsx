@@ -135,7 +135,12 @@ export function ParlayPage(props: { date: string | null }) {
   return (
     <div class="stack">
       <h1>Parlay of the day</h1>
-      <ParlayCard compact={false} date={props.date} />
+      {/* The engine's card speaks of prices, fees and a book: Market lens only, like the ticket list below. */}
+      {market ? (
+        <ParlayCard compact={false} date={props.date} />
+      ) : (
+        <MarketOnly name="The parlay engine's card" what="The engine's card is the market side of the night." />
+      )}
       {market ? (
         <LatestTopParlays date={props.date} />
       ) : (
