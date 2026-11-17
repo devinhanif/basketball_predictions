@@ -292,7 +292,7 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   const calLine = unchanged ? calibratedLine(r) : null;
   const qSide: number | null = side === "over" ? pOver : pUnder;
   return (
-    <div class="stack tight">
+    <div class="stack tight xp-lab">
       <div class="xp-block">
         <h3>Move the what-if line</h3>
         <p class="small muted xp-own-line">

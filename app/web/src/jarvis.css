@@ -1460,6 +1460,21 @@ h1.answer {
 .page-controls .seg.wide {
   width: auto;
 }
+/* Wide screens: the line and the minutes sit side by side; the rest of the lab takes the full width below them. */
+@media (min-width: 1100px) {
+  .explore .xp-lab {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+    align-items: start;
+  }
+  .explore .xp-lab > * {
+    margin-top: 0;
+  }
+  .explore .xp-lab > :nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
+}
 /* The what-if's own choices (which side the price is for, the fee): equal columns, never a ragged wrapped row. */
 .explore .seg.wide {
   display: grid;
