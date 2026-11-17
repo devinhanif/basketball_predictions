@@ -321,7 +321,8 @@ _TS_IMPORT = re.compile(
 
 def test_betting_web_imports_stay_inside_app_web() -> None:
     """Every import specifier in app/web/src/betting/ is relative and resolves inside app/web/, or
-    is the one runtime package (preact)."""
+    is the one runtime package (preact). A test file may also import the test runner and Node's
+    built-ins, which never ship."""
     web = (ROOT / "app" / "web").resolve()
     files = sorted(
         p for p in BETTING_DIRS[0].rglob("*") if p.suffix in (".ts", ".tsx", ".js", ".mjs")
@@ -334,7 +335,11 @@ def test_betting_web_imports_stay_inside_app_web() -> None:
                 target = (p.parent / spec).resolve()
                 if not target.is_relative_to(web):
                     bad.append((str(p.relative_to(ROOT)), spec))
-            elif not (spec == "preact" or spec.startswith("preact/")):
+            elif spec == "preact" or spec.startswith("preact/"):
+                continue
+            elif ".test." in p.name and (spec == "vitest" or spec.startswith("node:")):
+                continue
+            else:
                 bad.append((str(p.relative_to(ROOT)), spec))
     assert not bad, f"betting web code imports outside app/web/: {bad}"
 
