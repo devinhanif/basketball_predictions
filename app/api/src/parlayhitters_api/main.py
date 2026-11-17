@@ -126,8 +126,17 @@ def _host_name(host: str) -> str:
     return h.rsplit(":", 1)[0] if h.count(":") == 1 else h
 
 
+_LOOPBACK_PEERS = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+
+
 def _is_local_request(request: Request) -> bool:
-    """True only for a request that reached this machine directly, not via a tunnel or proxy."""
+    """True only for a request that reached this machine directly, not via a tunnel or proxy: the
+    connecting peer is loopback (a Host header alone is the client's word, and a server started
+    on 0.0.0.0 would otherwise take a LAN request that claims Host: localhost), the Host names
+    this machine, and no proxy or tunnel header is present."""
+    peer = request.client.host if request.client is not None else ""
+    if peer not in _LOOPBACK_PEERS:
+        return False
     if any(request.headers.get(h) for h in _PROXY_HEADERS):
         return False
     return _host_name(request.headers.get("host", "")) in _LOCAL_HOSTS
