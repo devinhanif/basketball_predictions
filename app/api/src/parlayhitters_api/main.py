@@ -43,6 +43,7 @@ from .forecast import (
     no_cal_here,
     shown_probs,
 )
+from .health import health_detail
 from .knows import GameKnows, PlayerKnows, game_knows, player_knows
 from .live import LiveHub
 from .live_routes import register_live
@@ -367,8 +368,9 @@ def _key_props(g: Json, n: int = 3) -> list[dict[str, Any]]:
 
 def register(app: FastAPI) -> None:
     @app.get("/api/health")
-    def health(store: StoreDep) -> dict[str, str]:
-        return {"status": "ok", "mode": store.mode}
+    def health(store: StoreDep) -> dict[str, Any]:
+        """``status`` and ``mode`` as always, then the data's age and what its manifest says."""
+        return {"status": "ok", "mode": store.mode, **health_detail(store)}
 
     @app.get("/api/meta")
     def meta(store: StoreDep) -> dict[str, Any]:

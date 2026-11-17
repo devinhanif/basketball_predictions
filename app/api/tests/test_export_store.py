@@ -172,7 +172,8 @@ def test_fixtures_are_the_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 def test_a_refused_export_answers_503_with_the_reason(
     export_dir: Path, export_client: TestClient
 ) -> None:
-    assert export_client.get("/api/health").json() == {"status": "ok", "mode": "export"}
+    health = export_client.get("/api/health").json()
+    assert {k: health[k] for k in ("status", "mode")} == {"status": "ok", "mode": "export"}
     seal(export_dir, data_version=None)  # replaced on disk while the API is running
     r = export_client.get("/api/meta")
     assert r.status_code == 503 and "data_version" in r.json()["detail"]
