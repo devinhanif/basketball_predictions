@@ -6,6 +6,7 @@ import { LensSwitch, LENS_LABEL, LENS_SAY } from "./Lens";
 import { LENSES, setPref } from "./prefs";
 import { legHref, recordHref } from "./router";
 import { closeTour, useTourOpen } from "./tourState";
+import { Dialog } from "./ui";
 
 interface Step {
   title: string;
@@ -31,7 +32,10 @@ function go(hash: string): void {
   window.location.hash = hash;
 }
 
-/** First-visit tour: short steps, skippable, replayable from the profile menu and About. */
+/**
+ * The tour: short steps, skippable, replayable from the profile menu and About. It is the app's one Dialog (focus trap,
+ * Escape and the backdrop close it, focus returns to whatever opened it); the step's title is the dialog's title.
+ */
 export function Tour() {
   const open = useTourOpen();
   const [i, setI] = useState(0);
@@ -50,13 +54,8 @@ export function Tour() {
         /* no demo player: the step simply has no button */
       },
     );
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") closeTour();
-    };
-    document.addEventListener("keydown", onKey);
     return () => {
       live = false;
-      document.removeEventListener("keydown", onKey);
     };
   }, [open]);
   useEffect(() => {
@@ -178,8 +177,8 @@ export function Tour() {
   if (!step) return null;
   const last = i === steps.length - 1;
   return (
-    <div class="tour-back" role="presentation">
-      <div class="tour" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <Dialog title={step.title} onClose={closeTour} id="tour">
+      <div class="tour-in">
         <div class="tour-top">
           <span class="tour-brand">
             <Logo />
@@ -191,7 +190,6 @@ export function Tour() {
             Skip tour
           </button>
         </div>
-        <h2 id="tour-title">{step.title}</h2>
         <div class="tour-body">{step.body}</div>
         <div class="tour-dots" aria-hidden="true">
           {steps.map((s, k) => (
@@ -227,6 +225,6 @@ export function Tour() {
           </button>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }

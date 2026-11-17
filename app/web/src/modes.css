@@ -444,36 +444,10 @@
   font-weight: 700;
 }
 
-/* ---- the tour ---- */
-.tour-back {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: var(--scrim-soft);
-}
-.tour {
-  width: min(520px, 100%);
-  max-height: 92dvh;
-  overflow-y: auto;
+/* ---- the tour (inside the shared Dialog, #tour) ---- */
+.tour-in {
   display: grid;
   gap: var(--sp-3);
-  padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: var(--shadow);
-}
-@media (min-width: 760px) {
-  .tour-back {
-    align-items: center;
-  }
-  .tour {
-    border-radius: var(--radius);
-  }
 }
 .tour-top {
   display: flex;

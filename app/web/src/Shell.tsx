@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { Avatar } from "./Avatar";
 import { Footer, ModeToggle, ThemeToggle } from "./components";
 import { deskOf, useDesk } from "./deskStore";
@@ -208,11 +208,35 @@ export function Bell({ unread }: { unread: number }) {
   );
 }
 
+/** The profile popover: a labelled group of links (not an ARIA menu); Escape or a click outside closes it and focus goes back to the button that opened it. */
 function ProfileMenu(props: { onClose: () => void; onAbout: () => void; onKeys: () => void }) {
   const id = useIdentity();
   const name = id.name || (id.source === "platform" ? "Someone" : "Guest");
+  const box = useRef<HTMLDivElement>(null);
+  const close = useRef(props.onClose);
+  close.current = props.onClose;
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape" && document.querySelector('[role="dialog"]') === null) {
+        e.preventDefault();
+        if (opener?.isConnected) opener.focus();
+        close.current();
+      }
+    };
+    const onDown = (e: MouseEvent): void => {
+      const t = e.target as Node | null;
+      if (box.current && t && !box.current.contains(t) && !(t instanceof Element && t.closest('[aria-label="Profile menu"]'))) close.current();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, []);
   return (
-    <div class="popover" role="menu" aria-label="Profile">
+    <div class="popover" role="group" aria-label="Profile" ref={box}>
       <div class="pop-who">
         <Avatar name={name} src={id.avatarUrl} size="md" />
         <div>
