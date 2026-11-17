@@ -17,7 +17,7 @@ import { customMarket, sideOf, type ApiSlate } from "./snapshots";
 import { compareHashFor, knownMarkets, lowestCostCrown, parseCompareQuery, venueCards } from "./viewModel";
 import { CoverageBlock, MarketGate, MoneyNote, OutcomeTable, marketWords } from "./parts";
 import { ExistingBetForm, MarketHead, MarketProblem, SnapshotStatus, VenueCardView, useMarketFromQuery, useStored } from "./board";
-import { ensureBetStyles, say, setPanelOpen, useBet, useNow, type BetHook } from "./useBet";
+import { ensureBetStyles, revealSlip, say, useBet, useNow, type BetHook } from "./useBet";
 import type { Market, Side } from "./types";
 
 type Ready = Extract<BetHook, { ready: true }>;
@@ -345,7 +345,7 @@ export function Comparison(props: { bet: Ready; market: Market; side: Side }) {
             addLabel={`Add ${c.provider.label} to slip`}
             onAdd={(q) => {
               void bet.actions.addQuote(q, market).then((d) => {
-                if (say(d)) setPanelOpen(true);
+                if (say(d)) revealSlip();
               });
             }}
           />

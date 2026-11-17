@@ -100,7 +100,8 @@ export function useNow(ms = 30_000): number {
       window.clearInterval(t);
     };
   }, [ms]);
-  return now;
+  // Never behind the clock: a price typed a moment ago must not read as "from the future" (age unknown).
+  return Math.max(now, Date.now());
 }
 
 // ------------------------------------------------------------------------------------------------ the panel's state
@@ -156,4 +157,9 @@ export function useWide(min = 1024): boolean {
     };
   }, [q]);
   return wide;
+}
+
+/** After an add: open the side panel on a wide screen; on a phone the toast is enough (the sheet is modal). */
+export function revealSlip(): void {
+  if (typeof window.matchMedia === "function" && window.matchMedia("(min-width: 1024px)").matches) setPanelOpen(true);
 }

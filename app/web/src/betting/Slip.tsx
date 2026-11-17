@@ -164,7 +164,8 @@ function PlaceButton(props: { bet: Ready; ws: SlipWorkspace; ev: SlipEvaluation;
   );
 }
 
-function Tools(props: { bet: Ready; ws: SlipWorkspace }) {
+/** Export, import and the labelled demo (on the slip page and the #/bet hub). */
+export function SlipTools(props: { bet: Ready; ws: SlipWorkspace }) {
   const [confirm, setConfirm] = useState<null | "demo" | { text: string }>(null);
   const [err, setErr] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
@@ -362,7 +363,7 @@ export function SlipBody(props: { bet: Ready; compact?: boolean }) {
       {props.compact ? null : (
         <>
           <Notes bet={bet} ws={ws} />
-          <Tools bet={bet} ws={ws} />
+          <SlipTools bet={bet} ws={ws} />
         </>
       )}
     </div>

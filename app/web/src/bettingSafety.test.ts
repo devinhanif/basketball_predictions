@@ -125,14 +125,14 @@ describe("only the two features files name the switch", () => {
 describe("the marker list", () => {
   const { markers } = JSON.parse(readFileSync(join(WEB_BETTING, "markers.json"), "utf8")) as { markers: string[] };
 
-  it("starts with the placeholder page's exact sentence and lists the reserved names", () => {
+  it("starts with the #/bet hub's opening words and lists the reserved names", () => {
     expect(markers.slice(0, 4)).toEqual([
-      "Betting tools: analysis only, not advice, no orders are placed. Nothing is built here yet.",
+      "Tools for arithmetic on prices you see elsewhere",
       "/api/betting",
       "#/bet",
       "ph-bet",
     ]);
-    expect(readFileSync(join(WEB_BETTING, "Placeholder.tsx"), "utf8")).toContain(markers[0]);
+    expect(readFileSync(join(WEB_BETTING, "Home.tsx"), "utf8")).toContain(markers[0]);
   });
 
   it("no marker appears in source outside the betting module, so the OFF build cannot carry one by accident", () => {
@@ -153,7 +153,7 @@ describe(`the #/bet prefix (switch ${BETTING ? "ON" : "OFF"} in this run)`, () =
     "#/bet/%F0%9F%8F%80", "#/bets", "#/betting",
   ];
 
-  it("#/bet is the placeholder with the switch on and not-found with it off", () => {
+  it("#/bet is the hub with the switch on and not-found with it off", () => {
     expect(parse("#/bet")).toEqual(BETTING ? { name: "bet", path: [], query: "" } : { name: "notfound", hash: "#/bet" });
     expect(parse("#/bet/")).toEqual(BETTING ? { name: "bet", path: [], query: "" } : { name: "notfound", hash: "#/bet/" });
   });

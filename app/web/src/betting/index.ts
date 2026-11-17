@@ -6,9 +6,10 @@
 // and, if it belongs in the nav, a BettingNavEntry to NAV. Add a distinctive string of it to markers.json so the parity
 // check proves the OFF build leaves it out.
 import { h } from "preact";
-import { BetPlaceholder } from "./Placeholder";
+import { BetHome } from "./Home";
 import { AddToSlip } from "./AddToSlip";
 import { ComparePage } from "./Compare";
+import { HedgePage } from "./Hedge";
 import { SlipPage, SlipPanel } from "./Slip";
 import { BET_PREFIX, type BetRoute, type BettingModule, type BettingNavEntry, type BettingRouteDef } from "./seam";
 
@@ -21,9 +22,10 @@ export function betHref(path: string = ""): string {
 }
 
 const ROUTES: readonly BettingRouteDef[] = [
-  { path: "", title: "Betting tools", render: () => h(BetPlaceholder, null) },
+  { path: "", title: "Betting tools", render: () => h(BetHome, null) },
   { path: "slip", title: "Your rolling slip", render: () => h(SlipPage, null) },
   { path: "compare", title: "Compare venues", render: (r) => h(ComparePage, { route: r }) },
+  { path: "hedge", title: "Slip Hedge Finder", render: (r) => h(HedgePage, { route: r }) },
 ];
 
 const NAV: readonly BettingNavEntry[] = [
@@ -31,7 +33,7 @@ const NAV: readonly BettingNavEntry[] = [
     href: "#/bet", // a literal, not betHref(): a call here would survive tree-shaking in a build with the switch off
     label: "Betting tools",
     icon: "flag",
-    sub: "Analysis only, not advice. Nothing is built here yet",
+    sub: "Analysis only, not advice: compare venues, keep a slip, size a hedge",
     words: "bet slip compare",
     marketOnly: true,
   },
@@ -41,6 +43,14 @@ const NAV: readonly BettingNavEntry[] = [
     icon: "swap",
     sub: "One prop's prices at each venue, side by side, with cost per $1 of payout",
     words: "compare venues prices kalshi draftkings prizepicks",
+    marketOnly: true,
+  },
+  {
+    href: "#/bet/hedge",
+    label: "Slip Hedge Finder",
+    icon: "hedge",
+    sub: "Size the other side of a position you recorded as placed",
+    words: "hedge placed positions cover",
     marketOnly: true,
   },
   {
