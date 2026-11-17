@@ -65,7 +65,7 @@ function ForDate({ date }: { date: string }) {
       {(m: Maybe<ParlayDiag>) =>
         m.kind === "absent" ? (
           <p>
-            <strong>Not in this snapshot.</strong> {m.why}
+            <strong>Nothing stored here.</strong> {m.why}
           </p>
         ) : (
           <Body d={m.data} offset={offset} onPage={setOffset} />

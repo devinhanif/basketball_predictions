@@ -84,7 +84,9 @@ export function codeForStatus(status: number | null, path: string, online = true
 /** A failure from an HTTP answer: the body's own code and words when present, else inferred. */
 export function failureFromAnswer(status: number, body: unknown, path: string, headerId: string | null = null): ApiFailure {
   const o = typeof body === "object" && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
-  const code = str(o["code"]) ?? codeForStatus(status, path);
+  // A 500/502/504 with no JSON body is the dev proxy or a gateway saying the API did not answer, not the API failing.
+  const proxyDown = body === null && (status === 500 || status === 502 || status === 504);
+  const code = str(o["code"]) ?? (proxyDown ? "network_unreachable" : codeForStatus(status, path));
   return {
     ok: false,
     status,

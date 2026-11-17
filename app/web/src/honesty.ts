@@ -23,7 +23,11 @@ export function isAbsent(status: number, body: unknown): boolean {
   return code === undefined || code === "not_found";
 }
 
-export async function getMaybe<T>(path: string): Promise<Loaded<Maybe<T>>> {
+/**
+ * One answer as a Maybe. `quiet` maps refusal codes that are a normal state of the data (not a fault) to an absent
+ * answer with the given words, for example "no stored parlay check for this night".
+ */
+export async function getMaybe<T>(path: string, quiet: Readonly<Record<string, string>> = {}): Promise<Loaded<Maybe<T>>> {
   let r;
   try {
     r = await getRaw(path);
@@ -39,6 +43,8 @@ export async function getMaybe<T>(path: string): Promise<Loaded<Maybe<T>>> {
       fromCache: r.fromCache,
     };
   }
+  const code = typeof r.body === "object" && r.body !== null ? (r.body as Record<string, unknown>)["code"] : undefined;
+  if (typeof code === "string" && Object.hasOwn(quiet, code)) return { data: { kind: "absent", why: quiet[code] ?? "" }, fromCache: r.fromCache };
   if (r.status < 200 || r.status >= 300) throw new ApiError(failureFromAnswer(r.status, r.body, path, r.requestId ?? null));
   if (typeof r.body !== "object" || r.body === null) {
     throw new ApiError({ ...failureFromAnswer(r.status, r.body, path, r.requestId ?? null), code: "unexpected_error", detail: "the answer was not in the expected form" });
@@ -255,7 +261,9 @@ export const honestyApi = {
   scorecard: () => getMaybe<Scorecard>("/api/scorecard"),
   forwardTests: () => getMaybe<ForwardTests>("/api/forward-tests"),
   parlayDiag: (date: string, offset: number, limit: number) =>
-    getMaybe<ParlayDiag>(`/api/parlay-diagnostics/${e(date)}?offset=${offset.toString()}&limit=${limit.toString()}`),
+    getMaybe<ParlayDiag>(`/api/parlay-diagnostics/${e(date)}?offset=${offset.toString()}&limit=${limit.toString()}`, {
+      no_parlay_check: "The data holds the engine's check for one night only, and this is not that night.",
+    }),
   health: () => getMaybe<Health>("/api/health"),
 };
 

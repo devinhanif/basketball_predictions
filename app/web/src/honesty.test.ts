@@ -151,3 +151,12 @@ describe("the artifact finds record and distribution answers in the game's shard
     expect(shardOf("/api/scorecard")).toBeNull();
   });
 });
+
+describe("a proxy 5xx with no body is the API not answering", async () => {
+  const { failureFromAnswer } = await import("./errors");
+  it("maps to network_unreachable; a JSON 500 keeps its own code", () => {
+    for (const s of [500, 502, 504]) expect(failureFromAnswer(s, null, "/api/x").code).toBe("network_unreachable");
+    expect(failureFromAnswer(500, { ok: false, code: "internal_error" }, "/api/x").code).toBe("internal_error");
+    expect(failureFromAnswer(503, null, "/api/x").code).toBe("export_refused");
+  });
+});
