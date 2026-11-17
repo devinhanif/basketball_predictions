@@ -39,6 +39,15 @@ export const ICONS = {
   none: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8",
   book: "M5 5a2 2 0 0 1 2-2h12v16H7a2 2 0 0 0-2 2zM5 21V5M9 7h6",
   keys: "M3 7h18v10H3zM7 10.5h.01M11 10.5h.01M15 10.5h.01M8 14h8",
+  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
+  warn: "M12 4L2.5 20h19zM12 10v4M12 17h.01",
+  pen: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+  beaker: "M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3M7.5 15h9",
+  inbox: "M4 13l2.5-8h11L20 13v6H4zM4 13h5l1 2h4l1-2h5",
+  wifi: "M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.8 16a5 5 0 0 1 6.4 0M12 19.5h.01",
+  panel: "M4 4h16v16H4zM15 4v16",
+  layout: "M4 4h7v9H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 15h7v5H4z",
+  half: "M12 3a9 9 0 1 0 0 18zM12 3a9 9 0 0 1 0 18",
 } as const;
 export type IconName = keyof typeof ICONS;
 
