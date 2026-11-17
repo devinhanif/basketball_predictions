@@ -39,7 +39,7 @@ A grep of visible Learn and Market Simple text for schema, export, stamp, T-60, 
 ## Checks (from `date`: 05:20 to 05:37)
 | What | Result |
 |---|---|
-| `npm run check` OFF (app/web) | pass; vitest 559 tests, 55 files (was 558: one more test file content-neutral; none removed) |
+| `npm run check` OFF (app/web) | pass; vitest 559 tests, 55 files (I added or removed none; the previous note said 558 on its own base) |
 | `VITE_PH_BETTING=1 npm run check` | pass; 559 |
 | `node scripts/flag-parity.mjs` | passed, 16 markers; OFF js 418,681 B, css 125,305 B; ON js 585,030 B, css 125,305 B (artifact half skipped: no baked data) |
 | `WALK_API_PORT=8170 WALK_WEB_PORT=5320 app/scripts/check.sh --browser` | ALL CHECKS PASSED; api pytest 604 passed, 1 skipped; ruff, format, mypy pass; walk seed 1 and 2: 0 violations |
@@ -74,5 +74,5 @@ Run locally: `cd app/web && npm run check && VITE_PH_BETTING=1 npm run check && 
 
 ## Not verified
 No real phone, Safari, Firefox or screen reader. Artifact (file) build not rebuilt. Hover and focus rings looked at only
-in CSS, not in photographs. The headline's no-break space was checked in headless Chrome at 768 only after the change by
-the walks (no new violations), not photographed. Servers on 8170, 8171, 5320, 5321: see below.
+in CSS, not in photographs. The headline's no-break space was photographed at 768 (`$S/t768b/disc.png`, dots end lines) but not at other widths.
+Servers on 8170, 8171, 5320, 5321 and Chrome on 9661: all stopped (checked with `lsof`).
