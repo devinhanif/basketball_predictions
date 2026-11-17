@@ -56,6 +56,9 @@ app started from the main checkout at 18:45; it was left alone, so this run uses
   `teammate_sits` table the committed fixture manifest lacks).
 
 ## Done
+- Lane E2a (daily/props) merged as d375aeb9 at 23:10 CST: lead constant (`f20c535a`), pplay shadow config path (`fe5c7efb`), DDL and config parity guard tests, stub docstrings. Its own runs: tests/daily 365 passed, layering 10 passed. `forward_withdrawals` exists only in `nba/daily/store.py`, not `schema.sql` (xfail test documents it). Pre-existing failure it met: `tests/shadow_llm/test_runner.py::test_mixed_forward_table_still_settles` (lane E1 owns it).
+- Fee decision branch `agent/market-1117-polymarket-fee-fastarb` (e05667b1) merged as 59625c3c: fee tests + tests/jarvis + layering 504 passed, 1 skipped, exit 0.
+- Open wording item for the app: the health strip's "Stale-model marks: props_avg_live2 15,276 (writer_flag); shown rows on a stale fallback 6,604" reads as if the app were stale. It means the AVG shadow is on October weights and the export fell back to the production row. Reword in `app/web/src/HealthStrip.tsx`.
 - Lane E2b (markets cleanups) merged at 22:10 CST. Verified by me on its branch: fee differential test, fee-config guard and layering test pass (17 passed), ruff clean on the five packages, `git diff configs/` is comment lines only and the parsed YAML of `jarvis.yaml` and `cost.yaml` is equal before and after. The lane's own runs: tests/jarvis 496, kalshi+layering 154, markets 289, parlay 245, odds 170, all exit 0. Not covered by the replay oracle (it hashes the daily path only). Proposals (not done): which of two Polymarket fee evaluation orders to keep (they agree on 159,240 of 159,240 tested inputs), one Polymarket client, retiring the legacy odds client after moving `NameResolver`/`american_to_prob` out of it, moving `market_slow` and `combo_eval` to `research/`.
 - Lane C2b (pages) merged as 14e8966f. `app/scripts/check.sh --bake --browser` on the merged branch: ALL CHECKS PASSED at 21:57 CST (API 560 tests, web 408 tests, artifact bake + build, walk 0 violations plain and injected). I looked at `#/scorecard`, `#/tests`, `#/source/...`, `#/help/errors` and a leg page on tonight's real export (phone size, Market lens): all render. Note: `--bake` re-baked `app/web/artifact-data/baked.json` from the fixtures; run `app/scripts/artifact.sh --export` for a real-data artifact.
 - Nit seen in the screenshots: in the Market lens the health strip is four lines above every page on a phone. Not fixed.
@@ -107,7 +110,8 @@ for the replay oracle, for the end of the game window about 22:00 CST).
   Output: `~/Downloads/nba-scratch-1117/oracle_base.log`, `.hash`, `.start`, `.end`. Expected `89889f6d`.
 - If the session died before 22:15 the job died with it: check for `oracle_base.start`; if absent, run the command by hand
   from the oracle worktree (the row is already logged).
-- After E2a and E2b merge: log a second row, `git checkout --detach <integration tip>` in the oracle worktree, run again
+- **E2 run started 23:13 CST** on the integration tip 59625c3c (holdout row 7470f7fa logged first, at d375aeb9, before the fee-order merge): output `~/Downloads/nba-scratch-1117/oracle_e2.{log,hash,start,end,commit}`. Expected `89889f6d`.
+- The plan that led to it: after E2a and E2b merge, log a second row, `git checkout --detach <integration tip>` in the oracle worktree, run again
   into `oracle_e2.duckdb`. A different hash means bisecting E2a's commits (one per task) and reverting the offender.
 
 ## Auto-resume (Devin started it in a terminal about 19:04 CST on 11-16; if it was the one-shot with `sleep 14700`, it fires about 23:09 CST)
