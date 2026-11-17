@@ -138,6 +138,8 @@ const MONEY_RE = [/Paper balance/i, /Net P&L/i, /\$\d[\d,]*(\.\d\d)? start, \$\d
 const LOCK_FROM = "2026-10-30";
 const LOCK_WORDS = ["part of a locked test until about Dec 1", "Result hidden while the model's number for this night is a locked test"];
 const NOT_FOUND_RE = /could not find that page|There is nothing at that address/i;
+// API 404s say what was missing in the registry's words (a game, a forecast); any of these is a not-found screen.
+const NOT_FOUND_CODES = ["bad_route", "not_found", "unknown_game", "unknown_slate", "unknown_player", "unknown_stat", "no_forecast", "not_a_date"];
 
 // ------------------------------------------------------------------------------------------------ chrome
 const profile = mkdtempSync(join(tmpdir(), "ph-walk-"));
@@ -236,7 +238,7 @@ async function readPage() {
     const mainText=m?(m.innerText||'').replace(/\\s+/g,' ').trim():'';
     const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT); const parts=[]; while(w.nextNode()) parts.push(w.currentNode.nodeValue);
     const attrs=[]; document.querySelectorAll('main [aria-label],main [title],main [alt],main [aria-valuetext]').forEach(e=>{for(const a of ['aria-label','title','alt','aria-valuetext']){const v=e.getAttribute(a); if(v) attrs.push(v)}});
-    const err=[...document.querySelectorAll('.panel.error')].map(p=>({text:(p.innerText||'').replace(/\\s+/g,' '), action: !!p.querySelector('button, a[href]')}));
+    const err=[...document.querySelectorAll('.panel.error')].map(p=>({code:p.getAttribute('data-code'), text:(p.innerText||'').replace(/\\s+/g,' '), action: !!p.querySelector('button, a[href]')}));
     return JSON.stringify({hash: location.hash, mainText, mainHtmlLen: m?m.innerHTML.length:0, body: parts.join(' ').replace(/\\s+/g,' '), attrs: attrs.join(' | '), overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, err});
   })()`);
   try {
@@ -275,11 +277,14 @@ function check(route, lens, page, scen) {
       if (m) v.push(`Learn lens price word "${m[0]}": ...${clean.slice(Math.max(0, m.index - 40), m.index + 40)}...`);
     }
   }
-  if (expect === "notfound" && scen === "none" && !NOT_FOUND_RE.test(page.mainText)) v.push("expected a not-found screen");
+  if (expect === "notfound" && scen === "none" && !NOT_FOUND_RE.test(page.mainText) && !page.err.some((e) => NOT_FOUND_CODES.includes(e.code))) v.push("expected a not-found screen");
   for (const e of page.err) if (!e.action) v.push("failure panel with no way on (no button or link)");
   if ((scen === "503" || scen === "503-new" || scen === "mid-503") && page.err.length > 0) {
     const want = scen === "503-new" ? "R456" : "R123";
-    if (!page.err.some((e) => e.text.includes(want))) v.push(`503 panel without its reason (${want})`);
+    for (const e of page.err) {
+      const refusal = e.code === "export_refused" || /failed its checks/.test(e.text);
+      if (refusal && !e.text.includes(want)) v.push(`503 panel without its reason (${want})`);
+    }
   }
   return v;
 }
