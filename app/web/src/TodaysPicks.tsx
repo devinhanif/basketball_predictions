@@ -75,7 +75,7 @@ export function TodaysPicks(props: { date: string; engine: ParlayState | null; o
   return (
     <section class="panel todays-picks" aria-labelledby="tp-h">
       <div class="label">Today&apos;s picks</div>
-      <View state={top} reload={reload} what="the morning picks" onStale={props.onStale}>
+      <View state={top} reload={reload} errorLevel={2} what="the morning picks" onStale={props.onStale}>
         {(data) => {
           if (!runIsForNight(date, data.report_date)) {
             return (
