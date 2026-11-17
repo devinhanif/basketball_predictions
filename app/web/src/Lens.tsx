@@ -38,11 +38,21 @@ export function LensSwitch(props: { compact?: boolean }) {
   );
 }
 
-/** Shown in place of a screen that is all prices and edges when the lens is Learn or Explore. */
-export function MarketOnly(props: { name: string; what: string }) {
+/** A stable id from the screen's name, so two of these on one page never share an id. */
+export function marketOnlyId(name: string): string {
+  return `mo-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+/**
+ * Shown in place of a screen that is all prices and edges when the lens is Learn or Explore. It is the page's h1 when it
+ * stands in for the whole screen (the default); a page that has its own h1 passes `level={2}`.
+ */
+export function MarketOnly(props: { name: string; what: string; level?: 1 | 2 | 3 }) {
+  const H = props.level === 2 ? "h2" : props.level === 3 ? "h3" : "h1";
+  const hid = marketOnlyId(props.name);
   return (
-    <section class="panel empty" aria-labelledby="mo-h">
-      <h1 id="mo-h">{props.name} is a Market screen</h1>
+    <section class="panel empty market-only" aria-labelledby={hid}>
+      <H id={hid} class="market-only-title">{props.name} is a Market screen</H>
       <p>{props.what} It is hidden in the Learn and Explore lenses. The optional what-if for a number you type, inside Explore, is the one exception.</p>
       <button
         type="button"

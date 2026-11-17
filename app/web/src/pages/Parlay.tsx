@@ -157,8 +157,8 @@ export function ParlayPage(props: { date: string | null }) {
         <LatestTopParlays date={props.date} />
       ) : (
         <div class="pb-two">
-          <MarketOnly name="The parlay engine's card" what="The engine's card is the market side of the night." />
-          <MarketOnly name="The ticket list" what="The ticket list is the market side of a night's tickets." />
+          <MarketOnly level={2} name="The parlay engine's card" what="The engine's card is the market side of the night." />
+          <MarketOnly level={2} name="The ticket list" what="The ticket list is the market side of a night's tickets." />
         </div>
       )}
       <Card kicker="Reading the verdict" title="The three ways a day can go" class="pb-ways">

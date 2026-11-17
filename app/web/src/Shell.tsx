@@ -7,7 +7,7 @@ import { IS_ARTIFACT } from "./env";
 import { clearLocalIdentity, useIdentity } from "./identity";
 import { Icon, Logo, type IconName } from "./icons";
 import { moveSelection, search, KIND_LABEL, type SearchItem } from "./search";
-import { useIsAdmin, useNotices, useSearchIndex } from "./shellData";
+import { MARKET_ONLY, useIsAdmin, useNotices, useSearchIndex } from "./shellData";
 import { useLens } from "./prefs";
 import { topHref, type Route, type TopName } from "./router";
 import type { MetaLine } from "./metaWatch";
@@ -45,8 +45,7 @@ const ALL_WORKSPACE: NavDef[] = [
 // The track record reads the live API, which the single-file snapshot does not have.
 const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name === "record" || n.name === "live")));
 const TABS: TopName[] = ["today", "live", "record", "signals", "swipe", "picks"];
-/** Screens whose whole subject is prices and edges: they leave the nav outside the Market lens. */
-export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
+export { MARKET_ONLY };
 
 const ROUTE_TOP: Record<Route["name"], TopName> = {
   today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
