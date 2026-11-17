@@ -1,7 +1,8 @@
 """Append-only forward tables, created migration-safely (CREATE IF NOT EXISTS).
 
-Deliberately NOT in ``nba/db/schema.sql`` (owned elsewhere); the DDL lives
-here and is idempotent. Timestamps are naive UTC.
+The DDL lives here and is idempotent. ``forward_predictions`` and ``forward_scores`` are also
+declared, column-identical, in ``nba/db/schema.sql``; ``forward_withdrawals`` only here
+(``tests/db/test_forward_ddl_parity.py``). Timestamps are naive UTC.
 
 ``player_id`` is ``-1`` for team/game-level targets so the natural key
 ``(game_id, model_name, target, player_id)`` is never NULL.
