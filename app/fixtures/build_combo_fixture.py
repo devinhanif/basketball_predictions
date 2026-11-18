@@ -65,6 +65,24 @@ def entry(mu: float, main: float) -> dict[str, Any]:
     }
 
 
+def hist(seed: int) -> dict[str, Any]:
+    """Synthetic season counts in the optional `hist` shape: [games the script happened in and the player
+    played, games among those over the main line] per script, plus n_all / k_all. Deterministic."""
+    x = (seed * 2654435761) % 2**32
+
+    def draw(hi: int) -> int:
+        nonlocal x
+        x = (1664525 * x + 1013904223) % 2**32
+        return x % (hi + 1)
+
+    n_all = 8 + draw(6)
+    out: dict[str, Any] = {"n_all": n_all, "k_all": draw(n_all)}
+    for sc, hi in (("blowout", 4), ("close", 5), ("shootout", 3), ("grind", 3)):
+        n = draw(hi)
+        out[sc] = [n, draw(n)]
+    return out
+
+
 def build() -> dict[str, Any]:
     corr = [
         ["game", "ast", "total", 0.0862, 55202], ["game", "fg3m", "total", 0.0931, 55202],
@@ -114,6 +132,7 @@ def build() -> dict[str, Any]:
                 m = max(0.6, round(mu * scale * 2) / 2)
                 main_l = max(0.5, round((main * scale) - 0.5) + 0.5)
                 e = entry(m, main_l)
+                e["hist"] = hist(gi * 1000 + pi * 10 + list(stats).index(stat))
                 o = OPENED.get((gid, name, stat))
                 if o is not None:
                     e["main_line_open"] = o

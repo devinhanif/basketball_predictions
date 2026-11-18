@@ -5,6 +5,7 @@ import { Game } from "./pages/Game";
 import { Leg } from "./pages/Leg";
 import { ParlayPage } from "./pages/Parlay";
 import { Picks } from "./pages/Picks";
+import { ComboPage } from "./pages/Combo";
 import { Swipe } from "./pages/Swipe";
 import { Settings } from "./pages/Settings";
 import { Signals } from "./pages/Signals";
@@ -66,6 +67,9 @@ export function App() {
       break;
     case "parlay":
       page = <ParlayPage date={route.date} />;
+      break;
+    case "combo":
+      page = <ComboPage date={route.date} />;
       break;
     case "settings":
       page = <Settings />;

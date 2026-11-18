@@ -275,7 +275,6 @@ export function cholesky(m: readonly (readonly number[])[]): number[][] | null {
 /** Shrink toward the identity, (1 - t) R + t I, by bisection on t (20 steps). Returns the matrix and t (0 if already PD). */
 export function repairToPd(m: number[][]): [number[][], number] {
   if (cholesky(m) !== null) return [m, 0];
-  const n = m.length;
   const shrunk = (t: number): number[][] => m.map((row, i) => row.map((v, j) => (1 - t) * v + (i === j ? t : 0)));
   let lo = 0;
   let hi = 1;
@@ -284,7 +283,6 @@ export function repairToPd(m: number[][]): [number[][], number] {
     if (cholesky(shrunk(mid)) === null) lo = mid;
     else hi = mid;
   }
-  void n;
   return [shrunk(hi), hi];
 }
 
@@ -397,7 +395,7 @@ function pAllPlay(merged: readonly Merged[], game: ComboGame): number | null {
   for (const m of merged) {
     if (m.entity.kind === "player" && m.entity.stat === firstStat(merged, m.entity.player_id)) {
       const pp = playerOf(game, m.entity.player_id).p_play;
-      if (pp === null || pp === undefined) return null; // availability unknown: only the conditional number is shown
+      if (pp === null) return null; // availability unknown: only the conditional number is shown
       p *= pp;
     }
   }
@@ -621,7 +619,7 @@ export function legAboveTestedRange(leg: Leg, game: ComboGame): boolean {
   if (intervalProb(grid, lo, hi) > TESTED_P_MAX) return true;
   const ml = grid.main_line;
   const raw = grid.raw_at_main;
-  if (ml !== null && ml !== undefined && raw !== null && raw !== undefined && Math.abs(leg.line - ml) < 1e-9) {
+  if (ml !== null && raw !== null && raw !== undefined && Math.abs(leg.line - ml) < 1e-9) {
     const rawLeg = leg.side === "over" ? raw : 1 - raw;
     return rawLeg >= TESTED_RAW_MAX;
   }
@@ -739,7 +737,13 @@ export function liftRanking(game: ComboGame, shared: ComboShared, topN = 10, max
 // ---------------------------------------------------------------- framing 2: target probability
 
 /** Over legs on the integer grid whose marginal lies in [pMin, pMax]; `main_line` floor mode also needs line >= posted main line. */
-export function candidateLegs(game: ComboGame, pMin = TARGET_P_MIN, pMax = TARGET_P_MAX, floorMode = "p_band"): PlayerLeg[] {
+export function candidateLegs(
+  game: ComboGame,
+  pMin = TARGET_P_MIN,
+  pMax = TARGET_P_MAX,
+  floorMode = "p_band",
+  calOnly = false,
+): PlayerLeg[] {
   const out: PlayerLeg[] = [];
   for (const p of game.players) {
     for (const [stat, grid] of statEntries(p)) {
@@ -748,6 +752,8 @@ export function candidateLegs(game: ComboGame, pMin = TARGET_P_MIN, pMax = TARGE
       for (let k = Math.max(1, grid.k0); k < grid.k0 + n; k++) {
         const s = survAt(grid, k);
         if (!(pMin <= s && s <= pMax)) continue;
+        // The app's addition (not in the reference): only rungs inside the stat's calibrated range (cal_k) when calOnly.
+        if (calOnly && (k < grid.cal_k[0] || k > grid.cal_k[1])) continue;
         const line = k - 0.5;
         if (floorMode === "main_line" && (ml === null || line < ml)) continue;
         const leg: PlayerLeg = { kind: "player", game_id: game.game_id, player_id: p.player_id, stat, line, side: "over", p: s };
@@ -806,8 +812,9 @@ export function targetSearch(
   floorMode = "p_band",
   pMin = TARGET_P_MIN,
   pMax = TARGET_P_MAX,
+  calOnly = false,
 ): TargetResult {
-  const cands = candidateLegs(game, pMin, pMax, floorMode);
+  const cands = candidateLegs(game, pMin, pMax, floorMode, calOnly);
   let scored = search(game, shared, cands, kLegs, target, beam, true);
   const feasible = scored.length > 0;
   if (!feasible) {
@@ -817,11 +824,7 @@ export function targetSearch(
   for (const [combo] of scored.slice(0, Math.max(3 * topN, topN))) {
     const res = evaluateGameLegs(combo, game, shared);
     final.push({
-      legs: combo.map((c) => {
-        const { p: _p, ...rest } = c;
-        void _p;
-        return rest;
-      }),
+      legs: combo.map((c): PlayerLeg => ({ kind: "player", game_id: c.game_id, player_id: c.player_id, stat: c.stat, line: c.line, side: c.side })),
       p_joint: res.p_joint,
       p_independent: res.p_independent,
       lift: res.lift,

@@ -18,6 +18,7 @@ import "./honesty.css";
 import "./jarvis.css";
 import "./pages-a.css";
 import "./pages-b.css";
+import "./combo/combo.css";
 
 applyTheme(getPrefs().theme);
 applyDensity(getPrefs().density);

@@ -21,7 +21,7 @@ import {
   scriptPrior,
   targetSearch,
 } from "./engine";
-import type { ComboGame, ComboShared, Leg } from "./types";
+import type { ComboGame, ComboShared, Leg, PlayerLeg } from "./types";
 
 interface Expect {
   p_joint: number;
@@ -48,7 +48,7 @@ const G = golden as unknown as {
   script_priors: Record<string, number>;
   script_definitions: Record<string, { rule: string }>;
   lift_ranking_top5: { legs: Leg[]; p_joint: number; p_independent: number; lift: number; method: string; reason: string; above_tested_range: boolean; label: string | null }[];
-  target_search: { feasible: boolean; target: number; k_legs: number; combos: { legs: Leg[]; p_joint: number; lift: number; method: string }[] };
+  target_search: { feasible: boolean; target: number; k_legs: number; combos: { legs: PlayerLeg[]; p_joint: number; lift: number; method: string }[] };
   tolerance: { exact: number; qmc: string };
 };
 const EXACT = 2e-6;
@@ -183,8 +183,8 @@ describe("script priors, definitions and the searches", () => {
     const t = G.target_search;
     const got = targetSearch(G.game, G.shared, t.target, t.k_legs, 3);
     expect(got.feasible).toBe(t.feasible);
-    expect(got.combos.map((c) => c.legs.map((l) => (l.kind === "player" ? `${l.player_id.toString()}|${l.stat}|${l.line.toString()}` : "")))).toEqual(
-      t.combos.map((c) => c.legs.map((l) => (l.kind === "player" ? `${l.player_id.toString()}|${l.stat}|${l.line.toString()}` : ""))),
+    expect(got.combos.map((c) => c.legs.map((l) => `${l.player_id.toString()}|${l.stat}|${l.line.toString()}`))).toEqual(
+      t.combos.map((c) => c.legs.map((l) => `${l.player_id.toString()}|${l.stat}|${l.line.toString()}`)),
     );
     got.combos.forEach((c, i) => {
       expect(Math.abs(c.p_joint - (t.combos[i]?.p_joint ?? NaN))).toBeLessThan(EXACT);

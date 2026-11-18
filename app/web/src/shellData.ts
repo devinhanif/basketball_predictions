@@ -47,6 +47,7 @@ export const SCREEN_ITEMS: SearchItem[] = [
   { kind: "screen", label: "Signals", sub: "What the desk noticed, with certainty labels", href: topHref("signals"), marketOnly: true },
   { kind: "screen", label: "Hedge Finder", sub: "Position lab: what a paper position pays in every outcome", href: topHref("hedge"), words: "position lab scenario", marketOnly: true },
   { kind: "screen", label: "Model History", sub: "Closing-line value, record, calibration, ledger", href: topHref("history"), words: "clv ledger record", marketOnly: true },
+  { kind: "screen", label: "Combo mode", sub: "If the game goes like this: which lines get more or less likely, and how lines move together", href: topHref("combo"), words: "combo script blowout shootout grind parlay legs joint", exploreUp: true },
   { kind: "screen", label: "Alerts", sub: "Notification center", href: topHref("alerts"), words: "notifications bell" },
   { kind: "screen", label: "Swipe", sub: "Over or under, graded after", href: topHref("swipe") },
   { kind: "screen", label: "My picks", sub: "Your paper picks and your friends'", href: topHref("picks") },
@@ -67,14 +68,15 @@ export const SCREEN_ITEMS: SearchItem[] = [
 ];
 
 /** The screens the search lists in a lens: the Market-only ones are left out of Learn and Explore, as in the nav. */
-export function screensFor(market: boolean, items: readonly SearchItem[] = SCREEN_ITEMS): SearchItem[] {
-  return items.filter((i) => market || i.marketOnly !== true);
+export function screensFor(market: boolean, items: readonly SearchItem[] = SCREEN_ITEMS, explore: boolean = market): SearchItem[] {
+  return items.filter((i) => (market || i.marketOnly !== true) && (explore || i.exploreUp !== true));
 }
 
 /** The index: screens now; games and players once the nights load (and the newest night's whole rosters after that). */
 export function useSearchIndex(active: boolean, isAdmin: boolean): SearchItem[] {
   const [items, setItems] = useState<SearchItem[]>([]);
-  const market = useLens() === "market";
+  const lens = useLens();
+  const market = lens === "market";
   useEffect(() => {
     if (!active) return;
     const run = { live: true };
@@ -127,6 +129,6 @@ export function useSearchIndex(active: boolean, isAdmin: boolean): SearchItem[] 
   return useMemo(() => {
     // Key terms follow the lens: the market's terms are listed in the Market lens only.
     const terms: SearchItem[] = termsFor(market).map((t) => ({ kind: "term", label: t.term, sub: t.says.length > 70 ? `${t.says.slice(0, 68)}...` : t.says, href: termHref(t.id), words: t.also ?? "" }));
-    return [...screensFor(market), ...(isAdmin ? [{ kind: "screen" as const, label: "Admin studio", sub: "Photos, activity, people, data tools", href: topHref("admin") }] : []), ...items, ...terms];
-  }, [items, isAdmin, market]);
+    return [...screensFor(market, SCREEN_ITEMS, lens !== "learn"), ...(isAdmin ? [{ kind: "screen" as const, label: "Admin studio", sub: "Photos, activity, people, data tools", href: topHref("admin") }] : []), ...items, ...terms];
+  }, [items, isAdmin, market, lens]);
 }

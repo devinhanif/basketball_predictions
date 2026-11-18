@@ -16,6 +16,11 @@ export interface StatGrid {
   cal_k: readonly [number, number];
   /** Optional (not in contract v1): where the posted main line opened, a number only. */
   main_line_open?: number | null;
+  /**
+   * Optional (engine lane, this season): [games the script happened in and the player played, games among those the stat
+   * finished over tonight's main line] per script, plus n_all / k_all over all games. Read tolerantly (readHist).
+   */
+  hist?: unknown;
 }
 
 export interface ComboPlayer {
