@@ -1,7 +1,9 @@
 # CAL_BY_TIME: does the frozen T-60 line map keep production's P(over) honest when the line is read in the morning, at T-60, at T-30 and at T-15? (pre-registration)
 
-Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-17, committed 19:58 CST (clock read by `date` at commit), branch
-`agent/modeler-calibration-program`. Not frozen. No map fitted, no outcome read, no CAL or RAW score on any 2026 leg.**
+Status: **DRAFT, revision 1, branch `agent/modeler-calibration-program`. Revision 0 committed Tue 2026-11-17 19:58 CST; revision 1 adds
+section 11 (what a 2023-24 backtest by slot needs, where it would flatter, and a per-slot recommendation) after Devin's two-stage decision
+relayed the same evening. Sections 1-10 are the stage-2 forward rule; under the recommendation, a slot enters stage 2 only if its stage-1
+backtest passes, and t30 is forward-only. Not frozen. No map fitted, no outcome read, no CAL or RAW score on any 2026 leg.**
 - **How it becomes the rule:** the main session commits `prereg(CAL_BY_TIME): <sha256>` of everything above `=== RESULTS BELOW ===`
   (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/CAL_BY_TIME.md | shasum -a 256`), after: the T-30 gate count (section 5,
   G3) is measured by the maintainer, a harness exists and passes a synthetic dry run, an adversary pre-freeze read returns READY, and
@@ -131,11 +133,81 @@ If G3 is still unmeasured at freeze, t30 is removed from the family (m 3) by tha
 3. **Display lock for this window:** *default: yes, CAL beside outcome hidden for this window's slates until the look* (about 2027-02-01).
    Alternative: no lock, and this rule becomes descriptive (no verdict word).
 4. **Book:** *default Pinnacle primary, DK labels* (the map's design). Alternative: DK primary (what the app shows), Pinnacle labels.
+5. **Backtest scope (revision 1):** see section 11; *default partial backtests for morning and t15, t30 forward-only, no pull.*
+Answers to 1-5: pending (recorded here when the main session relays them).
 
 ## 10. Priors (drafted for PREDICTIONS_LEDGER, not appended)
 P(t60 slot HOLDS) 0.45; P(t15 slot HOLDS) 0.40; P(morning slot HOLDS) 0.30; P(at least one slot NOT_HONEST) 0.35; P(the look happens by
 2027-02-15) 0.70. Expected Pinnacle M1 at t15 +0.01 (80% interval -0.02 to +0.04): later lines have absorbed late scratches the
 morning forecast has not, which pushes the realised over rate away from CAL in the direction of the news.
+Stage 1 (section 11), drafted with revision 1: P(morning passes the m360 backtest) 0.55; P(t15 passes the t5 backtest) 0.40.
+
+## 11. Backtest by slot on 2023-24: what it needs, where it flatters, and the recommendation (revision 1)
+**Lines.** `odds_history` holds 2023-24 prop lines at t60 and t5 (the original pull), plus the paid `movement` phase (Devin 2026-10-23,
+"pay for the pull"): kinds m360, m180, m90 (m1440 dropped after the probe; DECISIONS 2026-10-23 23:1x), 9 books including Pinnacle and
+DraftKings, 2023-24 only. Its ledger (`data/odds/budget/the_odds_api_movement_ledger.json`, read tonight) shows 283,040 credits over 7,993
+calls, last updated 2026-10-28. **Not verified:** that those rows were ingested into `odds_history.duckdb` and how many prop legs each kind
+holds (no DuckDB under `data/` was opened). There is **no t30 and no t15** in history; t5 (median lead about 9 min) exists.
+
+**A pull for the missing kinds (only if Devin wants T-30 or a true T-15 backtest).** `configs/odds_history.yaml`: historical cost 10 x markets x
+regions per event; the movement phase bills 9 books as one region (`bookmakers=`). Props only (4 markets): 10 x 4 x 1 = 40 credits + 1 events
+call = 41 per game-snapshot. Games: 1,318 (2023) + 1,320 (2024) = 2,638. One kind: 2,638 x 41 = **108,158 credits**; two kinds (m30, m15):
+**216,316** (equal to MOVEMENT_PULL_PLAN's "props only, two kinds" row, a cross-check). Probe first: 20 games x 2 kinds x 41 = 1,640. The
+movement cap (1,000,000; 283,040 spent) has room; the key was swapped on 11-16 and the new key's remaining balance is unknown to me. The
+config needs `m30: 30` and `m15: 15` added to `movement_snapshots` (a market config, not mine; `history_pull` rejects unknown kinds, so the
+code needs nothing else). Exact commands for Devin (agents cannot download), after that config change is reviewed and merged:
+```
+cd /Users/devin/Downloads/nba-prediction
+.venv-1/bin/python -m nba.odds history-pull --phase movement --season 2024 --kinds m30,m15 --scope props --dry-run
+.venv-1/bin/python -m nba.odds history-pull --phase movement --season 2024 --kinds m30,m15 --scope props --max-games 20
+.venv-1/bin/python -m nba.odds history-pull --phase movement --season 2024 --kinds m30,m15 --scope props
+.venv-1/bin/python -m nba.odds history-pull --phase movement --season 2023 --kinds m30,m15 --scope props
+```
+Label-free count of what is already held (maintainer; read-only; seasons filtered; odds_history holds prices, not outcomes):
+```
+cd /Users/devin/Downloads/nba-prediction && .venv-1/bin/python -c "import duckdb;c=duckdb.connect('data/odds/odds_history.duckdb',read_only=True);print(c.execute(\"select season, snapshot_kind, book, count(distinct game_id||'/'||player_id||'/'||market) legs, count(distinct game_id) games from odds_history where season in (2023,2024) and book in ('pinnacle','draftkings') and market in ('player_points','player_rebounds','player_assists','player_threes') group by all order by all\").fetchall())"
+```
+
+**Forecasts.** Stored 2023-24 production forecasts exist at one information state only: `reports/odds_history/model_rows_{2023,2024}.parquet`,
+monthly-block out-of-fold rows built with the T-60 injury report. No stored production forecast exists at a morning or a T-30/T-15
+information state. The only other-lead forecasts offline are LINEUPS_KNOWN's T-30 arms on 2024 (T085, T522), which use box-score starters as
+the "known lineup", a leak for this purpose (T522-a: the gain sits on late scratches the box score reveals). A morning replay would need
+production rebuilt with the morning report (`nba.daily.replay_season`, seasons <= 2024; not costed here).
+
+**The map.** The served map was fit on every 2023-24 t60 leg, so a 2023-24 backtest must use LINE_CALIBRATION's walk-forward month-block fits
+(fit on t60 legs of earlier months, applied to slot-s lines of the scored month), never the served map. Season 2024 only (2023 has no earlier
+fit rows). 2024 outcomes are exposed (T477, T493), so a backtest selects; it does not claim.
+
+**Where a backtest flatters or misleads.**
+- Morning (m360 as the proxy; the live morning snapshot is about 10:00 ET, often 8-9 h before tip; m360 is 6 h): pairing an m360 line with
+  the stored T-60 forecast **flatters** the morning slot, because the forecast knows the T-60 report the live morning forecast does not.
+- T-15 (t5 as the proxy): the line has absorbed lineup confirmations and late scratches; the stored forecast has not. For the production
+  forecast this roughly matches the live situation (production does not read lineups), and is slightly **pessimistic** because t5 is later
+  than T-15 and live pretip runs may add a later report. For any lineup-aware arm (`_t30`, `_t15`, `_late`) history has no confirmed
+  lineups, so a backtest would either lack the information the live forecast has (pessimistic) or use box-score starters (a leak that
+  flatters). Those arms carry no map today and are out of scope here.
+- T-30: no history at all without the pull.
+
+**Recommendation per slot (stage 1 = the backtest, stage 2 = sections 1-10).**
+| slot | recommendation | stage-1 data | why |
+|---|---|---|---|
+| morning | **partial backtest**, then forward | m360 lines (held, if ingested) + T-60 forecasts, walk-forward maps, 2024 | cheap; flatters (forecast too informed), so a stage-1 fail is strong evidence and a pass is weak |
+| t60 | **backtest exists** (T493, walk-forward, 2024); forward is LINE_CAL_LIVE plus this rule's replication | none new | nothing to add |
+| t30 | **forward-only** | none (a pull costs 108,158 credits) | no forecast run serves T-30 today (tonight's export has no T-30 pairing); 108k credits for a slot nobody is shown is not worth it |
+| t15 | **partial backtest via t5**, then forward | t5 lines (held) + T-60 forecasts, walk-forward maps, 2024 | the proxy is pessimistic for production; a pass is meaningful, a fail weaker |
+
+**Stage-1 rule (frozen with this text if Devin accepts):** per slot (morning via m360, t15 via t5), Pinnacle primary, 2024, walk-forward
+maps: pass = mean(y - CAL) CI inside [-0.03, +0.03] and Brier CAL - RAW <= -0.0015 with CI upper < 0; game-clustered, B 2,000, seed 0, date
+CI beside; BH over the two slots for the Brier part. A slot that fails stage 1 does not enter stage 2 (its calibrated chance shows nothing at
+that time, per Devin's rule); a slot that passes enters the forward look of sections 1-10; t60 and t30 enter stage 2 directly.
+**Stage-1 gate:** BLOCKED until the count command above is run (I could not open `odds_history.duckdb`). Bar: >= 600 games and 15,000 legs
+per slot in 2024. Arithmetic if m360 and t5 hold close to t60's 37,528 Pinnacle legs on 1,260 games: gap half-width about 1.96 x 0.5 /
+sqrt(37,528) x sqrt(1.3) = 0.0058, far inside +-0.03; Brier half-width about half of T493's log-loss 0.0022, so 0.0011 and an 80%-power MDE
+about 0.0016, at the floor. **Cost:** numpy on stored rows plus the slot lines, minutes on the Mac outside game windows, no credits unless
+the pull is chosen. **2025 touch: not proposed** (LINE_CALIBRATION's 2025 stage was declined in favour of the live log, T493; this rule tests
+the same map, which is not a never-evaluated model in spirit: its 2025 main-line behaviour was partly seen, T480).
+**Devin's choice 5 (new):** *default: partial backtests for morning and t15, t30 forward-only, no pull.* Alternative: buy m30 and m15
+(216,316 credits) for a full four-slot backtest. Answer: pending.
 
 === RESULTS BELOW ===
 

@@ -19,6 +19,20 @@ under the main checkout's `data/`, and asserts seasons = 2026. Output `reports/p
 `nba.duckdb` was not touched. No season-2025 row was read. No forecast was joined to an outcome; no reliability number on any 2026 slate was
 computed or read. Power figures use synthetic labels drawn from real stated probabilities.
 
+## 0. Revision 1 (same evening): two-stage design, Devin's decision
+Devin decided the drafts should be two-stage where history allows: a walk-forward backtest on 2023-24 first (selection, not a claim), then
+confirmation only of what survives. LADDER_CAL and PPLAY_CAL_LIVE are now revision 1 with a stage 1; CAL_BY_TIME gains section 11 (what a
+backtest by slot needs, where it flatters, a per-slot recommendation); CAL_SERVING_CHECKS is unchanged (live pass/fail checks). Sections 3.2-3.4
+below describe the stage-2 forward looks; the table here supersedes their timing. Dates for stage 1 are work-queue estimates (harness,
+adversary pre-freeze read, freeze, one run), not measured.
+
+| draft | stage 1 (backtest; selection) | stage-1 gate | stage 2 (confirmation) | time to first answer | time to the confirming answer |
+|---|---|---|---|---|---|
+| CAL_SERVING_CHECKS | n/a (live checks) | PASS (measurable now) | n/a | **now**: tonight's scan already says SERVING_GAPS (C1 0.266, C2 5.6% in window, C3 not stored) | about 1-2 weeks after the fixes land (7 slates) |
+| CAL_BY_TIME | morning via m360 and t15 via t5 lines, 2024, LINE_CALIBRATION walk-forward block maps; t60 already has T493; t30 forward-only | **BLOCKED** until the held m360/t5 legs are counted (command in its section 11); bar 600 games / 15,000 legs per slot | forward look per slot after LINE_CAL_LIVE's look | about **2026-12-01** (if the m360 rows are ingested and the harness is written) | about **2027-01-08** (t15), 01-12 (t60), **02-01** (morning) |
+| LADDER_CAL | walk-forward on 2024 (fit 2023 + earlier 2024 months), DK t60 main lines and all integer thresholds; T494 arrays as comparator | **PASS**: 53,247 fit legs (2023), 53,752 report legs on about 1,300 games; P1 half-width about 0.0007 (MDE 0.0010 < floor 0.0015); P2 half-width about 0.0043 vs +-0.03; one open harness count (fg3m r >= +2) | 2a: one logged 2025 touch (default yes; never-evaluated model); 2b: live look | about **2026-12-01 to 12-05** (stage 1, 10-20 min on the Mac) | about **mid-December** (2a), **2027-01-22** (2b) |
+| PPLAY_CAL_LIVE | select raw R vs walk-forward Platt of R on 2023, report 2024 | counts PASS (33,093 / about 33,000 rows; smallest-bin half-width about 0.016 vs +-0.05); **BLOCKED** on the missing per-row array for the live arm (2022-start R; `scores.npz` holds R19 and P0 only) | live look after PPLAY_INTO_PROPS_LIVE's season-end looks; **no 2025 touch** (R spent its touch; a Platt of R is not a never-evaluated model in substance) | about **early December** (once R22 rows are located or regenerated) | about **2027-04-13** (02-26 if Devin allows an earlier look) |
+
 ## 1. Bottom line
 1. **The calibrated chance the app shows is mostly computed at a line time the map never saw, and reaches about a quarter of the props
    that could have one.** Of 1,877 props with a DraftKings main line known while the forecast was valid (11-10..17), 500 got a calibrated
@@ -93,7 +107,7 @@ games 01-12, t15 01-08).
 A threshold-wise logistic (T494's rung form: logit raw P(Y >= k), the main line's distance from the median, the threshold's distance from
 the main line, its interaction, bench terms) fitted per stat on **every integer threshold within +-3 spreads of the DraftKings main line**
 on 2023-24 (not only listed rungs, not only raw >= 0.5), leg-weighted, time-decayed, ridge, monotone by running minimum (violations a
-guard). Stage 0 (exposed 2024, kill-only). Live verdict: HONEST_LADDER iff threshold-averaged Brier (a band-limited RPS) beats RAW by
+guard). Revision 1: stage 1 is a walk-forward backtest on 2024 that must pass before anything else (section 0). Live verdict: HONEST_LADDER iff threshold-averaged Brier (a band-limited RPS) beats RAW by
 <= **-0.0015** with CI upper < 0 and every one of five stated-probability bins has its game-clustered CI inside [-0.03, +0.03]; PIT
 dispersion, 19-level coverage and RPS no-harm are secondaries; Kalshi N+ thresholds and LINE_CAL-at-every-rung (today's combo behaviour)
 are reported. **Gate: fit side about 53,000 DK played legs per season with full `p_ge` arrays (pass); live 49 DK main legs per game at
@@ -172,8 +186,9 @@ consequences:
 |---|---|---|---|---|---|
 | 2026-11-17 19:58 | CAL_SERVING_CHECKS (draft rev 0) | P(C1 coverage >= 0.98 on the first 7-slate scan after a pairing fix) 0.60; P(SERVING_OK, all of C1-C8, by 2026-12-31) 0.30 | docs/prereg/CAL_SERVING_CHECKS.md | pending | |
 | 2026-11-17 19:58 | CAL_BY_TIME (draft rev 0) | P(t60 HOLDS) 0.45; P(t15 HOLDS) 0.40; P(morning HOLDS) 0.30; P(>= 1 slot NOT_HONEST) 0.35; P(look by 2027-02-15) 0.70; expected Pinnacle t15 M1 +0.01 (80% -0.02 to +0.04) | docs/prereg/CAL_BY_TIME.md | pending | |
-| 2026-11-17 19:58 | LADDER_CAL (draft rev 0) | P(Stage 0 kills) 0.08; P(P1 passes live) 0.75; P(all five bins pass) 0.35; P(the [0.8, 0.97] bin is the failing one, given any fails) 0.55; expected P1 -0.006 (80% -0.012 to -0.001) | docs/prereg/LADDER_CAL.md | pending | |
-| 2026-11-17 19:58 | PPLAY_CAL_LIVE (draft rev 0) | P(HONEST) 0.30; P(NOT_HONEST) 0.35; P(INCONCLUSIVE) 0.30; P(INSUFFICIENT_DATA) 0.05; P([0.5, 0.7) bin realises > stated + 0.05) 0.40 | docs/prereg/PPLAY_CAL_LIVE.md | pending | |
+| 2026-11-17 (rev 1) | CAL_BY_TIME stage 1 (section 11, partial backtests) | P(morning passes the m360 backtest) 0.55; P(t15 passes the t5 backtest) 0.40; P(the held m360 count clears 600 games / 15,000 legs in 2024) 0.70 | docs/prereg/CAL_BY_TIME.md | pending | |
+| 2026-11-17 (rev 1) | LADDER_CAL (draft rev 1, two-stage; supersedes the rev 0 row, never appended) | P(stage 1 passes) 0.55; P(a P2 tail bin is the cause, given stage 1 fails) 0.6; P(2a HONEST_LADDER given stage 1 passes) 0.55; P(2b HONEST_LADDER given stage 1 passes) 0.45; expected stage-1 P1 -0.006 (80% -0.011 to -0.002) | docs/prereg/LADDER_CAL.md | pending | |
+| 2026-11-17 (rev 1) | PPLAY_CAL_LIVE (draft rev 1, two-stage; supersedes the rev 0 row, never appended) | P(stage 1 chooses raw R) 0.35; P(chooses Platt of R) 0.35; P(stage 1 stops) 0.30; P(stage-2 HONEST given stage 1 passes) 0.45; P([0.5, 0.7) bin on raw R realises > stated + 0.05 in stage 1) 0.40 | docs/prereg/PPLAY_CAL_LIVE.md | pending | |
 | 2026-11-17 19:58 | Freezes | P(at least two of the four frozen by 2026-12-05) 0.50 | this review | pending | |
 
 **DECISIONS** (for the main session after Devin reads it): "2026-11-17 | Calibration program drafted (agent/modeler-calibration-program):
@@ -195,7 +210,14 @@ LINE_CAL_LIVE NOT_TRANSPORTED would reorder: the main-line map is then withdrawn
 - GAME_SCRIPTS_FORWARD's window (on agent/market-game-scripts, being frozen tonight).
 - Whether 2023-24 fg3m legs reach r >= +2 spreads (LADDER_CAL G-fit support); a label-free harness check before freeze.
 - No harness exists for CAL_BY_TIME, LADDER_CAL or PPLAY_CAL_LIVE; each needs one plus a synthetic dry run before freeze.
-- Nothing was denied. I did not push, merge, open any database under the main checkout, or read any outcome.
+- Revision 1: whether the paid movement kinds (m360, m180, m90) were ingested into `odds_history.duckdb`, and how many 2023-24 prop legs
+  m360 and t5 hold (CAL_BY_TIME stage-1 gate; count command in its section 11). The movement ledger shows 283,040 credits over 7,993 calls.
+- Revision 1: whether per-row 2023-24 forecasts of the live P(play) arm (the 2022-start R) are stored anywhere; `scores.npz` holds R19 and
+  P0 only (schema read, no values). The historical bin shares of P(play) are not measured (they need the p columns read).
+- Revision 1: the remaining credit balance on the odds key swapped in on 11-16 (relevant only if Devin buys m30/m15).
+- Revision 1: the stage-1 runtimes are estimates (LADDER 10-20 min; PPLAY regeneration under 30 min), not timed.
+- Nothing was denied. I did not push, merge, open any database under the main checkout, or read any outcome. For revision 1 I read only
+  file schemas (`scores.npz`, `arrays_draftkings.npz` keys and shapes), configs, ledgers and docs.
 
 ## 8. Playbook check (this review; class: quantile and distribution layers, plus trees-as-probabilities for P(play) and ratings for wins)
 1. **Information or capacity?** Neither. Every draft corrects or checks how existing information is stated. Section 5 says where information
