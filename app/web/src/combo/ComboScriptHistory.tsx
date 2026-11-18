@@ -3,13 +3,12 @@
 // leaks nothing of the model. Counts are stored fields; the app counts nothing from box scores.
 import { useState } from "preact/hooks";
 import { api } from "../api";
-import { Avatar } from "../Avatar";
 import { count, pct } from "../format";
 import { isLegStat } from "../legTypes";
 import { legHref } from "../router";
 import { Badge, Card } from "../ui";
 import { useLoad } from "../useLoad";
-import { teamName, type Ctx } from "./Bits";
+import { Face, HowToRead, teamName, type Ctx } from "./Bits";
 import {
   SCRIPT_REALISED,
   SCRIPT_TITLE,
@@ -84,9 +83,7 @@ function HistoryRows(props: { ctx: Ctx; game: ComboGame; script: ScriptName; ana
         <ul class="plain cb-rows">
           {shown.map((r) => (
             <li class="cb-row cb-hrow" key={`${r.player.player_id.toString()}-${r.stat}`}>
-              <span class="cb-av">
-                <Avatar name={r.player.name} team={teamName(ctx, r.player.team)} playerId={r.player.player_id} size={analyst ? "sm" : "lg"} remote />
-              </span>
+              <Face name={r.player.name} team={teamName(ctx, r.player.team)} playerId={r.player.player_id} size={analyst ? "sm" : "lg"} />
               <div class="cb-who">
                 <strong>{r.player.name}</strong>
                 <span class="cb-legname">
@@ -113,42 +110,44 @@ function HistoryRows(props: { ctx: Ctx; game: ComboGame; script: ScriptName; ana
   );
 }
 
-/** How often the script has happened: the contract's two seasons, this season's stored count when the file has it, and what the shift was fitted on. */
+/** How often the script has happened, in one line, with the rest (definition, what the shifts were fitted on) in the disclosure. */
 export function HistoryPanel(props: { ctx: Ctx; game: ComboGame; script: ScriptName }) {
-  const { ctx, game, script } = props;
+  const { ctx, script } = props;
   const shared = ctx.payload.shared;
   const real = SCRIPT_REALISED[script];
   const nGames = shared.provenance?.corr_n_games;
   const own = shared.scripts.history?.[script];
+  return (
+    <section class="panel cb-lead">
+      <p class="cb-sentence">
+        {SCRIPT_TITLE[script]} happened in <span class="num">{pct(real.y2023, 1)}</span> of games in 2023 and <span class="num">{pct(real.y2024, 1)}</span> in 2024
+        {nGames !== undefined ? <> (n = <span class="num">{count(nGames)}</span> games across both seasons)</> : null}
+        {own !== undefined ? <>; this season in <span class="num">{own.n_occurred.toString()}</span> of <span class="num">{own.n_games.toString()}</span> games</> : null}.
+      </p>
+    </section>
+  );
+}
+
+function HistoryNotes(props: { ctx: Ctx; game: ComboGame; script: ScriptName }) {
+  const { ctx, game, script } = props;
+  const shared = ctx.payload.shared;
   const range = scriptSampleRange(shared, script);
   return (
-    <section class="panel" aria-labelledby="cb-hist-h">
-      <h3 id="cb-hist-h">How often has {SCRIPT_TITLE[script].toLowerCase()} happened?</h3>
-      <ul class="plain small">
-        <li>
-          Defined as: {scriptWords(script, game, shared)}.
-        </li>
-        <li>
-          In the two seasons the shifts were fitted on, it happened in <span class="num">{pct(real.y2023, 1)}</span> of games in 2023 and <span class="num">{pct(real.y2024, 1)}</span> in 2024
-          {nGames !== undefined ? <> (n = <span class="num">{count(nGames)}</span> games across both seasons)</> : null}.
-          {script === "shootout" || script === "grind" ? " Total-points scripts move most between seasons because scoring moved." : ""}
-        </li>
-        {own !== undefined ? (
-          <li>
-            This season it has happened in <span class="num">{own.n_occurred.toString()}</span> of <span class="num">{own.n_games.toString()}</span> games.
-          </li>
-        ) : null}
+    <HowToRead ctx={ctx}>
+      <p>
+        <strong>{SCRIPT_TITLE[script]}</strong> means {scriptWords(script, game, shared)}. {script === "shootout" || script === "grind" ? "Total-points scripts move most between seasons because scoring moved. " : ""}
         {range !== null ? (
-          <li>
+          <>
             Each leg type's shift was fitted on <span class="num">{count(range[0])}</span>
-            {range[1] !== range[0] ? <> to <span class="num">{count(range[1])}</span></> : null} player-games.
-          </li>
+            {range[1] !== range[0] ? <> to <span class="num">{count(range[1])}</span></> : null} player-games.{" "}
+          </>
         ) : null}
-        <li>
-          <Badge tone="amber" icon="info" word="Exploratory" /> This script has not passed our own check as a calibrated number.
-        </li>
-      </ul>
-    </section>
+        <Badge tone="amber" icon="info" word="Exploratory" /> This script has not passed our own check as a calibrated number.
+      </p>
+      <p>
+        Counts are this season's games against tonight's posted number, stored in the file. They are history only: this tab shows no model chance, and the Model tab shows no count.
+      </p>
+    </HowToRead>
   );
 }
 
@@ -157,10 +156,7 @@ export function HistoryView(props: { ctx: Ctx; game: ComboGame; script: ScriptNa
     <div class="stack">
       <HistoryPanel ctx={props.ctx} game={props.game} script={props.script} />
       <HistoryRows {...props} />
-      <p class="small muted">
-        Counts are this season's games against tonight's posted number, stored in the file. They are history only: this tab shows no model chance, and the model tab shows no
-        count.
-      </p>
+      <HistoryNotes ctx={props.ctx} game={props.game} script={props.script} />
     </div>
   );
 }

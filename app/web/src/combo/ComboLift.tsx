@@ -1,7 +1,7 @@
 // Framing 1, game-script lift: which combos of main-line legs move together most, with the reason.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
-import { Faces, OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
+import { Faces, HowToRead, OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
 import { liftRanking } from "./engine";
 import { lineInRange, postedLineCount } from "./script";
 import type { ComboGame, RankedCombo } from "./types";
@@ -39,18 +39,6 @@ export function LiftTab(props: { ctx: Ctx; game: ComboGame }) {
   }, [cal, ctx.payload.shared]);
   return (
     <div class="stack">
-      <section class="panel">
-        <h2>Which lines move together</h2>
-        <p class="small muted">
-          Pairs, and triples that hold one player's different stats, at the posted numbers (all overs or all unders), ranked by how much more often the legs hit
-          together than if they were unrelated. Combos under 2% are left out. The same player's different stats lead the list; different players sit at about
-          1.00. A larger factor does not make a combo likely or worth anything, only more tied together.
-        </p>
-        <p class="small muted">
-          {OUT_OF_RANGE_NOTE}
-          {cal.dropped > 0 ? ` ${cal.dropped.toString()} posted lines in this game were left out for that reason.` : " None of this game's posted lines were left out."}
-        </p>
-      </section>
       {rows === null ? (
         <p class="small muted" role="status">Working it out…</p>
       ) : rows.length === 0 ? (
@@ -89,6 +77,17 @@ export function LiftTab(props: { ctx: Ctx; game: ComboGame }) {
           ))}
         </ol>
       )}
+      <HowToRead ctx={ctx}>
+        <p>
+          Pairs, and triples that hold one player's different stats, at the posted numbers (all overs or all unders), ranked by how much more often the legs hit together than if they
+          were unrelated. Combos under 2% are left out. The same player's different stats lead the list; different players sit at about 1.00. A larger factor does not make a combo
+          likely or worth anything, only more tied together.
+        </p>
+        <p>
+          {OUT_OF_RANGE_NOTE}
+          {cal.dropped > 0 ? ` ${cal.dropped.toString()} posted lines in this game were left out for that reason.` : " None of this game's posted lines were left out."}
+        </p>
+      </HowToRead>
     </div>
   );
 }

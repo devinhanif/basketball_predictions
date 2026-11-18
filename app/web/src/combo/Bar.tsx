@@ -29,7 +29,7 @@ export function Bar(props: { now: number; script: number; scriptName: string }) 
   const l = barLabel(now, script, props.scriptName);
   const rise = script >= now;
   return (
-    <span class="cb-bar" role="img" aria-label={l.text} title={l.text}>
+    <span class={`cb-bar${l.clamped ? " off" : ""}`} role="img" aria-label={l.text} title={l.text}>
       <span class="cb-bar-track" />
       <span class="cb-bar-mid" style={{ left: "50%" }} />
       <span class={`cb-bar-band ${rise ? "up" : "down"}`} style={{ left: `${(lo * 100).toFixed(2)}%`, width: `${((hi - lo) * 100).toFixed(2)}%` }} />

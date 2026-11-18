@@ -2,10 +2,9 @@
 // NO history counts appear here (display lock, Devin 2026-11-17): they are on the History tab, which shows no chance.
 import { useMemo, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import { Avatar } from "../Avatar";
 import { Badge, Card } from "../ui";
 import { Bar } from "./Bar";
-import { OUT_OF_RANGE_NOTE, pc, teamName, type Ctx } from "./Bits";
+import { Face, HowToRead, OUT_OF_RANGE_NOTE, pc, teamName, type Ctx } from "./Bits";
 import { statEntries } from "./engine";
 import { STAT_NAME, lineMove, scriptSentence, scriptView, scriptWords, type ScriptRow, SCRIPT_TITLE } from "./script";
 import type { ComboGame, ScriptName } from "./types";
@@ -20,9 +19,7 @@ function Row(props: { ctx: Ctx; row: ScriptRow; kind: "more" | "less"; analyst: 
   const sign = d >= 0 ? "+" : "−";
   return (
     <li class="cb-row">
-      <span class="cb-av">
-        <Avatar name={row.player.name} team={teamName(ctx, row.player.team)} playerId={row.player.player_id} size={analyst ? "sm" : "lg"} remote />
-      </span>
+      <Face name={row.player.name} team={teamName(ctx, row.player.team)} playerId={row.player.player_id} size={analyst ? "sm" : "lg"} />
       <div class="cb-who">
         <strong>{row.player.name}</strong>
         <span class="cb-legname">
@@ -50,8 +47,7 @@ function RowList(props: { ctx: Ctx; title: string; sub: string; rows: ScriptRow[
   const shown = all ? props.rows : props.rows.slice(0, cap);
   return (
     <Card title={props.title} class={`cb-list cb-${props.kind}`}>
-      <p class="small muted">{props.sub}</p>
-      {props.rows.length === 0 ? (
+            {props.rows.length === 0 ? (
         <p class="small">None.</p>
       ) : (
         <ul class="plain cb-rows">
@@ -78,38 +74,36 @@ export function ModelView(props: { ctx: Ctx; game: ComboGame; script: ScriptName
   const hasMain = game.players.some((p) => statEntries(p).some(([, g]) => g.main_line !== null));
   return (
     <div class="stack">
-      <section class="panel" aria-labelledby="cb-how-h">
-        <h3 id="cb-how-h">What the model gives {SCRIPT_TITLE[script].toLowerCase()} tonight</h3>
-        <ul class="plain small">
-          <li>
-            Tonight the model gives it <span class="num">{pc(view.prior)}</span> for this game ({scriptWords(script, game, shared)}), from its expected margin and total.
-          </li>
-          <li>
-            <Badge tone="amber" icon="info" word="Exploratory" /> The effect of this script has not passed our own check as a calibrated number. Treat the changes
-            below as estimates.
-          </li>
-        </ul>
-      </section>
       {hasMain ? (
         <>
-          {sentence !== null ? <p class="cb-sentence">{sentence}</p> : null}
-          <p class="small muted cb-legend">
-            Bars run from 30% to 70%. Grey tick: the chance as it stands. Square: the chance if it happens. The band is green when the chance rises and red when it
-            falls; the signed change is always written beside it. Outside the scale a bar sits at the edge and says "off scale".
-          </p>
+          <section class="panel cb-lead">
+            {sentence !== null ? <p class="cb-sentence">{sentence}</p> : null}
+            <p class="cb-key small muted">
+              <i class="cb-key-now" aria-hidden="true" /> now · <i class="cb-key-script" aria-hidden="true" /> in the script · 30 to 70%
+            </p>
+          </section>
           <div class="cb-two">
-            <RowList ctx={ctx} analyst={analyst} title="More likely if it happens" sub="Chance goes up. Biggest change first." rows={view.more} kind="more" extra={props.extra} />
-            <RowList ctx={ctx} analyst={analyst} title="Less likely if it happens" sub="Chance goes down. Biggest change first." rows={view.less} kind="less" extra={props.extra} />
+            <RowList ctx={ctx} analyst={analyst} title="More likely if it happens" sub="" rows={view.more} kind="more" extra={props.extra} />
+            <RowList ctx={ctx} analyst={analyst} title="Less likely if it happens" sub="" rows={view.less} kind="less" extra={props.extra} />
           </div>
-          <p class="small muted">
-            Every line has two sides: when one side gets more likely the other gets less likely, so each line appears once in each list. Only lines at the posted
-            number are shown, and only chances that were checked against past results. {OUT_OF_RANGE_NOTE}
-            {view.dropped > 0 ? ` ${view.dropped.toString()} of ${(view.dropped + view.offered).toString()} posted lines in this game were left out for that reason.` : " None of this game's posted lines were left out."}
-          </p>
         </>
       ) : (
         <p class="panel">This game has no posted lines in the file, so there is nothing to show for it.</p>
       )}
+      <HowToRead ctx={ctx}>
+        <p>
+          <strong>{SCRIPT_TITLE[script]}</strong> means {scriptWords(script, game, shared)}. Tonight the model gives it <span class="num">{pc(view.prior)}</span> for this game, from its expected
+          margin and total. <Badge tone="amber" icon="info" word="Exploratory" /> The effect of this script has not passed our own check as a calibrated number, so treat the changes as estimates.
+        </p>
+        <p>
+          Lists are sorted by the size of the change; each group figure in the sentence is the average over that group's posted over-lines in this game. Bars run from 30% to 70%. The grey tick is the chance as it stands; the square is the chance if it happens. The band is green when the chance rises and red when it falls, and the
+          signed change is always written beside it. Outside the scale a bar sits at the edge and says "off scale".
+        </p>
+        <p>
+          Every line has two sides: when one side gets more likely the other gets less likely, so each line appears once in each list. {OUT_OF_RANGE_NOTE}
+          {view.dropped > 0 ? ` ${view.dropped.toString()} of ${(view.dropped + view.offered).toString()} posted lines in this game were left out for that reason.` : " None of this game's posted lines were left out."}
+        </p>
+      </HowToRead>
     </div>
   );
 }

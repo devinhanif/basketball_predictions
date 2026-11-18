@@ -1,7 +1,7 @@
 // Framing 2, target probability: the combos of k over-legs with the most lift that still reach the chance you set.
 import { useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
-import { Faces, OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
+import { Faces, HowToRead, OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
 import { candidateLegs, targetSearch } from "./engine";
 import { MAIN_LINE_ONLY, OTHER_LINES_SENTENCE } from "./script";
 import type { ComboGame, TargetResult } from "./types";
@@ -29,12 +29,7 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
   return (
     <div class="stack">
       <section class="panel" aria-labelledby="cb-tg-h">
-        <h2 id="cb-tg-h">Aim for a chance</h2>
-        <p class="small muted">
-          Set the chance you want every leg to hit together and how many legs. We list the combos of posted lines (over or under) that reach it with the most lift: the legs that move
-          together, with each leg between 35% and 75%. {MAIN_LINE_ONLY ? OTHER_LINES_SENTENCE : ""} Legs above the tested range are never used. The best answer often has a leg near the 35% floor,
-          because a low-chance leg is the one that gains most from moving with another.
-        </p>
+        <h2 id="cb-tg-h" class="cb-h">Aim for a chance</h2>
         <div class="cb-controls">
           <label class="field">
             <span>Target chance (%)</span>
@@ -62,11 +57,6 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
             <strong>Not enough posted lines in this game.</strong> {nCands.toString()} line{nCands === 1 ? "" : "s"} here fall{nCands === 1 ? "s" : ""} between 35% and 75%; {k.toString()} legs need at least {k.toString()}.
           </p>
         ) : null}
-        <p class="small muted">
-          {OUT_OF_RANGE_NOTE}
-          {droppedByRange > 0 ? ` ${droppedByRange.toString()} candidate legs in this game were left out for that reason.` : " No candidate leg in this game was left out for that reason."}
-          {k >= 3 ? " Three or more legs are searched with a width-40 beam, so they are a model estimate, not an exhaustive answer." : ""}
-        </p>
       </section>
       {res === null ? null : res.r.feasible ? (
         <p class="small" role="status">
@@ -109,6 +99,18 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
           ))}
         </ol>
       )}
+      <HowToRead ctx={ctx}>
+        <p >
+          Set the chance you want every leg to hit together and how many legs. We list the combos of posted lines (over or under) that reach it with the most lift: the legs that move
+          together, with each leg between 35% and 75%. {MAIN_LINE_ONLY ? OTHER_LINES_SENTENCE : ""} Legs above the tested range are never used. The best answer often has a leg near the 35% floor,
+          because a low-chance leg is the one that gains most from moving with another.
+        </p>
+        <p >
+          {OUT_OF_RANGE_NOTE}
+          {droppedByRange > 0 ? ` ${droppedByRange.toString()} candidate legs in this game were left out for that reason.` : " No candidate leg in this game was left out for that reason."}
+          {k >= 3 ? " Three or more legs are searched with a width-40 beam, so they are a model estimate, not an exhaustive answer." : ""}
+        </p>
+      </HowToRead>
     </div>
   );
 }

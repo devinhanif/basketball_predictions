@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BAR_MAX, BAR_MIN, barLabel } from "./Bar";
+import type { VNode } from "preact";
+import { Avatar } from "../Avatar";
+import { Face } from "./Bits";
 import { histCompact, readHist } from "./script";
+
+interface AvatarProps {
+  remote?: boolean;
+  team?: string;
+}
 
 const read = (f: string): string => readFileSync(join(import.meta.dirname, f), "utf8");
 
@@ -43,12 +51,33 @@ describe("terminal counts and photos", () => {
     expect(histCompact(readHist({ n_all: 12, k_all: 7, blowout: [0, 0] }), "blowout", "over")).toBe("blow none yet  all 7/12");
     expect(histCompact(null, "blowout", "over")).toBeNull();
   });
-  it("every screen that names a player uses the app's Avatar, with the remote headshot and its fallback, and no image file is copied", () => {
-    for (const f of ["ComboScriptModel.tsx", "ComboScriptHistory.tsx", "Bits.tsx", "ComboBuild.tsx"]) expect(read(f)).toContain('from "../Avatar"');
-    expect(read("Bits.tsx")).toMatch(/<Avatar [^>]*remote/);
+  it("every screen that names a player uses the Face (the app's Avatar), and no image file is copied", () => {
+    expect(read("Bits.tsx")).toContain('from "../Avatar"');
+    for (const f of ["ComboScriptModel.tsx", "ComboScriptHistory.tsx", "ComboBuild.tsx"]) {
+      expect(read(f)).toMatch(/<Face /);
+      expect(read(f)).not.toContain("<Avatar");
+    }
+    expect(read("Bits.tsx")).toMatch(/<Faces|export function Faces/);
     expect(read("ComboLift.tsx")).toContain("<Faces");
     expect(read("ComboTarget.tsx")).toContain("<Faces");
     expect(read("combo.css")).not.toMatch(/url\(/);
+  });
+  it("a row whose photo cannot load shows initials: the plain Avatar (initials on the team colour) is always underneath a transparent remote one", () => {
+    const face = Face({ name: "Damian Lillard", team: "POR", playerId: 203081, size: "lg" }) as unknown as VNode<{ children: VNode[] }>;
+    const [under, over] = face.props.children as VNode<{ children: VNode<AvatarProps> }>[];
+    const u = under?.props.children as VNode<AvatarProps>;
+    const o = over?.props.children as VNode<AvatarProps>;
+    expect(u.type).toBe(Avatar);
+    expect(u.props.remote).toBeUndefined(); // no remote source: the Avatar renders initials on the team colour
+    expect(u.props.team).toBe("POR");
+    expect(o.type).toBe(Avatar);
+    expect(o.props.remote).toBe(true); // the photo on top, which falls back to the same initials when it fails to load
+    // the Avatar's own rule: without a remote source it is initials
+    const av = readFileSync(join(import.meta.dirname, "../Avatar.tsx"), "utf8");
+    expect(av).toMatch(/props\.remote === true/);
+    expect(av).toContain("avatar initials");
+    // the photo layer is transparent while it loads, so the initials show through
+    expect(read("combo.css")).toMatch(/\.cb-face-over \.avatar\.headshot \{\s*background: transparent/);
   });
   it("Analyst is a terminal (monospace, square corners, no glow) and Simple keeps larger type and photos", () => {
     const css = read("combo.css");

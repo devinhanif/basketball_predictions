@@ -8,6 +8,8 @@ export const STAT_NAME: Record<string, string> = { pts: "points", reb: "rebounds
 export const STAT_SHORT: Record<string, string> = { pts: "pts", reb: "reb", ast: "ast", fg3m: "3PM" };
 
 export const SCRIPT_TITLE: Record<ScriptName, string> = { blowout: "A blowout", close: "A close game", shootout: "A shootout", grind: "A grind" };
+/** Short tile names. */
+export const SCRIPT_NAME: Record<ScriptName, string> = { blowout: "Blowout", close: "Close game", shootout: "Shootout", grind: "Grind" };
 /** The plural a count line uses ("In blowouts this season"). */
 export const SCRIPT_PLURAL: Record<ScriptName, string> = { blowout: "blowouts", close: "close games", shootout: "shootouts", grind: "grinds" };
 /** "If the game goes like this" wording, one per script. */
@@ -236,13 +238,13 @@ export function scriptSentence(script: ScriptName, v: ScriptView): string | null
     if (m === null) return null;
     const d = m.after - m.before;
     const word = Math.abs(d) < 0.005 ? "barely move" : d < 0 ? "get harder" : "get easier";
-    return `${who} overs ${word} (${pc(m.before)} to ${pc(m.after)} on average over ${m.n.toString()} lines)`;
+    return `${who} overs ${word} (${pc(m.before)} to ${pc(m.after)})`;
   };
   const a = part("starters'", v.starters);
   const b = part("bench", v.bench);
   const parts = [a, b].filter((x): x is string => x !== null);
   if (parts.length === 0) return null;
-  return `If this ${SCRIPT_IF[script]}: ${parts.join("; ")}.`;
+  return `If this ${SCRIPT_IF[script]}: ${parts.join(", ")}.`;
 }
 
 /** The smallest and largest n among a script's parameter rows: how many player-games each shift was fitted on. */

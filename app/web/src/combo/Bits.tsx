@@ -1,5 +1,6 @@
 // Shared pieces of the combo screens: leg wording, the result block, the closed-game sentence. No prices anywhere.
 import { Avatar } from "../Avatar";
+import type { ComponentChildren } from "preact";
 import { pct } from "../format";
 import { ESTIMATE_LABEL, playerOf } from "./engine";
 import { STAT_NAME } from "./script";
@@ -13,7 +14,12 @@ export interface Ctx {
 }
 
 export const CLOSED_SENTENCE =
-  "This game has already tipped, so combo mode is closed for it. It only works before tip-off, so a chance is never shown next to a result.";
+  "Every game in this file has tipped, so combo mode is closed: it only works before tip-off, so a chance is never shown next to a result.";
+
+/** One plain sentence for a game that has tipped. */
+export const closedSentence = (name: string): string => `${name} has tipped, so combo mode is closed for it: a chance is never shown next to a result.`;
+/** One plain sentence for a game with no posted line in the file. */
+export const noLinesSentence = (name: string): string => `${name} has no posted lines in the file yet, so there is nothing to show for it. Check back closer to tip-off.`;
 
 export const OUT_OF_RANGE_NOTE =
   "Lines outside the range the calibration was checked on are left out of this version, because those chances are extrapolation.";
@@ -145,10 +151,74 @@ export function Faces(props: { legs: readonly Leg[]; game: ComboGame; ctx: Ctx }
     seen.add(l.player_id);
     const p = playerOf(props.game, l.player_id);
     out.push(
-      <span class="cb-av" key={p.player_id}>
-        <Avatar name={p.name} team={teamName(props.ctx, p.team)} playerId={p.player_id} size="sm" remote />
-      </span>,
+      <Face key={p.player_id} name={p.name} team={teamName(props.ctx, p.team)} playerId={p.player_id} size="sm" />,
     );
   }
   return <span class="cb-faces">{out}</span>;
+}
+
+/**
+ * A player's photo with the initials always underneath: the app's Avatar twice, the plain one (initials on the team colour) below and the
+ * remote-headshot one on top with a transparent background. While the picture loads, or when it cannot (offline, an unknown id, the fixture,
+ * the single-file artifact where no remote source exists) the initials show; a failed picture becomes the same initials. Sized by combo CSS.
+ */
+export function Face(props: { name: string; team: string; playerId: number; size: "sm" | "lg" }) {
+  return (
+    <span class="cb-av cb-face">
+      <span class="cb-face-under" aria-hidden="true">
+        <Avatar name={props.name} team={props.team} playerId={props.playerId} size={props.size} />
+      </span>
+      <span class="cb-face-over">
+        <Avatar name={props.name} team={props.team} playerId={props.playerId} size={props.size} remote />
+      </span>
+    </span>
+  );
+}
+
+/** The page-level reading notes: what the numbers are, which lines are used and how many were left out. Shown only inside "How to read this". */
+export function PageNotes(props: { ctx: Ctx }) {
+  const games = props.ctx.payload.games;
+  let withLines = 0;
+  let nStats = 0;
+  let nPosted = 0;
+  for (const g of games) {
+    let here = 0;
+    for (const p of g.players) {
+      for (const e of Object.values(p.stats)) {
+        nStats += 1;
+        if (e.main_line !== null) here += 1;
+      }
+    }
+    nPosted += here;
+    if (here > 0) withLines += 1;
+  }
+  return (
+    <>
+      <p>
+        Pure probability. Every chance on this screen is a calibrated chance from the model for a game that has not tipped, or an estimate built from those.
+        The only market number used is the posted line, as a number.
+      </p>
+      <p>
+        Only each player's posted line is used, and only when it is inside the range the calibration was checked on. {OTHER_LINES}
+      </p>
+      <p>
+        Posted lines are in <span class="num">{withLines.toString()}</span> of <span class="num">{games.length.toString()}</span> games (<span class="num">{nPosted.toString()}</span> of{" "}
+        <span class="num">{nStats.toString()}</span> player stats). A game with none says so.
+      </p>
+    </>
+  );
+}
+const OTHER_LINES = "Other lines are left out until their calibration is tested.";
+
+/** One folded disclosure, closed by default, for everything that explains rather than answers. */
+export function HowToRead(props: { ctx: Ctx; children?: ComponentChildren }) {
+  return (
+    <details class="cb-how">
+      <summary>How to read this</summary>
+      <div class="cb-how-body small">
+        {props.children}
+        <PageNotes ctx={props.ctx} />
+      </div>
+    </details>
+  );
 }

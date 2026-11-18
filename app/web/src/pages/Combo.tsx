@@ -1,27 +1,26 @@
 import { useMemo, useState } from "preact/hooks";
 import { api, type Loaded } from "../api";
 import { View } from "../components";
-import { longDate, stamp, tipTime } from "../format";
+import { longDate, tipTime } from "../format";
 import { setPref, useLens, useMode } from "../prefs";
 import { StateBlock, Tabs, TabPanel, PageHead, Card } from "../ui";
 import { useLoad } from "../useLoad";
 import type { ComboResultState } from "../api";
-import { CLOSED_SENTENCE, matchup, type Ctx } from "../combo/Bits";
+import { closedSentence, matchup, noLinesSentence, type Ctx } from "../combo/Bits";
 import { BuildTab } from "../combo/ComboBuild";
 import { LiftTab } from "../combo/ComboLift";
-import { ScriptTab } from "../combo/ComboScript";
+import { ScriptTab, type Sub } from "../combo/ComboScript";
 import { TargetTab } from "../combo/ComboTarget";
-import { hasTipped, postedLineCount } from "../combo/script";
-import { statEntries } from "../combo/engine";
+import { SEPARATE_HISTORY, hasTipped, postedLineCount } from "../combo/script";
 import type { ComboGame } from "../combo/types";
 
 type TabKey = "script" | "lift" | "target" | "build";
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "script", label: "If the game goes like this" },
-  { key: "lift", label: "Lines that move together" },
-  { key: "target", label: "Aim for a chance" },
-  { key: "build", label: "Build your own" },
+  { key: "script", label: "Scripts" },
+  { key: "lift", label: "Together" },
+  { key: "target", label: "Target" },
+  { key: "build", label: "Build" },
 ];
 
 interface Night {
@@ -84,6 +83,7 @@ function Body(props: { night: Night }) {
   const [gid, setGid] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("script");
   const analyst = useMode() === "analyst";
+  const [sub, setSub] = useState<Sub>("model");
   const st = night.state;
   const env = st?.kind === "ok" ? st.data : null;
   const ctx: Ctx | null = useMemo(
@@ -124,69 +124,56 @@ function Body(props: { night: Night }) {
   }
   const game: ComboGame =
     games.find((g) => g.game_id === gid) ?? games.find((g) => !hasTipped(g, ctx.clock) && postedLineCount(g) > 0) ?? games.find((g) => !hasTipped(g, ctx.clock)) ?? first;
-  const withLines = games.filter((g) => postedLineCount(g) > 0).length;
-  const nStats = games.reduce((n, g) => n + g.players.reduce((m, p) => m + statEntries(p).length, 0), 0);
-  const nPosted = games.reduce((n, g) => n + postedLineCount(g), 0);
   const tipped = hasTipped(game, ctx.clock);
-  const madeAt = games.map((g) => g.made_at).sort().at(-1);
   return (
     <div class={`stack cb-page cb-term ${analyst ? "cb-dense" : "cb-simple"}`}>
       {ctx.payload.fixture ? (
-        <p class="panel cb-fixture" role="note">
-          <strong>Fixture night.</strong> {ctx.payload.fixture.label}
+        <p class="panel cb-fixture" role="note" title={ctx.payload.fixture.label}>
+          <strong>Fixture night:</strong> synthetic numbers, not forecasts.
         </p>
       ) : null}
-      <section class="panel cb-intro" aria-label="About combo mode">
-        <p>
-          Pure probability. Every chance on this screen is a calibrated chance from the model for a game that has not tipped, or an estimate built from
-          those. The only market number used is the posted line, as a number.
-        </p>
-        <p class="small muted">
-          {longDate(night.date)} · forecasts made {madeAt ? stamp(madeAt) : "at an unknown time"} · {games.length.toString()} game{games.length === 1 ? "" : "s"}.
-          Only each player's posted line is used, and only when it is inside the range the calibration was checked on. Other lines are left out until their calibration is tested.
-        </p>
-        <p class="small" role="note">
-          {nPosted === 0 ? (
-            <strong>No game in this file has a posted line yet, so there is nothing to show. Check back closer to tip-off.</strong>
-          ) : (
-            <>
-              Posted lines are in <span class="num">{withLines.toString()}</span> of <span class="num">{games.length.toString()}</span> games (<span class="num">{nPosted.toString()}</span> of{" "}
-              <span class="num">{nStats.toString()}</span> player stats). A game with none shows that plainly.
-            </>
-          )}
-        </p>
-      </section>
-      <section class="panel cb-pick" aria-label="Pick a game">
-        <label class="field grow">
+      <div class="cb-pick">
+        <label class="field">
           <span>Game</span>
           <select
-            value={game.game_id}
-            onChange={(e) => {
-              setGid(e.currentTarget.value);
-            }}
-          >
-            {games.map((g) => (
-              <option key={g.game_id} value={g.game_id}>
-                {matchup(ctx, g)} · {tipTime(g.tip_utc)}
-                {hasTipped(g, ctx.clock) ? " (tipped)" : ""}
-                {postedLineCount(g) === 0 ? " (no posted lines yet)" : ""}
-              </option>
-            ))}
+          value={game.game_id}
+          onChange={(e) => {
+            setGid(e.currentTarget.value);
+          }}
+        >
+          {games.map((g) => (
+            <option key={g.game_id} value={g.game_id}>
+              {matchup(ctx, g)} · {tipTime(g.tip_utc)}
+              {hasTipped(g, ctx.clock) ? " (tipped)" : postedLineCount(g) === 0 ? " (no posted lines)" : ""}
+            </option>
+          ))}
           </select>
         </label>
-      </section>
-      <Tabs label="Combo mode views" tabs={TABS} value={tab} onChange={setTab} idBase="cb" />
+        {SEPARATE_HISTORY && tab === "script" && !tipped && postedLineCount(game) > 0 ? (
+          <div class="seg cb-sub" role="group" aria-label="Which view">
+            <button type="button" class="seg-btn" aria-pressed={sub === "model"} onClick={() => { setSub("model"); }}>
+              Model
+            </button>
+            <button type="button" class="seg-btn" aria-pressed={sub === "history"} onClick={() => { setSub("history"); }}>
+              History
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <Tabs label="Combo mode views" tabs={TABS} value={tab} onChange={setTab} idBase="cb" class="cb-tabs" />
       <TabPanel idBase="cb" value={tab}>
         {tab === "build" ? (
           <BuildTab ctx={ctx} game={game} />
         ) : tipped ? (
           <Card tone="empty">
-            <p role="note">
-              <strong>{matchup(ctx, game)} has tipped.</strong> {CLOSED_SENTENCE}
-            </p>
+            <p role="note">{closedSentence(matchup(ctx, game))}</p>
+          </Card>
+        ) : postedLineCount(game) === 0 ? (
+          <Card tone="empty">
+            <p role="note">{noLinesSentence(matchup(ctx, game))}</p>
           </Card>
         ) : tab === "script" ? (
-          <ScriptTab ctx={ctx} game={game} key={game.game_id} />
+          <ScriptTab ctx={ctx} game={game} sub={sub} key={game.game_id} />
         ) : tab === "lift" ? (
           <LiftTab ctx={ctx} game={game} key={game.game_id} />
         ) : (
@@ -206,7 +193,8 @@ export function ComboPage(props: { date: string | null }) {
       <PageHead
         kicker="Explore"
         title="Combo mode"
-        description="If the game goes like this, which lines get more likely and which get less. Probability only, before tip-off."
+        description="Lines that move if the game goes a certain way."
+        class="cb-head"
       />
       <View state={state} reload={reload} what="the combo file" errorLevel={2}>
         {(night) => <Body night={night} />}

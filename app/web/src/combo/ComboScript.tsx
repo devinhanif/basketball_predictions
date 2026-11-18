@@ -7,11 +7,11 @@ import { useMode } from "../prefs";
 import { matchup, pc, type Ctx } from "./Bits";
 import { HistoryLine, HistoryPanel, HistoryView, Trend } from "./ComboScriptHistory";
 import { ModelView } from "./ComboScriptModel";
-import { readHist, SCRIPT_REALISED, SCRIPT_SHORT, SCRIPT_TITLE, SEPARATE_HISTORY, scriptView, scriptWords, statusWord, type ScriptRow } from "./script";
+import { readHist, SCRIPT_REALISED, SCRIPT_SHORT, SCRIPT_NAME, SEPARATE_HISTORY, scriptView, scriptWords, statusWord, type ScriptRow } from "./script";
 import { SCRIPTS, type ComboGame, type ScriptName } from "./types";
 import { statEntries } from "./engine";
 
-type Sub = "model" | "history";
+export type Sub = "model" | "history";
 
 function Chooser(props: { ctx: Ctx; game: ComboGame; script: ScriptName; onPick: (s: ScriptName) => void; analyst: boolean; chance: boolean }) {
   const { ctx, game, script, analyst } = props;
@@ -73,21 +73,21 @@ function Chooser(props: { ctx: Ctx; game: ComboGame; script: ScriptName; onPick:
     <div class="cb-scripts" role="group" aria-label="Game script">
       {SCRIPTS.map((s) => (
         <button key={s} type="button" class="cb-script" aria-pressed={script === s} onClick={() => { props.onPick(s); }}>
-          <span class="cb-script-title">{SCRIPT_TITLE[s]}</span>
-          <span class="small">{scriptWords(s, game, shared)}</span>
-          {props.chance ? <span class="small num">about {pc(prior[s], 0)} tonight</span> : null}
-          <span class="cb-tag">{statusWord(shared, s)}</span>
+          <span class="cb-script-title">{SCRIPT_NAME[s]}</span>
+          <span class="cb-script-top">
+            {props.chance ? <span class="small num">{pc(prior[s], 0)} tonight</span> : null}
+            <span class="cb-tag">{statusWord(shared, s)}</span>
+          </span>
         </button>
       ))}
     </div>
   );
 }
 
-export function ScriptTab(props: { ctx: Ctx; game: ComboGame }) {
-  const { ctx, game } = props;
+export function ScriptTab(props: { ctx: Ctx; game: ComboGame; sub: Sub }) {
+  const { ctx, game, sub } = props;
   const analyst = useMode() === "analyst";
   const [script, setScript] = useState<ScriptName>("blowout");
-  const [sub, setSub] = useState<Sub>("model");
   const showHistory = SEPARATE_HISTORY && sub === "history";
   // Merge-back (switch off): the counts return beside the chance on the model rows.
   const extra = SEPARATE_HISTORY
@@ -104,20 +104,8 @@ export function ScriptTab(props: { ctx: Ctx; game: ComboGame }) {
       };
   return (
     <div class="stack">
-      <section aria-labelledby="cb-sc-h" class="panel">
-        <h2 id="cb-sc-h">If the game goes like this</h2>
-        <p class="small muted">Pick a way the game could go. The Model tab shows the lines that get more and less likely if it does; the History tab shows this season's past games.</p>
+      <section class="panel cb-top" aria-label="Game script">
         <Chooser ctx={ctx} game={game} script={script} onPick={setScript} analyst={analyst} chance={!showHistory} />
-        {SEPARATE_HISTORY ? (
-          <div class="seg cb-sub" role="group" aria-label="Which view">
-            <button type="button" class="seg-btn" aria-pressed={sub === "model"} onClick={() => { setSub("model"); }}>
-              Model
-            </button>
-            <button type="button" class="seg-btn" aria-pressed={sub === "history"} onClick={() => { setSub("history"); }}>
-              History
-            </button>
-          </div>
-        ) : null}
       </section>
       {showHistory ? (
         <HistoryView ctx={ctx} game={game} script={script} analyst={analyst} />

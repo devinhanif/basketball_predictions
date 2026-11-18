@@ -1,8 +1,7 @@
 // Framing 4, build your own: any calibrated lines, any games that have not tipped; live chance, unrelated chance, lift.
 import { useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
-import { Avatar } from "../Avatar";
-import { CLOSED_SENTENCE, Faces, teamName, OUT_OF_RANGE_NOTE, ResultBlock, legKey, legWords, matchup, pc, type Ctx } from "./Bits";
+import { CLOSED_SENTENCE, Face, Faces, HowToRead, teamName, OUT_OF_RANGE_NOTE, ResultBlock, legKey, legWords, matchup, pc, type Ctx } from "./Bits";
 import { evaluateCombo, intervalProb, lineToBounds, statEntries } from "./engine";
 import { OTHER_LINES_SENTENCE, SCRIPT_TITLE, STAT_NAME, hasTipped, offerableLines, postedLineCount, scriptGeneric } from "./script";
 import { SCRIPTS, type ComboGame, type PlayerLeg, type ScriptName } from "./types";
@@ -63,11 +62,6 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
     <div class="stack">
       <section class="panel" aria-labelledby="cb-b-h">
         <h2 id="cb-b-h">Build your own</h2>
-        <p class="small muted">
-          Pick calibrated lines from any game that has not tipped. Legs in one game are tied together by the model; legs in different games are treated as
-          independent. Only each player's posted line is offered, over or under. {OTHER_LINES_SENTENCE} {OUT_OF_RANGE_NOTE}
-          {closed > 0 ? ` ${closed.toString()} game${closed === 1 ? " has" : "s have"} tipped and ${closed === 1 ? "is" : "are"} not offered.` : ""}
-        </p>
         <div class="cb-controls">
           <label class="field">
             <span>Game</span>
@@ -80,8 +74,8 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
             </select>
           </label>
           {player !== undefined ? (
-            <span class="cb-av cb-pickface">
-              <Avatar name={player.name} team={teamName(ctx, player.team)} playerId={player.player_id} size="sm" remote />
+            <span class="cb-pickface">
+              <Face name={player.name} team={teamName(ctx, player.team)} playerId={player.player_id} size="sm" />
             </span>
           ) : null}
           <label class="field">
@@ -182,6 +176,13 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
           <ResultBlock r={result} sameGame={sameGame} />
         </Card>
       ) : null}
+      <HowToRead ctx={ctx}>
+        <p >
+          Pick calibrated lines from any game that has not tipped. Legs in one game are tied together by the model; legs in different games are treated as
+          independent. Only each player's posted line is offered, over or under. {OTHER_LINES_SENTENCE} {OUT_OF_RANGE_NOTE}
+          {closed > 0 ? ` ${closed.toString()} game${closed === 1 ? " has" : "s have"} tipped and ${closed === 1 ? "is" : "are"} not offered.` : ""}
+        </p>
+      </HowToRead>
     </div>
   );
 }
