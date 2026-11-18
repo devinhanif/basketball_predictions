@@ -54,8 +54,9 @@ the evaluation. Both are the point.
   match what he cares about. A rule is never changed after seeing results; a new question gets a
   new rule.
 - **Select on one season, report on the next.** `season=2025` is the frozen holdout: one logged
-  touch per never-evaluated model, logged *before* running. `season=2026` becomes the holdout
-  once it has ≥20 games; the live forward log is the only truly clean test.
+  touch per never-evaluated model, logged *before* running. `season=2026` is not a
+  holdout (Devin, 2026-11-17: no rollover; its rows are already training data) and is judged only by the
+  live forward log, which is the only truly clean test.
 - **Claims arrive with n, a game- or date-clustered CI, and a ledger row**, or they are not claims.
   Floors are practical (e.g. CRPS ≤ −0.005), not just p-values. BH across declared families.
 - **Every claimed win is attacked** (shuffled labels, planted future, missingness, knockout,
