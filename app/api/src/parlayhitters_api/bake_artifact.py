@@ -105,7 +105,13 @@ def bake(
     meta = dict(meta) | {"slates": sorted(want, reverse=True)}
     b.simple["/api/meta"] = {"s": 200, "b": meta}
     b.simple["/api/slates"] = {"s": 200, "b": [s for s in slates_all if s["date"] in want]}
-    for path in ("/api/parlay-of-the-day", "/api/evidence", "/api/contracts/top", "/api/desk"):
+    for path in (
+        "/api/combo",
+        "/api/parlay-of-the-day",
+        "/api/evidence",
+        "/api/contracts/top",
+        "/api/desk",
+    ):
         b.put_simple(path)
     # The honesty pages: scorecard, forward tests, error registry, health strip, as answered.
     for path in HONESTY_SIMPLE:

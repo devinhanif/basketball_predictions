@@ -77,6 +77,9 @@ export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
 /** The night's combo file. 404 means no file (a first-class state, never a sample); 422 means the API refused it. */
 export type ComboResultState = { kind: "ok"; data: ComboEnvelope } | { kind: "missing" } | { kind: "refused"; detail: string };
 
+/** The nights that have a combo file, oldest first. */
+export const getComboNights = (): Promise<Loaded<{ nights: string[] }>> => getJson<{ nights: string[] }>("/api/combo");
+
 export async function getCombo(date: string): Promise<Loaded<ComboResultState>> {
   const path = `/api/combo/${encodeURIComponent(date)}`;
   const r = await answer(path);
@@ -111,6 +114,7 @@ export async function getScenarios(id: string): Promise<Loaded<ScenariosView>> {
 
 export const api = {
   combo: getCombo,
+  comboNights: getComboNights,
   topParlays: getTopParlays,
   meta: () => getJson<Meta>("/api/meta"),
   slates: () => getJson<SlateListItem[]>("/api/slates"),

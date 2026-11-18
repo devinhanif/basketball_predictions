@@ -33,6 +33,12 @@ def test_fixture_served_unchanged(client: TestClient) -> None:
     assert len(body["combo"]["games"]) >= 2
 
 
+def test_lists_the_nights_that_have_a_file(client: TestClient) -> None:
+    r = client.get("/api/combo")
+    assert r.status_code == 200
+    assert r.json() == {"nights": [DAY]}
+
+
 def test_absent_night_is_typed_404(client: TestClient) -> None:
     r = client.get("/api/combo/2024-11-20")
     assert r.status_code == 404

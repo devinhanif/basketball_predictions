@@ -103,9 +103,9 @@ def build() -> dict[str, Any]:
         ("shootout", 0.12, 0.05, 1.03),
         ("grind", -0.10, -0.05, 0.97),
     ):
-        for stat in ("pts", "reb", "ast", "fg3m"):
-            params.append([sc, stat, "starter", mu_s, sg, 1000])
-            params.append([sc, stat, "bench", mu_b, sg, 1000])
+        for stat, f in (("pts", 1.0), ("reb", 0.6), ("ast", 0.8), ("fg3m", 1.5)):
+            params.append([sc, stat, "starter", round(mu_s * f, 4), sg, 1000])
+            params.append([sc, stat, "bench", round(mu_b * f, 4), sg, 1000])
     shared = {
         "corr": corr,
         "scripts": {

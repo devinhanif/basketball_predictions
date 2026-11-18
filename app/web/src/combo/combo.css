@@ -165,3 +165,26 @@
   border: 1px solid var(--loss);
   border-radius: var(--radius-sm);
 }
+.cb-page .tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  overflow-x: visible;
+}
+.cb-page .tabs .tab {
+  flex: 1 1 auto;
+  min-height: 44px;
+  white-space: normal;
+}
+.cb-page .field {
+  min-width: 0;
+}
+.cb-page select {
+  max-width: 100%;
+  width: 100%;
+  text-overflow: ellipsis;
+}
+.cb-page select,
+.cb-page input[type="number"] {
+  min-height: 44px;
+}

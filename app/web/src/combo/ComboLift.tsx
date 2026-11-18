@@ -66,7 +66,7 @@ export function LiftTab(props: { ctx: Ctx; game: ComboGame }) {
                 <p class="cb-row-nums num">
                   <span>
                     together <b>{pc(r.p_joint)}</b>
-                    {r.method === "qmc" && r.range_2se !== null ? <span class="muted small"> (± {pc(2 * r.se)}, 2 se)</span> : null}
+                    {r.method === "qmc" && r.range_2se !== null ? <span class="muted small"> (± {pc(2 * r.se, 2)}, 2 se)</span> : null}
                   </span>
                   <span>
                     unrelated <b>{pc(r.p_independent)}</b>

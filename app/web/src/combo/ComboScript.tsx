@@ -70,7 +70,6 @@ function Row(props: { game: ComboGame; row: ScriptRow; script: ScriptName; kind:
         <span>
           chance now <b>{pc(row.p_now)}</b>
         </span>
-        <span aria-hidden="true">→</span>
         <span>
           if it happens <b>{pc(row.p_script)}</b>
         </span>

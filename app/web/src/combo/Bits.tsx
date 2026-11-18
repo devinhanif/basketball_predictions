@@ -39,7 +39,7 @@ export function ResultBlock(props: { r: ComboResult; sameGame: boolean }) {
       <p class="cb-big num">
         {pc(r.p_joint)}
         {r.method === "qmc" && r.range_2se !== null ? (
-          <span class="cb-pm small muted"> plus or minus {pc(2 * r.se, 1)} (2 se; range {pc(r.range_2se[0])} to {pc(r.range_2se[1])})</span>
+          <span class="cb-pm small muted"> plus or minus {pc(2 * r.se, 2)} (2 se; range {pc(r.range_2se[0])} to {pc(r.range_2se[1])})</span>
         ) : null}
       </p>
       <p class="small">

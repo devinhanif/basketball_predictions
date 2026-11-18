@@ -81,7 +81,7 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
                 <p class="cb-row-nums num">
                   <span>
                     together <b>{pc(c.p_joint)}</b>
-                    {c.method === "qmc" && c.range_2se !== null ? <span class="muted small"> (± {pc(2 * c.se)}, 2 se)</span> : null}
+                    {c.method === "qmc" && c.range_2se !== null ? <span class="muted small"> (± {pc(2 * c.se, 2)}, 2 se)</span> : null}
                   </span>
                   <span>
                     unrelated <b>{pc(c.p_independent)}</b>

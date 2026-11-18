@@ -10,6 +10,7 @@ from ..combo import (
     ComboRefused,
     ComboUnavailable,
     clock_for,
+    list_nights,
     load_combo,
 )
 from ..deps import StoreDep
@@ -19,6 +20,15 @@ from ..store import Json
 
 
 def register(app: FastAPI) -> None:
+    @app.get("/api/combo")
+    def combo_nights(store: StoreDep) -> Json:
+        """The nights that have a combo file, oldest first: `{"nights": ["2024-11-12"]}`."""
+        base = store.root if store.mode == "export" else store.root / "combo"
+        try:
+            return {"nights": list_nights(base)}
+        except ComboUnavailable as e:
+            raise ApiError("combo_unavailable", f"combo unavailable: {e}") from None
+
     @app.get("/api/combo/{date}")
     def combo(date: ComboDate, store: StoreDep) -> Json:
         """`{"mode", "clock_utc", "combo": <the file as stored>}`. In export mode the file is read

@@ -33,6 +33,11 @@ interface Night {
 async function loadNight(date: string | null): Promise<Loaded<Night>> {
   let d = date;
   if (d === null) {
+    // The newest night that has a combo file; with none, the newest night the app holds (its page says the file is absent).
+    const have = await api.comboNights().then((r) => r.data.nights, () => [] as string[]);
+    d = have.at(-1) ?? null;
+  }
+  if (d === null) {
     const slates = await api.slates();
     d = slates.data.map((s) => s.date).sort().at(-1) ?? null;
   }

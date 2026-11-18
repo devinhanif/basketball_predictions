@@ -211,6 +211,22 @@ def validate(raw: Any, date: str) -> Json:
     return raw
 
 
+_FILE = re.compile(r"combo_([0-9]{4}-[0-9]{2}-[0-9]{2})\.json")
+
+
+def list_nights(base: Path) -> list[str]:
+    """The nights that have a combo file in `base`, oldest first (names only; nothing is opened).
+    A directory that cannot be read is ComboUnavailable, not an empty list."""
+    if not base.is_dir():
+        raise ComboUnavailable("the directory holding the combo files is not readable")
+    try:
+        names = [p.name for p in base.iterdir() if p.is_file()]
+    except OSError as e:
+        raise ComboUnavailable("the directory holding the combo files is not readable") from e
+    dates = [m.group(1) for n in names if (m := _FILE.fullmatch(n)) and is_date(m.group(1))]
+    return sorted(dates)
+
+
 def load_combo(date: str, base: Path) -> Json:
     """The validated payload for `date` from `base`. Raises ComboMissing / Refused / Unavailable."""
     if not is_date(date):
