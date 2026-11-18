@@ -22,6 +22,14 @@ exploration, however good it looks.
 
 | Date | Item | Verdict | Note |
 |---|---|---|---|
+| 2026-11-17 | Information program item 1: later lineup and availability news (owned: T-15 frozen, LATE_REPORT, reporter feed and lead trial) | PURSUE (owned elsewhere); LATE_REPORT_FORWARD freeze and REPORTER_LEAD_TRIAL rule missing | [info_01_later_news_2026-11-17.md](info_01_later_news_2026-11-17.md) |
+| 2026-11-17 | Information program item 2: in-game state (owned by the live-model lane) | PURSUE (owned elsewhere); separate family | [info_02_in_game_state_2026-11-17.md](info_02_in_game_state_2026-11-17.md) |
+| 2026-11-17 | Information program item 3: the market's numbers as inputs | PURSUE PROP_LINE_INPUT (stage 1 backtest 2023 -> 2024 now; stage-2 gate conditional on it); spread/total CLOSED (GMC T389-T414) | [info_03_market_inputs_2026-11-17.md](info_03_market_inputs_2026-11-17.md) |
+| 2026-11-17 | Information program item 4: restrictions and return from injury | PURSUE RETURN_RAMP (stage 1 backtest now; 2025-touch gate yes, forward borderline); limits owned by REPORTER_FEED_LIVE; b2b/load CLOSED | [info_04_restrictions_return_2026-11-17.md](info_04_restrictions_return_2026-11-17.md) |
+| 2026-11-17 | Information program item 5: roster moves | MINUTES_DECISION owned elsewhere; mover cold start PARK (gate fails, T512/T504); transaction log as plumbing | [info_05_roster_moves_2026-11-17.md](info_05_roster_moves_2026-11-17.md) |
+| 2026-11-17 | Information program item 6: referee assignments | SKIP the rule (effect ceiling below the floor); optional 2022 descriptive | [info_06_referees_2026-11-17.md](info_06_referees_2026-11-17.md) |
+| 2026-11-17 | Information program item 7: schedule context | PARK SEASON_STAKES (live gate fails); travel/altitude/rest CLOSED | [info_07_schedule_context_2026-11-17.md](info_07_schedule_context_2026-11-17.md) |
+| 2026-11-17 | Information program item 8: Kalshi prop price moves as news | PURSUE Stage 0 (label-free); no backtest possible; forward gate pending | [info_08_kalshi_prop_moves_2026-11-17.md](info_08_kalshi_prop_moves_2026-11-17.md) |
 | 2026-10-27 | Trading repos: TradingAgents, OpenBB, ai-hedge-fund, Freqtrade, Qlib, NautilusTrader, RD-Agent | SKIP x6; PURSUE (DRAFT) AS_OF_IDENTITY from Freqtrade lookahead/recursive analysis | [trading_repos_2026-10-27.md](trading_repos_2026-10-27.md) |
 | 2026-10-09 | Historical odds providers (The Odds API, Kalshi, others) | PURSUE | [historical_odds_2026-10-09.md](historical_odds_2026-10-09.md) |
 | 2026-10-08 | Stacked-ensemble, GCN+RF, NCAA LSTM/Transformer papers (pasted) | tested → not kept | see T-rows for seq_props, joint_game_set, pbp_gpt, winprob family |
