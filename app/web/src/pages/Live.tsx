@@ -8,6 +8,7 @@ import { liveHref } from "../router";
 import { tipTime } from "../format";
 import { Loading } from "../components";
 import { useAppGame, useLiveList } from "../useLiveData";
+import { SlateBoard } from "../LiveCardParts";
 
 function GameCard({ g, date, receivedMs }: { g: LiveGameSummary; date: string; receivedMs: number }) {
   const [now, setNow] = useState(() => performance.now());
@@ -61,6 +62,7 @@ function List({ date }: { date: string | null }) {
   const today = etDate(new Date());
   const dates = date !== null ? [date] : [today, previousDate(today)];
   const st = useLiveList(dates);
+  const [view, setView] = useState<"games" | "players">("games");
   if (st.loading) {
     return (
       <Loading what="tonight's live games" />
@@ -96,9 +98,31 @@ function List({ date }: { date: string | null }) {
           No live feed was stored for {dates.map(longDate).join(" or ")}. Games appear here a few minutes before tip-off and stay after the final.
         </StateBlock>
       ) : null}
-      <Section title="Live now" games={now} receivedMs={st.receivedMs} />
-      <Section title="Later tonight" games={later} receivedMs={st.receivedMs} />
-      <Section title="Final" games={done} receivedMs={st.receivedMs} />
+      {all.length > 0 ? (
+        <div class="seg lcd-view" role="group" aria-label="Live view">
+          {(["games", "players"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              class="seg-btn"
+              aria-pressed={view === v}
+              onClick={() => {
+                setView(v);
+              }}
+            >
+              {v === "games" ? "Games" : "Every tracked player"}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {view === "players" && all.length > 0 ? <SlateBoard dates={dates} /> : null}
+      {view === "games" ? (
+        <>
+          <Section title="Live now" games={now} receivedMs={st.receivedMs} />
+          <Section title="Later tonight" games={later} receivedMs={st.receivedMs} />
+          <Section title="Final" games={done} receivedMs={st.receivedMs} />
+        </>
+      ) : null}
     </div>
   );
 }

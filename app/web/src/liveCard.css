@@ -1,0 +1,245 @@
+/* The live score card. Terminal look from the app's own tokens: dark base (theme.css flips it in the light theme),
+   monospace numbers, sharp corners, flat square bars, the purple accent. Green and red are always beside a word. */
+.lcd-board {
+  display: grid;
+  gap: var(--sp-2);
+  border-radius: 0;
+}
+.lcd-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.lcd-head h2 {
+  margin: 0;
+}
+.lcd-state {
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-ink);
+}
+.lcd-asof {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--fs-md);
+}
+.lcd-feed,
+.lcd-tracked,
+.lcd-lock {
+  margin: 0;
+}
+.lcd-warn {
+  margin: 0;
+  color: var(--muted);
+  border-left: 3px solid var(--tonight);
+  padding-left: var(--sp-2);
+}
+.lcd-sort {
+  margin-top: var(--sp-2);
+}
+.lcd-sort .seg-btn {
+  min-height: var(--target);
+  border-radius: 0;
+}
+.lcd-rows {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.lcd-row {
+  display: grid;
+  gap: 6px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: 0;
+  background: var(--surface);
+  min-width: 0;
+}
+.lcd-row.lcd-over {
+  border-left-color: var(--win);
+}
+.lcd-row.lcd-out {
+  border-left-color: var(--loss);
+}
+.lcd-row.lcd-live {
+  border-left-color: var(--accent);
+}
+.lcd-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.lcd-who {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.lcd-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lcd-game {
+  display: inline-block;
+  min-height: 24px;
+}
+.lcd-chip {
+  flex: none;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.lcd-over .lcd-chip {
+  color: var(--win);
+  border-color: var(--win);
+}
+.lcd-out .lcd-chip {
+  color: var(--loss);
+  border-color: var(--loss);
+}
+.lcd-live .lcd-chip {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.lcd-line {
+  font-family: var(--mono);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.lcd-cur {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  line-height: 1;
+}
+.lcd-of {
+  color: var(--muted);
+}
+.lcd-delta {
+  margin-left: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  padding: 1px 6px;
+  border: 1px solid var(--accent);
+  color: var(--accent-ink);
+}
+.lcd-bar {
+  position: relative;
+  height: 10px;
+  background: var(--surface-3);
+  border-radius: 0;
+}
+.lcd-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 0;
+}
+.lcd-over .lcd-fill {
+  background: var(--win);
+}
+.lcd-out .lcd-fill {
+  background: var(--muted);
+}
+.lcd-tick {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 18px;
+  background: var(--ink);
+}
+.lcd-say {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.4;
+}
+.lcd-meta,
+.lcd-price,
+.lcd-model {
+  margin: 0;
+  line-height: 1.5;
+}
+.lcd-model {
+  color: var(--accent-ink);
+  border-top: 1px dashed var(--line-strong);
+  padding-top: 4px;
+}
+.lcd-more {
+  min-height: var(--target);
+  border-radius: 0;
+}
+.lcd-why {
+  margin: 0;
+}
+
+/* a count that just moved: a tint that fades out over the mark's life (no flashing) */
+.lcd-changed {
+  animation: lcd-fade 8s ease-out forwards;
+}
+@keyframes lcd-fade {
+  from {
+    background: var(--accent-soft);
+  }
+  to {
+    background: var(--surface);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lcd-changed {
+    animation: none;
+    background: var(--accent-soft);
+  }
+}
+
+/* Simple: larger type and photos, fewer rows. Analyst: dense. */
+.lcd-simple .lcd-cur {
+  font-size: 2.2rem;
+}
+.lcd-simple .lcd-say {
+  font-size: var(--fs-lg);
+}
+.lcd-simple .lcd-bar {
+  height: 14px;
+}
+.lcd-analyst .lcd-row {
+  padding: var(--sp-2) var(--sp-3);
+  gap: 4px;
+}
+.lcd-analyst .lcd-cur {
+  font-size: var(--fs-xl);
+}
+.lcd-analyst .lcd-say {
+  font-size: var(--fs-md);
+}
+.lcd-analyst .lcd-bar {
+  height: 6px;
+}
+@media (min-width: 900px) {
+  .lcd-analyst .lcd-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* the Live page's switch between the games and the tracked players */
+.lcd-view {
+  align-self: start;
+}
+.lcd-view .seg-btn {
+  min-height: var(--target);
+  border-radius: 0;
+}

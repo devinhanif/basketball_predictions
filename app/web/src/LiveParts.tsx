@@ -31,6 +31,7 @@ import { POLL_MS, useLiveGame, type LiveConn } from "./useLive";
 import { ProblemPanel } from "./Problem";
 import { StateBlock, TabPanel, Tabs } from "./ui";
 import { useLiveFor } from "./useLiveData";
+import { ScoreBoard } from "./LiveCardParts";
 
 /** How old the data on screen is. Keeps its own one-second clock so nothing else re-renders on a tick. */
 export function AsOf(props: { meta: LiveMeta; receivedMs: number; state: GameState }) {
@@ -451,6 +452,7 @@ export function LiveGame(props: { eventId: string; game: GameDetail | null; game
       <AsOf meta={live.meta} receivedMs={conn.receivedMs} state={live.state} />
       <PollingNote conn={conn} />
       <PhaseNote conn={conn} />
+      <ScoreBoard eventId={live.gameId} />
       <Tabs
         label="Live views"
         idBase="live"
