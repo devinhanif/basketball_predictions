@@ -497,7 +497,7 @@ def _scripts_stage(
         res = cs.build(
             day, fwd.games, fwd.win_probs, fwd.prop_grids, fwd.p_play, sits_rows, hist or [],
             names, abbr, made_at=made_at, code_version=git_sha, asks=asks, cfg=cfg, track=track,
-            game_model_path=game_model, box_rows=box_rows,
+            game_model_path=game_model, box_rows=box_rows, asof=made_at,
         )  # fmt: skip
         if res.combo is None or res.scripts is None:
             return {

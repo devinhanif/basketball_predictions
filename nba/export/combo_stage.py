@@ -70,10 +70,25 @@ SITS_PTS_MIN = 0.05  # |delta| below this is not exported (sub-0.05-point shifts
 MIN_P_PLAY_EXPORT = 0.02  # a player this unlikely to play is not exported (size)
 MARKET_NOTE = (
     "EV = P(plays) * P(over | plays) - ask - fee per 1 contract, the parlay engine's evaluate() with the "
-    "verified fee object; the unconditional probability, never the script one. The paper "
-    "track record is large but shows no skill yet, so the model defers to the market: the engine shrinks to "
-    "the market and the verdict is no_positive_ev_found. Shown: only the conservative ev. Not a stake."
+    "verified fee object; the unconditional probability, never the script one. Unless the paper track "
+    "record shows positive skill, the engine shrinks to the market (model weight 0) and the verdict is "
+    "no_positive_ev_found. Shown: only the conservative bound ev_low and the verdict. Not a stake."
 )
+
+
+def market_note(track: Any, verdicts: Mapping[str, int]) -> str:
+    """``MARKET_NOTE`` plus tonight's facts, built from the track record and the counted verdicts (never a
+    hard-coded claim about skill; adversary m7)."""
+    if track is None:
+        return MARKET_NOTE + " Tonight: no market block (no Kalshi store or no current ask)."
+    skill = float(getattr(track, "skill", 0.0) or 0.0)
+    n = int(getattr(track, "n_settled", 0) or 0)
+    word = "positive" if skill > 0 else "no positive"
+    counts = ", ".join(f"{k} {v}" for k, v in sorted(verdicts.items())) or "none priced"
+    return (
+        f"{MARKET_NOTE} Tonight: paper track record n_settled={n}, skill {skill:+.4f} ({word} skill); "
+        f"verdicts: {counts}."
+    )
 
 
 @dataclass
@@ -165,7 +180,14 @@ def _win_p(win_probs: Sequence[Mapping[str, Any]]) -> dict[str, tuple[float, str
 
 def history_rows(src: Any, day: date, season: int) -> list[tuple[Any, ...]]:
     """Completed games of the live season dated before ``day`` (the as-of total feature's input);
-    season 2025 is never read: the season filter is in the SQL."""
+    season 2025 is never read: the season filter is in the SQL, and any season other than the live one
+    is refused before the query (adversary M3: the argument was unguarded)."""
+    from nba.export import guard
+
+    if season != guard.LIVE_SEASON:
+        raise guard.ExportRefused(
+            f"history_rows reads only the live season {guard.LIVE_SEASON}, not {season}"
+        )
     return list(
         src.execute(
             "SELECT game_id, game_date, home_team, away_team, home_pts, away_pts FROM games "
@@ -341,6 +363,10 @@ def ask_index(
             left["non_integer_threshold"] += 1
         elif ts_ >= tip:
             left["quote_after_tip"] += 1
+        elif tip <= now.replace(
+            tzinfo=None
+        ):  # the game is in play: no pre-tip ask beside it (adversary m5)
+            left["game_started"] += 1
         elif (now.replace(tzinfo=None) - ts_).total_seconds() > MAX_ASK_AGE_MIN * 60.0:
             left["quote_stale"] += 1
         else:
@@ -405,7 +431,7 @@ def make_market_fn(
             "spread": None if rec.spread is None else round(rec.spread, 4),
             "price_ts": q["price_ts"], "fee": round(rec.fees, 4),
             "p_over": round(p_over, 4), "p_model_incl_dnp": round(joint, 4),
-            "ev": round(rec.ev, 4), "ev_low": round(rec.ev_low, 4), "verdict": rec.verdict,
+            "ev_low": round(rec.ev_low, 4), "verdict": rec.verdict,
             "model_weight": round(rec.model_weight, 4), "n_settled_track": rec.n_settled_track,
         }  # fmt: skip
 
@@ -567,9 +593,28 @@ def build(
     else:
         blog["hist"] = {"status": "no_box_rows"}
     combo["build_log"] = blog
+    pre = cn.validate_payload(combo, expected=expected, check_size=False)
+    dropped: dict[str, str] = {}
+    if pre["global_errors"]:
+        return absent(
+            "validation_failed", first_errors=pre["global_errors"][:10], skipped=dict(skipped)
+        )
+    for gid, errs in pre["errors_by_game"].items():  # one bad game drops that game, not the night
+        dropped[gid] = errs[0][:200]
+        log.warning("combo game %s dropped: %s", gid, errs[0][:200])
+    if dropped:
+        out_games = [g for g in out_games if g["game_id"] not in dropped]
+        combo["games"] = out_games
+        expected = {k: v for k, v in expected.items() if k[0] not in dropped}
+        for e in blog["games"]:
+            if e["game_id"] in dropped:
+                e.update(status="left_out", reason="validation_failed", error=dropped[e["game_id"]])
+        if not out_games:
+            return absent("validation_failed", dropped_games=dropped, skipped=dict(skipped))
     asks = asks or {}
     gs_games = []
     n_priced = 0
+    mfn_used = cfg is not None and track is not None and bool(asks)
     verdicts: dict[str, int] = defaultdict(int)
     for gm_payload in out_games:
         gid = gm_payload["game_id"]
@@ -598,7 +643,7 @@ def build(
     scripts = {
         "schema": SCHEMA, "night": day.isoformat(), "generated_at": _iso_z(made_at),
         "status": GS.STATUS, "lock": {"line_cal_live": day >= LOCK_FROM, "note": LOCK_NOTE},
-        "market_note": MARKET_NOTE, "script_status": shared["scripts"]["status"],
+        "market_note": market_note(track if mfn_used else None, verdicts), "script_status": shared["scripts"]["status"],
         "definitions": shared["scripts"]["definitions"], "games": gs_games,
     }  # fmt: skip
     budget = enforce_budget(combo, scripts)
@@ -623,7 +668,9 @@ def build(
         "n_priced_picks": n_priced, "verdicts": dict(verdicts), "skipped": dict(skipped),
         "n_asks": len(asks), "sits_games": len(sits), "validation": validation,
         "n_main_lines": sum(1 for v in expected.values() if v is not None),
-        "hist": {k: blog["hist"][k] for k in ("n_entries", "past_games") if k in blog["hist"]},
+        "dropped_games": dropped,
+        "hist": {"n_entries": blog["hist"].get("n_entries"),
+                 "n_past_games": blog["hist"].get("past_games", {}).get("n_games")},
     }  # fmt: skip
     return StageResult(combo, scripts, info, notes, expected)
 

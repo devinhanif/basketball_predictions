@@ -91,7 +91,10 @@ ignores unknown keys. Top level:
   same past games as `mu_t` (offline without `--history-db`: the sum of the players' points); `mu_t` is that game's own pre-game
   value, built only from completed season-2026 games dated before it, 2 decimals, league fallback when none). Scripts overlap, so the pairs do not sum to `n_all`. No rate, no smoothing, no blend with the model chance, no
   score: show "k of n" and nothing else, and never as a prediction. Seasons 2023-25 are not used (roles change; season 2025 is the
-  frozen holdout). Absent `hist`: show nothing. `build_log.hist` carries the same season's game counts (`past_games`).
+  frozen holdout). Absent `hist`: show nothing. **Why these realised counts are exported (2026-11-17):** they are Devin's explicit
+  decision for a display tab that shows no model chance beside them; they are per player and are never summed into a season-wide
+  share of any script. `build_log.hist.past_games` carries only `{"n_games": N}` (how many past games were read), never how often
+  each script happened (adversary M2: a nightly realised-script aggregate would contradict GAME_SCRIPTS_FORWARD's exposure answer).
 - per stat entry: `k0` (int), `surv` (array of 4-decimal numbers), `main_line` (x.5 or `null`), `raw_at_main` (the uncalibrated
   P(over main line), only when `main_line` is set), `cal_k` (`[lo, hi]`, 1-based rungs where the map was applied directly).
   **`surv[j] = S(k0 + j) = P(Y >= k0 + j)`; `S(k) = 1` for `k < k0`; `S(k) = 0` past the end of `surv`.** The array is nonincreasing and

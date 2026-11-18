@@ -157,7 +157,12 @@ def attach_hist(
     definitions: Mapping[str, Any],
     day: date,
 ) -> dict[str, Any]:
-    """Add ``hist`` to every stat entry that has a ``main_line``; return the ``build_log.hist`` block."""
+    """Add ``hist`` to every stat entry that has a ``main_line``; return the ``build_log.hist`` block.
+
+    The block carries ``past_games: {"n_games": N}`` ONLY: no season-wide count of how often each script
+    happened (adversary M2, 2026-11-17: a nightly realised-script aggregate would falsify
+    GAME_SCRIPTS_FORWARD's exposure answer). The per-player ``[n, k]`` pairs on stat entries are the
+    display Devin chose; they are per player, never summed across the season here."""
     scripts = past_scripts(frame, gm, definitions)
     n_entries = 0
     for g in payload["games"]:
@@ -168,9 +173,7 @@ def attach_hist(
                         logs.get(int(p["player_id"]), []), stat, float(e["main_line"]), scripts
                     )
                     n_entries += 1
-    season = {"n_games": len(scripts)} | {
-        s: sum(1 for v in scripts.values() if v[s]) for s in SCRIPTS
-    }
+    season = {"n_games": len(scripts)}
     src: dict[str, int] = defaultdict(int)
     for v in scripts.values():
         src[str(v["src"])] += 1

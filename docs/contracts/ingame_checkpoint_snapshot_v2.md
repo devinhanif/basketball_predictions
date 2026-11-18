@@ -3,8 +3,13 @@
 Status 2026-11-10: the writer is built (`nba/markets/checkpoint_snapshot.py`, called from
 `nba/jarvis/ingame_checkpoints.py::score_checkpoints`); v1 of this contract is
 `docs/contracts/ingame_checkpoint_snapshot_v1.md` and is unchanged: every v1 field keeps its name, type and meaning,
-the file just says `"version": 2` and each game MAY carry one extra key, `script`. A v1 reader that ignores unknown
-keys keeps working. Everything below is additive.
+the file just says `"version": 2` and each game MAY carry one extra key, `script`. Everything below is additive.
+
+**The app does not read v2 yet (corrected 2026-11-17, adversary M1).** The app reader
+(`app/api/src/parlayhitters_api/live.py`, `read_checkpoint`) accepts only `"version" == 1` (pinned by
+`app/api/tests/test_live.py`), so a v2 file shows as "no checkpoint snapshot" and the checkpoint view stays dark. Merging
+the writer turns nothing on in the app. Accepting v2 is a separate app change and Devin's decision; it should add a snapshot
+age check (hide rows when `now - generated_at > 180 s`) and label the rows "Experimental, not yet tested".
 
 Path, atomicity, size, caching and the Learn-lens rule are v1's: `data/jarvis/ingame_checkpoints_latest.json`
 (override with `ingame_checkpoints.snapshot` in `configs/jarvis.yaml`), written to a temp file in the same directory and
@@ -25,7 +30,7 @@ it has stored checkpoint rows (the v1 rule); a game in play with no Kalshi quote
 "script": {
   "status": "exploratory",
   "method": "independent_increments_v1",
-  "label": "EXPLORATORY and UNPROVEN: script chances from the live score and clock on the pre-game game model (independent increments; pace is not extrapolated). No live record yet.",
+  "label": "EXPLORATORY and UNPROVEN: script chances from the live score and clock on the pre-game game model (independent increments; pace is not extrapolated; overtime is not modelled, so a tied game late in regulation can still end outside +-5). No live record yet.",
   "elapsed_min": 25.0, "margin": 22, "total": 102, "state_at": "2026-11-10T01:40:00+00:00",
   "home_abbr": "PHI", "away_abbr": "DET",
   "pregame": {"mu_m": 3.0, "sd_m": 13.63, "mu_t": 228.0, "sd_t": 18.82},

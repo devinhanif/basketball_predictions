@@ -257,16 +257,16 @@ def test_market_block_uses_the_engine_ev_code(gm_path: Path) -> None:
         assert leg["player_id"] == 101 and m["threshold"] == k
         p_over = C.surv_at(pl["stats"]["pts"], k)
         fee = fee_per_contract(0.55, cfg.fee, series="KXNBAPTS")
-        assert not ({"ev_raw", "ev_raw_low", "p_low"} & set(m))  # m6: only the conservative bound
-        assert m["ev_low"] <= m["ev"] + 1e-9 or m["model_weight"] == 0.0
+        # m6 (11-10 and 11-17): only the conservative bound and the verdict; no point ev beside them
+        assert not ({"ev", "ev_raw", "ev_raw_low", "p_low"} & set(m))
         assert (
-            abs(m["ev"] - (m["p_over"] * 0 + (0.5 * (0.55 + 0.52)) - 0.55 - fee)) < 2e-4
-        )  # market mid - ask - fee
+            m["ev_low"] <= (0.5 * (0.55 + 0.52)) - 0.55 - fee + 2e-4
+        )  # at most market mid - ask - fee
         assert abs(m["fee"] - fee) < 1e-4 and abs(m["spread"] - 0.03) < 1e-9
         assert abs(m["p_over"] - p_over) < 1e-4 and m["p_model_incl_dnp"] <= m["p_over"]
         assert m["verdict"] == "no_positive_ev_found" and m["n_settled_track"] == 0
         assert m["model_weight"] == 0.0  # no track record: the market wins entirely
-        assert m["ev"] < 0  # shrunk to the market: ask + fee above it
+        assert m["ev_low"] < 0  # shrunk to the market: ask + fee above it
         assert "p_script" in leg and leg["p_leg"] == round(
             p_over, 4
         )  # unconditional, not the script P
@@ -360,34 +360,81 @@ def test_a_broken_import_in_the_scripts_step_never_fails_the_export(
     assert m["row_counts"]["prop_grids"] > 0
 
 
+def _src_with_starter(src: Path) -> Path:
+    """The export fixture plus a ``starter_rate`` on its production prop rows, so the scripts step builds a
+    real game (the bare fixture has none, and the step then ends ``no_games_built``; adversary m8)."""
+    import duckdb
+
+    con = duckdb.connect(str(src))
+    try:
+        rows = con.execute(
+            "SELECT run_id, player_id, prediction FROM forward_predictions "
+            "WHERE model_name = 'props_context_residual'"
+        ).fetchall()
+        for run, pid, pj in rows:
+            d = json.loads(pj)
+            d["starter_rate"] = 0.9
+            con.execute(
+                "UPDATE forward_predictions SET prediction = ? WHERE run_id = ? AND player_id = ? "
+                "AND model_name = 'props_context_residual'",
+                [json.dumps(d), run, pid],
+            )
+    finally:
+        con.close()
+    return src
+
+
 def test_a_missing_game_model_fails_soft_and_a_good_run_writes_atomically(
     src: Path,  # noqa: F811
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
     gm_path: Path,
 ) -> None:
-    monkeypatch.setattr(cs, "GAME_MODEL", tmp_path / "absent.json")
-    m = _build(src, tmp_path / "out", scripts=True)
-    assert m["game_scripts"]["status"] == "absent"  # the fixture day has no game model: fail soft
+    s2 = _src_with_starter(src)
+    m = _build(s2, tmp_path / "out", scripts=True, game_model=tmp_path / "absent.json")
+    assert m["game_scripts"]["status"] == "absent"  # no game model: fail soft
+    assert m["game_scripts"]["reason"] == "error:FileNotFoundError"
     assert m["row_counts"]["prop_grids"] > 0
-    monkeypatch.setattr(cs, "GAME_MODEL", gm_path)
-    m2 = _build(src, tmp_path / "out2", scripts=True)
+    m2 = _build(s2, tmp_path / "out2", scripts=True, game_model=gm_path)
     gs = m2["game_scripts"]
-    assert gs["status"] in (
-        "ok",
-        "absent",
-    )  # fixture rows may lack the production grid: either is fine
+    assert gs["status"] == "ok", gs  # a real run, independent of any local data/
+    assert set(gs["files"]) == {"combo_2026-10-28.json", "game_scripts_2026-10-28.json"}
+    assert all((tmp_path / "out2" / n).exists() for n in gs["files"])
     leftovers = [p.name for p in (tmp_path / "out2").iterdir() if ".tmp." in p.name]
     assert leftovers == []
 
 
-def test_the_manifest_files_block_and_hashes_are_unchanged_by_the_step(
-    src: Path, tmp_path: Path
-) -> None:  # noqa: F811
-    a = _build(src, tmp_path / "a")
-    b = _build(src, tmp_path / "b", scripts=True)
+def _tables(db: Path) -> dict[str, list[tuple[Any, ...]]]:
+    import duckdb
+
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        names = [
+            r[0] for r in con.execute("SELECT table_name FROM information_schema.tables").fetchall()
+        ]
+        return {t: sorted(map(repr, con.execute(f'SELECT * FROM "{t}"').fetchall())) for t in names}  # type: ignore[misc]
+    finally:
+        con.close()
+
+
+def test_the_existing_export_is_unchanged_by_a_successful_step(
+    src: Path,  # noqa: F811
+    tmp_path: Path,
+    gm_path: Path,
+) -> None:
+    s2 = _src_with_starter(src)
+    a = _build(s2, tmp_path / "a")
+    b = _build(s2, tmp_path / "b", scripts=True, game_model=gm_path)
+    assert b["game_scripts"]["status"] == "ok"  # compared against a step that really ran
     assert a["files"].keys() == b["files"].keys() == {"export.duckdb", "parlay_of_day.json"}
     assert a["row_counts"] == b["row_counts"]
+    assert {k: v["sha256"] for k, v in a["files"].items() if k != "export.duckdb"} == {
+        k: v["sha256"] for k, v in b["files"].items() if k != "export.duckdb"
+    }
+    ta, tb = _tables(tmp_path / "a" / "export.duckdb"), _tables(tmp_path / "b" / "export.duckdb")
+    assert ta == tb  # every table, every row (the fixed clock makes meta.made_at equal too)
+    assert {k: v for k, v in a.items() if k != "game_scripts"} == {
+        k: v for k, v in b.items() if k != "game_scripts" and k in a
+    }
 
 
 def test_now_is_naive_utc_helper_is_consistent() -> None:
@@ -546,8 +593,19 @@ def test_second_file_failure_leaves_neither_file(
     assert m2["reason"] == "error:OSError" and list(out2.iterdir()) == []  # neither file, no temp
 
 
-def test_note_says_the_track_record_is_large_but_shows_no_skill() -> None:
-    assert "shows no skill yet" in cs.MARKET_NOTE and "defers to the market" in cs.MARKET_NOTE
+def test_note_is_conditional_and_says_tonights_facts() -> None:
+    """m7: no hard-coded claim about skill; the night's track record and verdicts are stated."""
+    assert "Unless the paper track record shows positive skill" in cs.MARKET_NOTE
+    assert "shows no skill yet" not in cs.MARKET_NOTE
+    none = cs.market_note(TrackRecord(31481, None, None, -0.01), {"no_positive_ev_found": 3})
+    assert (
+        "n_settled=31481" in none
+        and "no positive skill" in none
+        and "no_positive_ev_found 3" in none
+    )
+    pos = cs.market_note(TrackRecord(500, None, None, 0.02), {"positive_ev": 1})
+    assert "(positive skill)" in pos
+    assert "no market block" in cs.market_note(None, {})
 
 
 # ------------------------------------------------------------------ one producer (2026-11-17 reconciliation)
@@ -647,9 +705,119 @@ def test_a_payload_that_fails_validation_is_not_returned(
     gm_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(cs, "_p_over_cal", lambda row: 0.999)  # the export's value disagrees
-    r = _build_stage(gm_path)
+    r = _build_stage(gm_path)  # the only game is invalid: nothing is left to write
     assert r.combo is None and r.scripts is None
-    assert r.info["reason"] == "validation_failed" and r.info["validation"]["errors"] > 0
+    assert r.info["reason"] == "validation_failed" and set(r.info["dropped_games"]) == {"G1"}
+
+
+def _two_games() -> dict[str, Any]:
+    i = _inputs()
+    g2 = {**i["games"][0], "game_id": "G2"}
+    i["games"].append(g2)
+    i["win_probs"].append({**i["win_probs"][0], "game_id": "G2"})
+    i["props"] += [{**p, "game_id": "G2"} for p in _inputs()["props"]]
+    i["pplay"] += [{**p, "game_id": "G2"} for p in _inputs()["pplay"]]
+    return i
+
+
+def test_one_invalid_game_drops_that_game_not_the_night(
+    gm_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Adversary m2: a validator error in one game drops that game, logged; the others are written."""
+    real = cs._p_over_cal
+    monkeypatch.setattr(
+        cs, "_p_over_cal", lambda row: 0.999 if row["game_id"] == "G2" else real(row)
+    )
+    i = _two_games()
+    r = cs.build(DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], i["hist"], i["names"],
+                 i["abbr"], made_at=MADE, game_model_path=gm_path)  # fmt: skip
+    assert r.combo is not None and r.scripts is not None
+    assert [g["game_id"] for g in r.combo["games"]] == ["G1"]
+    assert [g["game_id"] for g in r.scripts["games"]] == ["G1"]
+    assert set(r.info["dropped_games"]) == {"G2"} and r.info["validation"]["errors"] == 0
+    e = {x["game_id"]: x for x in r.combo["build_log"]["games"]}["G2"]
+    assert e["status"] == "left_out" and e["reason"] == "validation_failed" and e["error"]
+    assert all(k[0] == "G1" for k in r.expected)
+
+
+def test_history_rows_refuses_any_season_but_the_live_one() -> None:
+    """Adversary M3: the nightly mu_t history read is season 2026 or nothing."""
+    from nba.export import guard
+
+    class Src:
+        def execute(self, sql: str, args: list[Any]) -> Any:
+            raise AssertionError("no query may run for another season")
+
+    with pytest.raises(guard.ExportRefused):
+        cs.history_rows(Src(), DAY, guard.LIVE_SEASON - 1)
+
+
+def test_the_nightly_history_stage_returns_no_other_season_row() -> None:
+    """Adversary M3: a synthetic games table holding another season's final (a guard fixture, not a
+    holdout read) yields only live-season rows through ``build._history_stage``."""
+    import duckdb
+
+    import nba.export.build as bm
+
+    con = duckdb.connect(":memory:")
+    con.execute(
+        "CREATE TABLE games(game_id VARCHAR, season INTEGER, game_date DATE, home_team INTEGER, "
+        "away_team INTEGER, home_pts INTEGER, away_pts INTEGER)"
+    )
+    con.execute(
+        "INSERT INTO games VALUES ('0022600001', 2026, DATE '2026-11-08', 1, 2, 110, 100),"
+        "('0022500777', 2025, DATE '2026-11-08', 1, 2, 300, 10)"
+    )
+    rows, status = bm._history_stage(con, DAY)
+    assert status == "ok" and rows is not None
+    assert [r[0] for r in rows] == ["0022600001"]
+
+
+def test_the_nightly_stage_admits_nothing_stamped_after_the_exports_made_at(
+    gm_path: Path,
+) -> None:
+    """Adversary m1: the export passes ``asof=made_at``; a row stamped after it (still before tip) is not used."""
+    i = _inputs()
+    late = MADE + timedelta(minutes=20)
+    i["win_probs"].append({**i["win_probs"][0], "made_at": late, "run_id": "r2", "p_home": 0.9})
+    r = cs.build(DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], i["hist"], i["names"],
+                 i["abbr"], made_at=MADE, game_model_path=gm_path, asof=MADE)  # fmt: skip
+    assert r.combo is not None and r.combo["games"][0]["made_at"] == cs._iso_z(MADE)
+    import inspect
+
+    import nba.export.build as bm
+
+    assert "asof=made_at" in inspect.getsource(bm._scripts_stage)
+
+
+def test_a_game_in_play_gets_no_pre_tip_ask() -> None:
+    """Adversary m5: a build after tip attaches no quote to that game, however fresh."""
+    i = _inputs()
+    now = TIP + timedelta(minutes=5)
+    m = {"series_ticker": "KXNBAPTS", "event_ticker": "KXNBAPTS-26NOV10BOSPHI", "title": "x",
+         "player_id": 101, "stat": "pts", "yes_bid": 0.5, "yes_ask": 0.55,
+         "ticker": "KXNBAPTS-26NOV10BOSPHI-PHIPLAYER-20", "threshold": 20.0,
+         "ts": TIP - timedelta(minutes=2)}  # fmt: skip
+    asks, left = cs.ask_index([m], load_team_abbr(), DAY, i["games"], i["props"], now)
+    assert asks == {} and left == {"game_started": 1}
+
+
+def test_the_payload_and_manifest_carry_no_season_script_aggregate(gm_path: Path) -> None:
+    """Adversary M2: only the number of past games, never how often each script happened."""
+    i = _inputs()
+    box = [_box(101, "0022600001", DAY - timedelta(days=2), 30)]
+    hist = [("0022600001", DAY - timedelta(days=2), HOME, AWAY, 140, 110)]  # a blowout
+    r = cs.build(DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], hist, i["names"],
+                 i["abbr"], made_at=MADE, game_model_path=gm_path, box_rows=box)  # fmt: skip
+    assert r.combo is not None
+    assert r.combo["build_log"]["hist"]["past_games"] == {"n_games": 1}
+    assert r.info["hist"] == {
+        "n_entries": r.combo["build_log"]["hist"]["n_entries"],
+        "n_past_games": 1,
+    }
+    text = cs.dumps(r.info) + cs.dumps(r.combo["build_log"])
+    for s in ("blowout", "shootout", "grind"):
+        assert f'"{s}":' not in text
 
 
 def test_each_row_is_calibrated_on_its_own_grid(gm_path: Path) -> None:

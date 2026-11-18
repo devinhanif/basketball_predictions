@@ -451,9 +451,8 @@ def test_hist_counts_known_answers() -> None:
         "grind": [0, 0],
     }
     lg = pl["build_log"]["hist"]
-    assert lg["season"] == 2026 and lg["past_games"]["n_games"] == 4
-    assert lg["past_games"]["blowout"] == 1 and lg["past_games"]["close"] == 1  # G1, G2
-    assert lg["past_games"]["shootout"] == 1 and lg["past_games"]["grind"] == 2  # G2 and G4 (190)
+    # only how many past games, never how often each script happened (adversary M2, 2026-11-17)
+    assert lg["season"] == 2026 and lg["past_games"] == {"n_games": 4}
 
 
 def test_hist_ignores_season_2025_and_foreign_ids() -> None:
@@ -532,3 +531,29 @@ def test_history_db_gives_the_apps_games_table_number() -> None:
     assert via_games.combo["build_log"]["history_input"] == cs.HISTORY_GAMES
     assert via_games.combo["games"][0]["game"] == via_box.combo["games"][0]["game"]
     assert via_games.combo["build_log"]["hist"] == via_box.combo["build_log"]["hist"]
+
+
+# ---------------------------------------------------------------- price-like keys (adversary m3)
+
+
+@pytest.mark.parametrize("token", sorted(cn.PRICE_TOKENS))
+def test_every_price_token_is_refused(token: str) -> None:
+    """One test per token, so removing any token from the list fails a test."""
+    pl, exp = good()
+    for key in (f"yes_{token}", f"{token}"):
+        e = copy.deepcopy(pl)
+        e["games"][0]["players"][0]["stats"]["pts"][key] = 1
+        assert any("price-like" in x for x in _errs(e, exp)), key
+
+
+def test_camel_case_price_keys_are_refused() -> None:
+    pl, exp = good()
+    for key in ("yesAsk", "bestBid", "edgeCents", "totalCost"):
+        e = copy.deepcopy(pl)
+        e["games"][0][key] = 1
+        assert any("price-like" in x for x in _errs(e, exp)), key
+    assert cn.key_tokens("yesAskCents") == {"yes", "ask", "cents"}
+
+
+def test_the_six_added_tokens_are_listed() -> None:
+    assert {"ask", "bid", "spread", "edge", "cost", "cents", "fee", "fees"} <= cn.PRICE_TOKENS

@@ -243,3 +243,45 @@ def replace_received(st: ck.State, at: datetime) -> ck.State:
     import dataclasses
 
     return dataclasses.replace(st, received_at=at)
+
+
+def test_contract_example_label_is_the_codes_label() -> None:
+    """Adversary m11 (2026-11-17): the v2 contract's example label is SCRIPT_LABEL verbatim."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    from nba.markets import checkpoint_snapshot as _cs
+
+    doc = (
+        _Path(__file__).resolve().parents[2] / "docs/contracts/ingame_checkpoint_snapshot_v2.md"
+    ).read_text()
+    assert _json.dumps(_cs.SCRIPT_LABEL) in doc
+    assert 'accepts only `"version" == 1`' in doc  # M1: the app does not read v2 yet
+
+
+def test_a_copy_that_cannot_be_opened_leaves_no_temp_dir(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Adversary m4 (2026-11-17): the copy fallback removes its temp directory when the copy fails."""
+    import tempfile
+
+    import duckdb
+    import pytest as _pytest
+
+    import nba.markets.asof as asof
+
+    db = tmp_path / "kalshi.duckdb"
+    db.write_bytes(b"not a duckdb file")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    real = duckdb.connect
+
+    def locked(path: str, *a: object, **k: object) -> object:
+        if str(path) == str(db):
+            raise duckdb.IOException("Could not set lock on file")
+        return real(path, *a, **k)
+
+    monkeypatch.setattr(asof.duckdb, "connect", locked)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    with _pytest.raises(duckdb.Error):
+        asof.open_read_only(db, copy_fallback=True)
+    assert list(scratch.iterdir()) == []

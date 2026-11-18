@@ -21,10 +21,12 @@ export; `--no-scripts` skips it) beside `export.duckdb`, each to a temp name and
 |---|---|---|---|
 | `combo_<YYYY-MM-DD>.json` | `combo_export_v1` plus the additive keys of section 1 | per game: the calibrated survival grid of every rotation player and stat, the game model, P(script), the who-sits support | **none** (a test greps its keys) |
 | `game_scripts_<YYYY-MM-DD>.json` | `game_scripts_v1` (section 3) | per game x script: ranked legs and same-player pairs; the ONLY place a `market` block exists | only inside `picks[..].legs[].market`, only where a current Kalshi ask exists |
-| `manifest.json` key `game_scripts` | | `{status: "ok" \| "absent", reason, n_games, n_players, n_priced_picks, verdicts, skipped, n_asks, sits_games, markets: {status, n_asks, left_out, n_settled_track}, validation: {errors, main_line_checked, max_abs_diff}, n_main_lines, hist: {n_entries, past_games}, files: {name: {bytes, gzip_bytes, sha256}}, seconds}` | |
+| `manifest.json` key `game_scripts` | | `{status: "ok" \| "absent", reason, n_games, n_players, n_priced_picks, verdicts, skipped, n_asks, sits_games, markets: {status, n_asks, left_out, n_settled_track}, validation: {errors, main_line_checked, max_abs_diff}, n_main_lines, dropped_games: {game_id: first error}, hist: {n_entries, n_past_games}, files: {name: {bytes, gzip_bytes, sha256}}, seconds}` | |
 
-`absent` reasons: `disabled`, `no_games_built` (with `skipped` counts), `validation_failed` (the combo payload failed
-`nba.parlay.combo_night.validate_payload`; `first_errors` lists up to 10; neither file is written), `error:<ExceptionType>`. When absent the app shows
+`absent` reasons: `disabled`, `no_games_built` (with `skipped` counts), `validation_failed` (revised 2026-11-17, adversary
+m2: a game whose block fails `nba.parlay.combo_night.validate_payload` is dropped, logged in `build_log.games` and in the
+manifest's `dropped_games`, and the other games are written; the step is `absent` only when an error concerns the whole file,
+listed in `first_errors`, or no game is left; the two files are still written all-or-nothing), `error:<ExceptionType>`. When absent the app shows
 no script panel (not a placeholder number). The step reads the export's own in-memory tables, the Kalshi snapshot store
 read-only (a copy if locked), the paper-trade store read-only (track record), and `data/parlay/joint_model.json`; it
 fits nothing and makes no network call. Season 2025 is never read: the as-of total feature uses games of the live
@@ -165,24 +167,23 @@ at most 60 minutes before the build; `market.price_ts` says when). Then:
 
 ```
 {ticker, threshold, ask, bid, spread, price_ts, fee, p_over, p_model_incl_dnp,
- ev, ev_low, verdict, model_weight, n_settled_track}
+ ev_low, verdict, model_weight, n_settled_track}
 ```
 - `p_model_incl_dnp = p_play * p_over`: Kalshi's DNP rule is unverified, so a DNP is priced as a miss (as the cards do);
   `p_over` is the UNCONDITIONAL calibrated chance, **never the script one**: the script chance is not a price comparison.
 - EV is `nba.parlay.ev.evaluate` (the single EV code of the engine and the cards; the fee object of `configs/parlay.yaml`,
   `fee = ceil_to_cent(M * rate * P * (1 - P))` for one contract, rounded up, `M` by series): the raw expectation is computed inside the engine but NOT exported;
-  `ev` / `ev_low` after the engine shrinks the model to the market with weight `model_weight = n/(n+k)` if the paper track
+  `ev_low` (the conservative bound; the shrunk point `ev` is not exported, adversary m6 of 2026-11-17) after the engine shrinks the model to the market with weight `model_weight = n/(n+k)` if the paper track
   record has skill, else 0 (on 2026-11-10 `n_settled_track` was 31,481 but the skill was not positive, so
-  `model_weight` was 0 and `ev` is the market's own expectation less the fee: negative by construction); `spread = ask - bid` is shown, the cost is the ASK. `verdict` is
+  `model_weight` was 0 and the shrunk expectation is the market's own less the fee: negative by construction); `spread = ask - bid` is shown, the cost is the ASK. `verdict` is
   `no_positive_ev_found` or `positive_ev_at_conservative_bound`; tonight every verdict is the first. **Say it:**
   "no_positive_ev_found" is a result; "keep your money" is the answer until the live log proves skill. A hit is annotated
   "this one hit; it was still a -X% bet" and a miss and a hit show the "true odds" in the identical font and size.
 - **Display validity (adversary M1):** the export is not rebuilt after the last tip, so the app shows a `market` block ONLY
   while `now < tip_utc` and `now - price_ts <= 60 min`; otherwise it shows "no current quote" (never a stale or post-tip ask
   beside a live game).
-- **What may sit beside a price (m6):** in a pick row, `ask`, `bid`, `fee` and `ev` / `ev_low` are shown only beside `p_leg`
-  / `p_model_incl_dnp`, never in the `p_leg_script` column. Only the conservative `ev_low` is exported as a bound; the file no
-  longer carries a raw EV or a raw probability bound, so a positive raw EV can never sit beside a `no_positive_ev_found`
+- **What may sit beside a price (m6):** in a pick row, `ask`, `bid`, `fee` and `ev_low` are shown only beside `p_leg`
+  / `p_model_incl_dnp`, never in the `p_leg_script` column. Only the conservative `ev_low` is exported (no point `ev`, no raw EV, no raw probability bound), so a positive raw EV can never sit beside a `no_positive_ev_found`
   verdict.
 - **Tip source (m5):** quotes are filtered against the stamped `tipoff`; a game stamped with the 19:00 ET proxy (the export
   logs "real tip missing") may admit a quote from after its real tip, which is why the app's `now < tip_utc` rule above is

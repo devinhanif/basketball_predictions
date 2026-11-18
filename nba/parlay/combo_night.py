@@ -57,6 +57,13 @@ PRICE_TOKENS = frozenset(
         "implied",
         "payout",
         "bankroll",
+        # adversary m3 (2026-11-17)
+        "ask",
+        "bid",
+        "spread",
+        "edge",
+        "cost",
+        "cents",
     ]
 )
 PARAMS_PATH = Path(__file__).resolve().parent / "combo_params_v1.json"
@@ -230,6 +237,14 @@ def build_night(
 # ----------------------------------------------------------------------------- validator
 
 
+def key_tokens(key: str) -> set[str]:
+    """Lower-case tokens of a key, split on ``_``, ``-``, spaces and camelCase (``yesAsk`` -> yes, ask)."""
+    import re
+
+    spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", str(key))
+    return {t for t in re.split(r"[_\-\s:.]+", spaced.lower()) if t}
+
+
 def _walk_keys(o: Any) -> list[str]:
     out: list[str] = []
     if isinstance(o, dict):
@@ -282,8 +297,9 @@ def validate_payload(
         if key not in payload:
             errs.append(f"missing top-level key {key}")
     if errs:
-        return {"errors": errs, "n_checked": n, "max_abs_diff": None, "exempt": {}}
-    bad = sorted({k for k in _walk_keys(payload) if PRICE_TOKENS & set(k.lower().split("_"))})
+        return {"errors": errs, "n_checked": n, "max_abs_diff": None, "exempt": {},
+                "global_errors": list(errs), "errors_by_game": {}}  # fmt: skip
+    bad = sorted({k for k in _walk_keys(payload) if PRICE_TOKENS & key_tokens(k)})
     if bad:
         errs.append(f"price-like keys present: {bad}")
     raw_b, gz_b = size_bytes(payload)
@@ -370,8 +386,13 @@ def validate_payload(
                         errs.append(
                             f"{where}: calibrated {got:.4f} at main {ml} vs export {want:.4f} (diff {d:.4f})"
                         )
+    gids = [str(g.get("game_id")) for g in payload["games"]]
+    by_game = {gid: [e for e in errs if e.startswith((f"{gid}:", f"{gid}/"))] for gid in gids}
+    by_game = {g: v for g, v in by_game.items() if v}
+    claimed = {e for v in by_game.values() for e in v}
     return {
-        "errors": errs, "n_checked": n, "max_abs_diff": max_diff,
+        "errors": errs, "global_errors": [e for e in errs if e not in claimed],
+        "errors_by_game": by_game, "n_checked": n, "max_abs_diff": max_diff,
         "worst": list(worst) if worst else None, "exempt_over_tol": dict(exempt),
         "size_bytes": {"raw": raw_b, "gzip": gz_b}, "tol": tol,
     }  # fmt: skip

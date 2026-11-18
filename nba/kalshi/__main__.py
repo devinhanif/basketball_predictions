@@ -29,7 +29,7 @@ from typing import Any
 
 import yaml
 
-from nba.db.connect import connect
+from nba.db.connect import connect_with_retry
 from nba.ingest.cache import RateLimiter
 from nba.kalshi.aliases import load_reviewed_aliases, propose_alias_candidates
 from nba.kalshi.client import DEFAULT_KALSHI_DB, KALSHI_DATA_DIR, KalshiClient
@@ -37,6 +37,8 @@ from nba.kalshi.ingest import get_cutoff, pull_candlesticks_for_market, pull_mar
 from nba.kalshi.snapshot import run_backfill_historical, run_snapshot
 
 DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "configs" / "kalshi.yaml"
+#: Longest wait for the store's file lock (a reader holds it for about 0.1 s; never minutes).
+LOCK_WAIT_S = 20.0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -127,7 +129,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"{len(names)} unmatched names; {unique} have exactly one candidate -> {out}")
         return 0
 
-    con = connect(args.db)
+    # A reader (the app export, the cards) can hold the file for ~0.1 s; wait a little, never long
+    # (adversary m9, 2026-11-17). Total wait is bounded; the job runs every 15 minutes.
+    con = connect_with_retry(args.db, max_wait_s=LOCK_WAIT_S, first_delay_s=1.0, max_delay_s=8.0)
     aliases = load_reviewed_aliases()
     rc = 0
     now = datetime.now(UTC).replace(tzinfo=None)

@@ -85,9 +85,14 @@ def open_read_only(
             last = exc
             time.sleep(wait_s)
     if copy_fallback:
-        tmp = Path(tempfile.mkdtemp(prefix="market_ro_")) / Path(path).name
-        shutil.copy2(path, tmp)
-        return duckdb.connect(str(tmp), read_only=True)
+        tmp_dir = Path(tempfile.mkdtemp(prefix="market_ro_"))
+        tmp = tmp_dir / Path(path).name
+        try:
+            shutil.copy2(path, tmp)
+            return duckdb.connect(str(tmp), read_only=True)
+        except BaseException:  # a copy that cannot be made or opened leaves no directory behind
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            raise
     assert last is not None
     raise last
 
