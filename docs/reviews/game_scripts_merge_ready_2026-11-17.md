@@ -26,7 +26,7 @@ No side was "taken" on any hunk because none conflicted. Live behaviour of every
 | `nba/export/__main__.py` | **yes, additive:** `--no-scripts`, `--kalshi-db`, `--paper-db`, `--game-model`; the step is ON by default, so `nba.ops.app_export` (which runs `python -m nba.export build`) starts writing `combo_<date>.json` and `game_scripts_<date>.json` beside `export.duckdb` and prints `scripts=<status>` |
 | `nba/export/build.py` | **yes, additive:** `_history_stage` reads `games` (season 2026) from the already-open read-only source; `_scripts_stage` (one guard; never fails the export) reads `kalshi.duckdb` and `paper_trades.duckdb` read-only and writes the two files all-or-nothing; adds manifest key `game_scripts`. Existing tables, files and row counts unchanged |
 | `nba/export/combo_stage.py` | new; runs only inside that guard |
-| `nba/jarvis/ingame_checkpoints.py` | **yes:** after the store closes, every live tick writes `data/jarvis/ingame_checkpoints_latest.json` (`publish_snapshot`; never raises; skipped in a dry run). `ingame_checkpoints.enabled: true` on main, and `app/api/.../live.py` reads that file, so **merging turns on the app's v1 checkpoint view** (11-10 review section F). No card, alert or ping changes |
+| `nba/jarvis/ingame_checkpoints.py` | **yes:** after the store closes, every live tick writes `data/jarvis/ingame_checkpoints_latest.json` (`publish_snapshot`; never raises; skipped in a dry run). `ingame_checkpoints.enabled: true` on main. **Corrected (adversary M1): merging does NOT turn on the app's checkpoint view.** The writer emits `"version": 2` and the app reader (`app/api/src/parlayhitters_api/live.py` `read_checkpoint`) accepts only version 1 (pinned by `app/api/tests/test_live.py`), so the view stays dark and nothing new is visible in the app. Accepting v2 is a separate app change and Devin's decision (with a snapshot age check and the label "Experimental, not yet tested"). No card, alert or ping changes |
 | `ops/`, `configs/`, `nba/daily/` | nothing differs |
 
 On the JARVIS tick but outside the listed directories: `nba/markets/checkpoint_scorer.py` (additive `latest_states` field) and
@@ -66,8 +66,8 @@ which already holds every final season-2026 game; season-2025 display rows are d
 7. Unnamed player: kept as `Player <id>` and counted `no_player_name` (stage). combo_night skipped them.
 8. Provenance `combo_params_sha8` = sha of the params FILE (`1a85bb31`, the rule's pin; was the inner `sha256` field `8b5a124e`);
    `rule_sha8` added beside `rule_commit`.
-9. A payload that fails validation: no combo file and no picks file; manifest `game_scripts.status = absent`,
-   `reason = validation_failed`, first 10 errors listed.
+9. A game whose block fails validation is dropped (logged in `build_log.games` and the manifest's `dropped_games`); the other games
+   are written. Only a file-wide error, or no game left, makes the step `absent` with `reason = validation_failed` (round-2 m2).
 
 ### Numbers on tonight's export copy (scratch copy of `data/export/latest/export.duckdb`, meta `made_at` 2026-11-18T01:05:03Z, slate 2026-11-17, 5 games)
 
@@ -90,8 +90,8 @@ slate needs `--history-db` on a copy of `nba.duckdb` (maintainer command below);
 
 Offline rebuild at the export's cut: 5 games, 149 players, 596 stat entries, 69 main lines checked against `line_cal.p_over_cal`
 (largest abs diff 4.96e-05, tolerance 1e-4), 0 validation errors; 133,030 bytes raw, 28,449 gzipped (budget 300 KB / 60 KB);
-`hist` on 69 entries; season-2026 past games 205 (blowout 72, close 37, shootout 62, grind 48; descriptive counts of finished games,
-not compared with any forecast).
+`hist` on 69 entries; `build_log.hist.past_games` = 205 past season-2026 games (a count of games only; the per-script season
+counts this report printed in its first version were removed from the payload and from this text: adversary M2).
 
 ### Known gaps
 
@@ -129,7 +129,7 @@ where the source changed: past scores from the `games` table (offline fallback: 
 | m3 budget enforced and reported | fixed | `enforce_budget`; test passes (now also with the validator in the loop) |
 | m4 state-age limit and overtime label | fixed | `checkpoint_snapshot.STATE_MAX_AGE_S = 180`, label text |
 | m5 proxy tip | stated in contract | `game_scripts_v1.md` "Tip source (m5)" |
-| m6 which columns sit beside `ask` | fixed | contract line 184; picks export only `ev_low` |
+| m6 which columns sit beside `ask` | fixed (the first version of this row was wrong: `ev` was still exported; fixed 2026-11-17, round-2 m6) | contract; picks export only `ev_low` and the verdict |
 | m7 MARKET_NOTE wording | fixed | test passes |
 
 ## 5. GAME_SCRIPTS_FORWARD (rev 2, `agent/modeler-game-scripts-forward` a7760b7d, draft text 563a1c67): what must be true to freeze
@@ -163,6 +163,9 @@ where the source changed: past scores from the `games` table (offline fallback: 
   test_run}, tests/jarvis/{test_runner, test_ingame}, tests/markets/{test_checkpoint_fixes, test_checkpoint_scorer,
   test_checkpoint_snapshot, test_checkpoint_store}, tests/parlay/{test_combo_night, test_game_scripts, test_combo}, tests/test_layering.py,
   tests/test_leadtime.py: **418 passed, exit 0** (160 s). Not run: the full suite (game night, 8 GB), the rest of tests/jarvis.
+- **Round 2 (tip after the adversary fixes):** ruff exit 0; format 1018 files, exit 0; mypy 404 files, exit 0; pytest on the same set
+  plus tests/markets/test_markets.py, tests/kalshi/test_db_safety.py, tests/kalshi/test_snapshot_exit_code.py (the files that import
+  the newly touched `nba.markets.asof` and `nba.kalshi.__main__`): **475 passed, exit 0** (103 s).
 
 ## 7. Replay oracle
 
@@ -171,6 +174,13 @@ walker) of `nba.daily.replay_season` + `nba.daily.canonical_dump` (149 modules) 
 touched modules (`nba.export.*`, `nba.parlay.combo_night`, `combo_hist`, `game_scripts`, `nba.markets.checkpoint_*`,
 `nba.jarvis.ingame_checkpoints`). The export runs as a subprocess of `nba.ops.app_export`, which the replay does not run. Expected
 result: IDENTICAL `89889f6d`. It proves the daily path is untouched; it does not exercise this stage.
+
+**Round 2 (after the adversary fixes) changes this:** two modules touched by m4 and m9 ARE in the closure (walker over
+`replay_season` + `canonical_dump` + `nba.daily.__main__`, 166 modules): `nba.kalshi.__main__` (imported by `replay_season` line 239
+for `is_real_kalshi_db`, unchanged; the change is the snapshot writer's `connect` inside `main()`) and `nba.markets.asof` (via
+`nba.parlay.__main__` -> `nba.parlay.shadow` -> `nba.ops.exclusions`; the change is only the branch taken when the store is locked
+through every retry AND the private copy then fails). Neither changed line runs in a replay unless the copy path fails, so the
+expected result stays IDENTICAL `89889f6d`; the oracle now covers modules this branch changed, not only the daily path.
 
 Command (main session, after logging its HOLDOUT_ACCESS_LOG row and after 22:15 CST), from a worktree of the merged tip with `data/`
 symlinked to the main checkout's `data/` (verify with `ls -la` first):
@@ -191,7 +201,7 @@ python -m nba.parlay.combo_night --export <copy of data/export/latest/export.duc
 
 ## 8. What the adversary should attack first
 
-1. Choice 1 (`made_at` = newest of all inputs): any consumer that reads `made_at` as "the prop run"; the 01:20Z rows below.
+1. Choice 1 (`made_at` = newest of all inputs): any consumer that reads `made_at` as "the prop run".
 2. The validator inside the stage: a validation failure removes both files and with them the JARVIS snapshot's pre-game priors
    for that night (fail-soft, manifest says why). Is that the right failure mode, or should the picks file survive?
 3. `hist` from the in-memory `box`: no season-2025 value may reach a count (Python filter on `season` and the id digits, plus SQL in
@@ -206,9 +216,11 @@ python -m nba.parlay.combo_night --export <copy of data/export/latest/export.duc
   real data.
 - A full `build_export` run on a real database copy (only the synthetic fixture and the offline rebuild on an export copy ran).
 - The full test suite and the rest of tests/jarvis.
-- **Anomaly, outside this lane:** the export copy (file last written about 01:06Z, meta `made_at` 01:05:03Z) holds `win_probs` and
-  `p_play` rows of run `4f90046bd2d7` stamped `made_at` 01:20:09Z (`stamp_stamped_at` 01:20:19Z), after the file was written.
-  The stage's known-at check is against tip, so it accepts them; the clock or stamping behind it was not investigated.
+- **Withdrawn: the "01:20Z rows in a 01:05Z export" anomaly was my error.** The scratch path `exp/export.duckdb` was overwritten
+  between my queries by a copy of the later export (now sha256 `750c736e`, written 19:43:57 CST, meta `made_at` 2026-11-18T01:35:04Z,
+  which legitimately holds run `4f90046bd2d7` at 01:20:09Z). I read the meta of the 01:05:03Z export and the tables of the 01:35:04Z
+  one. Nothing is stamped after its own export. Comparisons A to C are unaffected: each ran with an explicit `asof` cut (00:29Z or
+  01:05:03Z), and no production prop row changed between the two exports (newest prop row 00:50:06Z in both).
 - How many null main lines a covering-run pairing would recover (section 3a).
 
 ## 10. Drafted rows (not appended)
@@ -218,10 +230,68 @@ DECISIONS (main session, at merge):
 writer of combo_<date>.json; it runs combo_night.validate_payload and writes nothing on an error; hist (season-2026 k of n) from the
 same games-table history rows as mu_t; block made_at = newest stamp of every input used; 10,000-sample grids used with their own n;
 combo_night is the offline rebuild. history_rows SQL unchanged (pinned by a test); mu_t, mu_m and script priors equal the pre-merge
-stage on tonight's export (596 entries). Outside the replay closure; oracle <result>. Merging turns on the app's checkpoint view. |
-Devin's go 2026-11-17 (finish game scripts). | A combo file whose mu_t differs from GAME_SCRIPTS_FORWARD's recompute; a validation
-failure on a normal night; any season-2025 value in hist. |`
+stage on tonight's export (596 entries). Adversary WOUNDED (adversary_game_scripts_2_2026-11-17) -> M1 the app's checkpoint view
+stays OFF (live.py accepts snapshot version 1 only; the writer emits 2), M2 no season-wide realised-script counts in build_log or the
+manifest (per-player hist kept: Devin's display decision), M3 history_rows refuses any season but 2026 (+2 tests), minors m1-m9 and
+m11 fixed. The step is outside the replay closure; this round's m4/m9 fixes touch nba/markets/asof.py (lock-then-copy-failure branch)
+and nba/kalshi/__main__.py (writer connect), both imported by the replay but not on changed lines; oracle <result>. JARVIS writes
+the v2 snapshot each live tick, read by nothing yet. | Devin's go 2026-11-17 (finish game scripts). | A failed export traced to the
+step; a combo file whose mu_t differs from GAME_SCRIPTS_FORWARD's recompute; any season-2025 row in mu_t or hist; the app showing
+checkpoint rows without a separate decision. |`
 
 Optional, Devin's call (not drafted as decided): pair `line_cal` through the newest covering run (section 3a).
 
 No ledger row (no test of a model was run).
+
+## 11. Round 2: the adversary's findings (`agent/adversary-game-scripts-2` b8536db9) and what was done
+
+| finding | fix | test |
+|---|---|---|
+| M1 the app does not read the v2 snapshot | text only (no app change): this report section 2 and section 10, `ingame_checkpoint_snapshot_v2.md` lines 5-11 now say the app accepts only version 1, nothing is visible at merge, and accepting v2 is a separate app change (Devin's decision; age check; label "Experimental, not yet tested") | `test_contract_example_label_is_the_codes_label` asserts the contract states the version-1 reader |
+| M2 nightly season-wide realised-script counts | `combo_hist.attach_hist` returns `past_games: {"n_games": N}` only; manifest `hist` is `{n_entries, n_past_games}`; the counts removed from this report (section 3); contract says why the per-player `hist` stays | `test_the_payload_and_manifest_carry_no_season_script_aggregate`; `test_hist_counts_known_answers` now asserts `past_games == {"n_games": 4}` |
+| M3 unguarded history season | `combo_stage.history_rows` raises `guard.ExportRefused` unless `season == guard.LIVE_SEASON`, before any query | `test_history_rows_refuses_any_season_but_the_live_one`, `test_the_nightly_history_stage_returns_no_other_season_row` |
+| m1 rows after the export's `made_at` | `_scripts_stage` passes `asof=made_at` | `test_the_nightly_stage_admits_nothing_stamped_after_the_exports_made_at` |
+| m2 one bad game blanks the night | per-game validation before the picks; invalid games dropped and logged (`build_log.games`, manifest `dropped_games`); a final whole-file check after the budget; files still all-or-nothing | `test_one_invalid_game_drops_that_game_not_the_night`, `test_a_payload_that_fails_validation_is_not_returned` |
+| m3 price tokens | added `ask`, `bid`, `spread`, `edge`, `cost`, `cents`; keys split on `_`, `-`, `:`, `.`, spaces and camelCase | one parametrised test per token (21), camelCase test, list test |
+| m4 temp dir leak when the copy fails | `nba/markets/asof.open_read_only` removes its `market_ro_*` directory before re-raising | `test_a_copy_that_cannot_be_opened_leaves_no_temp_dir` (fails when the `rmtree` is removed) |
+| m5 pre-tip ask on a game in play | `ask_index` drops quotes for a game whose tip is at or before build time (`game_started`) | `test_a_game_in_play_gets_no_pre_tip_ask` |
+| m6 shrunk `ev` exported | dropped: the block carries `ev_low` and `verdict` only. Reason: the 11-10 review's m6 asked that only the conservative bound sit beside a price, and the shrunk point is not required by it; once the track record shows skill a positive `ev` could sit beside `no_positive_ev_found`. Contract updated | `test_market_block_uses_the_engine_ev_code` asserts no `ev` key |
+| m7 hard-coded skill claim | `MARKET_NOTE` worded conditionally; `market_note(track, verdicts)` adds tonight's `n_settled`, skill and verdict counts | `test_note_is_conditional_and_says_tonights_facts` |
+| m8 integration tests ran a failed step | the tests pass `game_model=` and a fixture variant with a `starter_rate`, assert `status == "ok"` and both files, and compare every table's rows and the manifest | `test_a_missing_game_model_fails_soft_and_a_good_run_writes_atomically`, `test_the_existing_export_is_unchanged_by_a_successful_step` |
+| m9 Kalshi writer lock collisions | the snapshot writer opens with `connect_with_retry` (1 s first delay, 8 s cap, 20 s total); the export's read is unchanged (no new wait in the export) | `test_the_writer_waits_briefly_for_a_reader_lock`; `test_alias_candidates_never_opens_a_database` now patches the retrying open |
+| m10 app age check | belongs to the later app change that accepts v2: hide rows when `now - generated_at > 180 s` | none (note only; written into the v2 contract) |
+| m11 contract label | example label copied from `SCRIPT_LABEL` (overtime sentence) | `test_contract_example_label_is_the_codes_label` |
+| 01:20Z rows | withdrawn as my scratch-copy mix-up (section 9) | n/a |
+
+**The adversary's surviving mutations, re-run** (four new-test files, 107 tests at the tip, each file restored from git after):
+`build.py` `history_rows(src, day, 2025)` -> 1 failed; the `history_rows` season guard disabled -> 1 failed; `fee`/`fees` removed from
+`PRICE_TOKENS` -> 1 failed (the two parametrised cases vanish with them, the list test fails); m4 `rmtree` removed -> 1 failed.
+
+**Realised-outcome numbers the payload still carries** (for the exposure line the main session adds to GAME_SCRIPTS_FORWARD before freezing):
+1. `combo_<date>.json`, every stat entry with a main line, `hist`: per player, season-2026 games before the slate: `n_all` (games
+   played), `k_all` (games over tonight's line), and per script `[n, k]`, i.e. how many of that player's past games were a blowout,
+   close, shootout or grind (on the rule's own definitions and each game's pre-game `mu_t`) and in how many he went over. These
+   are realised script memberships per player; summed over a team's players they would not give a season share directly, but a
+   reader could partially reconstruct script frequencies from them. Devin's explicit display decision; no model chance beside them.
+2. `build_log.hist.past_games.n_games` and the manifest's `hist.n_past_games`: the number of finished season-2026 games read (205
+   tonight). A count, no outcome.
+3. `game.mu_t` and each script's `rule` threshold: built from realised season-2026 game totals before the slate (the as-of feature
+   the rule itself scores). An input, not an outcome of a scored game.
+4. Not in the combo or picks files: any final score, margin or total of a single game, any season-wide script share, any P(s)
+   compared with a realised script. The JARVIS v2 snapshot carries the live score, margin and total of games IN PLAY (state, not
+   final), written over each tick, never logged.
+5. Printed outside the payload: the first version of this report (section 3) and `combo_night_builder_2026-11-17.md` printed
+   season-2026 script counts through 2026-11-16 (205 games: per-script totals). The adversary's proposed exposure line covers this.
+
+**Proposal for the modeler and the main session (the rule is not edited here): a narrower pin for GAME_SCRIPTS_FORWARD.**
+Replace "refuse on any difference in `nba/parlay` or `nba/export`" with:
+- refuse on any sha256 change, from the freeze commit, to `nba/parlay/game_model.py` and `nba/parlay/combo.py` (family P) and to
+  `nba/export/reader.py`, `nba/export/line_cal_fields.py`, `nba/export/rung_cal_fields.py`, `nba/parlay/line_cal.py`,
+  `nba/parlay/top_source.py` (family S), with the hashes listed in the freeze commit message;
+- refuse on a change to the sha256 of the source text of `nba.export.build._read_lines` (`inspect.getsource`), because `build.py`
+  keeps changing for other reasons;
+- keep the harness and the three data pins;
+- print, without refusing, whether `combo_stage.history_rows`, `combo_hist.game_mu_t` or `combo_build.build_game_payload` changed
+  since the freeze (they decide whether the app showed the scored number, not whether the scored number is right).
+Also before the freeze: rule line 2's citation of `529a39ef` updated to the merged commit; the exposure answer amended per M2; the
+planned `line_cal` covering-run pairing (section 3a) lands before the freeze or waits until after the look, since it redefines the S legs.
