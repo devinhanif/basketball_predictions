@@ -58,6 +58,8 @@ ROUTES: list[tuple[str, tuple[str, ...], dict[str, str]]] = [
     ("/api/live/{event_id}/snapshot", ("event_id",), {}),
     ("/api/live/{event_id}/plays", ("event_id",), {"before": "1000", "limit": "50"}),
     ("/api/live/{event_id}/checkpoint", ("event_id",), {}),
+    ("/api/live/{event_id}/card", ("event_id",), {}),
+    ("/api/live/{live_date}/cards", ("live_date",), {}),
     # the honesty routes (2026-11-17)
     ("/api/record/{game_id}/{player_id}/{stat}", ("game_id", "player_id", "stat"), {}),
     ("/api/record/{game_id}", ("game_id",), {}),
