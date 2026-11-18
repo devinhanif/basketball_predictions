@@ -21,6 +21,7 @@ ignores unknown keys. Top level:
 | `night` | string | slate date `YYYY-MM-DD` |
 | `shared` | object | night-level block (section 2), identical for every game |
 | `games` | array | one object per game (section 3) |
+| `build_log` | object, optional | how the file was built (`nba/parlay/combo_night.py`): `asof`, per game `status` (`built` or `left_out` with `reason`), `made_at`, counts, and reasons a prop has no `main_line` or was skipped. A reader ignores it; the app may show it as "why is this game / player missing". |
 
 ## 2. `shared` (about 4.1 KB raw, 1.1 KB gzipped)
 
@@ -65,6 +66,12 @@ ignores unknown keys. Top level:
 - `game`: normal margin (home minus away) and total from the engine's game model (`game_model.py`; `mu_m = b + s * logit(p_home)`,
   `mu_t` from the as-of scoring environment; `sd_m = 13.63`, `sd_t = 18.82`). Two decimals. Win / spread / total legs and the script
   priors read these.
+- **`mu_t` source (additive, 2026-11-17).** `mu_t` is the game model's total mean from completed SEASON-2026 games only (the as-of
+  feature of `game_model.py`, rounded to 2 decimals; season 2025 is never read), so early in the season it leans on the league mean.
+  The optional game key `mu_t_source` says which: `"live-season games only"` or `"league fallback"` (no completed game yet).
+  `nba/parlay/combo_night.py` rebuilds it from the export's `box_scores` team totals (the export's `games` table holds only the last
+  week), so it equals the live app's `game_scripts` number only where `box_scores` covers every completed game.
+- `mu_m` comes from the primary win probability stamped at or before `made_at`.
 - `team`: integer team id; `home_team` / `away_team` say which side is home.
 - `p_play`: P(plays), 4 decimals, or `null` (unknown: then only conditional numbers are shown). All joint probabilities are
   CONDITIONAL on every named player playing; the reader reports `p_all_play = product of p_play over the distinct players` and
@@ -72,6 +79,16 @@ ignores unknown keys. Top level:
   combo "hits" only if every player plays and every leg hits, so a DNP counts as a miss in `p_joint_incl_dnp`. Availability is
   assumed independent across players (not tested; it is the engine's standing assumption, `docs/PARLAY_ENGINE.md`).
 - `starter`: 0 / 1 (`starter10 >= 0.5`, the line-calibration "bench" flag inverted).
+- **`hist` (optional, per stat entry, only where `main_line` is set; additive 2026-11-17).** Plain integer counts of finished games of
+  the CURRENT season (2026) only, before the slate date: `{"n_all": 12, "k_all": 7, "blowout": [3, 2], "close": [4, 1], "shootout": [2, 1],
+  "grind": [1, 0]}`. `n_all` = games the player played (minutes > 0; a DNP is not a game) strictly before the slate date; `k_all` = of
+  those, games in which the stat finished OVER `main_line` (stat > main_line). Each script pair is `[n, k]` restricted to past games in which
+  that script happened, with the definitions of `shared.scripts.definitions` on the final score (blowout `|margin| >= 15`, close
+  `|margin| <= 5`, shootout `total >= ceil(mu_t + 12)`, grind `total <= floor(mu_t - 12)`; a team's score is the sum of its players'
+  points; `mu_t` is that game's own pre-game value, built only from completed season-2026 games dated before it, 2 decimals, league
+  fallback when none). Scripts overlap, so the pairs do not sum to `n_all`. No rate, no smoothing, no blend with the model chance, no
+  score: show "k of n" and nothing else, and never as a prediction. Seasons 2023-25 are not used (roles change; season 2025 is the
+  frozen holdout). Absent `hist`: show nothing. `build_log.hist` carries the same season's game counts (`past_games`).
 - per stat entry: `k0` (int), `surv` (array of 4-decimal numbers), `main_line` (x.5 or `null`), `raw_at_main` (the uncalibrated
   P(over main line), only when `main_line` is set), `cal_k` (`[lo, hi]`, 1-based rungs where the map was applied directly).
   **`surv[j] = S(k0 + j) = P(Y >= k0 + j)`; `S(k) = 1` for `k < k0`; `S(k) = 0` past the end of `surv`.** The array is nonincreasing and
