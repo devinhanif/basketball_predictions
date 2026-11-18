@@ -1,0 +1,801 @@
+{
+ "game_id": "SYN-LAL-ATL",
+ "date": "2026-11-09",
+ "season": 2024,
+ "tip_utc": "2026-11-10T00:00:00+00:00",
+ "arena": null,
+ "home": {
+  "id": 1,
+  "abbr": "ATL",
+  "city": "Atlanta",
+  "name": "Hawks"
+ },
+ "away": {
+  "id": 2,
+  "abbr": "LAL",
+  "city": "Los Angeles",
+  "name": "Lakers"
+ },
+ "win_probability": {},
+ "result": null,
+ "final": false,
+ "SYNTHETIC": "made up for tests; no line, chance or price here is real",
+ "players": [
+  {
+   "player_id": 9000001,
+   "name": "Luka Doncic",
+   "side": "away",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000001:pts",
+     "line": 30.5,
+     "line_source": "posted",
+     "over_price": -115,
+     "under_price": -105,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 30.5,
+      "q": [
+       22.5,
+       23.39,
+       24.28,
+       25.17,
+       26.06,
+       26.94,
+       27.83,
+       28.72,
+       29.61,
+       30.5,
+       31.39,
+       32.28,
+       33.17,
+       34.06,
+       34.94,
+       35.83,
+       36.72,
+       37.61,
+       38.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null,
+     "line_cal": {
+      "book": "draftkings",
+      "main_line": 30.5,
+      "price_at": null,
+      "p_over_raw": 0.5800000000000001,
+      "p_over_cal": 0.54,
+      "map": "SYNTHETIC",
+      "map_sha8": "00000000",
+      "fit_through": null
+     }
+    },
+    "reb": {
+     "prop_id": "SYN:9000001:reb",
+     "line": 8.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 8.5,
+      "q": [
+       0.5,
+       1.39,
+       2.28,
+       3.17,
+       4.06,
+       4.94,
+       5.83,
+       6.72,
+       7.61,
+       8.5,
+       9.39,
+       10.28,
+       11.17,
+       12.06,
+       12.94,
+       13.83,
+       14.72,
+       15.61,
+       16.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    },
+    "ast": {
+     "prop_id": "SYN:9000001:ast",
+     "line": 8.5,
+     "line_source": "posted",
+     "over_price": -120,
+     "under_price": 100,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 8.5,
+      "q": [
+       0.5,
+       1.39,
+       2.28,
+       3.17,
+       4.06,
+       4.94,
+       5.83,
+       6.72,
+       7.61,
+       8.5,
+       9.39,
+       10.28,
+       11.17,
+       12.06,
+       12.94,
+       13.83,
+       14.72,
+       15.61,
+       16.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null,
+     "line_cal": {
+      "book": "draftkings",
+      "main_line": 8.5,
+      "price_at": null,
+      "p_over_raw": 0.51,
+      "p_over_cal": 0.47,
+      "map": "SYNTHETIC",
+      "map_sha8": "00000000",
+      "fit_through": null
+     }
+    },
+    "fg3m": {
+     "prop_id": "SYN:9000001:fg3m",
+     "line": 2.5,
+     "line_source": "posted",
+     "over_price": 105,
+     "under_price": -125,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 2.5,
+      "q": [
+       -5.5,
+       -4.61,
+       -3.72,
+       -2.83,
+       -1.94,
+       -1.06,
+       -0.17,
+       0.72,
+       1.61,
+       2.5,
+       3.39,
+       4.28,
+       5.17,
+       6.06,
+       6.94,
+       7.83,
+       8.72,
+       9.61,
+       10.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000002,
+   "name": "Walker Kessler",
+   "side": "away",
+   "result": null,
+   "props": {
+    "reb": {
+     "prop_id": "SYN:9000002:reb",
+     "line": 14.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 14.5,
+      "q": [
+       6.5,
+       7.39,
+       8.28,
+       9.17,
+       10.06,
+       10.94,
+       11.83,
+       12.72,
+       13.61,
+       14.5,
+       15.39,
+       16.28,
+       17.17,
+       18.06,
+       18.94,
+       19.83,
+       20.72,
+       21.61,
+       22.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null,
+     "line_cal": {
+      "book": "draftkings",
+      "main_line": 14.5,
+      "price_at": null,
+      "p_over_raw": 0.44999999999999996,
+      "p_over_cal": 0.41,
+      "map": "SYNTHETIC",
+      "map_sha8": "00000000",
+      "fit_through": null
+     }
+    }
+   }
+  },
+  {
+   "player_id": 9000003,
+   "name": "Jarred Vanderbilt",
+   "side": "away",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000003:pts",
+     "line": 3.5,
+     "line_source": "posted",
+     "over_price": -105,
+     "under_price": -115,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 3.5,
+      "q": [
+       -4.5,
+       -3.61,
+       -2.72,
+       -1.83,
+       -0.94,
+       -0.06,
+       0.83,
+       1.72,
+       2.61,
+       3.5,
+       4.39,
+       5.28,
+       6.17,
+       7.06,
+       7.94,
+       8.83,
+       9.72,
+       10.61,
+       11.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000004,
+   "name": "Collin Sexton",
+   "side": "away",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000004:pts",
+     "line": 15.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 15.5,
+      "q": [
+       7.5,
+       8.39,
+       9.28,
+       10.17,
+       11.06,
+       11.94,
+       12.83,
+       13.72,
+       14.61,
+       15.5,
+       16.39,
+       17.28,
+       18.17,
+       19.06,
+       19.94,
+       20.83,
+       21.72,
+       22.61,
+       23.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null,
+     "line_cal": {
+      "book": "draftkings",
+      "main_line": 15.5,
+      "price_at": null,
+      "p_over_raw": 0.54,
+      "p_over_cal": 0.5,
+      "map": "SYNTHETIC",
+      "map_sha8": "00000000",
+      "fit_through": null
+     }
+    }
+   }
+  },
+  {
+   "player_id": 9000005,
+   "name": "Jaden Hardy",
+   "side": "away",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000005:pts",
+     "line": 9.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 9.5,
+      "q": [
+       1.5,
+       2.39,
+       3.28,
+       4.17,
+       5.06,
+       5.94,
+       6.83,
+       7.72,
+       8.61,
+       9.5,
+       10.39,
+       11.28,
+       12.17,
+       13.06,
+       13.94,
+       14.83,
+       15.72,
+       16.61,
+       17.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000006,
+   "name": "Jalen Johnson",
+   "side": "home",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000006:pts",
+     "line": 21.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 21.5,
+      "q": [
+       13.5,
+       14.39,
+       15.28,
+       16.17,
+       17.06,
+       17.94,
+       18.83,
+       19.72,
+       20.61,
+       21.5,
+       22.39,
+       23.28,
+       24.17,
+       25.06,
+       25.94,
+       26.83,
+       27.72,
+       28.61,
+       29.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null,
+     "line_cal": {
+      "book": "draftkings",
+      "main_line": 21.5,
+      "price_at": null,
+      "p_over_raw": 0.56,
+      "p_over_cal": 0.52,
+      "map": "SYNTHETIC",
+      "map_sha8": "00000000",
+      "fit_through": null
+     }
+    },
+    "reb": {
+     "prop_id": "SYN:9000006:reb",
+     "line": 5.5,
+     "line_source": "posted",
+     "over_price": -115,
+     "under_price": -105,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 5.5,
+      "q": [
+       -2.5,
+       -1.61,
+       -0.72,
+       0.17,
+       1.06,
+       1.94,
+       2.83,
+       3.72,
+       4.61,
+       5.5,
+       6.39,
+       7.28,
+       8.17,
+       9.06,
+       9.94,
+       10.83,
+       11.72,
+       12.61,
+       13.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000007,
+   "name": "Onyeka Okongwu",
+   "side": "home",
+   "result": null,
+   "props": {
+    "reb": {
+     "prop_id": "SYN:9000007:reb",
+     "line": 11.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 11.5,
+      "q": [
+       3.5,
+       4.39,
+       5.28,
+       6.17,
+       7.06,
+       7.94,
+       8.83,
+       9.72,
+       10.61,
+       11.5,
+       12.39,
+       13.28,
+       14.17,
+       15.06,
+       15.94,
+       16.83,
+       17.72,
+       18.61,
+       19.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null,
+     "line_cal": {
+      "book": "draftkings",
+      "main_line": 11.5,
+      "price_at": null,
+      "p_over_raw": 0.48,
+      "p_over_cal": 0.44,
+      "map": "SYNTHETIC",
+      "map_sha8": "00000000",
+      "fit_through": null
+     }
+    }
+   }
+  },
+  {
+   "player_id": 9000008,
+   "name": "Nickeil Alexander-Walker",
+   "side": "home",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000008:pts",
+     "line": 17.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 17.5,
+      "q": [
+       9.5,
+       10.39,
+       11.28,
+       12.17,
+       13.06,
+       13.94,
+       14.83,
+       15.72,
+       16.61,
+       17.5,
+       18.39,
+       19.28,
+       20.17,
+       21.06,
+       21.94,
+       22.83,
+       23.72,
+       24.61,
+       25.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000009,
+   "name": "Dyson Daniels",
+   "side": "home",
+   "result": null,
+   "props": {
+    "ast": {
+     "prop_id": "SYN:9000009:ast",
+     "line": 5.5,
+     "line_source": "posted",
+     "over_price": 110,
+     "under_price": -130,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 5.5,
+      "q": [
+       -2.5,
+       -1.61,
+       -0.72,
+       0.17,
+       1.06,
+       1.94,
+       2.83,
+       3.72,
+       4.61,
+       5.5,
+       6.39,
+       7.28,
+       8.17,
+       9.06,
+       9.94,
+       10.83,
+       11.72,
+       12.61,
+       13.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000010,
+   "name": "Corey Kispert",
+   "side": "home",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000010:pts",
+     "line": 8.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 8.5,
+      "q": [
+       0.5,
+       1.39,
+       2.28,
+       3.17,
+       4.06,
+       4.94,
+       5.83,
+       6.72,
+       7.61,
+       8.5,
+       9.39,
+       10.28,
+       11.17,
+       12.06,
+       12.94,
+       13.83,
+       14.72,
+       15.61,
+       16.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000011,
+   "name": "Synthetic Nobody",
+   "side": "home",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000011:pts",
+     "line": 12.5,
+     "line_source": "posted",
+     "over_price": -110,
+     "under_price": -110,
+     "price_book": "draftkings",
+     "line_snapshot_utc": "2026-11-09T22:00:00+00:00",
+     "forecast": {
+      "mean": 12.5,
+      "q": [
+       4.5,
+       5.39,
+       6.28,
+       7.17,
+       8.06,
+       8.94,
+       9.83,
+       10.72,
+       11.61,
+       12.5,
+       13.39,
+       14.28,
+       15.17,
+       16.06,
+       16.94,
+       17.83,
+       18.72,
+       19.61,
+       20.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000012,
+   "name": "Cameron Carr",
+   "side": "away",
+   "result": null,
+   "props": {
+    "pts": {
+     "prop_id": "SYN:9000012:pts",
+     "line": 5.5,
+     "line_source": "reference",
+     "over_price": null,
+     "under_price": null,
+     "price_book": null,
+     "line_snapshot_utc": null,
+     "forecast": {
+      "mean": 5.5,
+      "q": [
+       -2.5,
+       -1.61,
+       -0.72,
+       0.17,
+       1.06,
+       1.94,
+       2.83,
+       3.72,
+       4.61,
+       5.5,
+       6.39,
+       7.28,
+       8.17,
+       9.06,
+       9.94,
+       10.83,
+       11.72,
+       12.61,
+       13.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  },
+  {
+   "player_id": 9000013,
+   "name": "Zuby Ejiofor",
+   "side": "home",
+   "result": null,
+   "props": {
+    "reb": {
+     "prop_id": "SYN:9000013:reb",
+     "line": 3.5,
+     "line_source": "reference",
+     "over_price": null,
+     "under_price": null,
+     "price_book": null,
+     "line_snapshot_utc": null,
+     "forecast": {
+      "mean": 3.5,
+      "q": [
+       -4.5,
+       -3.61,
+       -2.72,
+       -1.83,
+       -0.94,
+       -0.06,
+       0.83,
+       1.72,
+       2.61,
+       3.5,
+       4.39,
+       5.28,
+       6.17,
+       7.06,
+       7.94,
+       8.83,
+       9.72,
+       10.61,
+       11.5
+      ],
+      "stamp": "synthetic fixture for the live card tests",
+      "model": null
+     },
+     "actual": null
+    }
+   }
+  }
+ ]
+}

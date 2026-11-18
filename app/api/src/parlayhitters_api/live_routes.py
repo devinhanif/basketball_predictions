@@ -28,11 +28,13 @@ from .live import (
     snapshot_payload,
     sse,
 )
+from .live_card_routes import register_live_card
 from .params import EventId, LiveDate
 
 
 def register_live(app: FastAPI, hub: LiveHub) -> None:
     app.state.live_hub = hub
+    register_live_card(app, hub)
 
     @app.get("/api/live/{date}")
     async def live_games(date: LiveDate) -> dict[str, Any]:
