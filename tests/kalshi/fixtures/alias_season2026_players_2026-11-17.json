@@ -1,0 +1,382 @@
+{
+ "kalshi_names": {
+  "AJ Dybantsa": {
+   "evidence_night": "11-16",
+   "full_name": "AJ Dybantsa",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV16MEMWAS",
+   "player_id": 1643407,
+   "team": "WAS"
+  },
+  "Anthony Black": {
+   "evidence_night": "11-16",
+   "full_name": "Anthony Black",
+   "games_played_2026": 10,
+   "kalshi_event": "26NOV16ORLBOS",
+   "player_id": 1641710,
+   "team": "ORL"
+  },
+  "Bones Hyland": {
+   "evidence_night": "11-16",
+   "full_name": "Bones Hyland",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV16PORMIN",
+   "player_id": 1630538,
+   "team": "MIN"
+  },
+  "Brice Sensabaugh": {
+   "evidence_night": "11-17",
+   "full_name": "Brice Sensabaugh",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1641729,
+   "team": "UTA"
+  },
+  "Cam Spencer": {
+   "evidence_night": "11-16",
+   "full_name": "Cam Spencer",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV16MEMWAS",
+   "player_id": 1642285,
+   "team": "MEM"
+  },
+  "Coby White": {
+   "evidence_night": "11-17",
+   "full_name": "Coby White",
+   "games_played_2026": 6,
+   "kalshi_event": "26NOV17CHALAL",
+   "player_id": 1629632,
+   "team": "CHA"
+  },
+  "Danny Wolf": {
+   "evidence_night": "11-16",
+   "full_name": "Danny Wolf",
+   "games_played_2026": 8,
+   "kalshi_event": "26NOV16PHIBKN",
+   "player_id": 1642874,
+   "team": "BKN"
+  },
+  "Dean Wade": {
+   "evidence_night": "11-16",
+   "full_name": "Dean Wade",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV16PHIBKN",
+   "player_id": 1629731,
+   "team": "PHI"
+  },
+  "Derrick Jones Jr.": {
+   "evidence_night": "11-17",
+   "full_name": "Derrick Jones Jr.",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1627884,
+   "team": "LAC"
+  },
+  "Georges Niang": {
+   "evidence_night": "11-16",
+   "full_name": "Georges Niang",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV16GSWNOP",
+   "player_id": 1627777,
+   "team": "GSW"
+  },
+  "Gui Santos": {
+   "evidence_night": "11-16",
+   "full_name": "Gui Santos",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV16GSWNOP",
+   "player_id": 1630611,
+   "team": "GSW"
+  },
+  "Isaac Okoro": {
+   "evidence_night": "11-16",
+   "full_name": "Isaac Okoro",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV16CHICLE",
+   "player_id": 1630171,
+   "team": "CHI"
+  },
+  "Isaiah Jackson": {
+   "evidence_night": "11-17",
+   "full_name": "Isaiah Jackson",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1630543,
+   "team": "LAC"
+  },
+  "Ja'Kobe Walter": {
+   "evidence_night": "11-17",
+   "full_name": "Ja'Kobe Walter",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV17NYKTOR",
+   "player_id": 1642266,
+   "team": "TOR"
+  },
+  "Jake LaRavia": {
+   "evidence_night": "11-17",
+   "full_name": "Jake LaRavia",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV17CHALAL",
+   "player_id": 1631222,
+   "team": "LAL"
+  },
+  "Javonte Green": {
+   "evidence_night": "11-17",
+   "full_name": "Javonte Green",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV17DETSAS",
+   "player_id": 1629750,
+   "team": "DET"
+  },
+  "Jordan Goodwin": {
+   "evidence_night": "11-16",
+   "full_name": "Jordan Goodwin",
+   "games_played_2026": 9,
+   "kalshi_event": "26NOV16PHXDEN",
+   "player_id": 1630692,
+   "team": "PHX"
+  },
+  "Jordan Poole": {
+   "evidence_night": "11-16",
+   "full_name": "Jordan Poole",
+   "games_played_2026": 9,
+   "kalshi_event": "26NOV16GSWNOP",
+   "player_id": 1629673,
+   "team": "NOP"
+  },
+  "Jordan Walsh": {
+   "evidence_night": "11-16",
+   "full_name": "Jordan Walsh",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV16ORLBOS",
+   "player_id": 1641775,
+   "team": "BOS"
+  },
+  "Josh Green": {
+   "evidence_night": "11-17",
+   "full_name": "Josh Green",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1630182,
+   "team": "UTA"
+  },
+  "Josh Okogie": {
+   "evidence_night": "11-17",
+   "full_name": "Josh Okogie",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1629006,
+   "team": "UTA"
+  },
+  "Kevin Huerter": {
+   "evidence_night": "11-17",
+   "full_name": "Kevin Huerter",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV17DETSAS",
+   "player_id": 1628989,
+   "team": "DET"
+  },
+  "Kris Dunn": {
+   "evidence_night": "11-17",
+   "full_name": "Kris Dunn",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1627739,
+   "team": "LAC"
+  },
+  "Luka Garza": {
+   "evidence_night": "11-16",
+   "full_name": "Luka Garza",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV16ORLBOS",
+   "player_id": 1630568,
+   "team": "BOS"
+  },
+  "Luke Kennard": {
+   "evidence_night": "11-16",
+   "full_name": "Luke Kennard",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV16PHXDEN",
+   "player_id": 1628379,
+   "team": "PHX"
+  },
+  "Matisse Thybulle": {
+   "evidence_night": "11-17",
+   "full_name": "Matisse Thybulle",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV17CHALAL",
+   "player_id": 1629680,
+   "team": "LAL"
+  },
+  "Max Strus": {
+   "evidence_night": "11-17",
+   "full_name": "Max Strus",
+   "games_played_2026": 6,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1629622,
+   "team": "LAC"
+  },
+  "Meleek Thomas": {
+   "evidence_night": "11-16",
+   "full_name": "Meleek Thomas",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV16CHICLE",
+   "player_id": 1643509,
+   "team": "CLE"
+  },
+  "Mo Bamba": {
+   "evidence_night": "11-17",
+   "full_name": "Mo Bamba",
+   "games_played_2026": 10,
+   "kalshi_event": "26NOV17UTALAC",
+   "player_id": 1628964,
+   "team": "UTA"
+  },
+  "Noah Clowney": {
+   "evidence_night": "11-16",
+   "full_name": "Noah Clowney",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV16PHIBKN",
+   "player_id": 1641730,
+   "team": "BKN"
+  },
+  "Oso Ighodaro": {
+   "evidence_night": "11-16",
+   "full_name": "Oso Ighodaro",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV16PHXDEN",
+   "player_id": 1642345,
+   "team": "PHX"
+  },
+  "Patrick Williams": {
+   "evidence_night": "11-16",
+   "full_name": "Patrick Williams",
+   "games_played_2026": 6,
+   "kalshi_event": "26NOV16CHICLE",
+   "player_id": 1630172,
+   "team": "CHI"
+  },
+  "Paul Reed": {
+   "evidence_night": "11-17",
+   "full_name": "Paul Reed",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV17DETSAS",
+   "player_id": 1630194,
+   "team": "DET"
+  },
+  "Pelle Larsson": {
+   "evidence_night": "11-16",
+   "full_name": "Pelle Larsson",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV16HOUMIA",
+   "player_id": 1641796,
+   "team": "MIA"
+  },
+  "Robert Williams III": {
+   "evidence_night": "11-16",
+   "full_name": "Robert Williams III",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV16PORMIN",
+   "player_id": 1629057,
+   "team": "POR"
+  },
+  "Ryan Kalkbrenner": {
+   "evidence_night": "11-17",
+   "full_name": "Ryan Kalkbrenner",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV17CHALAL",
+   "player_id": 1641750,
+   "team": "CHA"
+  },
+  "Sidy Cissoko": {
+   "evidence_night": "11-16",
+   "full_name": "Sidy Cissoko",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV16PORMIN",
+   "player_id": 1631321,
+   "team": "POR"
+  },
+  "Sion James": {
+   "evidence_night": "11-17",
+   "full_name": "Sion James",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV17CHALAL",
+   "player_id": 1642883,
+   "team": "CHA"
+  },
+  "Taylor Hendricks": {
+   "evidence_night": "11-16",
+   "full_name": "Taylor Hendricks",
+   "games_played_2026": 9,
+   "kalshi_event": "26NOV16MEMWAS",
+   "player_id": 1641707,
+   "team": "MEM"
+  },
+  "Terrence Shannon Jr.": {
+   "evidence_night": "11-16",
+   "full_name": "Terrence Shannon Jr.",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV16PORMIN",
+   "player_id": 1630545,
+   "team": "MIN"
+  },
+  "Tre Johnson": {
+   "evidence_night": "11-16",
+   "full_name": "Tre Johnson",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV16MEMWAS",
+   "player_id": 1642848,
+   "team": "WAS"
+  },
+  "Trevon Brazile": {
+   "evidence_night": "11-16",
+   "full_name": "Trevon Brazile",
+   "games_played_2026": 12,
+   "kalshi_event": "26NOV16PHXDEN",
+   "player_id": 1642350,
+   "team": "DEN"
+  },
+  "Trey Lyles": {
+   "evidence_night": "11-16",
+   "full_name": "Trey Lyles",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV16PORMIN",
+   "player_id": 1626168,
+   "team": "MIN"
+  },
+  "Tristan da Silva": {
+   "evidence_night": "11-16",
+   "full_name": "Tristan da Silva",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV16ORLBOS",
+   "player_id": 1641783,
+   "team": "ORL"
+  },
+  "Tyrese Proctor": {
+   "evidence_night": "11-16",
+   "full_name": "Tyrese Proctor",
+   "games_played_2026": 14,
+   "kalshi_event": "26NOV16CHICLE",
+   "player_id": 1642878,
+   "team": "CLE"
+  },
+  "Will Richard": {
+   "evidence_night": "11-16",
+   "full_name": "Will Richard",
+   "games_played_2026": 13,
+   "kalshi_event": "26NOV16GSWNOP",
+   "player_id": 1642954,
+   "team": "GSW"
+  },
+  "Ziaire Williams": {
+   "evidence_night": "11-17",
+   "full_name": "Ziaire Williams",
+   "games_played_2026": 11,
+   "kalshi_event": "26NOV17CHALAL",
+   "player_id": 1630533,
+   "team": "LAL"
+  }
+ },
+ "query": "box_scores where season = 2026 and minutes > 0, grouped by player_id and team_id; players.full_name",
+ "source": "data/export/latest/export.duckdb (export_date 2026-11-17, data_version 6edbcef0c89d), a scratch copy opened read_only"
+}
