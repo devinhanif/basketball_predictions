@@ -1,6 +1,6 @@
 # CAL_SERVING_CHECKS: is every calibrated chance the app shows computed the way the map was fitted, paired with a line known at the time, and is nothing shown where no calibrated chance exists? (acceptance checks, pre-registration form)
 
-Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-17 19:55 CST (clock read by `date`), branch
+Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-17, committed 19:58 CST (clock read by `date` at commit), branch
 `agent/modeler-calibration-program`. Not frozen. Nothing fitted, nothing scored, no outcome read.**
 - **How it becomes the rule:** the main session commits `prereg(CAL_SERVING_CHECKS): <sha256>` of everything above the line
   `=== RESULTS BELOW ===` (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/CAL_SERVING_CHECKS.md | shasum -a 256`), after an

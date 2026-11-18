@@ -1,6 +1,6 @@
 # CAL_BY_TIME: does the frozen T-60 line map keep production's P(over) honest when the line is read in the morning, at T-60, at T-30 and at T-15? (pre-registration)
 
-Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-17 20:05 CST (clock read by `date`), branch
+Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-17, committed 19:58 CST (clock read by `date` at commit), branch
 `agent/modeler-calibration-program`. Not frozen. No map fitted, no outcome read, no CAL or RAW score on any 2026 leg.**
 - **How it becomes the rule:** the main session commits `prereg(CAL_BY_TIME): <sha256>` of everything above `=== RESULTS BELOW ===`
   (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/CAL_BY_TIME.md | shasum -a 256`), after: the T-30 gate count (section 5,

@@ -1,6 +1,6 @@
 # PPLAY_CAL_LIVE: is the chance of playing the app shows honest, bin by bin, on the 2026-27 live log? (pre-registration)
 
-Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-17 20:30 CST (clock read by `date`), branch
+Status: **DRAFT, revision 0, written by the modeler Tue 2026-11-17, committed 19:58 CST (clock read by `date` at commit), branch
 `agent/modeler-calibration-program`. Not frozen. Nothing fitted, no outcome read: only stated probabilities were counted.**
 - **How it becomes the rule:** the main session commits `prereg(PPLAY_CAL_LIVE): <sha256>` of everything above `=== RESULTS BELOW ===`
   (`awk '/^=== RESULTS BELOW ===$/{exit} {print}' docs/prereg/PPLAY_CAL_LIVE.md | shasum -a 256`) after an adversary pre-freeze read and

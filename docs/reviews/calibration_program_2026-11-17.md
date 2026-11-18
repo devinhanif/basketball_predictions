@@ -1,6 +1,6 @@
 # Calibration program, 2026-11-17: audit against forecasting best practice, four draft rules, and what calibration cannot do
 
-Modeler, branch `agent/modeler-calibration-program` (off main `127de40d`). Written Tue 2026-11-17 19:40-20:45 CST (clock read by `date`).
+Modeler, branch `agent/modeler-calibration-program` (off main `127de40d`). Written Tue 2026-11-17 19:38-19:58 CST (worktree created 19:38; first commit 19:58, both read by `date`).
 Asked by Devin today: "do everything in forecasting best practices to calibrate the model", and earlier "make sure the model is calibrated
 always". This is **advice work** (it follows the retrain survey part 3, the decisions review row 7 and the CALIBRATION_EVERYWHERE plan). It
 drafts rules; it freezes nothing, fits nothing and reads no outcome.
@@ -170,11 +170,11 @@ consequences:
 **PREDICTIONS_LEDGER** (priors stated before any result; seen before: stated probabilities only, label-free; no 2026 outcome):
 | Date | Rule / question | Prior stated before the result | Where written | Outcome | Hit? |
 |---|---|---|---|---|---|
-| 2026-11-17 20:45 | CAL_SERVING_CHECKS (draft rev 0) | P(C1 coverage >= 0.98 on the first 7-slate scan after a pairing fix) 0.60; P(SERVING_OK, all of C1-C8, by 2026-12-31) 0.30 | docs/prereg/CAL_SERVING_CHECKS.md | pending | |
-| 2026-11-17 20:45 | CAL_BY_TIME (draft rev 0) | P(t60 HOLDS) 0.45; P(t15 HOLDS) 0.40; P(morning HOLDS) 0.30; P(>= 1 slot NOT_HONEST) 0.35; P(look by 2027-02-15) 0.70; expected Pinnacle t15 M1 +0.01 (80% -0.02 to +0.04) | docs/prereg/CAL_BY_TIME.md | pending | |
-| 2026-11-17 20:45 | LADDER_CAL (draft rev 0) | P(Stage 0 kills) 0.08; P(P1 passes live) 0.75; P(all five bins pass) 0.35; P(the [0.8, 0.97] bin is the failing one, given any fails) 0.55; expected P1 -0.006 (80% -0.012 to -0.001) | docs/prereg/LADDER_CAL.md | pending | |
-| 2026-11-17 20:45 | PPLAY_CAL_LIVE (draft rev 0) | P(HONEST) 0.30; P(NOT_HONEST) 0.35; P(INCONCLUSIVE) 0.30; P(INSUFFICIENT_DATA) 0.05; P([0.5, 0.7) bin realises > stated + 0.05) 0.40 | docs/prereg/PPLAY_CAL_LIVE.md | pending | |
-| 2026-11-17 20:45 | Freezes | P(at least two of the four frozen by 2026-12-05) 0.50 | this review | pending | |
+| 2026-11-17 19:58 | CAL_SERVING_CHECKS (draft rev 0) | P(C1 coverage >= 0.98 on the first 7-slate scan after a pairing fix) 0.60; P(SERVING_OK, all of C1-C8, by 2026-12-31) 0.30 | docs/prereg/CAL_SERVING_CHECKS.md | pending | |
+| 2026-11-17 19:58 | CAL_BY_TIME (draft rev 0) | P(t60 HOLDS) 0.45; P(t15 HOLDS) 0.40; P(morning HOLDS) 0.30; P(>= 1 slot NOT_HONEST) 0.35; P(look by 2027-02-15) 0.70; expected Pinnacle t15 M1 +0.01 (80% -0.02 to +0.04) | docs/prereg/CAL_BY_TIME.md | pending | |
+| 2026-11-17 19:58 | LADDER_CAL (draft rev 0) | P(Stage 0 kills) 0.08; P(P1 passes live) 0.75; P(all five bins pass) 0.35; P(the [0.8, 0.97] bin is the failing one, given any fails) 0.55; expected P1 -0.006 (80% -0.012 to -0.001) | docs/prereg/LADDER_CAL.md | pending | |
+| 2026-11-17 19:58 | PPLAY_CAL_LIVE (draft rev 0) | P(HONEST) 0.30; P(NOT_HONEST) 0.35; P(INCONCLUSIVE) 0.30; P(INSUFFICIENT_DATA) 0.05; P([0.5, 0.7) bin realises > stated + 0.05) 0.40 | docs/prereg/PPLAY_CAL_LIVE.md | pending | |
+| 2026-11-17 19:58 | Freezes | P(at least two of the four frozen by 2026-12-05) 0.50 | this review | pending | |
 
 **DECISIONS** (for the main session after Devin reads it): "2026-11-17 | Calibration program drafted (agent/modeler-calibration-program):
 audit of 22 best-practice rows (DONE 5, PARTIAL 7, MISSING 6, BLOCKED 4 by LINE_CAL_LIVE or by data); four drafts: CAL_SERVING_CHECKS
