@@ -32,8 +32,8 @@ function Chooser(props: { ctx: Ctx; game: ComboGame; script: ScriptName; onPick:
                 <th scope="col" class="num">tonight</th>
               ) : (
                 <>
-                  <th scope="col" class="num">2023 / 2024</th>
-                  <th scope="col" class="num">this season</th>
+                  <th scope="col" class="num">2023/24</th>
+                  <th scope="col" class="num">season</th>
                 </>
               )}
               <th scope="col">status</th>
@@ -55,7 +55,7 @@ function Chooser(props: { ctx: Ctx; game: ComboGame; script: ScriptName; onPick:
                   ) : (
                     <>
                       <td class="num">
-                        {pct(SCRIPT_REALISED[s].y2023, 1)} / {pct(SCRIPT_REALISED[s].y2024, 1)}
+                        {pct(SCRIPT_REALISED[s].y2023, 0)}/{pct(SCRIPT_REALISED[s].y2024, 0)}
                       </td>
                       <td class="num">{h !== undefined ? `${h.n_occurred.toString()}/${h.n_games.toString()}` : "n/a"}</td>
                     </>

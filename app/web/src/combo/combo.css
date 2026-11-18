@@ -434,9 +434,7 @@
 }
 @media (max-width: 600px) {
   .cb-script-table th:nth-child(2),
-  .cb-script-table td:nth-child(2),
-  .cb-script-table th:nth-child(4),
-  .cb-script-table td:nth-child(4) {
+  .cb-script-table td:nth-child(2) {
     display: none;
   }
 }
@@ -831,4 +829,22 @@
   .cb-list h2 {
     margin-bottom: 4px;
   }
+}
+
+/* ---- the app's own top matter stays out of the way on this route (route-scoped; the intro card is not rendered here at all) ---- */
+.shell[data-route="combo"] .dataline {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 2.4em;
+}
+.shell[data-route="combo"] .dataline > *,
+.shell[data-route="combo"] .dataline p {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shell[data-route="combo"] .hstrip {
+  display: none;
 }

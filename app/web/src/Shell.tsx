@@ -456,7 +456,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
     });
 
   return (
-    <div class="shell">
+    <div class="shell" data-route={props.route.name}>
       <a
         class="skip-link"
         href="#main"

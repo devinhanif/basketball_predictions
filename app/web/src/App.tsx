@@ -127,7 +127,7 @@ export function App() {
   return (
     <Boundary outer>
       <Shell route={route} meta={meta} offline={stale}>
-        <Welcome deep={route.name !== "today"} />
+        {route.name === "combo" ? null : <Welcome deep={route.name !== "today"} />}
         <Boundary resetKey={JSON.stringify(route)}>{page}</Boundary>
       </Shell>
       {IS_ARTIFACT ? null : <Tour />}

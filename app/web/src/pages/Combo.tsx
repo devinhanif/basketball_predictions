@@ -68,7 +68,10 @@ function ExploreOnly() {
         type="button"
         class="btn primary"
         onClick={() => {
+          // Land on the combo screen itself, at the top, with its first game showing.
+          if (window.location.hash.replace(/\?.*$/, "") !== "#/combo") window.location.hash = "#/combo";
           setPref("lens", "explore");
+          window.scrollTo(0, 0);
         }}
       >
         Switch to Explore
