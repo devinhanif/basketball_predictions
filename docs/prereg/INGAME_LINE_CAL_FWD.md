@@ -48,8 +48,9 @@ against an **arithmetic count baseline** (no fitted parameters except an optiona
 * H0 for each: the difference is above the floor (the model adds less than 0.005 over arithmetic, or over the market).
 
 ## 1. Rows (exact)
-From `data/jarvis/ingame_checkpoints.duckdb`, table `checkpoint_scored`, read by the scorer only after the look date, through a copy (the
-live writer connects without retry; contract `docs/contracts/ingame_checkpoint_snapshot_v1.md`):
+From `data/jarvis/ingame_checkpoints.duckdb`, table `checkpoint_scored`, always through a copy (the live writer connects without retry;
+contract `docs/contracts/ingame_checkpoint_snapshot_v1.md`). Before the look only counts are read (rows, games, dates; the table has no
+outcome column); outcomes are joined to rows only by the scorer, at the look (section 5):
 * `mode = 'live'`, `within_prereg_window = true`, `artifact_digest =` the pinned digest above, `model_support = 'trained'`, `n_prior >= 5`.
 * **Forward only:** `slate_date` strictly after the ET date of the freeze commit (the whole night after the commit, so no night is split).
   Every row with an earlier `slate_date` is **burned**: never scored, never read for an outcome, never used to choose anything. Counting
