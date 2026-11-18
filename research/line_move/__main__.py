@@ -59,6 +59,12 @@ def _nba_api_version() -> str:
         return "unknown"
 
 
+# The frozen rules read the alias table as it was at their freeze (spec.ALIASES_SHA256, commit 57164b8).
+# The live table has grown since (2026-11-17), so the default is the byte-identical pinned copy; the sha
+# check below still refuses any other bytes.
+PINNED_ALIASES_FILE = "kalshi_aliases_t510_pin_57164b8.yaml"
+
+
 def _aliases_sha(path: Path) -> str:
     return spec.sha256_file(path)
 
@@ -384,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
     for name, fn in (("preflight", cmd_preflight), ("score", cmd_score)):
         p = sub.add_parser(name)
         p.add_argument("--nba-db", required=True, help="a COPY of nba.duckdb")
-        p.add_argument("--aliases", default=str(REPO / "configs" / "kalshi_aliases.yaml"))
+        p.add_argument("--aliases", default=str(REPO / "configs" / PINNED_ALIASES_FILE))
         p.add_argument("--record", default=str(spec.DRYRUN_RECORD))
         if name == "preflight":
             p.add_argument("--date", required=True)
@@ -397,7 +403,7 @@ def main(argv: list[str] | None = None) -> int:
     u.add_argument("--rule", required=True, choices=["T510", "T510b"])
     u.add_argument("--reason", required=True, choices=list(spec.UNSCOREABLE_REASONS))
     u.add_argument("--nba-db", default=None, help="a COPY of nba.duckdb (horizon_not_reached)")
-    u.add_argument("--aliases", default=str(REPO / "configs" / "kalshi_aliases.yaml"))
+    u.add_argument("--aliases", default=str(REPO / "configs" / PINNED_ALIASES_FILE))
     u.set_defaults(fn=cmd_mark_unscoreable)
     ns = ap.parse_args(argv)
     try:
