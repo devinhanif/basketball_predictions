@@ -202,6 +202,7 @@ describe("what the combo screen may not contain (source checks)", () => {
     expect(bits).toContain("r.label");
     const sc = text(join(dir, "ComboScript.tsx"));
     expect(sc).toContain("statusWord(shared, s)");
-    expect(sc).toContain("Exploratory");
+    expect(text(join(dir, "ComboScriptModel.tsx"))).toContain("Exploratory");
+    expect(text(join(dir, "ComboScriptHistory.tsx"))).toContain("Exploratory");
   });
 });

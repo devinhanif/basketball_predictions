@@ -437,3 +437,25 @@
     display: none;
   }
 }
+
+/* One look, two densities (Devin, 2026-11-17): the terminal base above serves both modes; Simple only enlarges type and photos. */
+.cb-simple.cb-term {
+  font-size: var(--fs-lg);
+}
+.cb-simple.cb-term .small {
+  font-size: var(--fs-md);
+}
+.cb-simple.cb-term .cb-end-main {
+  font-size: var(--fs-2xl);
+}
+.cb-sub {
+  margin-top: var(--sp-3);
+}
+.cb-term .seg,
+.cb-term .seg-btn {
+  border-radius: 0;
+}
+.cb-hrow {
+  grid-template-areas: "av who";
+  grid-template-columns: auto minmax(0, 1fr);
+}

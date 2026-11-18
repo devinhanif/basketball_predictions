@@ -26,7 +26,7 @@ describe("the square bar", () => {
     const section = css.slice(css.indexOf("/* ---- the square bar ---- */"), css.indexOf("/* ---- Analyst"));
     expect(section.length).toBeGreaterThan(200);
     expect(section).not.toMatch(/border-radius|gradient|box-shadow|outline|filter|blur/);
-    const row = read("ComboScript.tsx");
+    const row = read("ComboScriptModel.tsx");
     expect(row).toContain("cb-delta");
     expect(row).toMatch(/sign\b/);
   });
@@ -44,7 +44,7 @@ describe("terminal counts and photos", () => {
     expect(histCompact(null, "blowout", "over")).toBeNull();
   });
   it("every screen that names a player uses the app's Avatar, with the remote headshot and its fallback, and no image file is copied", () => {
-    for (const f of ["ComboScript.tsx", "Bits.tsx", "ComboBuild.tsx"]) expect(read(f)).toContain('from "../Avatar"');
+    for (const f of ["ComboScriptModel.tsx", "ComboScriptHistory.tsx", "Bits.tsx", "ComboBuild.tsx"]) expect(read(f)).toContain('from "../Avatar"');
     expect(read("Bits.tsx")).toMatch(/<Avatar [^>]*remote/);
     expect(read("ComboLift.tsx")).toContain("<Faces");
     expect(read("ComboTarget.tsx")).toContain("<Faces");
@@ -53,6 +53,7 @@ describe("terminal counts and photos", () => {
   it("Analyst is a terminal (monospace, square corners, no glow) and Simple keeps larger type and photos", () => {
     const css = read("combo.css");
     expect(css).toMatch(/\.cb-term \{[^}]*font-family: var\(--mono\)/);
+    expect(css).toMatch(/\.cb-simple\.cb-term \{\s*font-size: var\(--fs-lg\)/);
     expect(css).toMatch(/\.cb-term \.btn,[\s\S]*?border-radius: 0;[\s\S]*?box-shadow: none/);
     expect(css).toMatch(/\.cb-simple \.cb-row \.cb-av \.avatar \{\s*width: 56px;\s*height: 68px/);
     expect(read("../pages/Combo.tsx")).toContain("cb-term");

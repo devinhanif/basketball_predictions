@@ -278,3 +278,57 @@ export function histCompact(hist: Hist | null, script: ScriptName, side: "over" 
   if (hist.n_all !== null && hist.k_all !== null) parts.push(`all ${sideCount(side, hist.n_all, hist.k_all).toString()}/${hist.n_all.toString()}`);
   return parts.length === 0 ? null : parts.join("  ");
 }
+
+/**
+ * Merge-back switch. true (Devin, 2026-11-17, the strict reading of the LINE_CAL_LIVE display lock): the season counts live on their
+ * own History tab, which shows no model chance, and the Model tab shows no count. After the LINE_CAL_LIVE look (about 2026-12-01)
+ * set this to false and the counts return beside the model's chance on one view; nothing else changes.
+ */
+export const SEPARATE_HISTORY: boolean = ((): boolean => true)();
+
+export interface HistoryRow {
+  player: ComboPlayer;
+  stat: string;
+  line: number;
+  hist: Hist;
+}
+
+/**
+ * The History tab's rows: every posted, calibrated-range line that has stored counts, SORTED BY PLAYER NAME (then stat order), so the
+ * order carries nothing of the model. No chance is computed or read here. `missing` counts lines with no stored counts.
+ */
+export function historyView(game: ComboGame): { rows: HistoryRow[]; missing: number } {
+  const rows: HistoryRow[] = [];
+  let missing = 0;
+  for (const player of game.players) {
+    for (const [stat, grid] of statEntries(player)) {
+      const ml = grid.main_line;
+      if (ml === null || !lineInRange(grid, ml)) continue;
+      const hist = readHist(grid.hist);
+      if (hist === null) missing += 1;
+      else rows.push({ player, stat, line: ml, hist });
+    }
+  }
+  const order = (st: string): number => ["pts", "reb", "ast", "fg3m"].indexOf(st);
+  rows.sort((a, b) => (a.player.name < b.player.name ? -1 : a.player.name > b.player.name ? 1 : a.player.player_id - b.player.player_id || order(a.stat) - order(b.stat)));
+  return { rows, missing };
+}
+
+/** One plain line with both sides: "In blowouts this season: over 24.5 in 2 of 3 games, under 24.5 in 1 of 3 games. All games this season: over 7 of 12, under 5 of 12." */
+export function historyText(h: Hist, script: ScriptName, line: number): { text: string; few: boolean } {
+  const pair = h.by[script];
+  const all = h.n_all !== null && h.k_all !== null ? `All games this season: over ${h.k_all.toString()} of ${h.n_all.toString()}, under ${(h.n_all - h.k_all).toString()} of ${h.n_all.toString()}.` : "";
+  if (pair === undefined) return { text: all, few: false };
+  const [n, k] = pair;
+  if (n === 0) return { text: `No ${SCRIPT_PLURAL[script]} yet this season. ${all}`.trim(), few: false };
+  return {
+    text: `In ${SCRIPT_PLURAL[script]} this season: over ${line.toString()} in ${k.toString()} of ${n.toString()} games, under ${line.toString()} in ${(n - k).toString()} of ${n.toString()}. ${all}`.trim(),
+    few: n < 5,
+  };
+}
+
+/** The text of a Model row, for the lock test: names, the leg, chances and the signed change. Never a count. */
+export function modelRowText(r: Pick<ScriptRow, "player" | "stat" | "side" | "line" | "p_now" | "p_script" | "change">): string {
+  const d = r.change * 100;
+  return `${r.player.name} ${r.side} ${r.line.toString()} ${STAT_NAME[r.stat] ?? r.stat} ${(r.p_script * 100).toFixed(1)}% ${d >= 0 ? "+" : "-"}${Math.abs(d).toFixed(1)} pts was ${(r.p_now * 100).toFixed(1)}%`;
+}

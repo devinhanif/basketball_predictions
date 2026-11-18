@@ -130,7 +130,7 @@ function Body(props: { night: Night }) {
   const tipped = hasTipped(game, ctx.clock);
   const madeAt = games.map((g) => g.made_at).sort().at(-1);
   return (
-    <div class={`stack cb-page ${analyst ? "cb-term" : "cb-simple"}`}>
+    <div class={`stack cb-page cb-term ${analyst ? "cb-dense" : "cb-simple"}`}>
       {ctx.payload.fixture ? (
         <p class="panel cb-fixture" role="note">
           <strong>Fixture night.</strong> {ctx.payload.fixture.label}
