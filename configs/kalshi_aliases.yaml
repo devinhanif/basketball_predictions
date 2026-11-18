@@ -286,3 +286,56 @@ aliases:
   "Josh Giddey": 1630581
   "Nickeil Alexander-Walker": 1629638
   "Quentin Grimes": 1629656
+  # Reviewed 2026-11-17 (market agent, Devin: "use websearch and match stats"; docs/reviews/kalshi_aliases_2026-11-17.md).
+  # Every Kalshi prop name unresolved on the 11-16 slate (454 markets). Each row needs BOTH: a public page
+  # (league or major outlet) showing that player on that team for 2026-27, AND our season-2026 box scores on
+  # one team equal to the team code in the Kalshi ticker, his team playing that event, rungs near his averages.
+  # A. Evidence 2 from the 11-16 markets (29 names, 454 markets):
+  "AJ Dybantsa": 1643407  # WAS, 11 gp
+  "Anthony Black": 1641710  # ORL, 10 gp
+  "Bones Hyland": 1630538  # MIN, 14 gp
+  "Cam Spencer": 1642285  # MEM, 14 gp
+  "Danny Wolf": 1642874  # BKN, 8 gp
+  "Dean Wade": 1629731  # PHI, 13 gp
+  "Georges Niang": 1627777  # GSW, 14 gp
+  "Gui Santos": 1630611  # GSW, 11 gp
+  "Isaac Okoro": 1630171  # CHI, 13 gp
+  "Jordan Goodwin": 1630692  # PHX, 9 gp
+  "Jordan Poole": 1629673  # NOP, 9 gp
+  "Jordan Walsh": 1641775  # BOS, 14 gp
+  "Luka Garza": 1630568  # BOS, 14 gp
+  "Luke Kennard": 1628379  # PHX, 12 gp
+  "Meleek Thomas": 1643509  # CLE, 12 gp
+  "Noah Clowney": 1641730  # BKN, 13 gp
+  "Oso Ighodaro": 1642345  # PHX, 11 gp
+  "Patrick Williams": 1630172  # CHI, 6 gp
+  "Pelle Larsson": 1641796  # MIA, 11 gp
+  "Robert Williams III": 1629057  # POR, 11 gp
+  "Sidy Cissoko": 1631321  # POR, 13 gp
+  "Taylor Hendricks": 1641707  # MEM, 9 gp
+  "Terrence Shannon Jr.": 1630545  # MIN, 11 gp
+  "Tre Johnson": 1642848  # WAS, 13 gp
+  "Trevon Brazile": 1642350  # DEN, 12 gp
+  "Trey Lyles": 1626168  # MIN, 14 gp
+  "Tristan da Silva": 1641783  # ORL, 11 gp
+  "Tyrese Proctor": 1642878  # CLE, 14 gp
+  "Will Richard": 1642954  # GSW, 13 gp
+  # B. Same rule, but the team did not play 11-16: evidence 2 from the on-disk 11-17 capture (18 names):
+  "Brice Sensabaugh": 1641729  # UTA, 14 gp
+  "Coby White": 1629632  # CHA, 6 gp
+  "Derrick Jones Jr.": 1627884  # LAC, 11 gp
+  "Isaiah Jackson": 1630543  # LAC, 11 gp
+  "Ja'Kobe Walter": 1642266  # TOR, 13 gp
+  "Jake LaRavia": 1631222  # LAL, 13 gp
+  "Javonte Green": 1629750  # DET, 12 gp
+  "Josh Green": 1630182  # UTA, 12 gp
+  "Josh Okogie": 1629006  # UTA, 13 gp
+  "Kevin Huerter": 1628989  # DET, 12 gp
+  "Kris Dunn": 1627739  # LAC, 12 gp
+  "Matisse Thybulle": 1629680  # LAL, 14 gp
+  "Max Strus": 1629622  # LAC, 6 gp
+  "Mo Bamba": 1628964  # UTA, 10 gp
+  "Paul Reed": 1630194  # DET, 12 gp
+  "Ryan Kalkbrenner": 1641750  # CHA, 13 gp
+  "Sion James": 1642883  # CHA, 13 gp
+  "Ziaire Williams": 1630533  # LAL, 11 gp
