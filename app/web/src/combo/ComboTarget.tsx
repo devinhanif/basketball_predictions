@@ -3,6 +3,7 @@ import { useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
 import { OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
 import { candidateLegs, targetSearch } from "./engine";
+import { MAIN_LINE_ONLY, OTHER_LINES_SENTENCE } from "./script";
 import type { ComboGame, TargetResult } from "./types";
 
 export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
@@ -14,12 +15,13 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
   const [busy, setBusy] = useState(false);
   const droppedByRange = useMemo(() => {
     const mode = floor ? "main_line" : "p_band";
-    return candidateLegs(game, 0.35, 0.75, mode, false).length - candidateLegs(game, 0.35, 0.75, mode, true).length;
+    return candidateLegs(game, 0.35, 0.75, mode, false, MAIN_LINE_ONLY).length - candidateLegs(game, 0.35, 0.75, mode, true, MAIN_LINE_ONLY).length;
   }, [game, floor]);
+  const nCands = useMemo(() => candidateLegs(game, 0.35, 0.75, "p_band", true, MAIN_LINE_ONLY).length, [game]);
   const run = (): void => {
     setBusy(true);
     window.setTimeout(() => {
-      const r = targetSearch(game, ctx.payload.shared, target / 100, k, 5, 40, floor ? "main_line" : "p_band", 0.35, 0.75, true);
+      const r = targetSearch(game, ctx.payload.shared, target / 100, k, 5, 40, floor ? "main_line" : "p_band", 0.35, 0.75, true, MAIN_LINE_ONLY);
       setRes({ r, k });
       setBusy(false);
     }, 20);
@@ -29,8 +31,8 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
       <section class="panel" aria-labelledby="cb-tg-h">
         <h2 id="cb-tg-h">Aim for a chance</h2>
         <p class="small muted">
-          Set the chance you want every leg to hit together and how many legs. We list the over-legs combos that reach it with the most lift: the legs that move
-          together, with each leg between 35% and 75%. Legs above the tested range are never used. The best answer often has a leg near the 35% floor,
+          Set the chance you want every leg to hit together and how many legs. We list the combos of posted lines (over or under) that reach it with the most lift: the legs that move
+          together, with each leg between 35% and 75%. {MAIN_LINE_ONLY ? OTHER_LINES_SENTENCE : ""} Legs above the tested range are never used. The best answer often has a leg near the 35% floor,
           because a low-chance leg is the one that gains most from moving with another.
         </p>
         <div class="cb-controls">
@@ -46,13 +48,20 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
               <option value={4}>4</option>
             </select>
           </label>
-          <label class="cb-check">
-            <input type="checkbox" class="tap-check" checked={floor} onChange={(e) => { setFloor(e.currentTarget.checked); }} /> Only lines at or above the posted number
-          </label>
-          <button type="button" class="btn primary" onClick={run} disabled={busy}>
+          {MAIN_LINE_ONLY ? null : (
+            <label class="cb-check">
+              <input type="checkbox" class="tap-check" checked={floor} onChange={(e) => { setFloor(e.currentTarget.checked); }} /> Only lines at or above the posted number
+            </label>
+          )}
+          <button type="button" class="btn primary" onClick={run} disabled={busy || nCands < k}>
             {busy ? "Searching…" : "Find combos"}
           </button>
         </div>
+        {nCands < k ? (
+          <p class="small" role="note">
+            <strong>Not enough posted lines in this game.</strong> {nCands.toString()} line{nCands === 1 ? "" : "s"} here fall{nCands === 1 ? "s" : ""} between 35% and 75%; {k.toString()} legs need at least {k.toString()}.
+          </p>
+        ) : null}
         <p class="small muted">
           {OUT_OF_RANGE_NOTE}
           {droppedByRange > 0 ? ` ${droppedByRange.toString()} candidate legs in this game were left out for that reason.` : " No candidate leg in this game was left out for that reason."}

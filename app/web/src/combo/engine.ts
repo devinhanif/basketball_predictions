@@ -743,9 +743,25 @@ export function candidateLegs(
   pMax = TARGET_P_MAX,
   floorMode = "p_band",
   calOnly = false,
+  mainOnly = false,
 ): PlayerLeg[] {
   const out: PlayerLeg[] = [];
   for (const p of game.players) {
+    if (mainOnly) {
+      // The app's restriction (not in the reference): each stat's posted main line only, over and under.
+      for (const [stat, grid] of statEntries(p)) {
+        const ml = grid.main_line;
+        if (ml === null || (calOnly && (Math.floor(ml) + 1 < grid.cal_k[0] || Math.floor(ml) + 1 > grid.cal_k[1]))) continue;
+        for (const side of ["over", "under"] as const) {
+          const [lo, hi] = lineToBounds(ml, side);
+          const s = intervalProb(grid, lo, hi);
+          if (!(pMin <= s && s <= pMax)) continue;
+          const leg: PlayerLeg = { kind: "player", game_id: game.game_id, player_id: p.player_id, stat, line: ml, side, p: s };
+          if (!legAboveTestedRange(leg, game)) out.push(leg);
+        }
+      }
+      continue;
+    }
     for (const [stat, grid] of statEntries(p)) {
       const ml = grid.main_line;
       const n = grid.surv.length;
@@ -778,8 +794,8 @@ function search(game: ComboGame, shared: ComboShared, cands: readonly PlayerLeg[
         if (used.has(`${c.player_id.toString()}|${c.stat}`)) continue;
         const neu = [...combo, c];
         const key = neu
-          .map((x) => [x.player_id, x.stat, x.line] as const)
-          .sort((p, q) => p[0] - q[0] || cmpStr(p[1], q[1]) || p[2] - q[2])
+          .map((x) => [x.player_id, x.stat, x.line, x.side] as const)
+          .sort((p, q) => p[0] - q[0] || cmpStr(p[1], q[1]) || p[2] - q[2] || cmpStr(p[3], q[3]))
           .map((t) => t.join("|"))
           .join(";");
         if (nxt.has(key)) continue;
@@ -813,8 +829,9 @@ export function targetSearch(
   pMin = TARGET_P_MIN,
   pMax = TARGET_P_MAX,
   calOnly = false,
+  mainOnly = false,
 ): TargetResult {
-  const cands = candidateLegs(game, pMin, pMax, floorMode, calOnly);
+  const cands = candidateLegs(game, pMin, pMax, floorMode, calOnly, mainOnly);
   let scored = search(game, shared, cands, kLegs, target, beam, true);
   const feasible = scored.length > 0;
   if (!feasible) {

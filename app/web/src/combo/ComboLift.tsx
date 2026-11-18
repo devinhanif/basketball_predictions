@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
 import { OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
 import { liftRanking } from "./engine";
-import { lineInRange } from "./script";
+import { lineInRange, postedLineCount } from "./script";
 import type { ComboGame, RankedCombo } from "./types";
 
 /** The game with every posted line that is outside the calibrated range switched off; the count says how many. */
@@ -54,7 +54,11 @@ export function LiftTab(props: { ctx: Ctx; game: ComboGame }) {
       {rows === null ? (
         <p class="small muted" role="status">Working it out…</p>
       ) : rows.length === 0 ? (
-        <p class="panel">No combo cleared the 2% floor for this game.</p>
+        <p class="panel" role="note">
+          {postedLineCount(cal.game) === 0
+            ? "This game has no usable posted lines, so there is nothing to rank."
+            : "No combo cleared the 2% floor for this game."}
+        </p>
       ) : (
         <ol class="plain cb-rank">
           {rows.map((r) => (

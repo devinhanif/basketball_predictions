@@ -53,6 +53,8 @@ ROUTES: list[tuple[str, tuple[str, ...], dict[str, str]]] = [
     ("/api/contracts/top", (), {"n": "12"}),
     ("/api/desk", (), {}),
     ("/api/top-parlays/{date}", ("date",), {}),
+    ("/api/combo", (), {}),
+    ("/api/combo/{date}", ("date",), {}),
     ("/api/evidence", (), {}),
     ("/api/live/{live_date}", ("live_date",), {}),
     ("/api/live/{event_id}/snapshot", ("event_id",), {}),

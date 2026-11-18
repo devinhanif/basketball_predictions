@@ -1,6 +1,7 @@
 // Pure logic of the combo screen: what a script does to each calibrated main-line leg, the plain sentence, the stored
 // history lines, the calibrated-range filter and the tip rule. No UI imports, no I/O, no prices.
-import { evaluateGameLegs, scriptDefinitions, scriptPrior, statEntries } from "./engine";
+import { instantMs } from "../time";
+import { evaluateGameLegs, scriptDefinitions, scriptPrior, statEntries, survAt } from "./engine";
 import { SCRIPTS, type ComboGame, type ComboPlayer, type ComboShared, type PlayerLeg, type ScriptName, type StatGrid } from "./types";
 
 export const STAT_NAME: Record<string, string> = { pts: "points", reb: "rebounds", ast: "assists", fg3m: "threes" };
@@ -56,6 +57,33 @@ export function scriptGeneric(script: ScriptName, shared: ComboShared): string {
   }
 }
 
+/**
+ * THE restriction of this version: every picker offers each player's posted MAIN line only (over or under), for every framing.
+ * The line calibration was fitted on lines the books posted; applied to an off-main rung it flattens the ladder, so such a rung is
+ * not a trustworthy calibrated number even inside `cal_k`. The engine port stays complete; this is a screen rule.
+ */
+export const MAIN_LINE_ONLY: boolean = ((): boolean => true)();
+export const OTHER_LINES_SENTENCE = "Other lines are left out until their calibration is tested.";
+
+/** The lines of a stat the screen may offer: the posted main line when it is inside the calibrated range (all in-range rungs only if MAIN_LINE_ONLY were off). */
+export function offerableLines(grid: StatGrid): number[] {
+  const ml = grid.main_line;
+  if (MAIN_LINE_ONLY) return ml !== null && lineInRange(grid, ml) ? [ml] : [];
+  const out: number[] = [];
+  for (let k = Math.max(1, grid.cal_k[0]); k <= grid.cal_k[1]; k++) {
+    const p = survAt(grid, k);
+    if (p > 0 && p < 1) out.push(k - 0.5);
+  }
+  return out;
+}
+
+/** How many players' stats in a game carry a posted line at all (the game is "thin" when none does). */
+export function postedLineCount(game: ComboGame): number {
+  let n = 0;
+  for (const p of game.players) for (const [, g] of statEntries(p)) if (g.main_line !== null) n += 1;
+  return n;
+}
+
 /** Is a main-line leg's rung inside the stat's calibrated range? "over x.5" and "under x.5" both sit on rung x + 1. */
 export function lineInRange(grid: Pick<StatGrid, "cal_k">, line: number): boolean {
   const k = Math.floor(line) + 1;
@@ -64,8 +92,8 @@ export function lineInRange(grid: Pick<StatGrid, "cal_k">, line: number): boolea
 
 /** Has the game tipped on this clock? Combo mode is closed for it (a chance is never put beside a result). */
 export function hasTipped(game: Pick<ComboGame, "tip_utc">, clockUtc: string): boolean {
-  const tip = Date.parse(game.tip_utc);
-  const now = Date.parse(clockUtc);
+  const tip = instantMs(game.tip_utc);
+  const now = instantMs(clockUtc);
   if (Number.isNaN(tip) || Number.isNaN(now)) return true; // an unreadable time is closed, never open
   return now >= tip;
 }

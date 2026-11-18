@@ -11,7 +11,8 @@ import { BuildTab } from "../combo/ComboBuild";
 import { LiftTab } from "../combo/ComboLift";
 import { ScriptTab } from "../combo/ComboScript";
 import { TargetTab } from "../combo/ComboTarget";
-import { hasTipped } from "../combo/script";
+import { hasTipped, postedLineCount } from "../combo/script";
+import { statEntries } from "../combo/engine";
 import type { ComboGame } from "../combo/types";
 
 type TabKey = "script" | "lift" | "target" | "build";
@@ -120,7 +121,11 @@ function Body(props: { night: Night }) {
       </StateBlock>
     );
   }
-  const game: ComboGame = games.find((g) => g.game_id === gid) ?? games.find((g) => !hasTipped(g, ctx.clock)) ?? first;
+  const game: ComboGame =
+    games.find((g) => g.game_id === gid) ?? games.find((g) => !hasTipped(g, ctx.clock) && postedLineCount(g) > 0) ?? games.find((g) => !hasTipped(g, ctx.clock)) ?? first;
+  const withLines = games.filter((g) => postedLineCount(g) > 0).length;
+  const nStats = games.reduce((n, g) => n + g.players.reduce((m, p) => m + statEntries(p).length, 0), 0);
+  const nPosted = games.reduce((n, g) => n + postedLineCount(g), 0);
   const tipped = hasTipped(game, ctx.clock);
   const madeAt = games.map((g) => g.made_at).sort().at(-1);
   return (
@@ -137,7 +142,17 @@ function Body(props: { night: Night }) {
         </p>
         <p class="small muted">
           {longDate(night.date)} · forecasts made {madeAt ? stamp(madeAt) : "at an unknown time"} · {games.length.toString()} game{games.length === 1 ? "" : "s"}.
-          Lines outside the range the calibration was checked on are left out of this version.
+          Only each player's posted line is used, and only when it is inside the range the calibration was checked on. Other lines are left out until their calibration is tested.
+        </p>
+        <p class="small" role="note">
+          {nPosted === 0 ? (
+            <strong>No game in this file has a posted line yet, so there is nothing to show. Check back closer to tip-off.</strong>
+          ) : (
+            <>
+              Posted lines are in <span class="num">{withLines.toString()}</span> of <span class="num">{games.length.toString()}</span> games (<span class="num">{nPosted.toString()}</span> of{" "}
+              <span class="num">{nStats.toString()}</span> player stats). A game with none shows that plainly.
+            </>
+          )}
         </p>
       </section>
       <section class="panel cb-pick" aria-label="Pick a game">
@@ -153,6 +168,7 @@ function Body(props: { night: Night }) {
               <option key={g.game_id} value={g.game_id}>
                 {matchup(ctx, g)} · {tipTime(g.tip_utc)}
                 {hasTipped(g, ctx.clock) ? " (tipped)" : ""}
+                {postedLineCount(g) === 0 ? " (no posted lines yet)" : ""}
               </option>
             ))}
           </select>

@@ -3,33 +3,26 @@ import { useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
 import { CLOSED_SENTENCE, OUT_OF_RANGE_NOTE, ResultBlock, legKey, legWords, matchup, pc, type Ctx } from "./Bits";
 import { evaluateCombo, intervalProb, lineToBounds, statEntries } from "./engine";
-import { SCRIPT_TITLE, STAT_NAME, hasTipped, scriptGeneric } from "./script";
+import { OTHER_LINES_SENTENCE, SCRIPT_TITLE, STAT_NAME, hasTipped, offerableLines, postedLineCount, scriptGeneric } from "./script";
 import { SCRIPTS, type ComboGame, type PlayerLeg, type ScriptName } from "./types";
 
 const MAX_LEGS = 8;
-
-/** The x.5 lines of a stat inside its calibrated range with a chance strictly between 0 and 1. */
-export function offeredLines(grid: { k0: number; surv: readonly number[]; cal_k: readonly [number, number] }): number[] {
-  const out: number[] = [];
-  for (let k = Math.max(1, grid.cal_k[0]); k <= grid.cal_k[1]; k++) {
-    const p = intervalProb(grid, k, Infinity);
-    if (p > 0 && p < 1) out.push(k - 0.5);
-  }
-  return out;
-}
 
 export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
   const { ctx } = props;
   const open = useMemo(() => ctx.payload.games.filter((g) => !hasTipped(g, ctx.clock)), [ctx]);
   const closed = ctx.payload.games.length - open.length;
-  const [gid, setGid] = useState(open.find((g) => g.game_id === props.game.game_id)?.game_id ?? open[0]?.game_id ?? "");
+  const [gid, setGid] = useState(
+    (open.find((g) => g.game_id === props.game.game_id && postedLineCount(g) > 0) ?? open.find((g) => postedLineCount(g) > 0) ?? open[0])?.game_id ?? "",
+  );
   const game = open.find((g) => g.game_id === gid);
   const [pid, setPid] = useState<number | null>(null);
-  const player = game === undefined ? undefined : game.players.find((p) => p.player_id === pid) ?? game.players.find((p) => statEntries(p).length > 0);
-  const stats = player === undefined ? [] : statEntries(player);
+  const withLines = (game?.players ?? []).filter((p) => statEntries(p).some(([, g]) => offerableLines(g).length > 0));
+  const player = withLines.find((p) => p.player_id === pid) ?? withLines[0];
+  const stats = player === undefined ? [] : statEntries(player).filter(([, g]) => offerableLines(g).length > 0);
   const [stat, setStat] = useState("pts");
   const entry = stats.find((s) => s[0] === stat) ?? stats[0];
-  const lines = useMemo(() => (entry === undefined ? [] : offeredLines(entry[1])), [entry]);
+  const lines = useMemo(() => (entry === undefined ? [] : offerableLines(entry[1])), [entry]);
   const [lineSel, setLineSel] = useState<number | null>(null);
   const line = lineSel !== null && lines.includes(lineSel) ? lineSel : (entry?.[1].main_line != null && lines.includes(entry[1].main_line) ? entry[1].main_line : lines[Math.floor(lines.length / 2)]);
   const [side, setSide] = useState<"over" | "under">("over");
@@ -71,7 +64,7 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
         <h2 id="cb-b-h">Build your own</h2>
         <p class="small muted">
           Pick calibrated lines from any game that has not tipped. Legs in one game are tied together by the model; legs in different games are treated as
-          independent. {OUT_OF_RANGE_NOTE}
+          independent. Only each player's posted line is offered, over or under. {OTHER_LINES_SENTENCE} {OUT_OF_RANGE_NOTE}
           {closed > 0 ? ` ${closed.toString()} game${closed === 1 ? " has" : "s have"} tipped and ${closed === 1 ? "is" : "are"} not offered.` : ""}
         </p>
         <div class="cb-controls">
@@ -88,7 +81,7 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
           <label class="field">
             <span>Player</span>
             <select value={player?.player_id.toString() ?? ""} onChange={(e) => { setPid(Number(e.currentTarget.value)); setLineSel(null); }}>
-              {(game?.players ?? []).filter((p) => statEntries(p).length > 0).map((p) => (
+              {withLines.map((p) => (
                 <option key={p.player_id} value={p.player_id.toString()}>
                   {p.name}
                 </option>
@@ -124,7 +117,11 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
             </select>
           </label>
         </div>
-        {lines.length === 0 ? <p class="small muted">No line for this stat is inside the calibrated range.</p> : null}
+        {withLines.length === 0 ? (
+          <p class="small" role="note">
+            <strong>No posted lines for this game.</strong> The file holds no posted line for any player in it, so there is nothing to build from here. Try another game.
+          </p>
+        ) : null}
         <p class="small">
           {preview !== null && line !== undefined ? (
             <>

@@ -2,10 +2,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import night from "../../../fixtures/combo/combo_2024-11-12.json";
-import { evaluateGameLegs, scriptPrior } from "./engine";
+import { candidateLegs, evaluateGameLegs, scriptPrior, statEntries } from "./engine";
 import { calibratedOnly } from "./ComboLift";
-import { offeredLines } from "./ComboBuild";
-import { hasTipped, histLine, lineInRange, lineMove, readHist, scriptSentence, scriptView, scriptWords } from "./script";
+import { MAIN_LINE_ONLY, hasTipped, histLine, lineInRange, lineMove, offerableLines, postedLineCount, readHist, scriptSentence, scriptView, scriptWords } from "./script";
 import type { ComboPayload, PlayerLeg } from "./types";
 
 const P = night as unknown as ComboPayload;
@@ -78,14 +77,41 @@ describe("script view", () => {
     expect(calibratedOnly(g).dropped).toBe(calibratedOnly(G).dropped + 1);
     expect(calibratedOnly(g).game.players[0]?.stats.pts?.main_line).toBeNull();
   });
-  it("offered build lines stay inside cal_k", () => {
-    const grid = G.players[0]?.stats.pts;
+  it("the pickers offer the posted main line only (never another rung), inside the calibrated range", () => {
+    expect(MAIN_LINE_ONLY).toBe(true);
+    let seen = 0;
+    for (const g of P.games) {
+      for (const p of g.players) {
+        for (const [, grid] of statEntries(p)) {
+          const lines = offerableLines(grid);
+          expect(lines.length).toBeLessThanOrEqual(1);
+          for (const l of lines) {
+            expect(l).toBe(grid.main_line);
+            expect(lineInRange(grid, l)).toBe(true);
+            seen += 1;
+          }
+        }
+      }
+      // target search candidates are posted lines too, over or under
+      for (const c of candidateLegs(g, 0.35, 0.75, "p_band", true, true)) {
+        const grid = g.players.find((p) => p.player_id === c.player_id)?.stats[c.stat as "pts"];
+        expect(c.line).toBe(grid?.main_line);
+        expect(["over", "under"]).toContain(c.side);
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+  it("a stat with no posted line, or one outside the range, offers nothing; a game with no posted line is thin", () => {
+    const grid = structuredClone(G.players[0]?.stats.pts);
     if (grid === undefined) throw new Error("no grid");
-    const lines = offeredLines(grid);
-    expect(lines.length).toBeGreaterThan(0);
-    for (const l of lines) expect(lineInRange(grid, l)).toBe(true);
-    expect(Math.min(...lines) + 0.5).toBeGreaterThanOrEqual(grid.cal_k[0]);
-    expect(Math.max(...lines) + 0.5).toBeLessThanOrEqual(grid.cal_k[1]);
+    expect(offerableLines({ ...grid, main_line: null })).toEqual([]);
+    expect(offerableLines({ ...grid, cal_k: [grid.cal_k[1] + 3, grid.cal_k[1] + 4] })).toEqual([]);
+    const bare = structuredClone(G);
+    for (const p of bare.players) for (const e of Object.values(p.stats)) e.main_line = null;
+    expect(postedLineCount(bare)).toBe(0);
+    expect(postedLineCount(G)).toBeGreaterThan(0);
+    const v = scriptView(bare, shared, "blowout");
+    expect(v.more.length + v.less.length).toBe(0);
   });
   it("describes each script from the payload's own thresholds", () => {
     expect(scriptWords("blowout", G, shared)).toBe("decided by 15 or more");
