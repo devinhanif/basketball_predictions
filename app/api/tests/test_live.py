@@ -536,6 +536,28 @@ def test_oversized_body_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPat
         L.load_state(L.BodyRef(p, "capture", "20261110T000000Z", 0), DATE, EVENT)
 
 
+def test_stream_starts_with_padding_and_asks_proxies_not_to_buffer(root: Path) -> None:
+    """A proxy that holds small bodies (a quick tunnel did) gets a comment line of padding first, so
+    the first bytes flush; X-Accel-Buffering: no and no-transform are on the response."""
+    srv = start_server(create_app())
+    try:
+        import http.client
+
+        conn = http.client.HTTPConnection("127.0.0.1", srv.port, timeout=5)
+        conn.request("GET", f"/api/live/{EVENT}/stream")
+        r = conn.getresponse()
+        assert r.getheader("X-Accel-Buffering") == "no"
+        assert r.getheader("Cache-Control") == "no-cache, no-transform"
+        first = r.read(len(L.STREAM_PADDING) + 200)
+        assert first.startswith(b":")  # an SSE comment: an EventSource ignores it
+        assert first.split(b"\n", 1)[0] == L.STREAM_PADDING.rstrip("\n").encode()
+        assert len(L.STREAM_PADDING) >= 2048
+        assert b"retry: 2000" in first
+        conn.close()
+    finally:
+        srv.stop()
+
+
 def test_stream_keeps_no_transform(root: Path) -> None:
     srv = start_server(create_app())
     try:

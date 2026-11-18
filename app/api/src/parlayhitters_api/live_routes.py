@@ -18,6 +18,7 @@ from .live import (
     IDLE_CLOSE_S,
     STALE_AFTER_S,
     STREAM_MAX_S,
+    STREAM_PADDING,
     HubFull,
     LiveHub,
     UnknownGame,
@@ -97,7 +98,7 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
             opened = last_body = loop.time()
             stale_sent = False
             try:
-                yield "retry: 2000\n\n" + first[0]
+                yield STREAM_PADDING + "retry: 2000\n\n" + first[0]
                 for m in first[1:]:
                     yield m
                 if final:

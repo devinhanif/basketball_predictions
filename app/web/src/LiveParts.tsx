@@ -27,7 +27,7 @@ import { LOCK_NOTE, isLockedNight } from "./record";
 import type { GameDetail } from "./types";
 import { STAT_SHORT } from "./types";
 import { liveHref } from "./router";
-import { useLiveGame, type LiveConn } from "./useLive";
+import { POLL_MS, useLiveGame, type LiveConn } from "./useLive";
 import { ProblemPanel } from "./Problem";
 import { StateBlock, TabPanel, Tabs } from "./ui";
 import { useLiveFor } from "./useLiveData";
@@ -67,6 +67,16 @@ export function Attribution(props: { note?: string }) {
   return (
     <p class="live-attrib small muted">
       <b>{ATTRIBUTION}</b> {props.note ?? "A delayed feed, not for betting. Plays can be corrected after the fact."}
+    </p>
+  );
+}
+
+/** Plain, not an error: the page is updating by asking for a fresh copy, because the live stream is not getting through. */
+export function PollingNote({ conn }: { conn: Pick<LiveConn, "transport" | "phase"> }) {
+  if (conn.transport !== "polling" || conn.phase === "final") return null;
+  return (
+    <p class="live-polling small muted" role="status">
+      Updating every {(POLL_MS / 1000).toString()} s.
     </p>
   );
 }
@@ -439,6 +449,7 @@ export function LiveGame(props: { eventId: string; game: GameDetail | null; game
     <div class="stack live-game">
       <LiveScoreHead live={live} />
       <AsOf meta={live.meta} receivedMs={conn.receivedMs} state={live.state} />
+      <PollingNote conn={conn} />
       <PhaseNote conn={conn} />
       <Tabs
         label="Live views"
