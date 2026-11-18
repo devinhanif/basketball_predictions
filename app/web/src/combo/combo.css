@@ -188,3 +188,252 @@
 .cb-page input[type="number"] {
   min-height: 44px;
 }
+
+/* ---- photos (the app's Avatar, resized here only) ---- */
+.cb-av {
+  flex: none;
+  display: inline-flex;
+}
+.cb-av .avatar {
+  width: 36px;
+  height: 44px;
+  border-radius: var(--radius-xs);
+}
+.cb-faces {
+  display: inline-flex;
+  gap: var(--sp-1);
+  margin-right: var(--sp-2);
+}
+.cb-pickface {
+  align-self: flex-end;
+}
+.cb-legline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* ---- one row per leg: photo, name and counts, square bar, chance under the script ---- */
+.cb-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "av who end"
+    "bar bar bar";
+  gap: var(--sp-2) var(--sp-3);
+  align-items: start;
+}
+.cb-row .cb-av {
+  grid-area: av;
+}
+.cb-row .cb-who {
+  grid-area: who;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cb-row .cb-end {
+  grid-area: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.cb-row .cb-bar {
+  grid-area: bar;
+}
+.cb-end-main {
+  font-family: var(--display);
+  font-size: var(--fs-xl);
+}
+.cb-legname {
+  color: var(--muted);
+}
+@media (min-width: 900px) {
+  .cb-two .cb-row {
+    grid-template-columns: auto minmax(0, 1fr) 120px auto;
+    grid-template-areas: "av who bar end";
+    align-items: center;
+  }
+}
+
+/* ---- the square bar ---- */
+.cb-bar {
+  position: relative;
+  display: block;
+  height: 18px;
+  min-width: 96px;
+}
+.cb-bar > span {
+  position: absolute;
+  display: block;
+}
+.cb-bar-track {
+  inset: 6px 0;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+}
+.cb-bar-mid {
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.55;
+}
+.cb-bar-band {
+  top: 6px;
+  height: 6px;
+}
+.cb-bar-band.up {
+  background: var(--better);
+}
+.cb-bar-band.down {
+  background: var(--worse);
+}
+.cb-bar-now {
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+.cb-bar-script {
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--ink);
+  border: 1px solid var(--bg);
+}
+.cb-bar-off {
+  right: 0;
+  top: -14px;
+  color: var(--muted);
+}
+.cb-legend {
+  margin: 0;
+}
+
+/* ---- Analyst: a terminal. Monospace, sharp corners, no glow, dense rows. ---- */
+.cb-term,
+.cb-term .panel,
+.cb-term .cb-script,
+.cb-term .cb-sentence,
+.cb-term .cb-estimate,
+.cb-term .cb-warn,
+.cb-term .cb-fixture,
+.cb-term .btn,
+.cb-term select,
+.cb-term input,
+.cb-term .tab,
+.cb-term .cb-av .avatar {
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+  background-image: none;
+}
+.cb-term {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+}
+.cb-term h1,
+.cb-term h2,
+.cb-term h3,
+.cb-term .cb-end-main,
+.cb-term .cb-big {
+  font-family: var(--mono);
+  letter-spacing: 0;
+}
+.cb-term .cb-row {
+  padding-bottom: var(--sp-2);
+  gap: var(--sp-1) var(--sp-2);
+}
+.cb-term .cb-av .avatar {
+  width: 36px;
+  height: 44px;
+}
+.cb-term .cb-rows {
+  gap: var(--sp-2);
+}
+.cb-term .cb-end-main {
+  font-size: var(--fs-lg);
+}
+.cb-term .cb-sentence {
+  font-size: var(--fs-md);
+}
+.cb-term .mono,
+.cb-term .cb-counts {
+  font-family: var(--mono);
+}
+.cb-counts {
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+.cb-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.cb-script-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+}
+.cb-script-table caption {
+  text-align: left;
+  padding-bottom: var(--sp-2);
+  color: var(--accent-ink);
+}
+.cb-script-table th,
+.cb-script-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.cb-script-table .num {
+  text-align: right;
+}
+.cb-script-table tr.on {
+  background: var(--accent-soft);
+}
+.cb-trow {
+  min-height: 32px;
+  padding: 0 8px;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+.cb-trow[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.cb-cmd {
+  font-family: var(--mono);
+}
+
+/* ---- Simple: larger type and bigger photos ---- */
+.cb-simple .cb-row .cb-av .avatar {
+  width: 56px;
+  height: 68px;
+}
+.cb-simple .cb-row {
+  font-size: var(--fs-lg);
+}
+.cb-script-table caption {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .cb-script-table th:nth-child(2),
+  .cb-script-table td:nth-child(2),
+  .cb-script-table th:nth-child(4),
+  .cb-script-table td:nth-child(4) {
+    display: none;
+  }
+}

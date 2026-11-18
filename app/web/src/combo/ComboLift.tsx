@@ -1,7 +1,7 @@
 // Framing 1, game-script lift: which combos of main-line legs move together most, with the reason.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
-import { OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
+import { Faces, OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
 import { liftRanking } from "./engine";
 import { lineInRange, postedLineCount } from "./script";
 import type { ComboGame, RankedCombo } from "./types";
@@ -65,6 +65,7 @@ export function LiftTab(props: { ctx: Ctx; game: ComboGame }) {
             <li key={r.legs.map((l) => `${l.player_id.toString()}${l.stat}`).join("|") + r.side}>
               <Card flat>
                 <p class="cb-row-top">
+                  <Faces legs={r.legs} game={game} ctx={ctx} />
                   <strong>{r.legs.map((l) => legWords(l, game)).join(" and ")}</strong>
                 </p>
                 <p class="cb-row-nums num">

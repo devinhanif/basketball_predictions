@@ -160,6 +160,8 @@ export interface ScriptRow {
   p_script: number;
   change: number;
   hist: HistLine | null;
+  /** Terminal form: "blow 2/4  all 6/12". */
+  hist_short: string | null;
 }
 
 export interface ScriptView {
@@ -208,7 +210,7 @@ export function scriptView(game: ComboGame, shared: ComboShared, script: ScriptN
         const leg: PlayerLeg = { kind: "player", game_id: game.game_id, player_id: player.player_id, stat, line: ml, side };
         const now = evaluateGameLegs([leg], game, shared).p_joint;
         const sc = evaluateGameLegs([leg], game, shared, script).p_joint;
-        rows.push({ player, stat, side, line: ml, p_now: now, p_script: sc, change: sc - now, hist: histLine(hist, script, side, ml) });
+        rows.push({ player, stat, side, line: ml, p_now: now, p_script: sc, change: sc - now, hist: histLine(hist, script, side, ml), hist_short: histCompact(hist, script, side) });
         if (side === "over") (player.starter ? startOver : benchOver).push([now, sc]);
       }
     }
@@ -261,4 +263,18 @@ export function lineMove(grid: StatGrid): string | null {
   const now = grid.main_line;
   if (open === null || open === undefined || now === null) return null;
   return open === now ? `line has stayed at ${now.toString()}` : `line opened ${open.toString()}, now ${now.toString()}`;
+}
+
+/** The compact count for a terminal row: "blow 2/4  all 6/12" (this side's count over games). Nothing is hidden: n of 0 says "none yet". */
+export const SCRIPT_SHORT: Record<ScriptName, string> = { blowout: "blow", close: "close", shootout: "shoot", grind: "grind" };
+
+export function histCompact(hist: Hist | null, script: ScriptName, side: "over" | "under"): string | null {
+  if (hist === null) return null;
+  const parts: string[] = [];
+  const pair = hist.by[script];
+  if (pair !== undefined) {
+    parts.push(pair[0] === 0 ? `${SCRIPT_SHORT[script]} none yet` : `${SCRIPT_SHORT[script]} ${sideCount(side, pair[0], pair[1]).toString()}/${pair[0].toString()}${pair[0] < 5 ? " few" : ""}`);
+  }
+  if (hist.n_all !== null && hist.k_all !== null) parts.push(`all ${sideCount(side, hist.n_all, hist.k_all).toString()}/${hist.n_all.toString()}`);
+  return parts.length === 0 ? null : parts.join("  ");
 }

@@ -1,7 +1,7 @@
 // Framing 2, target probability: the combos of k over-legs with the most lift that still reach the chance you set.
 import { useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
-import { OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
+import { Faces, OUT_OF_RANGE_NOTE, PlayLine, legWords, pc, type Ctx } from "./Bits";
 import { candidateLegs, targetSearch } from "./engine";
 import { MAIN_LINE_ONLY, OTHER_LINES_SENTENCE } from "./script";
 import type { ComboGame, TargetResult } from "./types";
@@ -85,6 +85,7 @@ export function TargetTab(props: { ctx: Ctx; game: ComboGame }) {
             <li key={c.legs.map((l) => `${l.player_id.toString()}${l.stat}${l.line.toString()}`).join("|")}>
               <Card flat>
                 <p class="cb-row-top">
+                  <Faces legs={c.legs} game={game} ctx={ctx} />
                   <strong>{c.legs.map((l) => legWords(l, game)).join(" and ")}</strong>
                 </p>
                 <p class="cb-row-nums num">

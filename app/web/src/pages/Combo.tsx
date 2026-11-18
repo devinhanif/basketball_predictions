@@ -2,7 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { api, type Loaded } from "../api";
 import { View } from "../components";
 import { longDate, stamp, tipTime } from "../format";
-import { setPref, useLens } from "../prefs";
+import { setPref, useLens, useMode } from "../prefs";
 import { StateBlock, Tabs, TabPanel, PageHead, Card } from "../ui";
 import { useLoad } from "../useLoad";
 import type { ComboResultState } from "../api";
@@ -83,6 +83,7 @@ function Body(props: { night: Night }) {
   const { night } = props;
   const [gid, setGid] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("script");
+  const analyst = useMode() === "analyst";
   const st = night.state;
   const env = st?.kind === "ok" ? st.data : null;
   const ctx: Ctx | null = useMemo(
@@ -129,7 +130,7 @@ function Body(props: { night: Night }) {
   const tipped = hasTipped(game, ctx.clock);
   const madeAt = games.map((g) => g.made_at).sort().at(-1);
   return (
-    <div class="stack cb-page">
+    <div class={`stack cb-page ${analyst ? "cb-term" : "cb-simple"}`}>
       {ctx.payload.fixture ? (
         <p class="panel cb-fixture" role="note">
           <strong>Fixture night.</strong> {ctx.payload.fixture.label}

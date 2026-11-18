@@ -1,7 +1,8 @@
 // Framing 4, build your own: any calibrated lines, any games that have not tipped; live chance, unrelated chance, lift.
 import { useMemo, useState } from "preact/hooks";
 import { Card } from "../ui";
-import { CLOSED_SENTENCE, OUT_OF_RANGE_NOTE, ResultBlock, legKey, legWords, matchup, pc, type Ctx } from "./Bits";
+import { Avatar } from "../Avatar";
+import { CLOSED_SENTENCE, Faces, teamName, OUT_OF_RANGE_NOTE, ResultBlock, legKey, legWords, matchup, pc, type Ctx } from "./Bits";
 import { evaluateCombo, intervalProb, lineToBounds, statEntries } from "./engine";
 import { OTHER_LINES_SENTENCE, SCRIPT_TITLE, STAT_NAME, hasTipped, offerableLines, postedLineCount, scriptGeneric } from "./script";
 import { SCRIPTS, type ComboGame, type PlayerLeg, type ScriptName } from "./types";
@@ -78,6 +79,11 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
               ))}
             </select>
           </label>
+          {player !== undefined ? (
+            <span class="cb-av cb-pickface">
+              <Avatar name={player.name} team={teamName(ctx, player.team)} playerId={player.player_id} size="sm" remote />
+            </span>
+          ) : null}
           <label class="field">
             <span>Player</span>
             <select value={player?.player_id.toString() ?? ""} onChange={(e) => { setPid(Number(e.currentTarget.value)); setLineSel(null); }}>
@@ -145,7 +151,8 @@ export function BuildTab(props: { ctx: Ctx; game: ComboGame }) {
               const g = gamesById[l.game_id];
               return (
                 <li key={legKey(l)} class="cb-leg">
-                  <span>
+                  <span class="cb-legline">
+                    {g === undefined ? null : <Faces legs={[l]} game={g} ctx={ctx} />}
                     {g === undefined ? l.game_id : legWords(l, g)} <span class="muted small">({g === undefined ? "" : matchup(ctx, g)})</span>
                   </span>
                   <button type="button" class="btn small" onClick={() => { setLegs(legs.filter((x) => legKey(x) !== legKey(l))); }} aria-label={`Remove ${g === undefined ? "leg" : legWords(l, g)}`}>

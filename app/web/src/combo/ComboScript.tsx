@@ -5,10 +5,14 @@ import { count, pct } from "../format";
 import { legHref } from "../router";
 import { isLegStat } from "../legTypes";
 import { useLoad } from "../useLoad";
+import { Avatar } from "../Avatar";
+import { useMode } from "../prefs";
 import { Badge, Card } from "../ui";
-import { OUT_OF_RANGE_NOTE, pc, type Ctx } from "./Bits";
+import { Bar } from "./Bar";
+import { OUT_OF_RANGE_NOTE, matchup, pc, teamName, type Ctx } from "./Bits";
 import {
   SCRIPT_REALISED,
+  SCRIPT_SHORT,
   SCRIPT_TITLE,
   STAT_NAME,
   lineMove,
@@ -53,45 +57,48 @@ function TrendBody(props: { game: ComboGame; row: ScriptRow }) {
   );
 }
 
-function Row(props: { game: ComboGame; row: ScriptRow; script: ScriptName; kind: "more" | "less" }) {
-  const { row, game } = props;
+function Row(props: { ctx: Ctx; game: ComboGame; row: ScriptRow; script: ScriptName; kind: "more" | "less"; analyst: boolean }) {
+  const { row, game, ctx, analyst } = props;
   const grid = statEntries(row.player).find((e) => e[0] === row.stat)?.[1];
   const move = grid ? lineMove(grid) : null;
   const d = row.change * 100;
+  const sign = d >= 0 ? "+" : "−";
   return (
     <li class="cb-row">
-      <div class="cb-row-top">
+      <span class="cb-av">
+        <Avatar name={row.player.name} team={teamName(ctx, row.player.team)} playerId={row.player.player_id} size={analyst ? "sm" : "lg"} remote />
+      </span>
+      <div class="cb-who">
         <strong>{row.player.name}</strong>
-        <span>
+        <span class="cb-legname">
           {row.side} {row.line.toString()} {STAT_NAME[row.stat] ?? row.stat}
         </span>
+        {analyst ? (
+          row.hist_short !== null ? <span class="cb-counts mono small">{row.hist_short}</span> : null
+        ) : row.hist !== null ? (
+          <span class="cb-hist small">
+            {row.hist.text !== "" ? <span>{row.hist.text} </span> : null}
+            {row.hist.few ? <span class="muted">(few games) </span> : null}
+            {row.hist.all !== null ? <span class="muted">{row.hist.all}</span> : null}
+          </span>
+        ) : null}
+        {move !== null ? <span class="cb-move small muted">Posted {move}.</span> : null}
+        <Trend game={game} row={row} />
       </div>
-      <div class="cb-row-nums num">
-        <span>
-          chance now <b>{pc(row.p_now)}</b>
-        </span>
-        <span>
-          if it happens <b>{pc(row.p_script)}</b>
-        </span>
+      <Bar now={row.p_now} script={row.p_script} scriptName="it happens" />
+      <div class="cb-end num">
+        <b class="cb-end-main">{pc(row.p_script)}</b>
         <span class={`cb-delta ${props.kind}`}>
-          {d >= 0 ? "+" : "−"}
+          {sign}
           {Math.abs(d).toFixed(1)} pts
         </span>
+        <span class="muted small">was {pc(row.p_now)}</span>
       </div>
-      {row.hist !== null ? (
-        <p class="cb-hist small">
-          {row.hist.text !== "" ? <span>{row.hist.text} </span> : null}
-          {row.hist.few ? <span class="muted">(few games) </span> : null}
-          {row.hist.all !== null ? <span class="muted">{row.hist.all}</span> : null}
-        </p>
-      ) : null}
-      {move !== null ? <p class="cb-move small muted">Posted {move}.</p> : null}
-      <Trend game={game} row={row} />
     </li>
   );
 }
 
-function RowList(props: { title: string; sub: string; rows: ScriptRow[]; game: ComboGame; script: ScriptName; kind: "more" | "less" }) {
+function RowList(props: { ctx: Ctx; title: string; sub: string; rows: ScriptRow[]; game: ComboGame; script: ScriptName; kind: "more" | "less"; analyst: boolean }) {
   const [all, setAll] = useState(false);
   const shown = all ? props.rows : props.rows.slice(0, 6);
   return (
@@ -102,7 +109,7 @@ function RowList(props: { title: string; sub: string; rows: ScriptRow[]; game: C
       ) : (
         <ul class="plain cb-rows">
           {shown.map((r) => (
-            <Row key={`${r.player.player_id.toString()}-${r.stat}-${r.side}`} game={props.game} row={r} script={props.script} kind={props.kind} />
+            <Row key={`${r.player.player_id.toString()}-${r.stat}-${r.side}`} ctx={props.ctx} game={props.game} row={r} script={props.script} kind={props.kind} analyst={props.analyst} />
           ))}
         </ul>
       )}
@@ -118,6 +125,7 @@ function RowList(props: { title: string; sub: string; rows: ScriptRow[]; game: C
 export function ScriptTab(props: { ctx: Ctx; game: ComboGame }) {
   const { ctx, game } = props;
   const shared = ctx.payload.shared;
+  const analyst = useMode() === "analyst";
   const [script, setScript] = useState<ScriptName>("blowout");
   const view = useMemo(() => scriptView(game, shared, script), [game, shared, script]);
   const sentence = scriptSentence(script, view);
@@ -132,6 +140,46 @@ export function ScriptTab(props: { ctx: Ctx; game: ComboGame }) {
       <section aria-labelledby="cb-sc-h" class="panel">
         <h2 id="cb-sc-h">If the game goes like this</h2>
         <p class="small muted">Pick a way the game could go. Below, the lines that get more likely and the lines that get less likely if it does.</p>
+        {analyst ? (
+          <div class="cb-scroll">
+            <table class="cb-script-table">
+              <caption class="cb-cmd">
+                combo --game {matchup(ctx, game)} --script {script} --lines posted --calibrated
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">script</th>
+                  <th scope="col">rule</th>
+                  <th scope="col" class="num">tonight</th>
+                  <th scope="col" class="num">2023 / 2024</th>
+                  <th scope="col" class="num">this season</th>
+                  <th scope="col">status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SCRIPTS.map((s) => {
+                  const h = shared.scripts.history?.[s];
+                  return (
+                    <tr key={s} class={script === s ? "on" : ""}>
+                      <th scope="row">
+                        <button type="button" class="cb-trow" aria-pressed={script === s} onClick={() => { setScript(s); }}>
+                          {SCRIPT_SHORT[s]}
+                        </button>
+                      </th>
+                      <td>{scriptWords(s, game, shared)}</td>
+                      <td class="num">{pc(prior[s])}</td>
+                      <td class="num">
+                        {pct(SCRIPT_REALISED[s].y2023, 1)} / {pct(SCRIPT_REALISED[s].y2024, 1)}
+                      </td>
+                      <td class="num">{h !== undefined ? `${h.n_occurred.toString()}/${h.n_games.toString()}` : "n/a"}</td>
+                      <td>{statusWord(shared, s)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
         <div class="cb-scripts" role="group" aria-label="Game script">
           {SCRIPTS.map((s) => (
             <button key={s} type="button" class="cb-script" aria-pressed={script === s} onClick={() => { setScript(s); }}>
@@ -142,6 +190,7 @@ export function ScriptTab(props: { ctx: Ctx; game: ComboGame }) {
             </button>
           ))}
         </div>
+        )}
       </section>
 
       <section class="panel" aria-labelledby="cb-how-h">
@@ -177,9 +226,13 @@ export function ScriptTab(props: { ctx: Ctx; game: ComboGame }) {
       {hasMain ? (
         <>
           {sentence !== null ? <p class="cb-sentence">{sentence}</p> : null}
+          <p class="small muted cb-legend">
+            Bars run from 30% to 70%. Grey tick: the chance as it stands. Square: the chance if it happens. The band is green when the chance rises and red when it
+            falls; the signed change is always written beside it. Outside the scale a bar sits at the edge and says "off scale".
+          </p>
           <div class="cb-two">
-            <RowList title="More likely if it happens" sub="Chance goes up. Biggest change first." rows={view.more} game={game} script={script} kind="more" />
-            <RowList title="Less likely if it happens" sub="Chance goes down. Biggest change first." rows={view.less} game={game} script={script} kind="less" />
+            <RowList ctx={ctx} analyst={analyst} title="More likely if it happens" sub="Chance goes up. Biggest change first." rows={view.more} game={game} script={script} kind="more" />
+            <RowList ctx={ctx} analyst={analyst} title="Less likely if it happens" sub="Chance goes down. Biggest change first." rows={view.less} game={game} script={script} kind="less" />
           </div>
           <p class="small muted">
             Every line has two sides: when one side gets more likely the other gets less likely, so each line appears once in each list. Only lines at

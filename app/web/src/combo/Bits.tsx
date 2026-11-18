@@ -1,4 +1,5 @@
 // Shared pieces of the combo screens: leg wording, the result block, the closed-game sentence. No prices anywhere.
+import { Avatar } from "../Avatar";
 import { pct } from "../format";
 import { ESTIMATE_LABEL, playerOf } from "./engine";
 import { STAT_NAME } from "./script";
@@ -133,4 +134,21 @@ export function PlayLine(props: { legs: readonly Leg[]; game: ComboGame; pJoint:
       )}
     </p>
   );
+}
+
+/** The photo (or initials) of each distinct player a combo names, in leg order. The app's own Avatar, sized by the screen's CSS. */
+export function Faces(props: { legs: readonly Leg[]; game: ComboGame; ctx: Ctx }) {
+  const seen = new Set<number>();
+  const out = [];
+  for (const l of props.legs) {
+    if (l.kind !== "player" || seen.has(l.player_id)) continue;
+    seen.add(l.player_id);
+    const p = playerOf(props.game, l.player_id);
+    out.push(
+      <span class="cb-av" key={p.player_id}>
+        <Avatar name={p.name} team={teamName(props.ctx, p.team)} playerId={p.player_id} size="sm" remote />
+      </span>,
+    );
+  }
+  return <span class="cb-faces">{out}</span>;
 }
