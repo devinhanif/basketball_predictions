@@ -127,7 +127,7 @@ def test_cli_score_does_not_form_statistics_before_the_horizon(
 
 
 def test_committed_dryrun_record_matches_the_scorer_code_and_the_pinned_aliases() -> None:
-    """An edit to any file of the frozen scorer makes it refuse to score (adversary B1, 2026-11-17)."""
+    """An edit to any file of the frozen scorer makes it refuse to score (B1, 2026-11-17)."""
     record = json.loads((spec.REPO / "reports" / "line_move" / "dryrun_record.json").read_text())
     assert record["code_sha256"] == spec.code_sha256()
     pin = spec.REPO / "configs" / "kalshi_aliases_t510_pin_57164b8.yaml"
