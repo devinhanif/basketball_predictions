@@ -12,7 +12,13 @@ imports no HTTP client) and opens DuckDB read-only:
   time of each page;
 * the live capture's public trade prints (``kalshi_trades/<date>/*.json.gz``), the only source of
   true candles (Kalshi's own ``created_time``);
-* the 15-minute snapshot store's ``kalshi_prices`` rows (``source='live'``), all day.
+* the 15-minute snapshot, all day: either its write-once raw pages (``data/kalshi/raw/<UTC date>/``,
+  read in place, ``read_snapshot_raw``; what the scheduled job uses) or a COPY of its store's
+  ``kalshi_prices`` rows (``source='live'``, ``read_snapshot``). Both give the same series
+  (tested on synthetic pages; on 2026-11-16 and 11-17 copies: 171,154 and 92,072 points, identical).
+
+The scheduled, incremental build is ``nba.kalshi.prop_history_job``; this module is its reference
+(a full build from the same inputs gives byte-identical files).
 
 Two quote sources are never blended: each market carries one quote series per source with its
 nominal resolution, its measured gaps and its provenance. Quote series are run-length encoded:
@@ -156,7 +162,7 @@ def stamp_from_name(name: str) -> datetime | None:
 # readers (files only; no network)
 
 
-@dataclass
+@dataclass(slots=True)
 class QuotePoint:
     ticker: str
     t: int
@@ -167,7 +173,7 @@ class QuotePoint:
     open_interest: float | None
 
 
-@dataclass
+@dataclass(slots=True)
 class Print:
     trade_id: str
     ticker: str
@@ -211,13 +217,63 @@ def _on_slate(ticker: str, event_ticker: str | None, day: date) -> bool:
     return code is not None and event_date(code) == day
 
 
+#: The raw market fields the export reads (``describe_market`` and the parser behind it). The
+#: scheduled job keeps only these per market instead of the whole page entry.
+MARKET_KEYS = (
+    "ticker",
+    "event_ticker",
+    "series_ticker",
+    "title",
+    "floor_strike",
+    "custom_strike",
+    "open_time",
+    "close_time",
+    "settlement_ts",
+    "settled_ts",
+    "result",
+)
+
+
+def market_subset(m: Mapping[str, Any]) -> dict[str, Any]:
+    return {k: m[k] for k in MARKET_KEYS if k in m}
+
+
+def capture_page_points(
+    body: Mapping[str, Any], t: int, day: date
+) -> list[tuple[dict[str, Any], QuotePoint]]:
+    """One ``/markets`` page of the capture: (raw market, quote point) for each slate market."""
+    out: list[tuple[dict[str, Any], QuotePoint]] = []
+    for m in body.get("markets") or []:
+        tk = str(m.get("ticker") or "")
+        if not tk or not _on_slate(tk, m.get("event_ticker"), day):
+            continue
+        out.append(
+            (
+                m,
+                QuotePoint(
+                    tk,
+                    t,
+                    _f(m.get("yes_bid_dollars")),
+                    _f(m.get("yes_ask_dollars")),
+                    _f(m.get("last_price_dollars")),
+                    _f(m.get("volume_fp")),
+                    _f(m.get("open_interest_fp")),
+                ),
+            )
+        )
+    return out
+
+
 def read_capture(capture_dir: Path, day: date, inputs: SlateInputs) -> None:
     """Every prop page of the capture: one QuotePoint per (market, page). The page's time is the
-    manifest's ``received_at`` (microseconds), else the file name's UTC second."""
+    manifest's ``received_at`` (whole seconds), else the file name's UTC second. A market's
+    descriptive fields come from the newest page that listed it (by time; a tie goes to the page
+    read later, i.e. the later ``_p<n>`` directory)."""
     received = _manifest_times(capture_dir)
     root = capture_dir / "kalshi"
     if not root.exists():
         return
+    seen_t: dict[str, int] = {}
     for series_dir in sorted(root.iterdir()):
         series = series_dir.name.rsplit("_p", 1)[0]
         if series not in PROP_SERIES or not series_dir.is_dir():
@@ -236,26 +292,33 @@ def read_capture(capture_dir: Path, day: date, inputs: SlateInputs) -> None:
             t = _epoch(when)
             inputs.capture_page_times.setdefault(series, []).append(t)
             inputs.capture_as_of = max(inputs.capture_as_of or t, t)
-            for m in body.get("markets") or []:
-                tk = str(m.get("ticker") or "")
-                if not tk or not _on_slate(tk, m.get("event_ticker"), day):
-                    continue
-                inputs.markets[tk] = m  # newest page wins (sorted by name = time)
-                inputs.capture_points.append(
-                    QuotePoint(
-                        tk,
-                        t,
-                        _f(m.get("yes_bid_dollars")),
-                        _f(m.get("yes_ask_dollars")),
-                        _f(m.get("last_price_dollars")),
-                        _f(m.get("volume_fp")),
-                        _f(m.get("open_interest_fp")),
-                    )
-                )
+            for m, q in capture_page_points(body, t, day):
+                if q.ticker not in seen_t or t >= seen_t[q.ticker]:
+                    inputs.markets[q.ticker] = m
+                    seen_t[q.ticker] = t
+                inputs.capture_points.append(q)
+
+
+def trade_file_prints(body: Mapping[str, Any], day: date) -> list[Print]:
+    """Valid prop prints of one capture trade file (not deduplicated)."""
+    out: list[Print] = []
+    for tk, rows in body.items():
+        if tk.split("-")[0] not in PROP_SERIES or not _on_slate(tk, None, day):
+            continue
+        for r in rows:
+            tid = str(r.get("trade_id") or "")
+            price, count = _f(r.get("yes_price_dollars")), _f(r.get("count_fp"))
+            created = r.get("created_time")
+            if not tid or price is None or count is None or not created:
+                continue
+            ct = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
+            us = int(ct.timestamp()) * 1_000_000 + ct.microsecond
+            out.append(Print(tid, tk, us, price, count))
+    return out
 
 
 def read_prints(capture_dir: Path, day: date, inputs: SlateInputs) -> None:
-    """Prop prints from the capture's trade files, one per trade id."""
+    """Prop prints from the capture's trade files, one per trade id (the first file wins)."""
     seen: set[str] = set()
     for f in sorted((capture_dir / "kalshi_trades").glob("*/*.json.gz")):
         try:
@@ -263,19 +326,11 @@ def read_prints(capture_dir: Path, day: date, inputs: SlateInputs) -> None:
         except (OSError, ValueError, EOFError):
             inputs.unreadable.append(str(f.relative_to(capture_dir)))
             continue
-        for tk, rows in body.items():
-            if tk.split("-")[0] not in PROP_SERIES or not _on_slate(tk, None, day):
+        for p in trade_file_prints(body, day):
+            if p.trade_id in seen:
                 continue
-            for r in rows:
-                tid = str(r.get("trade_id") or "")
-                price, count = _f(r.get("yes_price_dollars")), _f(r.get("count_fp"))
-                created = r.get("created_time")
-                if not tid or tid in seen or price is None or count is None or not created:
-                    continue
-                seen.add(tid)
-                ct = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
-                us = int(ct.timestamp()) * 1_000_000 + ct.microsecond
-                inputs.prints.append(Print(tid, tk, us, price, count))
+            seen.add(p.trade_id)
+            inputs.prints.append(p)
 
 
 def read_scoreboard(capture_dir: Path, inputs: SlateInputs) -> None:
@@ -353,6 +408,139 @@ def read_snapshot(db: Path, day: date, inputs: SlateInputs) -> None:
         )
         if tk not in inputs.markets:
             inputs.markets[str(tk)] = {"ticker": tk, "title": title, "event_ticker": ev}
+    inputs.snapshot_times = sorted(times)
+    inputs.snapshot_as_of = max(times) if times else None
+
+
+_SNAP_RE = re.compile(r"^(\d{6})_(?P<series>[A-Z0-9]+)_open_(?P<page>\d+)\.json\.gz$")
+#: UTC day directories of the snapshot's raw pages read for a slate: a slate's props list the
+#: day before (first seen 03:15Z on the slate's own UTC date on 2026-11-16) and close after
+#: midnight UTC.
+SNAPSHOT_DAYS = (-1, 0, 1)
+
+
+@dataclass(frozen=True)
+class SnapshotPage:
+    t: int
+    series: str
+    page: int
+    path: Path
+    rel: str  # "<UTC date>/<file name>", unique across the raw tree
+
+
+def snapshot_pages(raw_root: Path, day: date) -> list[SnapshotPage]:
+    """The snapshot job's write-once ``open`` pages of the prop series that can hold the slate,
+    sorted as the store applied them: by run time, then series, then page number (within one run
+    a later page of the same series replaces an earlier one, as ``_replace_prices`` does)."""
+    out: list[SnapshotPage] = []
+    for off in SNAPSHOT_DAYS:
+        d = day + timedelta(days=off)
+        dd = raw_root / d.isoformat()
+        if not dd.is_dir():
+            continue
+        for f in dd.iterdir():
+            m = _SNAP_RE.match(f.name)
+            if not m or m.group("series") not in PROP_SERIES:
+                continue
+            hms = m.group(1)
+            at = datetime(
+                d.year, d.month, d.day, int(hms[:2]), int(hms[2:4]), int(hms[4:]), tzinfo=UTC
+            )
+            out.append(
+                SnapshotPage(
+                    _epoch(at), m.group("series"), int(m.group("page")), f, f"{d}/{f.name}"
+                )
+            )
+    out.sort(key=lambda p: (p.t, p.series, p.page))
+    return out
+
+
+class SnapshotFilter:
+    """The snapshot store keeps a price row only for a market whose title the parser accepts
+    (``parse_markets_frame``); unparsed titles are dropped there, so they are dropped here too.
+    The answer is cached per (ticker, title)."""
+
+    def __init__(self) -> None:
+        self._cache: dict[tuple[str, str], bool] = {}
+
+    def keep(self, m: Mapping[str, Any]) -> bool:
+        key = (str(m.get("ticker")), str(m.get("title")))
+        hit = self._cache.get(key)
+        if hit is None:
+            try:
+                parse_market(dict(m), aliases={}, unmatched=[])
+                hit = True
+            except SkippedMarket:
+                hit = False
+            self._cache[key] = hit
+        return hit
+
+
+def snapshot_page_points(
+    body: Mapping[str, Any], t: int, day: date, filt: SnapshotFilter
+) -> list[tuple[dict[str, Any], QuotePoint]]:
+    """One snapshot page: (raw market, quote point) per slate market the store would keep, with
+    the store's units (prices to 4 decimals, volume and open interest whole contracts)."""
+    out: list[tuple[dict[str, Any], QuotePoint]] = []
+    for m in body.get("markets") or []:
+        tk = str(m.get("ticker") or "")
+        if not tk or not _on_slate(tk, m.get("event_ticker"), day) or not filt.keep(m):
+            continue
+        vol, oi = _f(m.get("volume_fp")), _f(m.get("open_interest_fp"))
+        out.append(
+            (
+                m,
+                QuotePoint(
+                    tk,
+                    t,
+                    _r4(m.get("yes_bid_dollars")),
+                    _r4(m.get("yes_ask_dollars")),
+                    _r4(m.get("last_price_dollars")),
+                    None if vol is None else float(round(vol)),
+                    None if oi is None else float(round(oi)),
+                ),
+            )
+        )
+    return out
+
+
+def dedupe_snapshot(points: Iterable[QuotePoint]) -> list[QuotePoint]:
+    """One point per (ticker, run time): the later page wins, as in the store."""
+    last: dict[tuple[str, int], QuotePoint] = {}
+    for p in points:
+        last[(p.ticker, p.t)] = p
+    return list(last.values())
+
+
+def read_snapshot_raw(
+    raw_root: Path, day: date, inputs: SlateInputs, *, settled_before: int | None = None
+) -> None:
+    """The snapshot series from the snapshot job's raw pages (``data/kalshi/raw/<UTC date>/
+    <HHMMSS>_<series>_open_<n>.json.gz``), read in place and never written: the same rows the
+    job put in ``kalshi_prices`` (``source='live'``) without opening its store. The pages are
+    written in place (not renamed), so a run newer than ``settled_before`` (unix s) is left for
+    the next build. Markets the capture never saw take their fields from the newest snapshot
+    page."""
+    filt = SnapshotFilter()
+    points: list[QuotePoint] = []
+    snap_markets: dict[str, dict[str, Any]] = {}
+    for pg in snapshot_pages(raw_root, day):
+        if settled_before is not None and pg.t >= settled_before:
+            continue
+        try:
+            body = json.loads(gzip.decompress(pg.path.read_bytes()))
+        except (OSError, ValueError, EOFError):
+            inputs.unreadable.append(f"kalshi_raw/{pg.rel}")
+            continue
+        for m, q in snapshot_page_points(body, pg.t, day, filt):
+            snap_markets[q.ticker] = m
+            points.append(q)
+    points = dedupe_snapshot(points)
+    points.sort(key=lambda p: (p.ticker, p.t))
+    times = {p.t for p in points}
+    inputs.snapshot_points.extend(points)
+    for tk, m in snap_markets.items():
+        inputs.markets.setdefault(tk, m)
     inputs.snapshot_times = sorted(times)
     inputs.snapshot_as_of = max(times) if times else None
 
@@ -645,6 +833,11 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     p.add_argument("--date", required=True, help="slate date (ET), YYYY-MM-DD")
     p.add_argument("--capture-dir", type=Path, help="copy of data/raw/live_<date>")
     p.add_argument("--snapshot-db", type=Path, help="COPY of data/kalshi/kalshi.duckdb")
+    p.add_argument(
+        "--snapshot-raw",
+        type=Path,
+        help="the snapshot job's raw page tree (data/kalshi/raw), read only; or --snapshot-db",
+    )
     p.add_argument("--out", type=Path, required=True, help="output directory")
     return p.parse_args(argv)
 
@@ -657,8 +850,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"refused: {day} is before {FIRST_SLATE} (current-season slates only)", file=sys.stderr
         )
         return 2
-    if args.capture_dir is None and args.snapshot_db is None:
-        print("need --capture-dir and/or --snapshot-db", file=sys.stderr)
+    if args.capture_dir is None and args.snapshot_db is None and args.snapshot_raw is None:
+        print("need --capture-dir and/or --snapshot-db or --snapshot-raw", file=sys.stderr)
+        return 2
+    if args.snapshot_db is not None and args.snapshot_raw is not None:
+        print(
+            "--snapshot-db and --snapshot-raw are two views of one source: pass one",
+            file=sys.stderr,
+        )
         return 2
     inputs = SlateInputs(day)
     if args.capture_dir is not None:
@@ -671,6 +870,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         except LiveStoreRefused as exc:
             print(f"refused: {exc}", file=sys.stderr)
             return 2
+    if args.snapshot_raw is not None:
+        read_snapshot_raw(args.snapshot_raw, day, inputs)
     games, index = build_games(inputs, load_reviewed_aliases(), datetime.now(UTC))
     index = write_slate(args.out, games, index)
     summary = {

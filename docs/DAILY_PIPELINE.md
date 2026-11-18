@@ -1148,3 +1148,56 @@ every `claimed_`/`reporter_` predicate). Nothing in
 `nba.daily` imports it, no prediction reads it, and the replay oracle is unaffected. Its heartbeat is
 `data/ops/heartbeat/reporters.json` (watchdog job `reporters`, optional). Details and the incident
 behind each choice: docs/REPORTER_FEED.md, "Capture fixes".
+
+## Kalshi prop price history job (2026-11-17, prepared; NOT installed)
+
+Devin, 2026-11-17: prop price history for the app after each night and every 10 to 15 minutes during games. Display data
+only: no alert, EV, JARVIS or paper-trade path reads it, it carries no model number and no derived indicator (contract
+`docs/contracts/kalshi_prop_history_v1.md`; review `docs/reviews/kalshi_prop_history_sched_2026-11-17.md`).
+
+* **What runs**: `ops/nba_kalshi_prop_history.sh` (launchd `local.nba.kalshi-prop-history`, at :02, :17, :32 and :47 every
+  hour and at load, through `uv run sh`, never `/bin/sh`) runs `nice -n 10 uv run --no-sync python -m nba.kalshi.prop_history_job
+  run --date <ET date of now - 6 h>`. Decisions printed as one JSON line: `no_capture` (no `data/raw/live_<slate>/` yet: nothing
+  written, about a second), `built` (new pages read, `latest/` rewritten), `final` (the first slot at or after the last scheduled tip
+  + 4 h 10 min also writes `<slate>/` once and drops the working state), `done` (the night is already final). A slate whose final
+  slot was missed (Mac asleep, a failed run) is finished by the next day's first run (`--no-previous` turns that off).
+* **Inputs, read in place, never written**: the live capture's write-once pages under `data/raw/live_<slate>/` (prop `/markets`
+  pages, trade prints, ESPN scoreboard, `manifest.jsonl` read from a saved offset) and the 15-minute snapshot's raw pages
+  `data/kalshi/raw/<UTC date>/*_<prop series>_open_<n>.json.gz` for the slate's UTC date and the days either side. **No database is
+  opened** (neither `nba.duckdb` nor `kalshi.duckdb`); the snapshot's pages are read only once their run is 10 minutes old (that job
+  writes pages in place, not by rename). No request of any kind.
+* **Incremental**: each run parses only pages it has not read; their compact points are appended per game under
+  `data/derived/kalshi_prop_history/<slate>/` (about 90 MB at the end of a full night, deleted at `final`). Payloads are rebuilt one
+  game at a time from those points. Anything that would make the result differ from a full build (a page older than pages already
+  applied, a shorter manifest, a corrupt or old-version state) starts the state over from the pages; the run says `rebuilt: <why>`.
+* **Outputs** under `data/export/kalshi_prop_history/`: `latest/` (`index.json` plus one `<event code>.json` per game; each file
+  replaced atomically, the index last) and `<slate>/` (the finished night, written once by renaming a complete hidden directory).
+  Byte-identical to `python -m nba.kalshi.prop_history ... --snapshot-raw data/kalshi/raw` on the same pages (tested; on the
+  2026-11-16 copy, 9 of 9 files identical after five staged incremental runs).
+* **Cost** (2026-11-16 copy, 8 games, 2,340 markets, this Mac, `nice -n 10`): in-game run with 15 minutes of new pages 3.3 to 3.9 s,
+  peak RSS 165 to 216 MB; first run of a night (capture at 02:00Z plus a day and a half of snapshot pages) 14.8 s, 151 MB; a whole
+  night from an empty state 17.8 s, 228 MB. The old one-shot full build: 8.5 s, 780 MB (with the DB copy), 13.4 s, 559 MB (raw pages).
+  Output 21 MB a night uncompressed (dated set) plus 21 MB in `latest/`: about 3.5 GB a season if dated nights are kept as JSON.
+* **Locks**: its own `data/ops/kalshi_prop_history_lock` (mkdir; pid and process start time inside; a live owner is never stolen, a
+  dead or recycled pid is cleared). It **skips** (exit 0, `kalshi-prop-history.skip.json` counts consecutive skips) while
+  `data/ops/heavy.lock` or `data/ops/lock` is held; it only looks at them, never takes or removes them.
+* **Heartbeat**: `data/ops/heartbeat/kalshi-prop-history.json` (`start_ts`, `end_ts`, `rc`, `detail` = the decision). A run that
+  exits non-zero appends `[kalshi-prop-history] build for <slate> exited rc=N` to `data/ops/ALERTS.md`; the next slot retries.
+* **Watchdog** (ops owner's change in `nba/ops/watchdog.py`, not made here): add
+  `JobSpec("kalshi-prop-history", "local.nba.kalshi-prop-history", "slots", timedelta(minutes=25), minutes=(2, 17, 32, 47),
+  hours=tuple(range(24)), max_skips=4, optional=True)` (optional = the never-installed guard: silent until a heartbeat exists or the
+  label is loaded), and call `nba.kalshi.prop_history_job.problem(now, hb, latest_index, tips, day, final_index)` with the slate's
+  tips: it returns a line when the last run failed, when the live set is more than 40 minutes old (or of another slate) between first
+  tip and last tip + 4 h, or when 5 h 30 min after the last tip the night has no final set; None when never installed.
+* **Replay oracle**: outside its closure. Nothing in `nba/daily` imports `nba.kalshi.prop_history*`, the job writes no store the
+  daily pipeline reads, and the replay does not run it. The branch adds files under `ops/` (live-path directory), so the merge is
+  Devin's go; no existing ops file changes.
+* **Install** (Devin, after the merge to main; one line): `cp ops/launchd/local.nba.kalshi-prop-history.plist ~/Library/LaunchAgents/
+  && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist && launchctl kickstart -k
+  gui/$(id -u)/local.nba.kalshi-prop-history`. Check: `cat data/ops/heartbeat/kalshi-prop-history.json` (rc 0) and, during
+  games, `ls -la data/export/kalshi_prop_history/latest/`.
+* **Rollback**: `launchctl bootout gui/$(id -u)/local.nba.kalshi-prop-history && rm
+  ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist`; then, only if a run was killed hard, `rm -f
+  data/ops/kalshi_prop_history_lock/pid data/ops/kalshi_prop_history_lock/start; rmdir data/ops/kalshi_prop_history_lock`. The data
+  can stay or go (`data/export/kalshi_prop_history/`, `data/derived/kalshi_prop_history/`, the heartbeat files); nothing else
+  reads them. Code: `git revert` the merge.

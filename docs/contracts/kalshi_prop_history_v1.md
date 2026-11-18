@@ -1,8 +1,8 @@
 # kalshi_prop_history v1: Kalshi player-prop price history for the app's Market lens
 
-_2026-11-17. Producer: `nba/kalshi/prop_history.py` (market agent). Consumer: the app API (app agent) later, read-only.
-Additive changes keep v1; a breaking change bumps `schema`. Nothing schedules the producer yet (see the review,
-`docs/reviews/kalshi_prop_history_2026-11-17.md`)._
+_2026-11-17. Producer: `nba/kalshi/prop_history.py` (market agent); scheduled build `nba/kalshi/prop_history_job.py`
+(launchd plist prepared, not installed: `docs/reviews/kalshi_prop_history_sched_2026-11-17.md`). Consumer: the app API (app agent)
+later, read-only. Additive changes keep v1; a breaking change bumps `schema`._
 
 **Display data only.** Nothing here is a forecast, an edge or a signal. No alert, EV, JARVIS or paper-trade path reads it
 (Devin's live rule: calm calls, no swing-chasing). The file carries **no model number** and **no derived indicator** (no
@@ -12,10 +12,23 @@ momentum, no trend arrow, no "moving toward the model"): prices and volumes as c
 ```
 python -m nba.kalshi.prop_history --date YYYY-MM-DD \
     --capture-dir <COPY of data/raw/live_<date>> --snapshot-db <COPY of data/kalshi/kalshi.duckdb> --out <dir>
+python -m nba.kalshi.prop_history --date YYYY-MM-DD \
+    --capture-dir data/raw/live_<date> --snapshot-raw data/kalshi/raw --out <dir>     # raw pages read in place, no DB
 ```
 Sends no request (the module imports no HTTP client). Opens the DuckDB copy read-only and **refuses** any path shaped like a live
 store (`data/kalshi/*.duckdb`, `data/*.duckdb`, `nba.duckdb`). Refuses slates before 2026-10-20 (current season only). Either input
 may be omitted; the file then simply has no series from it.
+
+## Scheduled locations (additive, 2026-11-17)
+Once the job is installed, the files below live under `data/export/kalshi_prop_history/`:
+- `latest/`: the slate being captured (`status: "partial"`), refreshed every 15 minutes while the live capture runs, and
+  after the night the same files as `<slate>/` until the next slate's capture starts. Each file is replaced atomically;
+  `index.json` is written after the game files, so read the index first and then the files it lists (a game file may be one
+  build newer than the index; never of another slate). Files of the previous slate are removed after the new index lands.
+- `<slate_date>/`: the finished night (`status: "final"`), written once, about 4 h 10 min after the last scheduled tip, as one
+  directory rename (it appears whole or not at all). Never rewritten.
+- No capture for the slate (no games, capture not started): nothing is written and `latest/` keeps the previous night.
+The bytes are those the command below would write for the same inputs (tested byte-for-byte on 2026-11-16).
 
 ## Files
 - `<out>/<slate_date>/<event_code>.json`: **one file per game** (`event_code` is Kalshi's game part, e.g. `26NOV16MEMWAS`), every
