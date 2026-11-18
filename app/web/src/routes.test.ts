@@ -16,14 +16,14 @@ describe("every leg link opens the leg route", () => {
     }
   });
 
-  it("falls back to Today for a malformed leg link rather than a blank page", () => {
-    expect(parse("#/leg/g1/notanumber/pts").name).toBe("today");
-    expect(parse("#/leg/g1/1/zzz").name).toBe("today");
+  it("opens the not-found screen for a malformed leg link rather than a blank page", () => {
+    expect(parse("#/leg/g1/notanumber/pts").name).toBe("notfound");
+    expect(parse("#/leg/g1/1/zzz").name).toBe("notfound");
   });
 });
 
 describe("no link in the source points at a route that does not exist", () => {
-  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay", "settings", "prefs", "signals", "hedge", "history", "alerts", "admin", "record", "live"]);
+  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay", "settings", "prefs", "signals", "hedge", "history", "alerts", "admin", "record", "live", "terms"]);
   const files = [
     ...readdirSync("src").filter((f) => f.endsWith(".tsx")).map((f) => join("src", f)),
     ...readdirSync("src/pages").filter((f) => f.endsWith(".tsx")).map((f) => join("src/pages", f)),
@@ -46,6 +46,10 @@ describe("no link in the source points at a route that does not exist", () => {
     expect(parse("#/swipe?date=2024-11-12")).toEqual({ name: "swipe", date: "2024-11-12" });
     expect(parse("#/picks").name).toBe("picks");
     expect(parse("#/parlay?date=2025-01-27")).toEqual({ name: "parlay", date: "2025-01-27" });
+    expect(parse("#/terms")).toEqual({ name: "terms", term: null, q: null });
+    expect(parse("#/terms?t=label-strong&q=brier")).toEqual({ name: "terms", term: "label-strong", q: "brier" });
+    expect(parse("#/terms?t=%3Cscript%3E").name).toBe("notfound");
+    expect(parse("#/terms/extra").name).toBe("notfound");
   });
 });
 

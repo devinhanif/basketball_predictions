@@ -8,12 +8,12 @@
 .side-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 .side-link {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--sp-3);
   min-height: 44px;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
@@ -63,7 +63,7 @@
   gap: 2px;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--pill);
 }
 .seg-btn {
   appearance: none;
@@ -72,10 +72,10 @@
   color: var(--muted);
   font: inherit;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   min-height: 38px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--pill);
   cursor: pointer;
 }
 .seg-btn[aria-pressed="true"] {
@@ -94,7 +94,7 @@
 
 /* ---- page heads: the biggest text is the page's answer, read from stored rows ---- */
 .page-head h1 {
-  font-size: 1.7rem;
+  font-size: var(--fs-2xl);
 }
 .today-head {
   display: grid;
@@ -107,7 +107,7 @@
 .today-head .kicker {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   margin: 0;
 }
 .tonight-dot {
@@ -129,7 +129,7 @@ h1.answer.pending {
 }
 .answer-src {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   max-width: 62ch;
 }
 .head-tools {
@@ -169,17 +169,17 @@ h1.answer.pending {
 .tile-v {
   font-family: var(--display);
   font-weight: 800;
-  font-size: 1.7rem;
+  font-size: var(--fs-2xl);
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
 .tile-l {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   margin-top: 2px;
 }
 .tile-n {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
 }
 .note-panel {
   border-top: 0;
@@ -192,7 +192,7 @@ h1.answer.pending {
   border: 1px solid var(--line);
   border-top: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: var(--pad);
 }
 .panel.flat {
   background: transparent;
@@ -233,10 +233,10 @@ h1.answer.pending {
   min-height: 40px;
   border: 1px solid var(--line);
   border-bottom-width: 1px;
-  border-radius: 999px;
+  border-radius: var(--pill);
   background: var(--surface);
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   padding: 6px 14px;
 }
 .tab[aria-current="true"] {
@@ -245,8 +245,8 @@ h1.answer.pending {
   border-color: var(--accent);
 }
 .tag {
-  border-radius: 6px;
-  font-size: 0.75rem;
+  border-radius: var(--radius-xs);
+  font-size: var(--fs-xs);
 }
 a.back-link {
   color: var(--accent-ink);
@@ -278,7 +278,7 @@ a.back-link {
   border-radius: 3px;
 }
 .wp-bar {
-  border-radius: 999px;
+  border-radius: var(--pill);
   overflow: hidden;
 }
 .wp-bar > i {
@@ -305,11 +305,11 @@ a.back-link {
 .ol-say {
   flex: none;
   text-align: right;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 @media (max-width: 420px) {
   .ol-say {
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
   }
 }
 
@@ -348,7 +348,7 @@ a.back-link {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--sp-3);
   padding: 8px 0 4px;
 }
 details.more {
@@ -370,7 +370,7 @@ details.more .panel {
   margin: 0 0 8px;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .edge-list li {
   background: var(--surface-2);
@@ -387,14 +387,14 @@ details.more .panel {
 }
 .edge-math {
   margin-top: 2px;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   overflow-wrap: anywhere;
 }
 .onit {
   display: inline-block;
   margin: 8px 0 0;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--pill);
   background: var(--accent-soft);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -422,7 +422,7 @@ details.more .panel {
   border-radius: var(--radius);
 }
 .progress {
-  border-radius: 999px;
+  border-radius: var(--pill);
   overflow: hidden;
 }
 .progress > i {
@@ -435,7 +435,7 @@ details.more .panel {
   color: var(--accent-ink);
 }
 .badge {
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   min-width: 52px;
 }
 .friend + .friend {
@@ -457,7 +457,7 @@ details.more .panel {
 .setting legend {
   font-family: var(--display);
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   padding: 0;
   margin-bottom: 2px;
 }

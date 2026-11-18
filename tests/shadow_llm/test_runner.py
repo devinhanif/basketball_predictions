@@ -326,13 +326,15 @@ def test_mixed_forward_table_still_settles(world: World) -> None:
     con.execute(
         "INSERT INTO games (game_id, game_date, season, home_team, away_team, home_pts, away_pts) "
         "VALUES (?,?,?,?,?,?,?)",
-        [GAME, TIP.date(), 2026, 1610612738, 1610612755, 110, 101],
+        # settle requires the box to agree with the game score (nba.daily.settle
+        # _BOX_AGREES_SQL): home = players 11,12,13 at 20 pts, away = player 21 at 20 pts.
+        [GAME, TIP.date(), 2026, 1610612738, 1610612755, 60, 20],
     )
     for pid in (11, 12, 13, 21):
         con.execute(
             "INSERT INTO player_game_stats (game_id, player_id, team_id, minutes, pts, reb, "
             "ast, fg3m) VALUES (?,?,?,?,?,?,?,?)",
-            [GAME, pid, 1610612738, 30.0, 20, 5, 4, 2],
+            [GAME, pid, 1610612755 if pid == 21 else 1610612738, 30.0, 20, 5, 4, 2],
         )
     res = settle_pending(con, TIP + timedelta(hours=4))
     names = {r[0] for r in con.execute("SELECT DISTINCT model_name FROM forward_scores").fetchall()}

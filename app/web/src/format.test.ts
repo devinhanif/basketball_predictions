@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { ageNote, deskStamp, american, bookName, lineText, num, pct, pctBounded, tipTime } from "./format";
+import { ageNote, deskStamp, american, bookName, dollars, lineText, num, pct, pctBounded, tipTime } from "./format";
 import { parse } from "./router";
+
+describe("dollars", () => {
+  it("formats to the cent with separators and a real minus sign", () => {
+    expect(dollars(24.5)).toBe("$24.50");
+    expect(dollars(1234)).toBe("$1,234.00");
+    expect(dollars(1234567.891)).toBe("$1,234,567.89");
+    expect(dollars(-7)).toBe("−$7.00");
+    expect(dollars(0.004)).toBe("$0.00");
+    expect(dollars(-0.004)).toBe("$0.00");
+  });
+  it("signs a net result on request, never signs zero", () => {
+    expect(dollars(7, { signed: true })).toBe("+$7.00");
+    expect(dollars(-40, { signed: true })).toBe("−$40.00");
+    expect(dollars(0, { signed: true })).toBe("$0.00");
+    expect(dollars(-0, { signed: true })).toBe("$0.00");
+  });
+  it("shows a missing number as missing, never as $0.00", () => {
+    for (const x of [null, undefined, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(dollars(x)).toBe("—");
+      expect(dollars(x, { signed: true })).toBe("—");
+    }
+  });
+});
 
 describe("format", () => {
   it("names books and exchanges as people write them", () => {
@@ -39,7 +62,7 @@ describe("router", () => {
     expect(parse("#/game/0022400001")).toEqual({ name: "game", id: "0022400001" });
     expect(parse("#/swipe?date=2024-11-20")).toEqual({ name: "swipe", date: "2024-11-20" });
     expect(parse("#/picks")).toEqual({ name: "picks" });
-    expect(parse("#/nonsense")).toEqual({ name: "today", date: null });
+    expect(parse("#/nonsense")).toEqual({ name: "notfound", hash: "#/nonsense" });
   });
 });
 

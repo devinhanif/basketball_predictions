@@ -14,15 +14,38 @@ Rules this module keeps:
 from __future__ import annotations
 
 import math
-import statistics
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
-from pydantic import BaseModel
-
-from .dissect.types import Dissection
-from .forecast import devig_over, no_cal_here, reference_line, shown_probs
+from .breakdown_models import (
+    BookRow,
+    Breakdown,
+    Chip,
+    LadderRow,
+    Model,
+    OppAllowed,
+    Prices,
+    Role,
+    Side,
+    Split,
+    State,
+    StatTab,
+    Tally,
+    TeammateOut,
+    Teammates,
+)
+from .breakdown_pure import (
+    SMALL_N,
+    _market_chance,
+    _price_say,
+    default_line,
+    half_grid,
+    hit_state,
+    tally,
+    wilson,
+)
+from .forecast import no_cal_here, reference_line, shown_probs
 from .history import (
     MODEL_STATS,
     POSITION_NOUN,
@@ -32,14 +55,11 @@ from .history import (
     days_between,
 )
 from .model_source import model_label, p_play_label
-from .role_stats import OnOff, Per36, Steadiness, onoff, per36, steadiness
-from .wowy_shrink import Beyond, beyond
+from .role_stats import onoff, per36, steadiness
+from .wowy_shrink import beyond
 
 Json = dict[str, Any]
-Side = Literal["over", "under"]
-State = Literal["hit", "miss", "push"]
 
-SMALL_N = 10  # fewer prior games than this is a small sample (also in role_stats)
 LAST_N = 10
 RECENT_N = 5
 HEADS_UP_GAP = 0.25  # recent hit rate and model chance this far apart is worth a heads-up
@@ -52,258 +72,9 @@ REST_GAP_MAX = 10  # a longer gap between team games is an offseason, not rest
 AVAIL_LEAD = timedelta(minutes=60)  # reports count if published at least an hour before tip
 SHOWN_AVAIL = ("out", "doubtful", "questionable")
 
-
-# ----------------------------------------------------------------------------- response shapes
-
-
-class Tally(BaseModel):
-    n: int
-    hits: int
-    misses: int
-    pushes: int
-    rate: float | None
-    ci_lo: float | None
-    ci_hi: float | None
-    avg: float | None
-    avg_minutes: float | None
-    small: bool
-
-
-class Chip(BaseModel):
-    game_id: str
-    date: str
-    opp: str
-    home: bool | None  # None when the export holds no schedule row for that older game
-    value: int
-    minutes: float
-    starter: bool
-    state: State
-    # True when the data holds that game's page, so the app may link to it (set by the route).
-    linkable: bool = False
-
-
-class Split(BaseModel):
-    key: str
-    label: str
-    tonight: bool
-    this_season: Tally
-    since_last_season: Tally
-
-
-class TeammateOut(BaseModel):
-    player_id: int
-    name: str
-    status: str
-    reason: str | None
-    avg_minutes: float
-    without: Tally
-    with_: Tally
-    # His minutes and per-36 points, rebounds and assists (assists from the box score) in the
-    # same two sets of games, whatever the stat on screen.
-    per36_without: Per36
-    per36_with: Per36
-    # The headline; the tallies and per-36 numbers above are the raw history, not the lead.
-    beyond: Beyond
-    note: str
-
-
-class Teammates(BaseModel):
-    report_as_of_utc: str | None
-    player_status: str | None
-    player_status_reason: str | None
-    items: list[TeammateOut]
-    omitted_unnamed: int
-    note: str
-
-
-class OppAllowed(BaseModel):
-    opp: str
-    position: str
-    position_noun: str
-    avg_allowed: float
-    rank: int
-    of: int
-    n_games: int
-    league_avg: float
-    note: str
-
-
-class Model(BaseModel):
-    available: bool
-    p_hit: float | None
-    p_over: float | None
-    p_under: float | None
-    p_push: float | None
-    mean: float | None
-    typical: float | None
-    extrapolated: bool
-    # calibrated (line_cal, rung_cal) or the model's own number with no calibrated value (model)
-    p_source: str = "model"
-    # The prop has a calibrated number elsewhere but none at this line: no chance is given here.
-    no_cal_here: bool = False
-    stamp: str | None
-    # Which model the numbers came from, in plain words (see model_source).
-    source: str
-    source_label: str
-    say: str
-    reason: str
-
-
-class Role(BaseModel):
-    n: int
-    avg_minutes: float | None
-    starts: int
-    minutes_forecast: float | None
-    p_play: float | None
-    p_play_label: str | None
-    say: str
-
-
-class BookRow(BaseModel):
-    """One book's stored quote at the line on screen. A price that is not usable (a placeholder
-    with no bid behind it) is never given as a number: it is None and `*_unusable` is set."""
-
-    book: str
-    over_price: int | None
-    under_price: int | None
-    over_unusable: bool
-    under_unusable: bool
-    alternate: bool  # the quote came from the alternate-line ladder
-    minutes_before_tip: float | None
-
-
-class Prices(BaseModel):
-    posted_line: float | None
-    over_price: int | None
-    under_price: int | None
-    on_posted_line: bool
-    snapshot_utc: str | None
-    say: str
-    books: list[BookRow] = []
-    # The book's chance of an over at the line on screen, its margin taken out (multiplicative), and
-    # whose price it is. Null unless one book quoted both sides (a mixed pair is not de-vigged).
-    market_p_over: float | None = None
-    market_book: str | None = None
-
-
-class LadderRow(BaseModel):
-    line: float
-    l10_over: int
-    l10_under: int
-    l10_push: int
-    l5_over: int
-    l5_under: int
-    l5_push: int
-    model_over: float | None
-    model_under: float | None
-    model_source: str = "model"
-    over_price: int | None
-    under_price: int | None
-
-
-class StatTab(BaseModel):
-    stat: str
-    label: str
-    has_model: bool
-    posted_line: float | None
-    default_line: float
-    default_source: Literal["posted", "last10_middle", "model_middle"]
-
-
-class Breakdown(BaseModel):
-    game_id: str
-    player_id: int
-    player: str
-    team: str
-    opponent: str
-    home: bool
-    tip_utc: str
-    as_of_date: str
-    stat: str
-    label: str
-    side: Side
-    line: float
-    line_source: Literal["posted", "last10_middle", "model_middle"]
-    prior_games: int
-    last10: Tally
-    last5: Tally
-    chips: list[Chip]
-    season: Tally
-    splits: list[Split]
-    teammates: Teammates
-    opponent_allowed: OppAllowed | None
-    model: Model
-    role: Role
-    steadiness: Steadiness
-    onoff: OnOff
-    prices: Prices
-    heads_up: str | None
-    notes: list[str]
-    ladder: list[LadderRow]
-    ladder_n10: int
-    ladder_n5: int
-    tabs: list[StatTab]
-    dissection: Dissection | None = None
-
-
-# ----------------------------------------------------------------------------- pure math
-
-
-def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float] | None:
-    """Wilson score interval for k hits in n games; None when there are no games."""
-    if n <= 0:
-        return None
-    p = k / n
-    z2 = z * z
-    denom = 1 + z2 / n
-    centre = (p + z2 / (2 * n)) / denom
-    half = (z * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n))) / denom
-    return max(0.0, centre - half), min(1.0, centre + half)
-
-
-def hit_state(value: float, line: float, side: Side) -> State:
-    """Over means strictly above the line; a value exactly on a whole-number line is a push."""
-    if value == line:
-        return "push"
-    if side == "over":
-        return "hit" if value > line else "miss"
-    return "hit" if value < line else "miss"
-
-
-def tally(rows: list[Row], stat: str, line: float, side: Side) -> Tally:
-    n = len(rows)
-    states = [hit_state(r.value(stat), line, side) for r in rows]
-    hits = states.count("hit")
-    pushes = states.count("push")
-    ci = wilson(hits, n)
-    return Tally(
-        n=n,
-        hits=hits,
-        misses=states.count("miss"),
-        pushes=pushes,
-        rate=None if n == 0 else hits / n,
-        ci_lo=None if ci is None else ci[0],
-        ci_hi=None if ci is None else ci[1],
-        avg=None if n == 0 else sum(r.value(stat) for r in rows) / n,
-        avg_minutes=None if n == 0 else sum(r.minutes for r in rows) / n,
-        small=n < SMALL_N,
-    )
-
-
-def default_line(values: list[int]) -> float:
-    """Starting line when the book posted none: just under the middle of the last ten games."""
-    if not values:
-        return 0.5
-    return math.floor(statistics.median(values)) + 0.5
-
-
-def half_grid(lo: float, hi: float) -> list[float]:
-    start = math.floor(lo * 2) / 2
-    n = int(round((hi - start) * 2))
-    return [start + 0.5 * i for i in range(n + 1)]
-
-
 # ----------------------------------------------------------------------------- the builder
+# (the response shapes live in breakdown_models.py, the pure math and price words in
+# breakdown_pure.py; both are re-exported here)
 
 
 class Context:
@@ -683,50 +454,6 @@ def _prices(ctx: Context, stat: str, line: float) -> Prices:
     )
 
 
-BOOK_NAMES = {
-    "draftkings": "DraftKings",
-    "fanduel": "FanDuel",
-    "betmgm": "BetMGM",
-    "caesars": "Caesars",
-    "espnbet": "ESPN Bet",
-    "fanatics": "Fanatics",
-    "kalshi": "Kalshi",
-    "novig": "Novig",
-    "polymarket": "Polymarket",
-    "polymarket_us": "Polymarket US",
-}
-
-
-def book_name(key: str) -> str:
-    return BOOK_NAMES.get(key, key.replace("_", " ").capitalize())
-
-
-def _market_chance(entry: Json) -> tuple[float | None, str | None]:
-    """The de-vigged over chance of one book's two-sided quote, and the book's name. Fixture entries
-    name no book (DraftKings). A pair whose sides came from different books is not de-vigged."""
-    ov, un = entry.get("over_price"), entry.get("under_price")
-    ob, ub = entry.get("over_book"), entry.get("under_book")
-    if ov is None or un is None or ob != ub:
-        return None, None
-    try:
-        return devig_over(int(ov), int(un)), book_name(str(ob or "draftkings"))
-    except ValueError:
-        return None, None
-
-
-def _price_say(entry: Json) -> str:
-    """Who quoted the price on screen (fixture entries name no book: DraftKings)."""
-    ob, ub = entry.get("over_book"), entry.get("under_book")
-    if ob is None and ub is None:
-        return "Posted price, DraftKings about an hour before tip."
-    if ob is not None and ub is not None and ob != ub:
-        return (
-            f"Posted prices, over from {book_name(ob)} and under from {book_name(ub)}, "
-            "captured before tip."
-        )
-    return f"Posted price from {book_name(str(ob or ub))}, captured before tip."
-
-
 def _books_at(ctx: Context, stat: str, line: float) -> list[BookRow]:
     """Every book's stored quote at this exact line, main and alternate ladders together."""
     quotes = ctx.h.quotes.get(ctx.gid, {}).get(str(ctx.pid), {}).get(stat, [])
@@ -945,3 +672,37 @@ def build(
         ladder_n5=len(last5),
         tabs=tabs,
     )
+
+
+#: Names other modules and tests import from here (their homes are breakdown_models.py and
+#: breakdown_pure.py since the split).
+__all__ = [
+    "BookRow",
+    "Breakdown",
+    "Chip",
+    "LadderRow",
+    "Model",
+    "OppAllowed",
+    "Prices",
+    "Role",
+    "Side",
+    "Split",
+    "StatTab",
+    "State",
+    "Tally",
+    "TeammateOut",
+    "Teammates",
+    "default_line",
+    "half_grid",
+    "hit_state",
+    "tally",
+    "wilson",
+    "Context",
+    "build",
+    "mate_note",
+    "teammates_on_report",
+    "HEADS_UP_GAP",
+    "LAST_N",
+    "RECENT_N",
+    "SMALL_N",
+]

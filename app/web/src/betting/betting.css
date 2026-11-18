@@ -1,0 +1,1144 @@
+/* The betting tools' only stylesheet. Every rule is under .ph-bet and built on the app's design variables (theme.css), so it
+   cannot restyle anything outside the module. It ships as a string inside the betting module (imported with ?inline and
+   put in the page by ensureBetStyles), so a build with the switch off carries none of it. */
+
+.ph-bet {
+  --bet-gap: var(--sp-3, 12px);
+}
+.ph-bet h1 {
+  margin: 0 0 var(--sp-2, 8px);
+}
+.ph-bet .ph-bet-h {
+  font-size: var(--fs-md, 1rem);
+  margin: var(--sp-4, 16px) 0 var(--sp-2, 8px);
+}
+.ph-bet .ph-bet-lede {
+  max-width: 62ch;
+}
+
+/* ------------------------------------------------------------ notes, badges, states */
+.ph-bet .ph-bet-note {
+  margin: 0 0 var(--bet-gap);
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: var(--radius-xs, 4px);
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-prov {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ph-bet .ph-bet-err {
+  color: var(--loss);
+}
+.ph-bet .ph-bet-neg {
+  color: var(--loss);
+  font-weight: 700;
+}
+.ph-bet .ph-bet-pos {
+  color: var(--win);
+  font-weight: 700;
+}
+.ph-bet .ph-bet-warn {
+  margin: var(--sp-2, 8px) 0;
+  padding-left: 1.2em;
+  color: var(--muted);
+}
+.ph-bet .ph-bet-warn li + li,
+.ph-bet .ph-bet-overlaps li + li {
+  margin-top: 4px;
+}
+.ph-bet .ph-bet-overlaps {
+  padding-left: 1.2em;
+}
+.ph-bet .ph-bet-coverage {
+  margin: var(--bet-gap) 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+}
+.ph-bet .ph-bet-coverage.off {
+  border-left-color: var(--muted);
+  background: var(--surface-2);
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-coverage p {
+  margin: 0 0 4px;
+}
+.ph-bet .ph-bet-empty {
+  padding: var(--sp-4, 16px);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius, 10px);
+  background: var(--surface-2);
+}
+.ph-bet .ph-bet-empty h3,
+.ph-bet .ph-bet-empty h2 {
+  margin-top: 0;
+}
+.ph-bet .ph-bet-save {
+  margin-bottom: var(--bet-gap);
+}
+
+/* ------------------------------------------------------------ forms */
+.ph-bet .ph-bet-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-2, 8px);
+  margin: var(--sp-2, 8px) 0;
+}
+.ph-bet label > span {
+  display: block;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.ph-bet input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.ph-bet select,
+.ph-bet textarea {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+}
+.ph-bet input:focus-visible,
+.ph-bet select:focus-visible,
+.ph-bet textarea:focus-visible {
+  outline: 2px solid var(--focus, var(--accent));
+  outline-offset: 1px;
+}
+.ph-bet .ph-bet-form {
+  margin: var(--sp-2, 8px) 0;
+}
+.ph-bet fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+  padding: var(--sp-3, 12px);
+  margin: var(--bet-gap) 0;
+  min-width: 0;
+}
+.ph-bet legend {
+  font-weight: 700;
+  padding: 0 4px;
+}
+.ph-bet .ph-bet-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ph-bet .ph-bet-seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------ slip legs and picks */
+.ph-bet .ph-bet-leg {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  padding: 10px 12px;
+  margin: 0 0 var(--sp-2, 8px);
+  overflow-wrap: break-word;
+}
+.ph-bet .ph-bet-leg.recorded {
+  border-left: 3px solid var(--mine, var(--accent));
+}
+.ph-bet .ph-bet-leg.off {
+  opacity: 0.7;
+  border-style: dashed;
+}
+.ph-bet .ph-bet-leg p {
+  margin: 4px 0;
+}
+.ph-bet .ph-bet-leg-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ph-bet .ph-bet-venue {
+  flex: 1;
+  min-width: 0;
+}
+.ph-bet .ph-bet-leg-what {
+  font-weight: 600;
+}
+.ph-bet .ph-bet-leg-nums {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+.ph-bet .ph-bet-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ph-bet .ph-bet-amount input {
+  width: 7.5em;
+}
+/* The unit after an amount ("contracts", "stake") never breaks inside the word, however narrow the rail. */
+.ph-bet .ph-bet-amount > span:not(.sr) {
+  white-space: nowrap;
+}
+.ph-bet .ph-bet-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-check input:not(.tap-check) {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+.ph-bet .ph-bet-x {
+  font-size: 1.25rem;
+  line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+}
+.ph-bet .ph-bet-confirm {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: var(--radius-xs, 4px);
+  background: var(--notice-bg, var(--surface-2));
+  color: var(--notice-ink, var(--ink));
+}
+.ph-bet .ph-bet-picks li.ph-bet-pick {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: break-word;
+}
+.ph-bet .ph-bet-totals dl {
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-totals dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ph-bet .ph-bet-totals dl > div.total {
+  font-weight: 700;
+  border-bottom: 0;
+}
+.ph-bet .ph-bet-totals dd {
+  margin: 0;
+}
+.ph-bet .ph-bet-actions {
+  display: grid;
+  gap: var(--sp-2, 8px);
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-outcomes {
+  margin: var(--bet-gap) 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+/* On phones the outcome table stacks (one labelled block per outcome). None of its columns sort, so its header row is
+   visually empty there: take back the room the shared stacked table keeps for sort buttons. */
+@media (max-width: 640px) {
+  .ph-bet .ph-bet-outcomes .ktable.stack caption {
+    margin-bottom: 0;
+  }
+  .ph-bet .ph-bet-outcomes .ktable.stack thead tr {
+    padding-bottom: 0;
+  }
+}
+.ph-bet .ph-bet-notes,
+.ph-bet .ph-bet-tools {
+  margin: var(--sp-4, 16px) 0;
+}
+.ph-bet .ph-bet-notes label {
+  display: block;
+  margin: 8px 0;
+}
+.ph-bet .ph-bet-tools h2 {
+  font-size: var(--fs-md, 1rem);
+}
+
+/* ------------------------------------------------------------ the persistent panel */
+.ph-bet .ph-bet-launcher {
+  position: fixed;
+  right: 12px;
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.ph-bet .ph-bet-launcher svg {
+  width: 20px;
+  height: 20px;
+}
+.ph-bet .ph-bet-launcher:focus-visible {
+  outline: 3px solid var(--focus, var(--ink));
+  outline-offset: 2px;
+}
+.ph-bet .ph-bet-count {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: center;
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--loss);
+}
+/* the slip inside the shell's side panel (rail or sheet) */
+.ph-bet.ph-bet-side .ph-bet-side-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -4px 0 10px;
+}
+@media (min-width: 1280px) {
+  .ph-bet .ph-bet-launcher {
+    bottom: 24px;
+    right: 24px;
+  }
+}
+
+/* ------------------------------------------------------------ notices (coalesced toasts) */
+.ph-bet.ph-bet-toasts {
+  position: fixed;
+  z-index: 60;
+  left: 16px;
+  right: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  pointer-events: none;
+}
+.ph-bet.ph-bet-toasts.bottom {
+  bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+}
+.ph-bet.ph-bet-toasts.top {
+  top: calc(var(--topbar-h, 64px) + 8px + env(safe-area-inset-top, 0px));
+}
+.ph-bet .ph-bet-toast {
+  pointer-events: auto;
+  width: min(420px, 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px 10px 14px;
+  border: 1px solid var(--accent-line, var(--line));
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius, 12px);
+  background: var(--surface-2, var(--surface));
+  color: var(--ink);
+  box-shadow: var(--elev-2, var(--shadow));
+}
+.ph-bet .ph-bet-toast.failed {
+  border-left-color: var(--loss);
+}
+.ph-bet .ph-bet-toast .icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+}
+/* Wide screens: notices sit at the foot of the sidebar, never over the page being read, the board, the rail or the
+   control just used (all of which are to the right of the sidebar). */
+@media (min-width: 1024px) {
+  .ph-bet.ph-bet-toasts,
+  .ph-bet.ph-bet-toasts.top,
+  .ph-bet.ph-bet-toasts.bottom {
+    top: auto;
+    left: 12px;
+    right: auto;
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    width: calc(var(--sidebar-w, 240px) - 24px);
+    justify-items: stretch;
+  }
+  .ph-bet.ph-bet-toasts .ph-bet-toast {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ph-bet .ph-bet-toast {
+    animation: ph-bet-rise 0.18s ease-out;
+  }
+}
+
+/* ------------------------------------------------------------ add to slip (on game and player pages) */
+.ph-bet.ph-bet-add {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ph-bet.ph-bet-add .btn {
+  min-height: 44px;
+}
+.ph-bet.ph-bet-add-row {
+  display: flex;
+  margin: 6px 0;
+}
+
+/* ------------------------------------------------------------ compare and hedge */
+.ph-bet .ph-bet-market {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-market h2 {
+  margin: 0;
+  font-size: var(--fs-xl, 1.25rem);
+  overflow-wrap: break-word;
+}
+.ph-bet .ph-bet-market > div {
+  min-width: 0;
+  flex: 1;
+}
+.ph-bet .ph-bet-crown {
+  font-weight: 700;
+  color: var(--accent-ink, var(--accent));
+}
+/* ------------------------------------------------------------ held positions (Hedge Finder), pinned on phones */
+.ph-bet .ph-bet-held {
+  display: flex;
+  gap: 8px;
+  margin: var(--sp-2, 8px) 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 4px 0 6px;
+}
+.ph-bet .ph-bet-chip {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  max-width: min(320px, 82vw);
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: var(--radius-sm, 9px);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+.ph-bet .ph-bet-chip strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ph-bet .ph-bet-chip[aria-current="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: var(--accent-soft, var(--surface-2));
+}
+@media (max-width: 1023px) {
+  .ph-bet .ph-bet-held {
+    position: sticky;
+    top: var(--topbar-h, 64px);
+    z-index: 5;
+    background: var(--bg);
+    margin: 0 calc(-1 * var(--gutter, 16px));
+    padding: 8px var(--gutter, 16px);
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.ph-bet .ph-bet-picker {
+  display: grid;
+  gap: var(--sp-2, 8px);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+}
+.ph-bet .ph-bet-hub {
+  display: grid;
+  gap: var(--bet-gap);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  margin: var(--bet-gap) 0;
+}
+.ph-bet .ph-bet-hub a {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+.ph-bet .ph-bet-hub a:hover,
+.ph-bet .ph-bet-hub a:focus-visible {
+  border-color: var(--accent);
+}
+.ph-bet .ph-bet-hub strong {
+  display: block;
+  font-size: var(--fs-lg, 1.125rem);
+}
+.ph-bet .ph-bet-hub-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm, 9px);
+  background: var(--accent-soft, var(--surface-2));
+  color: var(--accent-ink, var(--accent));
+  margin-bottom: 4px;
+}
+.ph-bet .ph-bet-hub-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.ph-bet .ph-bet-hub-next {
+  margin-top: auto;
+  padding-top: 6px;
+  font-weight: var(--fw-bold, 700);
+  color: var(--accent-ink, var(--accent));
+}
+.ph-bet .ph-bet-steps {
+  list-style: none;
+  padding: 0;
+  margin: var(--bet-gap) 0;
+  display: grid;
+  gap: var(--bet-gap);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  counter-reset: none;
+}
+.ph-bet .ph-bet-steps li {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius, 12px);
+  background: var(--surface-2);
+}
+.ph-bet .ph-bet-steps p {
+  margin: 2px 0 4px;
+}
+.ph-bet .ph-bet-step-n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-bold, 700);
+}
+.ph-bet .ph-bet-split {
+  display: grid;
+  gap: var(--bet-gap);
+}
+@media (min-width: 900px) {
+  .ph-bet .ph-bet-split {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@keyframes ph-bet-rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ph-bet .ph-bet-linepick {
+  display: block;
+  max-width: 240px;
+  margin: 0 0 var(--sp-2, 8px);
+}
+.ph-bet .ph-bet-fee summary {
+  cursor: pointer;
+  font-size: var(--fs-sm, 0.875rem);
+  min-height: 32px;
+}
+
+/* ------------------------------------------------------------ the venue board (Compare, Hedge Finder) */
+.ph-bet .ph-bet-headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+.ph-bet .ph-bet-headrow .ph-bet-linepick {
+  margin: 0;
+  max-width: 160px;
+}
+.ph-bet .ph-bet-toolbar {
+  gap: 8px;
+  margin: var(--sp-3, 12px) 0;
+}
+.ph-bet .ph-bet-about {
+  margin: 0 0 var(--sp-3, 12px);
+  padding: 10px 14px 10px 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 12px);
+  background: var(--surface);
+  color: var(--ink);
+  max-width: 80ch;
+}
+.ph-bet .ph-bet-about li + li {
+  margin-top: 4px;
+}
+.ph-bet .ph-bet-feebar {
+  margin: 0 0 var(--sp-3, 12px);
+}
+.ph-bet .ph-bet-feeform {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+.ph-bet .ph-bet-feeform label {
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+}
+.ph-bet .ph-bet-board-wrap {
+  container: phbetboard / inline-size;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface);
+  overflow: hidden;
+}
+.ph-bet .ph-bet-board {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ph-bet .ph-bet-board th,
+.ph-bet .ph-bet-board td {
+  padding: 9px 12px;
+  text-align: left;
+  vertical-align: middle;
+  border-top: 1px solid var(--line);
+}
+.ph-bet .ph-bet-board thead th {
+  border-top: 0;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: var(--fw-bold, 700);
+  letter-spacing: var(--track-kicker, 0.04em);
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.ph-bet .ph-bet-board .num {
+  text-align: right;
+}
+.ph-bet .ph-bet-board .ph-bet-b-group th {
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: var(--fw-bold, 700);
+  background: var(--surface-2);
+  color: var(--ink);
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.ph-bet .ph-bet-board tr.unavailable .ph-bet-b-name {
+  font-weight: var(--fw-medium, 500);
+}
+.ph-bet .ph-bet-board tbody th {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--fs-base, 1rem);
+  color: var(--ink);
+}
+.ph-bet .ph-bet-b-venue {
+  font-weight: inherit;
+  min-width: 0;
+}
+.ph-bet .ph-bet-b-name {
+  display: block;
+  font-weight: var(--fw-bold, 700);
+}
+.ph-bet .ph-bet-b-kind,
+.ph-bet .ph-bet-b-sub,
+.ph-bet .ph-bet-board .ph-bet-crown {
+  display: block;
+}
+.ph-bet .ph-bet-b-price {
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: var(--fw-bold, 700);
+  white-space: nowrap;
+}
+.ph-bet .ph-bet-src {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+.ph-bet .ph-bet-b-lab {
+  display: none;
+}
+.ph-bet .ph-bet-b-act {
+  white-space: nowrap;
+  text-align: right;
+}
+.ph-bet .ph-bet-b-act > * + * {
+  margin-left: 8px;
+}
+.ph-bet .ph-bet-board tr.has-extra td,
+.ph-bet .ph-bet-board tr.has-extra th {
+  border-bottom: 0;
+}
+.ph-bet .ph-bet-board tr.ph-bet-b-extra td {
+  border-top: 0;
+  padding-top: 0;
+}
+.ph-bet .ph-bet-b-more summary {
+  cursor: pointer;
+  color: var(--accent-ink, var(--accent));
+  font-weight: var(--fw-medium, 500);
+  margin-top: 4px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.ph-bet .ph-bet-b-more[open] {
+  padding: 8px 0;
+}
+.ph-bet .ph-bet-disclose > summary {
+  cursor: pointer;
+  font-weight: var(--fw-medium, 500);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+@container phbetboard (max-width: 700px) {
+  /* Visually hidden, still read as the table's heads; clipped by clip-path (not overflow) so no text is cut mid-glyph. */
+  .ph-bet .ph-bet-board thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .ph-bet .ph-bet-board,
+  .ph-bet .ph-bet-board tbody {
+    display: block;
+  }
+  .ph-bet .ph-bet-board tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+  }
+  .ph-bet .ph-bet-board tr.has-extra {
+    padding-bottom: 2px;
+  }
+  .ph-bet .ph-bet-board tr.ph-bet-b-extra {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .ph-bet .ph-bet-board th,
+  .ph-bet .ph-bet-board td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .ph-bet .ph-bet-board .ph-bet-b-group {
+    display: block;
+    padding: 6px 12px;
+    background: var(--surface-2);
+  }
+  .ph-bet .ph-bet-b-venue {
+    flex: 1 1 60%;
+    min-width: 0;
+  }
+  .ph-bet .ph-bet-b-name {
+    display: inline;
+    margin-right: 6px;
+  }
+  .ph-bet .ph-bet-b-kind {
+    display: inline;
+  }
+  .ph-bet .ph-bet-b-price {
+    margin-left: auto;
+  }
+  .ph-bet .ph-bet-src {
+    flex-wrap: nowrap;
+  }
+  .ph-bet .ph-bet-board td.ph-bet-b-fee,
+  .ph-bet .ph-bet-board td.ph-bet-b-cost {
+    text-align: left;
+  }
+  .ph-bet .ph-bet-board td.ph-bet-b-cost.nocost {
+    display: none;
+  }
+  .ph-bet .ph-bet-b-lab {
+    display: inline;
+    color: var(--muted);
+  }
+  .ph-bet .ph-bet-b-none {
+    flex: 1 1 60%;
+  }
+  .ph-bet .ph-bet-b-act {
+    margin-left: auto;
+  }
+  .ph-bet .ph-bet-board tr.ph-bet-b-extra td {
+    flex: 1 1 100%;
+  }
+}
+
+/* ------------------------------------------------------------ ideas */
+.ph-bet .ph-bet-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--bet-gap);
+  margin: var(--sp-3, 12px) 0;
+}
+.ph-bet .ph-bet-ideas-tools {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 var(--sp-3, 12px);
+}
+.ph-bet .ph-bet-search input {
+  width: 100%;
+  max-width: 520px;
+}
+.ph-bet .ph-bet-ideas-actions {
+  gap: 8px;
+}
+.ph-bet .ph-bet-full {
+  flex-basis: 100%;
+}
+.ph-bet .ph-bet-idea-list {
+  display: grid;
+  gap: var(--bet-gap);
+}
+.ph-bet .ph-bet-idea {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface);
+  padding: 14px 16px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.ph-bet .ph-bet-idea p {
+  margin: 0;
+}
+.ph-bet .ph-bet-idea-head,
+.ph-bet .ph-bet-idea-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.ph-bet .ph-bet-idea-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg, 1.125rem);
+}
+.ph-bet .ph-bet-idea-title h1 {
+  margin: 0;
+  overflow-wrap: break-word;
+}
+.ph-bet .ph-bet-idea-thesis {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ph-bet .ph-bet-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+.ph-bet .ph-bet-tag {
+  padding: 2px 8px;
+  border-radius: var(--radius-2xs, 4px);
+  background: var(--accent-soft, var(--surface-2));
+  color: var(--accent-ink, var(--ink));
+  font-size: var(--fs-sm, 0.875rem);
+}
+.ph-bet .ph-bet-idea-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+.ph-bet .ph-bet-thesis {
+  max-width: 72ch;
+}
+.ph-bet .ph-bet-thesis p {
+  white-space: pre-wrap;
+}
+.ph-bet .ph-bet-idea-actions {
+  margin: var(--sp-3, 12px) 0;
+}
+.ph-bet .ph-bet-net {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--mine, var(--accent));
+  border-radius: var(--radius, 12px);
+  background: var(--surface-2);
+}
+.ph-bet .ph-bet-net-label {
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: var(--fw-bold, 700);
+  letter-spacing: var(--track-kicker, 0.04em);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ph-bet .ph-bet-net strong {
+  font-size: var(--fs-xl, 1.25rem);
+}
+.ph-bet .ph-bet-outcome {
+  display: grid;
+  gap: 10px;
+  margin: var(--sp-4, 16px) 0;
+}
+.ph-bet .ph-bet-outcome .ph-bet-h {
+  margin: 0;
+}
+.ph-bet .ph-bet-markset {
+  margin: 0;
+}
+.ph-bet .ph-bet-markset .ph-bet-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ph-bet .ph-bet-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: var(--radius-sm, 9px);
+  background: var(--surface);
+  cursor: pointer;
+}
+.ph-bet .ph-bet-radio.on {
+  border-color: var(--accent);
+  background: var(--accent-soft, var(--surface-2));
+  font-weight: var(--fw-bold, 700);
+}
+.ph-bet .ph-bet-radio:focus-within {
+  outline: 3px solid var(--focus, var(--ink));
+  outline-offset: 2px;
+}
+.ph-bet .ph-bet-marks li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ph-bet .ph-bet-saveidea {
+  border-top: 1px solid var(--line);
+  margin-top: var(--sp-3, 12px);
+}
+.ph-bet .ph-bet-saverow {
+  align-items: flex-end;
+  gap: 10px;
+}
+.ph-bet .ph-bet-saverow label {
+  display: grid;
+  gap: 2px;
+}
+.ph-bet .ph-bet-now {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.ph-bet .ph-bet-idea-legs .ph-bet-b-price .ph-bet-b-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: var(--fw-regular, 400);
+  text-align: right;
+}
+@container phbetboard (max-width: 700px) {
+  .ph-bet .ph-bet-idea-legs .ph-bet-b-price .ph-bet-b-sub {
+    display: inline-block;
+    margin-left: 8px;
+  }
+  .ph-bet .ph-bet-idea-legs .ph-bet-b-venue {
+    flex-basis: 100%;
+  }
+  .ph-bet .ph-bet-idea-legs .ph-bet-b-price {
+    margin-left: 0;
+  }
+}
+
+/* ------------------------------------------------------------ Compare: the night's stored props */
+.ph-bet .ph-bet-proplist {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 6px 16px;
+  margin: 10px 0;
+}
+.ph-bet .ph-bet-proplist li {
+  display: grid;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 9px);
+  background: var(--surface);
+}
+
+/* ------------------------------------------------------------ analysis */
+.ph-bet .ph-bet-panel-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface);
+  padding: 4px 16px 16px;
+  min-width: 0;
+}
+.ph-bet .ph-bet-links {
+  gap: 6px 16px;
+  margin-top: 6px;
+}
+.ph-bet .ph-bet-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.ph-bet .ph-bet-facts > div {
+  display: grid;
+  grid-template-columns: minmax(130px, 200px) 1fr;
+  gap: 4px 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.ph-bet .ph-bet-facts dt {
+  color: var(--muted);
+}
+.ph-bet .ph-bet-facts dd {
+  margin: 0;
+  overflow-wrap: break-word;
+}
+@media (max-width: 480px) {
+  .ph-bet .ph-bet-facts > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phones: every small button and standalone link in the module is a 44 px target (J7). */
+@media (max-width: 767px) {
+  .ph-bet .btn.small {
+    min-height: 44px;
+  }
+}
+
+/* Every disclosure in the module shows that it opens (the app's summaries are flex rows, which drop the browser's
+   marker): the same chevron as the rest of the app (J7). */
+.ph-bet details > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  opacity: 0.75;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.18s;
+}
+.ph-bet details[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+.ph-bet .ph-bet-hist-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: break-word;
+}
+.ph-bet .ph-bet-history {
+  margin-top: var(--sp-3, 12px);
+}
+/* Long user text (a 600-character thesis, a long unbroken tag, a long name) wraps inside its box. */
+.ph-bet .ph-bet-tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.ph-bet .ph-bet-thesis p,
+.ph-bet .ph-bet-idea-thesis {
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+.ph-bet .ph-bet-leg-what,
+.ph-bet .ph-bet-venue {
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.ph-bet .ph-bet-glance {
+  margin: var(--sp-2, 8px) 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 12px);
+  background: var(--surface);
+}
+.ph-bet .ph-bet-hub a {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  column-gap: 12px;
+}
+.ph-bet .ph-bet-hub a > .ph-bet-hub-icon {
+  grid-row: 1 / span 3;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-bold, 700);
+}
+.ph-bet .ph-bet-hub a > .ph-bet-hub-next {
+  padding-top: 2px;
+}
+.ph-bet .ph-bet-aboutbox {
+  margin: 0 0 var(--sp-3, 12px);
+}
+.ph-bet .ph-bet-aboutbox summary,
+.ph-bet .ph-bet-feebar > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}

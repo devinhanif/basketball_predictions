@@ -6,6 +6,7 @@ import { IS_ARTIFACT } from "./env";
 import { getPlatform, type Platform } from "./platform";
 import { readKey, writeKey } from "./prefs";
 import { isUsableId } from "./sharedPicks";
+import { instantMs } from "./time";
 
 export const MAX_WATCH = 100;
 const KEY = "ph.watch.v1";
@@ -28,7 +29,7 @@ export function cleanItem(x: unknown): WatchItem | null {
   const label = str(o["label"], 80);
   const sub = typeof o["sub"] === "string" && o["sub"].length <= 80 ? o["sub"] : "";
   const at = str(o["at"], 40);
-  if (key === null || label === null || at === null || Number.isNaN(Date.parse(at))) return null;
+  if (key === null || label === null || at === null || Number.isNaN(instantMs(at))) return null;
   return { key, label, sub, at };
 }
 

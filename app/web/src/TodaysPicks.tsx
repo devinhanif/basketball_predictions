@@ -7,26 +7,36 @@ import { legHref } from "./router";
 import type { ParlayState } from "./types";
 import { betWords, evPerDollar, picksHead, priceCents, PICKS_FETCH, runIsForNight, selectPicks, whyText } from "./picksLogic";
 import { useLoad } from "./useLoad";
+import { Icon } from "./icons";
+import { useMode, type Mode } from "./prefs";
+import { instantMs } from "./time";
 
-function Pick({ c, rank }: { c: TopContract; rank: number }) {
-  const started = c.tip_utc !== null && Date.parse(c.tip_utc) <= Date.now();
+function Pick({ c, rank, mode }: { c: TopContract; rank: number; mode: Mode }) {
+  const started = c.tip_utc !== null && instantMs(c.tip_utc) <= Date.now();
   return (
     <li class="tp-pick">
-      <span class="tp-rank num" aria-hidden={c.ev > 0 ? "true" : undefined}>
-        {c.ev > 0 ? rank : <span class="tag">not a bet</span>}
-      </span>
-      <Avatar name={c.player} team={c.team} playerId={c.player_id} size="md" remote />
-      <div class="tp-body">
-        <div class="tp-bet">
-          <strong>{betWords(c)}</strong>
+      <div class="tp-top">
+        <Avatar name={c.player} team={c.team} playerId={c.player_id} size="md" remote />
+        <div class="tp-body">
+          <div class="tp-bet">
+            <span class="tp-rank num" aria-hidden={c.ev > 0 ? "true" : undefined}>
+              {c.ev > 0 ? rank : <span class="tag">not a bet</span>}
+            </span>
+            <strong>{betWords(c)}</strong>
+          </div>
+          <div class="small muted">
+            {c.team !== null ? `${c.team} · ` : ""}
+            {c.matchup}
+            {c.tip_utc !== null ? ` · tip ${tipTime(c.tip_utc)}` : ""}
+            {started ? " · game under way or over" : ""}
+          </div>
         </div>
-        <div class="small muted">
-          {c.team !== null ? `${c.team} · ` : ""}
-          {c.matchup}
-          {c.tip_utc !== null ? ` · tip ${tipTime(c.tip_utc)}` : ""}
-          {started ? " · game under way or over" : ""}
-        </div>
-        <p class="small tp-why">{whyText(c)}</p>
+        {isLegStat(c.stat) ? (
+          <a class="btn tp-open" href={legHref(c.game_id, c.player_id, c.stat, c.side)}>
+            Open <span class="sr">{betWords(c)}</span>
+            <Icon name="arrow" />
+          </a>
+        ) : null}
       </div>
       <dl class="tp-nums num">
         <div>
@@ -42,11 +52,14 @@ function Pick({ c, rank }: { c: TopContract; rank: number }) {
           <dd class={c.ev > 0 ? "pos" : "neg"}>{evPerDollar(c.ev)}</dd>
         </div>
       </dl>
-      {isLegStat(c.stat) ? (
-        <a class="small tp-open" href={legHref(c.game_id, c.player_id, c.stat, c.side)}>
-          Open <span class="sr">{betWords(c)}</span>
-        </a>
-      ) : null}
+      {mode === "analyst" ? (
+        <p class="small tp-why">{whyText(c)}</p>
+      ) : (
+        <details class="tp-more">
+          <summary class="small">Why this number</summary>
+          <p class="small tp-why">{whyText(c)}</p>
+        </details>
+      )}
     </li>
   );
 }
@@ -58,10 +71,11 @@ function Pick({ c, rank }: { c: TopContract; rank: number }) {
 export function TodaysPicks(props: { date: string; engine: ParlayState | null; onStale?: (s: boolean) => void }) {
   const { date, engine } = props;
   const [top, reload] = useLoad(() => getTopContracts(PICKS_FETCH), []);
+  const mode = useMode();
   return (
     <section class="panel todays-picks" aria-labelledby="tp-h">
       <div class="label">Today&apos;s picks</div>
-      <View state={top} reload={reload} what="the morning picks" onStale={props.onStale}>
+      <View state={top} reload={reload} errorLevel={2} what="the morning picks" onStale={props.onStale}>
         {(data) => {
           if (!runIsForNight(date, data.report_date)) {
             return (
@@ -84,11 +98,11 @@ export function TodaysPicks(props: { date: string; engine: ParlayState | null; o
               <p class={`tp-head ${head.kind}`} role="status">
                 {head.text}
               </p>
-              {engine ? <p class="small muted">Morning run, prices as of {stamp(engine.as_of)}.</p> : null}
+              {engine ? <p class="small muted">Prices as of {stamp(engine.as_of)}.</p> : null}
               {shown.length > 0 ? (
                 <ol class="tp-list">
                   {shown.map((c, i) => (
-                    <Pick key={`${c.ticker}|${c.side}`} c={c} rank={i + 1} />
+                    <Pick key={`${c.ticker}|${c.side}`} c={c} rank={i + 1} mode={mode} />
                   ))}
                 </ol>
               ) : null}

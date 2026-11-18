@@ -64,6 +64,9 @@ def test_second_lock_path_also_yields(tmp_path: Path) -> None:
 
 
 def test_env_hook_default_off_and_on(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Hermetic: yield_to() also consults the REAL game-window gate (data/schedule + wall clock),
+    # which sleeps on a game night. Switch that gate off; it has its own tests.
+    monkeypatch.setenv("NBA_INGEST_GAME_WINDOW", "0")
     monkeypatch.delenv(cache.YIELD_ENV, raising=False)
     (tmp_path / "lock").mkdir()
     assert cache.yield_to() == 0.0  # lock present but hook disabled

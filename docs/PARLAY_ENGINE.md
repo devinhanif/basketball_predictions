@@ -19,7 +19,11 @@ No order code, no credentials. Paper trades and a shadow log go to a separate wr
     the player's points recorded." EV = P(all play) * (P(hit | play) - cost) + (1 - P(all play)) * (L - cost), L = the prediction-time mid
     (a proxy: the true last fair price is only known at tip). Paper/shadow settlement of such a DNP stores NO outcome and NO pnl (the
     settlement price is not recorded; nothing is guessed). The sentence covers an ACTIVE player only: an INACTIVE player (not covered by
-    the text) is unconfirmed; check one live prop series on 2026-10-20.
+    the text) was unconfirmed until 2026-11-10. VERIFIED 2026-11-10 (DECISIONS 2026-11-10 13:20 and 16:36; merge `e921f7ed`): the full
+    contract terms (NBAPTS/NBAAST, PDF dated 2026-10-05) say a player who withdraws before tip resolves to the last fair price (Exchange's
+    discretion), not as No and not as a refund; played >= 1 s resolves on end-of-game stats. A pre-tip DNP is therefore about EV-neutral on both
+    sides, and `configs/jarvis.yaml` has `kalshi_prop_dnp_rule_verified: true`. Not covered by this: the exact price at settlement is still not
+    stored, so paper settlement of a DNP still records no outcome and no pnl.
   - `void`: stake and fee refunded (EV = P(all play) * (P(hit | play) - cost)). Optimistic. Rule per book: unknown for every book in
     `nba/odds` (The Odds API books incl. Pinnacle); no DNP rule is stored in the repo or in the odds payloads, so none is assumed: use
     `void` or `loss` there only as labelled sensitivity bounds, never as the book's rule.
@@ -79,7 +83,7 @@ for flagged positives, a deadlock would follow, so every evaluated contract is a
 ## Limits
 - Eval is conditional on the player playing (OOF has no p_play) and on parlays whose lines sit near the middle of each distribution.
 - Correlations are pooled, not per player; blowout nonlinearity and DNP-teammate usage shifts are not modelled.
-- `forward_predictions` in `nba.duckdb` is empty right now, so `evaluate` has not been run against live Kalshi prices; it is exercised end to end on synthetic DBs in the tests.
+- (Corrected 2026-11-16; this line used to say `forward_predictions` was empty.) Per the 2026-11-16 survey, `forward_predictions` holds about 139k rows and `evaluate` runs in every pretip job as a shadow log; the model weight is 0, so the displayed fair price is the market's, not the model's.
 
 ## Cross-game independence check (`nba/parlay/independence_check.py`)
 The engine prices legs from DIFFERENT games as independent (copulas are same-game only). This module tests that assumption.

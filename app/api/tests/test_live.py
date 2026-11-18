@@ -188,12 +188,13 @@ def test_snapshot_and_plays_routes(root: Path) -> None:
 
 
 def test_live_routes_do_not_need_the_store(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import parlayhitters_api.deps as deps
     import parlayhitters_api.main as m
 
     def boom() -> None:
         raise AssertionError("the live routes must not load the export store")
 
-    monkeypatch.setattr(m, "load_store", boom)
+    monkeypatch.setattr(deps, "load_store", boom)  # the store cache lives in deps.py
     m.reset_store()
     c = TestClient(create_app())
     assert c.get(f"/api/live/{DATE}").status_code == 200

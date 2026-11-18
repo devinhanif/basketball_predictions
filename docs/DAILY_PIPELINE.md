@@ -162,7 +162,7 @@ modified. `nba.daily.season` maps a date to the string (Aug-Dec -> that year, el
 ## Scheduling on this Mac
 
 `nba/daily/com.nba-prediction.daily.plist.template` is a user-level LaunchAgent template
-(NOT installed): two runs a day (11:00, 16:30 local, assumed US-Eastern). A scheduled job
+(NOT installed; superseded 2026-10-09 by the jobs `ops/install_launchd.sh` writes, see "Scheduled runs" below; kept for history): two runs a day (11:00, 16:30 local, assumed US-Eastern). A scheduled job
 on your own laptop is not always-on infra; launchd runs a missed job on wake. Install and
 removal commands are in the template header. Keep the Mac plugged in; the job is light
 (one schedule call, one games call, a handful of box scores).
@@ -230,13 +230,13 @@ recalibration; rookies and offseason moves are invisible until a first box score
 
 ## Scheduled runs (launchd, optional)
 
-`ops/nba_daily.sh` wraps the commands above. `ops/install_launchd.sh` installs two user launchd jobs
-(Mac local time, US/Central). The maintainer runs the installer by hand; uninstall with
+`ops/nba_daily.sh` wraps the commands above. `ops/install_launchd.sh` installs five user launchd jobs
+(`daily-pretip`, `daily-morning`, `lineups`, `pulls`, `watchdog`; the calendar clock is the fixed UTC-4 clock described under "launchd calendar timezone" below, not US/Central). The maintainer runs the installer by hand; uninstall with
 `ops/install_launchd.sh --uninstall`. INSTALLED on the maintainer's Mac 2026-10-09 (bridge until a VM passes `ops/check_vm_reachability.sh`).
 
 | Job | When | Steps |
 |---|---|---|
-| `local.nba.daily-pretip` | at :20 and :50 of every hour, plist hours 09-22 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.odds capture` (read-only sharp-line benchmark from theoddsapi.com into `odds_snapshots`; key from `.env` via `uv run --env-file`; exit 4 = feed unreachable or budget refused, informational; exit 5 alerts; added 2026-10-10, docs/prereg/ODDS_BENCHMARK.md), then `nba.markets capture` and the read-only `nba.parlay evaluate` shadow log |
+| `local.nba.daily-pretip` | at :20 and :50 of every hour, plist hours 09-22 (moved from hourly :30 on 2026-10-09, review M1) | `nba.daily run --date <today ET>` (exit 4 = some games already tipped, informational; exit 5 = degraded, see below; exit 2 is an argparse usage error and alerts), then `nba.ingest.referees collect`, then `nba.markets capture` (the pretip `nba.odds capture` step, theoddsapi.com into `odds_snapshots`, was added 2026-10-10 and removed the same day when that subscription was cancelled; sportsbook odds are now captured by the 5-minute lineups tick when `NBA_CLOSE_CAPTURE=1`, from the-odds-api.com into `live_book_odds`, see `ops/nba_lineups.sh` and docs/CLOSING_LINE_CAPTURE.md) and the read-only `nba.parlay evaluate` shadow log |
 | `local.nba.daily-morning` | 08:00 | `ingest` (games + box scores, before settle), `settle` (exit 0; 4 = a game past the 4 h guard is refused, tipped < 24 h ago, informational; 5 = a refusal 24 h or older, alerts), `report`, **early forecast + early briefing** (below), last night's coverage + scorecard, parlay `--settle`, post-game ingest of new games (tracking, hustle, officials, matchups; each fetch capped at 30 min, `postgame_load` at 20; skipped while a backfill or the ingest queue runs), `stints_nightly` (advisory: stints and possession lineups for last night's final games, section below), `datamanifest snapshot/diff/check`, `nba.duckdb` copy to `data/backups/` (last 7 kept), disk summary |
 
 **Optional fact-store rebuild (drafted 2026-10-11; approved ON by Devin 2026-10-11, switch NOT yet in the job environment).** `ops/nba_daily.sh morning` has a step `facts` right after

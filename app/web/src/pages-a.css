@@ -1,0 +1,354 @@
+/* Lane J2b-A: the Jarvis finish for Discover (below its heading), Game, the Leg family and the #/source page, My picks
+   and Swipe. Loaded right after jarvis.css; everything here is a token (theme.css) on the pages' own classes. No raw
+   colour and no text under 12 px. One section per page. */
+
+/* ================================================================ Discover */
+/* The toolbar: which night and which lens, on one rule under the heading. */
+.disc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+.disc-toolbar > nav.tabs {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin: 0;
+}
+.disc-toolbar > .view-opts {
+  flex: 0 1 auto;
+  margin: 0;
+}
+.disc-toolbar > .view-opts[open] {
+  flex-basis: 100%;
+}
+
+/* The closest look takes the quiet header-card finish (the purple feature gradient fails AA for small text at its light
+   centre, 3.4:1, so no card with small text uses it). Its three numbers sit in tiles. */
+.disc-feature .hero.card-header {
+  background: var(--grad-card);
+}
+.disc-feature .hero-nums > div {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+
+/* Today's picks: a header row, then the picks as a card grid. */
+.todays-picks .tp-head {
+  max-width: 70ch;
+}
+
+/* The games: a section head over the card grid. */
+.disc-games > .section-head {
+  margin-top: var(--sp-4);
+}
+/* Analyst: the stored quantile row and the model id under each key player. */
+.prop-q {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-4);
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-xs);
+}
+.prop-q > div {
+  display: flex;
+  gap: var(--sp-1);
+  align-items: baseline;
+}
+.prop-q dt {
+  color: var(--muted);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--track-kicker);
+}
+.prop-q dd {
+  margin: 0;
+  font-weight: var(--fw-bold);
+}
+.prop-q .prop-q-model dd {
+  font-weight: var(--fw-regular);
+  overflow-wrap: anywhere;
+}
+
+/* Phones: the pick's Open button drops under its words instead of squeezing them. */
+@media (max-width: 599px) {
+  .tp-top {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .tp-top > .tp-open {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* Key players, one line each: a long forecast wraps under the name at any width (two game columns at 768 px squeezed
+   names letter by letter in the Market lens). */
+.games .props.one-line li {
+  flex-wrap: wrap;
+}
+.games .props.one-line .ol-name {
+  flex: 1 1 9em;
+}
+.games .props.one-line .ol-say {
+  margin-left: auto;
+}
+
+/* ================================================================ Leg */
+/* The line card: a designed state when no line was posted (an icon, a title and why, never a bare line). */
+.leg-noline {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.leg-noline > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  color: var(--accent-ink);
+}
+.leg-noline p {
+  margin: var(--sp-1) 0 0;
+  max-width: 64ch;
+}
+/* Analyst: the model id and its stamp, full width under the tiles. */
+.leg-model-line {
+  margin: var(--sp-2) 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* Other lines, side by side: on a phone the five columns fit (the Market lens's Price column clipped at 390 px). */
+@media (max-width: 599px) {
+  .leg-table th,
+  .leg-table td {
+    padding: var(--sp-2) var(--sp-1);
+  }
+  .leg-table .cal-tag {
+    display: table;
+    margin-top: 2px;
+  }
+  .leg-table td .muted.small {
+    white-space: normal;
+  }
+}
+
+/* The whole forecast, as stored: the chart, three facts as tiles, the stored pieces, then one facts card. */
+.dist-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--sp-3);
+  margin: var(--sp-4) 0;
+}
+.dist-tiles .tile-n,
+.dist-tiles .tile-note {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-xs);
+}
+.dist-stored > * + * {
+  margin-top: var(--sp-3);
+}
+.dist-more {
+  margin: 0 0 var(--sp-4);
+}
+.dist-more > summary {
+  min-height: var(--target);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--accent-ink);
+  font-weight: var(--fw-medium);
+}
+.dist-stored {
+  margin-bottom: var(--sp-4);
+}
+.dist-facts {
+  display: grid;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+}
+.dist-facts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: var(--sp-1) var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+}
+.dist-facts > div + div {
+  border-top: 1px solid var(--line);
+}
+.dist-facts dt {
+  font-weight: var(--fw-bold);
+}
+.dist-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 599px) {
+  .dist-facts > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The two panels that wait for export fields: quiet dashed cards side by side, plainly empty. */
+.needs-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--sp-3);
+  align-items: start;
+}
+.needs-row > .needs-field {
+  margin: 0;
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+.needs-row > .needs-field > summary {
+  min-height: var(--target);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+/* Headline tiles on a phone: last 10 and last 5 side by side, the model (and the book, in the Market lens) on rows of
+   their own so their words and links do not wrap word by word. */
+@media (max-width: 599px) {
+  .leg-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .leg-tiles > .leg-tile.model,
+  .leg-tiles > .leg-tile.nomodel,
+  .leg-tiles > .leg-tile.book {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ================================================================ Game */
+.game-head.page-heading {
+  margin-bottom: 0;
+}
+.game-head .page-heading-title {
+  font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem);
+}
+/* Each player's stats as cards: one column on phones and tablets, two side by side on a wide screen. */
+.prop-grid {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+@media (min-width: 1180px) {
+  .prop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.prop-grid > .prop-block {
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--grad-tile);
+}
+.player[open] {
+  padding-bottom: var(--sp-4);
+}
+.prop-model {
+  margin: var(--sp-2) 0 0;
+  overflow-wrap: anywhere;
+}
+/* Phones: the stat blocks stay plain rows, so the distribution bar keeps its full width and its 12 px labels. */
+@media (max-width: 599px) {
+  .prop-grid > .prop-block {
+    padding: var(--sp-3) 0;
+    border: 0;
+    border-top: 1px dashed var(--line);
+    border-radius: 0;
+    background: none;
+  }
+}
+
+/* ================================================================ Where this number comes from (#/source and its dialog) */
+.prov-summary {
+  display: grid;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.prov-summary-model {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  min-width: 0;
+}
+.prov-summary-model .mono {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.prov-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--sp-3);
+}
+.prov-tiles .tile-note {
+  margin-top: var(--sp-1);
+}
+@media (min-width: 521px) {
+  .prov-dl > dt,
+  .prov-dl > dd {
+    padding-top: var(--sp-2);
+    border-top: 1px solid var(--line);
+  }
+  .prov-dl > dt:first-of-type,
+  .prov-dl > dt:first-of-type + dd {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+.prov-more > summary {
+  min-height: var(--target);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--accent-ink);
+  font-weight: var(--fw-medium);
+}
+.prov-snaptable .mono {
+  white-space: nowrap;
+}
+/* Below 640 px the snapshot table stacks (Table stack): one labelled block per snapshot; long ids may wrap there. */
+@media (max-width: 640px) {
+  .prov-snaptable .mono {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Game: the win-chance card's foot, where the record behind the number is opened (J7: it floated centred between the
+   two "?" disclosures). */
+.scoreboard .score-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+.scoreboard .score-foot .prov-open {
+  padding-left: 0;
+}

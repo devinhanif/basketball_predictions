@@ -5,13 +5,13 @@ Informational only. No order placement exists anywhere in this package.
 
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
+from nba.markets.fees import ceil_cent_fee
 from nba.parlay.config import FeeModel, ParlayConfig
 from nba.parlay.legs import Leg
 
@@ -36,13 +36,7 @@ def order_fee(
     if contracts <= 0:
         raise ValueError("contracts must be positive")
     rate = fee.rate(order_type)
-    if fee.formula == "p_one_minus_p":
-        raw = fee.multiplier(series) * rate * contracts * price * (1.0 - price)
-    elif fee.formula == "flat":
-        raw = fee.multiplier(series) * rate * contracts
-    else:
-        raise ValueError(f"unknown fee formula {fee.formula!r}")
-    return math.ceil(round(raw * 100.0, 9)) / 100.0 if raw > 0 else 0.0
+    return ceil_cent_fee(fee.formula, fee.multiplier(series), rate, contracts, price)
 
 
 def fee_per_contract(

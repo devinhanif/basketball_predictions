@@ -1,5 +1,7 @@
 # JARVIS (paper, alert-only) settings. DECISIONS 2026-10-25 14:41 / 14:43. Nothing here is a credential;
-# the only secret JARVIS ever reads is the iMessage recipient, from the env var JARVIS_IMESSAGE_TO
+# the delivery secrets (the Discord webhook of the default sink, the team-card webhooks, and the optional
+# iMessage recipient) are read only from the env vars named under delivery and team_cards (team webhooks: or the
+# optional team_cards.keychain_service when that variable is unset)
 # (never in this file, the repo, a log or a test). Fees for Kalshi come from configs/parlay.yaml
 # (fee_model); Polymarket's come from the block below. No rate is hardcoded in nba/jarvis.
 
@@ -193,7 +195,7 @@ ingame_checkpoints:             # the in-game line model at every 5 game-minutes
   # checkpoint on the game card by editing it in place (an edit never notifies). It adds NO alert, NO ping, NO stake and
   # changes no existing condition. Serves the halftime_overs artifact (same digest pin, fee pin, recency window).
   # Overtime is excluded; a state older than 3 min since its last play, or a checkpoint more than 150 s past, is refused.
-  # Ships OFF: flipping it on is the merge-time decision (Devin's go + replay oracle), not part of the branch.
+  # Shipped OFF; turned ON by Devin on 2026-11-10 (commit 0e9e9564, "in-game checkpoints on"). false = off.
   enabled: true
   store: data/jarvis/ingame_checkpoints.duckdb
   top_n: 3                      # overs shown on the card block (display only; the table keeps every row)

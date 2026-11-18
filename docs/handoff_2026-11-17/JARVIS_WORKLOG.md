@@ -1,0 +1,91 @@
+# Worklog: follow-up run (Jarvis look + betting tools behind one switch)
+
+Brief: `/Users/devin/Downloads/jarvis-followup/FOLLOWUP_PROMPT.md` (kit files flat in that folder). Devin, 23:22 CST on
+2026-11-16: run until 09:00 CST on 11-17; usage is not a constraint; "the most beautiful, usable, and comprehensive
+experience for me and my friend". Follow-up integration branch `agent/app-jarvis-followup`, worktree
+`~/Downloads/nba-wt-1117-jarvis`. Never merged to `main`, never pushed. Times are Central, from the clock.
+
+## See it
+- Follow-up branch, tonight's real export, switch OFF: http://127.0.0.1:5185 (API 8012), started 00:52 CST as background
+  jobs of the session. Restart: `cd app/api && APP_EXPORT_DIR=/Users/devin/Downloads/nba-prediction/data/export/latest uv run
+  uvicorn parlayhitters_api.main:app --app-dir src --host 127.0.0.1 --port 8012` and `cd app/web && API_ORIGIN=http://127.0.0.1:8012
+  npx vite --host 127.0.0.1 --port 5185`.
+- Follow-up branch with the switch ON, tonight's real export: http://127.0.0.1:5186 (API 8013), started 01:02 CST as
+  background jobs (`PH_BETTING=1 APP_EXPORT_DIR=... uvicorn ... --port 8013`; `VITE_PH_BETTING=1 API_ORIGIN=http://127.0.0.1:8013
+  npx vite --host 127.0.0.1 --port 5186`). Or one command: `API_PORT=8013 WEB_PORT=5186 app/scripts/betting-on.sh --export`.
+  Only 3 of the 8 games on 11-16 have stored quotes in the 19:35 export (those not yet tipped at export time).
+- The first run's result is still at http://127.0.0.1:5184 (integration branch).
+
+## Merged into the follow-up branch
+| Lane | Branch | Merge | Verified by the main session |
+|---|---|---|---|
+| J3 betting pure logic | `agent/app-jarvis-betting-logic` | 8b062459 | web check 485 tests; bundle bytes unchanged |
+| J1 the switch | `agent/app-jarvis-flag` | 50d6e9b6 | `check.sh` OFF and `--betting` ON both ALL CHECKS PASSED; layering 15 passed (636d7105, c92daef2) |
+| J2a visual language | `agent/app-jarvis-look` | 2d89cf8e | `check.sh --fast --browser` OFF: ALL CHECKS PASSED, web 508 tests, walk 0 violations; looked at Discover on real data, phone and 1440 |
+| J4a quote-board API | `agent/app-jarvis-betting-api` | d84cd759 | API suite OFF and ON: 604 passed, 1 skipped each; ruff and mypy clean; web money-safety test passes; under a real server (01:03 CST): `/api/betting/providers` 2,956 B, `/slate/2026-11-16` 161 props over 3 games, a 29-line board for a real player, and a typed 404 on the switch-off server |
+
+Merge notes: both J1 and J3 created `betting/types.ts`; the seam's types now live in `betting/seam.ts`. `Shell.tsx` mounts
+both `BetShellPanel` (J1's slot) and `SidePanelHost` (J2a's shared panel): the slip panel should move onto `SidePanel`
+(`setSidePanel` / `clearSidePanel`) once the screens lane lands.
+
+## Also merged (02:03 CST; tip 850a3cb7 + this worklog)
+| Lane | Merge | Verified by the main session on the merged tree |
+|---|---|---|
+| J4b betting screens | 811634d5 | journey `scripts/bet-journey.mjs` against the switch-on preview on tonight's real export: PASSED at 375 and 1280, dark and light; I looked at Compare and the Slip Hedge Finder |
+| J2b-A pages (Discover, Leg, Game, source, picks, swipe) | b90f8200 | web check OFF and ON 530 tests; walk 0 violations at 390, 390 injected, 360, 768, 1180 |
+| J2b-B pages (record, scorecard, tests, live, parlay, signals, history, alerts, prefs, terms, admin) | 850a3cb7 | web check OFF and ON 530 tests; artifact checks passed; flag parity passed (OFF js 412,331 / css 115,705 / artifact 4,581,111; ON js 524,165 / artifact 4,692,938); walk 0 violations at all five settings |
+
+Walker fix (4f92c2f7): `route-walk.mjs` derived its devtools port from the seed, so two walkers with the same seed drove each
+other's browser. That was the cause of tonight's hangs and of the "flaky" not-found and blank-page violations lanes saw
+under load. It now takes a free port from the system, stops with exit 3 if the browser stalls for 90 s, and `walk.sh`
+retries that once.
+
+| J4c betting polish, Ideas, Analysis | 21ac525e | merged 02:58 CST: web check OFF and ON 552 tests; flag parity passed (OFF js 412,329, within 2 bytes of before; ON js 576,514; ON artifact 4,745,279); extended journey against 5186 on real data PASSED (98 ok steps, 375 and 1280, dark and light); I looked at the compact Compare |
+
+| J6 finishing pass | 895a7d79 | merged 03:10 CST: web check OFF and ON 558 tests; flag parity passed (OFF js 417,211 / css 123,240 / artifact 4,593,454; ON js 581,413 / artifact 4,757,646); walk 0 violations at all five settings; journey PASSED on real data; I looked at Discover (1440, Market, switch ON) and Compare (phone) |
+| integration branch | 1a6567ab | merged 03:20 CST so this branch is a superset of the first run (CI health, math-diagnostics note, oracle rows, report); repo lint clean; layering 15 passed after 89c4e5fa (the betting import check had started matching ordinary strings in the new screens; it now reads real import statements only) |
+
+Polish items seen by the main session in the merged betting screens (for the last pass): the slip rail's unit labels wrap
+mid-word ("contra cts", "stak e"); a notice can sit over the middle of the Compare board.
+
+## Merged after 03:30 CST
+| Lane | Tip | State |
+|---|---|---|
+| J5 verification docs | 925451e4 | merged 03:32 CST (e99a562c): gap matrix (28 rows: 15 match, 7 partial, 5 target-only, 1 deferred, 0 missing), acceptance checklist (60: 35 met, 19 partly, 1 not met, 5 n/a), donor map, README section |
+| J7 last polish | ea01450f | merged 04:44 CST (0e1d18a3): web check OFF and ON 558 tests; api 604 passed, 1 skipped OFF and ON; flag parity passed (OFF js 417,895 / css 124,827 / artifact 4,595,443; ON js 584,063 / artifact 4,761,601); layering 15 passed. Incident it reported: at 03:38 it killed a headless Chrome (PID 38040, profile `scratchpad/pages/ldprof`) that was not its own; no lane was running a learn-dom check at that time, so nothing needed a rerun |
+| main session | e5b789b5, 5b94a4ea | 04:45 and 05:00 CST: the browser bar colour follows a theme picked in the app (test `headColor.test.ts`); the data line says "Forecast data made" and, outside the Market lens, shows only when the data is old (the line above it already gives the age, so a phone's first screen gains a row); one primary button on the slip page; Compare's slip summary counts picks waiting for a price. Web check OFF and ON 559 tests |
+
+Verification of the tree at e5b789b5 (04:45 to 04:57 CST): walk 0 violations at all five settings; visual check quick OFF 120
+captures and ON 148 captures, 0 with a gating finding; journey PASSED on the real export (98 ok steps). The same set was
+rerun on 5b94a4ea (see REPORT_JARVIS.md section 3 for the last numbers).
+
+## Wave 4 (05:01 to 06:44 CST; all five lanes merged)
+| Lane | Branch | Worktree | Scope |
+|---|---|---|---|
+| K1 | `agent/app-jarvis-close` | `~/Downloads/nba-wt-1117-jv-close` | DONE, merged 05:54 CST (1f05972b): cross-tab sync in the store, select / deselect / remove in the journey, paper-outcome history (schema v2 with migration), Compare board match guard, long content, hygiene test, memory-only slip when storage is blocked. Web check OFF and ON 573 tests; parity 18 markers; layering 15; journey PASSED on the real export (138 steps). Skipped: add to slip from Discover's cards (the card has an integer threshold, not a line; deriving one is not allowed). Main session after it (ce624bd3): outcome table stacks on phones; "Prices as of" without "Morning run". Checklist refreshed (6b37acdd): 40 met, 14 partly, 1 not met, 5 n/a |
+| K2 | `agent/app-jarvis-friend` | `~/Downloads/nba-wt-1117-jv-friend` | DONE, merged 05:39 CST (29aef787): tighter phone first screen, one-line hints, no result request for unfinished games, one h1 when the data service is down, plain empty states, search lists a player once; web check OFF and ON 559 tests. Left for Devin: whether Explore shows Today's picks above the games; Learn Scorecard prose |
+| K3 | `agent/app-jarvis-depth` | `~/Downloads/nba-wt-1117-jv-depth` | DONE, merged 06:33 CST (8d5bf91b): Analyst opens three players per team, Scorecard folds kept-back rows and strips source paths in Simple, plain words on the prop page, locked replay rows are one line, scroll cue on chip rows, section failures are h2, jump links open folds. Web check OFF and ON 573; parity 18 markers. Main session after it (f539d623): a failed Today's picks section is an h2 |
+| K4 | `agent/app-jarvis-night` | `~/Downloads/nba-wt-1117-jv-night` | DONE, merged 06:44 CST (8a614f48): Compare folds its secondary notes and fee form, the hub is four numbered steps with the slip's state, one glossary, one primary action per slip stage, 8-leg phone sheet step in the journey. Web check OFF and ON 573; parity 18 markers; layering 15 |
+
+## Finished (07:23 CST)
+- Final gate on 8a614f48, 06:45 to 07:07 CST, all green: `check.sh --browser` (api 604 passed, 1 skipped; web 573; flag
+  parity 18 markers; walk 0 violations on both seeds), `walk.sh --widths` 0 violations at all five settings, visual quick
+  set 120 captures off and 148 on with 0 gating findings, journey PASSED on the real export (142 steps), API with
+  `PH_BETTING=1` 604 passed, 1 skipped. Layering 15 passed.
+- Full visual set, 07:07 to 07:22 CST: 360 captures off, 444 on, 0 with a gating finding.
+- Real-data single-file pages rebuilt 07:22 CST into `~/Downloads/parlayhitters-artifacts-2026-11-17/` (6,501,900 B off,
+  6,672,736 B on); both opened from disk. Not published.
+- Commits after 8a614f48 are documents only (`git diff --stat 8a614f48..HEAD`).
+- `REPORT_JARVIS.md` is final; decision rows 18 to 41 are in `DECISIONS_ROWS.md`; retro in
+  `docs/reviews/retro_2026-11-17.md`. The completion line is in `REPORT.md` on both branches.
+- 07:24 CST: stopped this session's stale integration previews (8010, 8011, 5183, 5184) and four headless Chromes left
+  behind by lanes during the 01:30 walker hangs (their working directories were this run's worktrees and scratch folder).
+- Still running from this session, safe to stop: the previews (API 8012 + web 5185 switch off; API 8013 + web 5186
+  switch on). `lsof -nP -tiTCP:5185 -sTCP:LISTEN` gives the PID to stop; the same for 5186, 8012, 8013.
+
+## Decisions so far (rows go to DECISIONS_ROWS.md at the end)
+- "fast arb" (Devin, about 22:55 CST): JARVIS Polymarket fee uses fast-arb's order. On the integration branch, row 16.
+- Betting routes live under `#/bet/*`; the existing `#/hedge` page is untouched.
+- A planned price is stale after 15 minutes; cross-venue coverage needs a verified settlement-rule id (none exists yet).
+- The first-run Simple/Analyst chooser is step one of the in-page intro; it never blocks; skipping keeps Simple.
+- The Jarvis look is one stylesheet (`jarvis.css`); removing its import reverts it.

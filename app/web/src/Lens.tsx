@@ -1,12 +1,13 @@
+import { ModeToggle } from "./components";
 import { LENSES, setPref, useLens, type Lens } from "./prefs";
 
 export const LENS_LABEL: Record<Lens, string> = { learn: "Learn", explore: "Explore", market: "Market" };
 
 /** One line each, in words a first-time visitor can act on. */
 export const LENS_SAY: Record<Lens, string> = {
-  learn: "How the game and the forecast work. The market side stays out of view on this screen.",
-  explore: "Move the line or the minutes and watch the forecast respond. Nothing is saved.",
-  market: "The market side: posted prices, edges and fees from the stored snapshots.",
+  learn: "How the game and forecast work. Market side hidden.",
+  explore: "Move the line or minutes; nothing is saved.",
+  market: "Posted prices, edges and fees, as stored.",
 };
 
 /** The three lenses on one screen. The choice is remembered on this device (default Learn). */
@@ -38,12 +39,55 @@ export function LensSwitch(props: { compact?: boolean }) {
   );
 }
 
-/** Shown in place of a screen that is all prices and edges when the lens is Learn or Explore. */
-export function MarketOnly(props: { name: string; what: string }) {
+/**
+ * The page's view controls, always in the same place: the right of the page heading (under it on a phone). The lens
+ * switch (with its one-line meaning) and the Simple/Analyst switch, each with its label. Pages pass what they have.
+ */
+export function PageControls(props: { lens?: boolean; detail?: boolean }) {
+  const lens = useLens();
   return (
-    <section class="panel empty" aria-labelledby="mo-h">
-      <h1 id="mo-h">{props.name} is a Market screen</h1>
-      <p>{props.what} It is hidden in the Learn and Explore lenses. The optional what-if for a number you type, inside Explore, is the one exception.</p>
+    <div class="page-controls">
+      {props.lens ? (
+        <div class="pc-row">
+          <span class="pc-label" aria-hidden="true">
+            Lens
+          </span>
+          <LensSwitch compact />
+        </div>
+      ) : null}
+      {props.detail ? (
+        <div class="pc-row">
+          <span class="pc-label" aria-hidden="true">
+            Detail
+          </span>
+          <ModeToggle />
+        </div>
+      ) : null}
+      {props.lens ? (
+        <p class="small muted lens-say pc-say" aria-live="polite">
+          {LENS_SAY[lens]}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** A stable id from the screen's name, so two of these on one page never share an id. */
+export function marketOnlyId(name: string): string {
+  return `mo-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+/**
+ * Shown in place of a screen that is all prices and edges when the lens is Learn or Explore. It is the page's h1 when it
+ * stands in for the whole screen (the default); a page that has its own h1 passes `level={2}`.
+ */
+export function MarketOnly(props: { name: string; what: string; level?: 1 | 2 | 3 }) {
+  const H = props.level === 2 ? "h2" : props.level === 3 ? "h3" : "h1";
+  const hid = marketOnlyId(props.name);
+  return (
+    <section class="panel empty market-only" aria-labelledby={hid}>
+      <H id={hid} class="market-only-title">{props.name} is a Market screen</H>
+      <p>{props.what} It stays out of view in the Learn and Explore lenses.</p>
       <button
         type="button"
         class="btn primary"

@@ -24,7 +24,9 @@ import yaml
 from nba.daily.pplay_shadow.features import C_FEATURES, CP_FEATURES, FEATURES
 from nba.props.context_residual import ContextResidualConfig, _matrix, _params
 
-CONFIG = Path("configs/context_residual.yaml")
+#: Resolved from this file, not the working directory (same file when run from the repo root).
+#: Its values equal ContextResidualConfig's defaults (tests/daily/test_context_residual_config.py).
+CONFIG = Path(__file__).resolve().parents[3] / "configs" / "context_residual.yaml"
 MIN_TRAIN = 1500  # the holdout walk's floor; fewer rows and no row is written
 MODEL_NAME = "pplay_r"
 #: bump when the feature set, the learner or the config recipe changes

@@ -278,20 +278,55 @@ def test_main_line_floor_mode_never_goes_below_the_posted_line() -> None:
 # ---------------------------------------------------------------- golden vectors
 
 
+def _same(got: object, want: object) -> bool:
+    """Equal, with every float (at any depth) held to 1e-12 instead of to the last bit.
+
+    The last digit of a float can differ between platforms (the macOS and Linux math libraries
+    round exp/erf differently); CI run 44113890307 failed on one such digit inside a list. Keys,
+    lengths, strings, integers, booleans and nulls are still compared exactly.
+    """
+    if isinstance(want, bool) or isinstance(got, bool):
+        return got is want
+    if isinstance(want, float) or isinstance(got, float):
+        if not isinstance(want, int | float) or not isinstance(got, int | float):
+            return False
+        return bool(got == pytest.approx(want, abs=1e-12))
+    if isinstance(want, dict):
+        return (
+            isinstance(got, dict)
+            and got.keys() == want.keys()
+            and all(_same(got[k], want[k]) for k in want)
+        )
+    if isinstance(want, list):
+        return (
+            isinstance(got, list)
+            and len(got) == len(want)
+            and all(_same(g, w) for g, w in zip(got, want, strict=True))
+        )
+    return got == want
+
+
+def test_same_is_exact_except_for_the_last_float_digits() -> None:
+    assert _same([0.4712460786662275, {"a": 1}], [0.47124607866622736, {"a": 1}])
+    assert not _same([0.4712460786662275], [0.4712460786672275])  # 1e-12 apart: a real change
+    assert not _same({"a": 1}, {"a": 2})
+    assert not _same({"a": 1.0}, {"b": 1.0})
+    assert not _same([1.0, 2.0], [1.0])
+    assert not _same("over", "under")
+    assert not _same(True, 1)
+
+
 def test_golden_vectors_reproduce() -> None:
     stored = json.loads(GOLDEN.read_text())
     fresh = json.loads(json.dumps(build()))
     for a, b in zip(stored["cases"], fresh["cases"], strict=True):
         assert a["name"] == b["name"]
+        assert a["expect"].keys() == b["expect"].keys(), a["name"]
         for key, want in a["expect"].items():
-            got = b["expect"][key]
-            if isinstance(want, float):
-                assert got == pytest.approx(want, abs=1e-12), (a["name"], key)
-            else:
-                assert got == want, (a["name"], key)
-    assert stored["script_priors"] == pytest.approx(fresh["script_priors"], abs=1e-12)
-    assert stored["lift_ranking_top5"] == fresh["lift_ranking_top5"]
-    assert stored["target_search"] == fresh["target_search"]
+            assert _same(b["expect"][key], want), (a["name"], key)
+    assert _same(fresh["script_priors"], stored["script_priors"])
+    assert _same(fresh["lift_ranking_top5"], stored["lift_ranking_top5"])
+    assert _same(fresh["target_search"], stored["target_search"])
     assert len(stored["cases"]) == len(cases())
 
 

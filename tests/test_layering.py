@@ -17,6 +17,7 @@ import of anything left under them from the live path still counts as an edge.
 from __future__ import annotations
 
 import ast
+import re
 from collections import deque
 from pathlib import Path
 
@@ -259,3 +260,104 @@ def test_export_is_pure_and_read_only() -> None:
 def test_research_package_is_importable() -> None:
     assert module_path("research") is not None
     assert (ROOT / "research" / "INDEX.md").exists(), "research/INDEX.md maps every archived module"
+
+
+# --- the betting tools module (behind the betting switch, 2026-11-17) lives wholly inside app/
+# --- (app/web/src/betting/, app/api/src/parlayhitters_api/betting/). nba/ and research/ never
+# --- import it (or any of app/); it never imports nba or research; its web code stays in app/web.
+
+#: The module's two directories. Listed explicitly so a move or rename fails here, not silently.
+BETTING_DIRS = (
+    ROOT / "app" / "web" / "src" / "betting",
+    ROOT / "app" / "api" / "src" / "parlayhitters_api" / "betting",
+)
+#: Names by which nba/ or research/ could reach app code (the API's package, the module itself).
+APP_PACKAGES = ("app", "parlayhitters_api", "parlayhitters_api.betting")
+
+
+def research_modules() -> dict[str, Path]:
+    out: dict[str, Path] = {}
+    for p in (ROOT / "research").rglob("*.py"):
+        parts = list(p.relative_to(ROOT).with_suffix("").parts)
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+        out[".".join(parts)] = p
+    return out
+
+
+def test_betting_dirs_exist() -> None:
+    missing = [str(d.relative_to(ROOT)) for d in BETTING_DIRS if not d.is_dir()]
+    assert not missing, f"betting module directories not found: {missing}"
+
+
+def test_nba_and_research_never_import_app_or_betting() -> None:
+    bad = sorted(
+        (mod, target)
+        for mod, path in {**nba_modules(), **research_modules()}.items()
+        for target in raw_imports(path)
+        if any(_is(target, pkg) for pkg in APP_PACKAGES)
+    )
+    assert not bad, f"nba/ or research/ imports app code: {bad}"
+
+
+def test_betting_api_imports_neither_nba_nor_research() -> None:
+    files = sorted(BETTING_DIRS[1].rglob("*.py"))
+    assert files, "no Python files under the betting API package"
+    banned = ("nba", "research", "requests", "httpx", "aiohttp", "urllib", "socket", "http.client")
+    bad = sorted(
+        (str(p.relative_to(ROOT)), t)
+        for p in files
+        for t in raw_imports(p)
+        if any(_is(t, b) for b in banned)
+    )
+    assert not bad, f"the betting API package imports a banned package: {bad}"
+
+
+# A specifier counts only inside a real statement: `import ... from "x"` / `export ... from "x"`
+# (which may span lines), a bare `import "x"`, or a dynamic `import("x")`. A looser "from" + quote
+# pattern also matched ordinary strings and UI copy in the betting screens.
+_TS_IMPORT = re.compile(
+    r"""(?:^\s*(?:import|export)\b[^;'"]*?\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+)["']([^"']+)["']""",
+    re.MULTILINE,
+)
+
+
+def test_betting_web_imports_stay_inside_app_web() -> None:
+    """Every import specifier in app/web/src/betting/ is relative and resolves inside app/web/, or
+    is the one runtime package (preact). A test file may also import the test runner and Node's
+    built-ins, which never ship."""
+    web = (ROOT / "app" / "web").resolve()
+    files = sorted(
+        p for p in BETTING_DIRS[0].rglob("*") if p.suffix in (".ts", ".tsx", ".js", ".mjs")
+    )
+    assert files, "no TypeScript files under app/web/src/betting/"
+    bad: list[tuple[str, str]] = []
+    for p in files:
+        for spec in _TS_IMPORT.findall(p.read_text()):
+            if spec.startswith("."):
+                target = (p.parent / spec).resolve()
+                if not target.is_relative_to(web):
+                    bad.append((str(p.relative_to(ROOT)), spec))
+            else:
+                runtime = spec == "preact" or spec.startswith("preact/")
+                test_only = ".test." in p.name and (spec == "vitest" or spec.startswith("node:"))
+                if not (runtime or test_only):
+                    bad.append((str(p.relative_to(ROOT)), spec))
+    assert not bad, f"betting web code imports outside app/web/: {bad}"
+
+
+def test_ts_import_pattern_catches_escapes() -> None:
+    """The check above is not vacuous: its pattern sees each import form."""
+    text = (
+        'import { a } from "../../../nba/x";\nimport "../../../../research/y";\n'
+        'const m = await import("/abs/path");\nexport * from "lodash";\n'
+        'import {\n  a,\n  b,\n} from "../../../nba/multi";\n'
+        'const copy = "prices from \'elsewhere\'"; const t = bad("from", "x");\n'
+    )
+    assert _TS_IMPORT.findall(text) == [
+        "../../../nba/x",
+        "../../../../research/y",
+        "/abs/path",
+        "lodash",
+        "../../../nba/multi",
+    ]

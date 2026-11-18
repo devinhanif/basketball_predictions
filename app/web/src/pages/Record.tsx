@@ -1,15 +1,19 @@
-import { useEffect, useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
+import { useState } from "preact/hooks";
+import { Badge, PageHead, StateBlock, TabPanel, Tabs } from "../ui";
 import { api } from "../api";
 import { CalTag, Explain, ModelNote, View } from "../components";
 import { plainModel } from "../plain";
 import { longDate, lineText, num, pct, tipTime } from "../format";
 import { TeamTag } from "../components";
-import { legHref, recordHref, type RecordTab } from "../router";
-import { useLens } from "../prefs";
-import { LOCK_NOTE, isLockedNight, loadRounds, makeRound, newSeed, saveRounds, scoreOf, type Guess, type GuessRound, type Score } from "../record";
-import { STATS, STAT_LABEL, type CalBin, type CalSeries, type PropsPublished, type GameSummary, type GuessCard, type GuessDeck, type GuessReveal, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
+import { legHref, recordHref, topHref, type RecordTab } from "../router";
+import { useLens, useMode } from "../prefs";
+import { LOCK_NOTE, isLockedNight } from "../record";
+import { STATS, STAT_LABEL, type CalBin, type CalSeries, type PropsPublished, type GameSummary, type PlayerView, type PropView, type SlateListItem, type Stat } from "../types";
 import { useLoad } from "../useLoad";
-import { didText, sideText } from "../words";
+import { didText } from "../words";
+import { Guess } from "./RecordGuess";
+import { useCurrentTab } from "../useCurrentTab";
 
 const S = (n: number): string => n.toString();
 
@@ -20,8 +24,10 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
   const q = prop.q;
   const posted = prop.line_source === "posted";
   const a = props.actual;
+  // A locked night with no usable line has nothing to say beside the name: one row, name and a reveal button.
+  const bare = props.locked && !posted;
   return (
-    <li class="rp-player">
+    <li class={bare ? "rp-player bare" : "rp-player"}>
       <div class="rp-line">
         <strong>{props.p.name}</strong>
         {props.locked ? null : (
@@ -31,6 +37,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
           </span>
         )}
       </div>
+      {bare ? null : (
       <div class="rp-call num">
         {posted ? (
           <>
@@ -46,6 +53,7 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
           <>{props.locked ? "No usable sportsbook line." : `No usable sportsbook line; reference line ${lineText(prop.line)} (the middle of our forecast).`}</>
         )}
       </div>
+      )}
       {props.open ? (
         !props.ready ? (
           <p class="small muted">Loading what happened...</p>
@@ -58,15 +66,15 @@ function PlayerReplay(props: { p: PlayerView; stat: Stat; actual: number | null 
           </p>
         )
       ) : (
-        <button type="button" class="btn rp-reveal" onClick={props.onOpen}>
-          Tap to reveal what happened
+        <button type="button" class="btn rp-reveal" onClick={props.onOpen} aria-label={bare ? `Reveal what happened for ${props.p.name}` : undefined}>
+          {bare ? "Reveal" : "Tap to reveal what happened"}
         </button>
       )}
     </li>
   );
 }
 
-function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
+function ReplayGame({ g, locked, analyst }: { g: GameSummary; locked: boolean; analyst: boolean }) {
   const [want, setWant] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
   const [stat, setStat] = useState<Stat>("pts");
@@ -91,12 +99,12 @@ function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
           <TeamTag abbr={g.home.abbr} big />
         </div>
       </div>
-      <p class="muted small center num">{r ? "Final" : `Tip-off ${tipTime(g.tip_utc)}`}</p>
-      <p class="num">
+      <p class="muted small center num rp-when">{r ? "Final" : `Tip-off ${tipTime(g.tip_utc)}`}</p>
+      <p class="num rp-fav">
         {fav && favP !== null ? (
           <>
             Before tip our model favoured the <b>{fav.name}</b> at <b>{pct(favP)}</b>
-            <span class="small muted"> (game-winner model {g.win_probability.model_name})</span>.
+            {analyst ? <span class="small muted"> (game-winner model {g.win_probability.model_name})</span> : null}.
           </>
         ) : (
           "No win forecast was stored for this game."
@@ -114,19 +122,19 @@ function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
           Tap to reveal the final score
         </button>
       )}
-      <button type="button" class="btn rp-toggle" aria-expanded={showPlayers} onClick={() => { setShowPlayers((v) => !v); }}>
+      <button type="button" class="btn quiet rp-toggle" aria-expanded={showPlayers} onClick={() => { setShowPlayers((v) => !v); }}>
         {showPlayers ? "Hide the player forecasts" : "Show the player forecasts as they stood before tip"}
       </button>
       {showPlayers ? (
         <div class="stack tight">
-          <div class="tabs" role="group" aria-label="Stat">
+          <div class="tabs rp-stats" role="group" aria-label="Stat">
             {STATS.map((s) => (
               <button key={s} type="button" class="tab" aria-current={stat === s ? "true" : undefined} onClick={() => { setStat(s); }}>
                 {STAT_LABEL[s]}
               </button>
             ))}
           </div>
-          {detail.status === "loading" ? <p class="muted">Loading...</p> : null}
+          {detail.status === "loading" ? <StateBlock kind="loading" inline title="Loading the player forecasts" /> : null}
           {detail.status === "error" ? <p role="alert">Could not load the players.</p> : null}
           {d ? (
             <>
@@ -134,6 +142,9 @@ function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
                 Each forecast is the latest one stored before tip. Showing {S(players.length)} players, biggest forecast first.{" "}
                 <a href={legHref(g.game_id, d.players[0]?.player_id ?? 0, stat)}>Open a full breakdown</a> from the game page.
               </p>
+              {locked && players.length > 0 && players.every((p) => p.props[stat]?.line_source !== "posted") ? (
+                <p class="small muted">These players have no usable sportsbook line for this stat, so there is nothing to check a forecast against here. Reveal a row to see what happened.</p>
+              ) : null}
               <ModelNote items={d.players.flatMap((p) => Object.values(p.props).map((x) => ({ source: x.model_source, label: x.model_label })))} />
               <ul class="plain rp-players">
                 {players.map((p) => (
@@ -164,15 +175,14 @@ function ReplayGame({ g, locked }: { g: GameSummary; locked: boolean }) {
 function Replay(props: { date: string | null }) {
   const [list, reloadList] = useLoad(() => api.slates(), []);
   return (
-    <View state={list} reload={reloadList} what="the nights we have played">
+    <View state={list} reload={reloadList} what="the nights we have played" errorLevel={2}>
       {(all: SlateListItem[]) => {
         const nights = all.filter((s) => (s.finished ?? 0) > 0).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
         if (nights.length === 0) {
           return (
-            <section class="panel empty">
-              <h2>No finished night to replay yet</h2>
-              <p>This data holds no game with a final score, so there is nothing to look back on. Come back after a night has been played.</p>
-            </section>
+            <StateBlock kind="empty" title="No finished night to replay yet">
+              This data holds no game with a final score, so there is nothing to look back on. Come back after a night has been played.
+            </StateBlock>
           );
         }
         const date = props.date !== null && nights.some((n) => n.date === props.date) ? props.date : (nights[0]?.date ?? "");
@@ -183,14 +193,26 @@ function Replay(props: { date: string | null }) {
 }
 
 function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
+  const navRef = useCurrentTab<HTMLDivElement>(props.date);
   const [slate, reload] = useLoad(() => api.slate(props.date), [props.date]);
+  const analyst = useMode() === "analyst";
   return (
     <div class="stack">
-      <section class="panel">
-        <h2>Pick a night</h2>
+      <section class="panel rp-pick">
+        <div class="card-head">
+          <div class="card-head-text">
+            <div class="kicker">Replay</div>
+            <h2>Pick a night</h2>
+          </div>
+          {isLockedNight(props.date) ? (
+            <div class="card-head-actions">
+              <Badge tone="none" icon="lock" word="Locked test night" />
+            </div>
+          ) : null}
+        </div>
         <p class="small muted">Each forecast below is the last one stored before that game's tip. Results stay hidden until you tap.</p>
         {isLockedNight(props.date) ? <p class="small muted">{LOCK_NOTE}</p> : null}
-        <div class="tabs rp-nights" role="group" aria-label="Night">
+        <div class="tabs rp-nights" role="group" aria-label="Night" ref={navRef}>
           {props.nights.map((n) => (
             <a key={n.date} class="tab" href={recordHref("replay", n.date)} aria-current={n.date === props.date ? "true" : undefined}>
               {longDate(n.date).replace(/, \d{4}$/, "")}
@@ -199,11 +221,11 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
           ))}
         </div>
       </section>
-      <View state={slate} reload={reload}>
+      <View state={slate} reload={reload} errorLevel={2}>
         {(s) => (
-          <div class="stack">
+          <div class="rp-grid">
             {s.games.map((g) => (
-              <ReplayGame key={g.game_id} g={g} locked={isLockedNight(props.date)} />
+              <ReplayGame key={g.game_id} g={g} locked={isLockedNight(props.date)} analyst={analyst} />
             ))}
           </div>
         )}
@@ -213,6 +235,18 @@ function ReplayNight(props: { nights: SlateListItem[]; date: string }) {
 }
 
 /* ------------------------------------------------------------------ calibration */
+/** Simple: method lines behind one "how this is measured" disclosure. Analyst: shown in place. */
+function How(props: { analyst: boolean; children: ComponentChildren }) {
+  return props.analyst ? (
+    <div class="pb-foot">{props.children}</div>
+  ) : (
+    <details class="explain">
+      <summary>How this is measured</summary>
+      <div class="explain-body">{props.children}</div>
+    </details>
+  );
+}
+
 const pc = (x: number): string => `${(x * 100).toFixed(1)}%`;
 
 function BinRow({ b, series }: { b: CalBin; series: CalSeries }) {
@@ -280,13 +314,12 @@ function SourceNote({ s }: { s: CalSeries }) {
 
 function SeriesView({ s }: { s: CalSeries }) {
   const o = s.overall;
+  const analyst = useMode() === "analyst";
   return (
     <div class="stack">
-      <section class="panel">
+      <section class="panel verdict">
+        <div class="kicker">Calibration</div>
         <h2>{s.name}</h2>
-        <p class="small muted">
-          What we said: {s.what_said}. What happened: {s.what_happened}. This is the win model's own chance; it has no calibrated version.
-        </p>
         {o.n === 0 || o.said === null || o.happened === null ? (
           <p class="muted">No settled cases of this kind in the data.</p>
         ) : (
@@ -295,16 +328,22 @@ function SeriesView({ s }: { s: CalSeries }) {
             {o.enough && o.lo95 !== null && o.hi95 !== null ? ` (95% range ${pc(o.lo95)} to ${pc(o.hi95)})` : " (not enough to give a range)"}.
           </p>
         )}
-        <SourceNote s={s} />
-        <p class="small muted num">
-          Left out:{" "}
-          {Object.entries(s.excluded)
-            .map(([k, v]) => `${S(v)} ${k.replace(/_/g, " ")}`)
-            .join(", ")}
-          . {s.interval}.
-        </p>
+        <How analyst={analyst}>
+          <p class="small muted">
+            What we said: {s.what_said}. What happened: {s.what_happened}. This is the win model's own chance; it has no calibrated version.
+          </p>
+          <SourceNote s={s} />
+          <p class="small muted num">
+            Left out:{" "}
+            {Object.entries(s.excluded)
+              .map(([k, v]) => `${S(v)} ${k.replace(/_/g, " ")}`)
+              .join(", ")}
+            . {s.interval}.
+          </p>
+        </How>
       </section>
       <section class="panel">
+        <div class="kicker">Bin by bin</div>
         <h2>Said versus happened</h2>
         <p class="small muted">The dashed tick is what we said; the dot is what happened; the bar is the 95% range. Dot and tick close together means they matched.</p>
         <ul class="plain cal-list">
@@ -329,10 +368,12 @@ const BOOK_ORDER = ["pinnacle", "draftkings"];
  * report (T493); nothing here is computed from this season's games, which are a locked test until it reads. */
 function PublishedProps({ p }: { p: PropsPublished }) {
   const lens = useLens();
+  const analyst = useMode() === "analyst";
   const books = BOOK_ORDER.filter((k) => p.books[k] !== undefined);
   return (
     <div class="stack" data-published="props">
-      <section class="panel">
+      <section class="panel verdict">
+        <div class="kicker">Calibration</div>
         <h2>Player props: the calibrated number's record</h2>
         <p class="lead">
           {p.season_label}, before this season. This is the record the calibrated chances were chosen on; it is not a result for this season.
@@ -340,25 +381,30 @@ function PublishedProps({ p }: { p: PropsPublished }) {
         <p class="small" data-locked-note>
           {p.this_season}
         </p>
-        <p class="small muted num">
-          From our test log {p.ledger_id} (rule {p.rule_sha8}, verdict {p.verdict.toLowerCase()}). That season was partly looked at while the map was
-          built, so read it as the map's own record, not a clean test. {p.interval}.
-        </p>
+        <How analyst={analyst}>
+          <p class="small muted num">
+            From our test log {p.ledger_id} (rule {p.rule_sha8}, verdict {p.verdict.toLowerCase()}). That season was partly looked at while the map was
+            built, so read it as the map's own record, not a clean test. {p.interval}.
+          </p>
+        </How>
       </section>
       {books.map((k) => {
         const b = p.books[k];
         if (b === undefined) return null;
         return (
           <section class="panel" key={k}>
+            <div class="kicker">Line source</div>
             <h2>{lens === "market" ? b.label : k === "pinnacle" ? "Primary line source (pre-registered)" : "Second line source"}</h2>
             <p class="num lead">
               n = {N(b.n)} lines in {N(b.games)} games. Calibrated chances ran {pp(b.mean_cal_minus_realised.mean)} from how often the over happened (95% range{" "}
               {pp(b.mean_cal_minus_realised.lo)} to {pp(b.mean_cal_minus_realised.hi)}).
             </p>
-            <p class="small num muted">
-              Score (log loss, lower is better): {ll(b.log_loss_cal_minus_raw.mean)} better than the unadjusted model, 95% range {ll(b.log_loss_cal_minus_raw.hi)} to{" "}
-              {ll(b.log_loss_cal_minus_raw.lo)} better.
-            </p>
+            <How analyst={analyst}>
+              <p class="small num muted">
+                Score (log loss, lower is better): {ll(b.log_loss_cal_minus_raw.mean)} better than the unadjusted model, 95% range {ll(b.log_loss_cal_minus_raw.hi)} to{" "}
+                {ll(b.log_loss_cal_minus_raw.lo)} better.
+              </p>
+            </How>
             <ul class="plain cal-list">
               {b.bins.map((x) => (
                 <li class="cal-row" key={x.lo}>
@@ -389,10 +435,11 @@ function Calibration() {
   const [state, reload] = useLoad(() => api.calibration(), []);
   const [which, setWhich] = useState<"props" | "winners">("props");
   return (
-    <View state={state} reload={reload}>
+    <View state={state} reload={reload} errorLevel={2}>
       {(c) => (
         <div class="stack">
-          <section class="panel">
+          <section class="panel rp-pick">
+            <div class="kicker">Calibration</div>
             <h2>When we said X%, how often did it happen?</h2>
             <p class="small num">
               {c.n_games_finished === 0
@@ -400,15 +447,20 @@ function Calibration() {
                 : `${S(c.n_games_finished)} finished games, ${longDate(c.date_from ?? "")} to ${longDate(c.date_to ?? "")}.`}{" "}
               {c.note}
             </p>
-            <div class="tabs" role="group" aria-label="What to check">
-              {(["props", "winners"] as const).map((k) => (
-                <button key={k} type="button" class="tab" aria-current={which === k ? "true" : undefined} onClick={() => { setWhich(k); }}>
-                  {k === "props" ? "Player props" : "Game winners"}
-                </button>
-              ))}
-            </div>
+            <Tabs
+              label="What to check"
+              idBase="cal"
+              tabs={[
+                { key: "props", label: "Player props" },
+                { key: "winners", label: "Game winners" },
+              ]}
+              value={which}
+              onChange={setWhich}
+            />
           </section>
-          {which === "props" ? <PublishedProps p={c.props} /> : <SeriesView s={c.winners} />}
+          <TabPanel idBase="cal" value={which}>
+            {which === "props" ? <PublishedProps p={c.props} /> : <SeriesView s={c.winners} />}
+          </TabPanel>
           {which === "winners" ? (
           <Explain label="How the range is worked out">
             <p class="small">
@@ -424,234 +476,32 @@ function Calibration() {
   );
 }
 
-/* ------------------------------------------------------------------ guess against the model */
-function ScoreBoard({ score, onReset }: { score: Score; onReset: () => void }) {
-  const range = (r: [number, number] | null): string => (r === null ? "not enough rounds for a range" : `95% range ${pct(r[0])} to ${pct(r[1])}`);
-  return (
-    <section class="panel gs-score" aria-label="Score">
-      <div class="gs-cols">
-        <div>
-          <div class="label">You</div>
-          <div class="big-num num">{S(score.you)}</div>
-        </div>
-        <div>
-          <div class="label">Rounds</div>
-          <div class="big-num num">{S(score.n)}</div>
-        </div>
-      </div>
-      {score.n === 0 ? (
-        <p class="small muted">No rounds yet. The score stays on this device.</p>
-      ) : (
-        <p class="small num">
-          Right: you {S(score.you)} of {S(score.n)} ({range(score.youRange)}).
-        </p>
-      )}
-      <p class="small muted">The model's own scorecard for this season is a locked test; it appears after it reads (about Dec 1).</p>
-      <button type="button" class="linklike small" onClick={onReset} disabled={score.n === 0}>
-        Reset my score
-      </button>
-    </section>
-  );
-}
-
-function Round(props: { card: GuessCard; index: number; total: number; onDone: (r: GuessRound) => void }) {
-  const { card } = props;
-  const [picked, setPicked] = useState<Guess | null>(null);
-  const [rev, setRev] = useState<GuessReveal | null>(null);
-  const [err, setErr] = useState(false);
-  const [done, setDone] = useState<GuessRound | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    if (picked === null) return;
-    let live = true;
-    setErr(false);
-    api.guessReveal(card.game_id, Number(card.prop_id.split(":")[1]), card.stat).then(
-      (r) => {
-        if (!live) return;
-        setRev(r.data);
-        const round = makeRound(card.prop_id, picked, r.data.went_over);
-        setDone(round);
-        props.onDone(round);
-      },
-      () => {
-        if (live) setErr(true);
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [picked, attempt]);
-  const f = card.form;
-  return (
-    <section class="panel gs-card">
-      <p class="small muted num">
-        Round {S(props.index + 1)} of {S(props.total)} · {longDate(card.date)}
-      </p>
-      <h2>{card.player}</h2>
-      <p class="muted">
-        {card.team} {card.home ? "vs" : "at"} {card.opponent}
-      </p>
-      <p class="gs-q">
-        <span class="line-out num">{lineText(card.line)}</span>
-        <span class="muted"> {STAT_LABEL[card.stat].toLowerCase()}: over or under?</span>
-      </p>
-      {f ? (
-        <p class="small num">
-          His last {S(f.last5.length)} games, newest first: {f.last5.length ? f.last5.join(" · ") : "none on file"}
-          {f.avg_minutes5 !== null ? `; about ${f.avg_minutes5.toFixed(0)} minutes a game` : ""}.
-          {f.n_prior < 10 ? ` Only ${S(f.n_prior)} earlier games are on file.` : ""}
-        </p>
-      ) : (
-        <p class="small muted">No earlier games are on file for him.</p>
-      )}
-      {picked === null ? (
-        <div class="gs-actions">
-          <button type="button" class="btn big under" onClick={() => { setPicked("under"); }}>
-            <span class="btn-top">Under</span>
-            <span class="btn-sub">{sideText(card.stat, card.line, "under")}</span>
-          </button>
-          <button type="button" class="btn big over" onClick={() => { setPicked("over"); }}>
-            <span class="btn-top">Over</span>
-            <span class="btn-sub">{sideText(card.stat, card.line, "over")}</span>
-          </button>
-        </div>
-      ) : err ? (
-        <p role="alert">Could not load the result. <button type="button" class="btn" onClick={() => { setAttempt((a) => a + 1); }}>Try again</button></p>
-      ) : rev === null || done === null ? (
-        <p class="muted">Checking...</p>
-      ) : (
-        <div class="gs-reveal" aria-live="polite">
-          <p class="num">
-            You said <b>{picked}</b>. He {didText(card.stat, rev.actual)}
-            {rev.minutes !== null ? ` in ${num(rev.minutes, 0)} minutes` : ""}: <b>{rev.went_over ? "over" : "under"}</b>.{" "}
-            <span class={done.you_right ? "gs-right" : "gs-wrong"}>{done.you_right ? "You were right." : "You were wrong."}</span>
-          </p>
-          {rev.model_p_over !== null && rev.model_p_source !== null ? (
-            <p class="num">
-              The model gave the over <b>{pct(rev.model_p_over)}</b> <CalTag source={rev.model_p_source} />.
-            </p>
-          ) : (
-            <p class="small muted">{LOCK_NOTE}</p>
-          )}
-          <p class="small muted num">
-            {rev.stat_mean !== null ? `Its typical night was ${num(rev.stat_mean)}. ` : ""}One round says very little about either of you.
-          </p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function GuessPlay(props: { d: GuessDeck; played: ReadonlySet<string>; onDone: (r: GuessRound) => void; onAgain: () => void }) {
-  const { d } = props;
-  // Props this device has already played are left out of the deck, once, when the deck arrives.
-  const [cards] = useState(() => d.cards.filter((c) => !props.played.has(c.prop_id)));
-  const [index, setIndex] = useState(0);
-  const [answered, setAnswered] = useState(false);
-  const card = cards[index];
-  if (d.cards.length === 0) {
-    return (
-      <section class="panel empty">
-        <h2>Nothing to guess on yet</h2>
-        <p>{d.note}</p>
-      </section>
-    );
-  }
-  if (!card) {
-    return (
-      <section class="panel empty">
-        <h2>{cards.length === 0 ? "You have played all of these" : "That was the deck"}</h2>
-        <p class="num">
-          {S(cards.length)} rounds, drawn from {S(d.n_available)} played props with a posted line. {d.note}
-        </p>
-        <button type="button" class="btn primary" onClick={props.onAgain}>
-          New deck
-        </button>
-      </section>
-    );
-  }
-  return (
-    <>
-      <Round
-        key={card.prop_id}
-        card={card}
-        index={index}
-        total={cards.length}
-        onDone={(r) => {
-          props.onDone(r);
-          setAnswered(true);
-        }}
-      />
-      {answered ? (
-        <button
-          type="button"
-          class="btn primary wide"
-          onClick={() => {
-            setIndex((i) => i + 1);
-            setAnswered(false);
-          }}
-        >
-          {index + 1 >= cards.length ? "Finish" : "Next player"}
-        </button>
-      ) : null}
-    </>
-  );
-}
-
-function Guess() {
-  const [seed, setSeed] = useState(newSeed);
-  const [rounds, setRounds] = useState<GuessRound[]>(loadRounds);
-  const [deck, reload] = useLoad(() => api.guessDeck(seed, 12), [seed]);
-  const score = scoreOf(rounds);
-  return (
-    <div class="stack">
-      <section class="panel">
-        <h2>Guess the line</h2>
-        <p class="small muted">
-          Real player lines from games already played. You see the line and his recent games; the result and the model's chance stay hidden until you
-          choose. The score stays on this device.
-        </p>
-      </section>
-      <ScoreBoard
-        score={score}
-        onReset={() => {
-          setRounds([]);
-          saveRounds([]);
-        }}
-      />
-      <View state={deck} reload={reload} what="the cards">
-        {(d) => (
-          <GuessPlay
-            key={seed}
-            d={d}
-            played={new Set(rounds.map((r) => r.prop_id))}
-            onDone={(r) => {
-              setRounds((all) => {
-                const next = [...all, r];
-                saveRounds(next);
-                return next;
-              });
-            }}
-            onAgain={() => {
-              setSeed(newSeed());
-            }}
-          />
-        )}
-      </View>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ the page */
 const TAB_LABEL: Record<RecordTab, string> = { replay: "Replay", calibration: "Calibration", guess: "Guess the line" };
 
 export function Record(props: { tab: RecordTab; date: string | null }) {
   return (
-    <div class="stack record">
-      <header class="page-head">
-        <h1>Track record</h1>
-        <p class="muted">How the forecasts did. Replay a finished night, check how often the chances held up, or guess a line yourself.</p>
-      </header>
+    <div class="stack record pb-page">
+      <PageHead
+        kicker="How the forecasts did"
+        title="Track record"
+        description={
+          <>
+            <strong class="pb-sowhat">Forecasts as they stood before tip, checked against what happened. A record is how a forecast earns trust; until it is long enough, keep your money.</strong>{" "}
+            Replay a finished night, check how often the chances held up, or guess a line yourself.
+          </>
+        }
+        actions={
+          <>
+            <a class="btn quiet" href={topHref("scorecard")}>
+              Scorecard
+            </a>
+            <a class="btn quiet" href={topHref("tests")}>
+              Forward tests
+            </a>
+          </>
+        }
+      />
       <nav class="tabs" aria-label="Track record">
         {(Object.keys(TAB_LABEL) as RecordTab[]).map((t) => (
           <a key={t} class="tab" href={recordHref(t, null)} aria-current={props.tab === t ? "true" : undefined}>

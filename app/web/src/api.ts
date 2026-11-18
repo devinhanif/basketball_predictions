@@ -15,12 +15,13 @@ import type {
   SlateResults,
   SwipeDeck,
 } from "./types";
-import { httpErrorMessage } from "./errors";
+import { ApiError, failureFromAnswer, failureFromNetwork } from "./errors";
 import type { LegBreakdown, Side } from "./legTypes";
 import type { LegEdges } from "./edges";
 import type { TopParlays, TpResult } from "./topParlays";
-import { getRaw, warmGames } from "./transport";
+import { getRaw, warmGames, type Raw } from "./transport";
 import { parseDesk, type Desk } from "./desk";
+import { clearMiss, missedRecently, noteMiss } from "./missMemo";
 import type { LiveList, Play } from "./live";
 import type { ScenariosView } from "./sits";
 
@@ -32,25 +33,43 @@ export interface Loaded<T> {
   fromCache: boolean;
 }
 
-export async function getJson<T>(path: string): Promise<Loaded<T>> {
-  const r = await getRaw(path);
-  if (r.status < 200 || r.status >= 300) {
-    const detail = (r.body as { detail?: unknown } | null)?.detail;
-    throw new Error(httpErrorMessage(r.status, r.statusText, path, typeof detail === "string" ? detail : null));
+/** One answer from the API, or the typed failure (ApiError) when there was none or it was a refusal. */
+async function answer(path: string): Promise<Raw> {
+  try {
+    return await getRaw(path);
+  } catch (e) {
+    const online = typeof navigator === "undefined" || navigator.onLine;
+    throw new ApiError(failureFromNetwork(path, online, e instanceof Error ? e.message : null));
   }
+}
+
+/** The ApiError for a non-2xx answer. */
+function refusal(r: Raw, path: string): ApiError {
+  return new ApiError(failureFromAnswer(r.status, r.body, path, r.requestId ?? null));
+}
+
+export async function getJson<T>(path: string): Promise<Loaded<T>> {
+  const r = await answer(path);
+  if (r.status < 200 || r.status >= 300) throw refusal(r, path);
   return { data: r.body as T, fromCache: r.fromCache };
 }
 
 /** Top-parlays file for a date. 404 means no file (a first-class state); 422 means the API refused it. */
 export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
   const path = `/api/top-parlays/${encodeURIComponent(date)}`;
-  const r = await getRaw(path);
-  if (r.status === 404) return { data: { kind: "missing" }, fromCache: r.fromCache };
+  const key = `tp:${date}`;
+  if (missedRecently(key)) return { data: { kind: "missing" }, fromCache: false };
+  const r = await answer(path);
+  if (r.status === 404) {
+    noteMiss(key);
+    return { data: { kind: "missing" }, fromCache: r.fromCache };
+  }
+  clearMiss(key);
   if (r.status === 422) {
     const detail = (r.body as { detail?: string } | null)?.detail;
     return { data: { kind: "refused", detail: detail ?? "refused" }, fromCache: r.fromCache };
   }
-  if (r.status < 200 || r.status >= 300) throw new Error(`${r.status.toString()} ${r.statusText} for ${path}`);
+  if (r.status < 200 || r.status >= 300) throw refusal(r, path);
   return { data: { kind: "ok", data: r.body as TopParlays }, fromCache: r.fromCache };
 }
 
@@ -58,7 +77,7 @@ export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
  * "no scenarios here", not an error screen. */
 export async function getScenarios(id: string): Promise<Loaded<ScenariosView>> {
   const path = `/api/games/${encodeURIComponent(id)}/scenarios`;
-  const r = await getRaw(path);
+  const r = await answer(path);
   if (r.status === 404) {
     const none: ScenariosView = {
       game_id: id,
@@ -173,8 +192,13 @@ export type DeskState = { kind: "absent" } | { kind: "refused"; detail: string }
 
 /** The Jarvis Desk export. 404 means this API does not serve one (public API, or none written yet): a normal state. */
 export async function getDesk(): Promise<DeskState> {
+  if (missedRecently("desk")) return { kind: "absent" };
   const r = await getRaw("/api/desk");
-  if (r.status === 404) return { kind: "absent" };
+  if (r.status === 404) {
+    noteMiss("desk");
+    return { kind: "absent" };
+  }
+  clearMiss("desk");
   if (r.status === 422) return { kind: "refused", detail: (r.body as { detail?: string } | null)?.detail ?? "refused" };
   if (r.status < 200 || r.status >= 300) return { kind: "absent" };
   const desk = parseDesk(r.body);

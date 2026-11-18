@@ -27,246 +27,59 @@ source they run on. What the export does not carry is left absent, never invente
 
 from __future__ import annotations
 
-import hashlib
 import json
-import re
-import statistics
+import logging
+from array import array
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import duckdb
 
+from .export_rows import (
+    IMPLIED_COL,
+    PROP_LINE_COLS,
+    _book_rank,
+    _display_name,
+    _et_to_utc_iso,
+    _lead_mean,
+    _pick_latest,
+    _prop_lines_for,
+    _quote,
+    _schema_at_least_1,
+    _split_name,
+    _stamp_text,
+    _table,
+    _utc_iso,
+    line_entries,
+    main_line,
+)
+from .export_verify import (
+    DB_NAME,
+    HOLDOUT_SEASON,
+    MANIFEST_NAME,
+    PARLAY_NAME,
+    ExportRefused,
+    has_export,
+    manifest_path,
+    sha256_file,
+    verify,
+)
 from .forecast import reference_line
 from .history import STAT_ORDER, History
+from .honesty_data import Records, Scores, StripFacts, capture_records, load_scores, load_strip
 
 Json = dict[str, Any]
+log = logging.getLogger("parlayhitters")
 
-SCHEMA_VERSIONS = (1, 2)
-DB_NAME = "export.duckdb"
-PARLAY_NAME = "parlay_of_day.json"
-MANIFEST_NAME = "manifest.json"
-HOLDOUT_SEASON = 2025
 MODEL_STATS = ("pts", "reb", "ast", "fg3m")
 EXPORT_STATS = ("pts", "reb", "ast", "fg3m", "pra", "pr", "pa", "ra")
 #: Only used for an export that predates best_model_schema (no is_primary column): the old rule.
 PREFERRED_PROP_MODEL = "props_context_residual"
-ET = ZoneInfo("America/New_York")
 NO_POSITIVE_EV = "no_positive_ev_found"
 POSITIVE_EV = "positive_ev_at_conservative_bound"
-TWO_WORD_NICKNAMES = ("Trail Blazers",)
-#: Sportsbooks first, in this order, for the one price shown beside a prop; any other book
-#: (exchanges such as kalshi, novig, polymarket) follows alphabetically. Every book's quote is
-#: still shown on the leg screen.
-BOOK_ORDER = ("draftkings", "fanduel", "betmgm", "caesars", "espnbet", "fanatics")
-
-
-class ExportRefused(ValueError):
-    """The export on disk cannot be trusted or is not one this app may show."""
-
-
-def _schema_at_least_1(value: Any) -> bool:
-    """meta best_model_schema as an integer >= 1 (a later schema only adds to this one)."""
-    try:
-        return int(str(value).strip()) >= 1
-    except ValueError:
-        return False
-
-
-def _utc_iso(ts: datetime) -> str:
-    """A naive-UTC timestamp (as the export stores them) as an ISO string with Z."""
-    return ts.replace(tzinfo=None).isoformat(timespec="seconds") + "Z"
-
-
-def _et_to_utc_iso(ts: datetime) -> str:
-    return ts.replace(tzinfo=ET).astimezone(UTC).isoformat(timespec="seconds")
-
-
-def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def manifest_path(directory: Path) -> Path:
-    return directory / MANIFEST_NAME
-
-
-def has_export(directory: Path | None) -> bool:
-    return directory is not None and manifest_path(directory).is_file()
-
-
-def verify(directory: Path) -> Json:
-    """Check the manifest and the two files it names; return the manifest or raise."""
-    try:
-        manifest = json.loads(manifest_path(directory).read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise ExportRefused(f"manifest.json is not readable JSON: {exc}") from exc
-    if not isinstance(manifest, dict):
-        raise ExportRefused("manifest.json is not a JSON object")
-    if manifest.get("schema_version") not in SCHEMA_VERSIONS:
-        raise ExportRefused(f"unsupported schema_version {manifest.get('schema_version')!r}")
-    dv = manifest.get("data_version")
-    if not isinstance(dv, str) or not dv.strip():
-        raise ExportRefused("manifest has no data_version: cannot say what data this came from")
-    made = manifest.get("made_at")
-    if not isinstance(made, str):
-        raise ExportRefused("manifest has no made_at: cannot say when this was built")
-    try:
-        datetime.fromisoformat(made.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ExportRefused(f"manifest made_at is not a timestamp: {made!r}") from exc
-    seasons = manifest.get("seasons")
-    if not isinstance(seasons, list) or not seasons or not all(isinstance(s, int) for s in seasons):
-        raise ExportRefused("manifest has no list of seasons")
-    if HOLDOUT_SEASON in seasons:
-        raise ExportRefused(f"manifest lists season {HOLDOUT_SEASON}, the frozen holdout")
-    files = manifest.get("files")
-    if not isinstance(files, dict):
-        raise ExportRefused("manifest has no file checksums")
-    for name in (DB_NAME, PARLAY_NAME):
-        want = (files.get(name) or {}).get("sha256")
-        if not isinstance(want, str) or len(want) != 64:
-            raise ExportRefused(f"manifest has no sha256 for {name}")
-        path = directory / name
-        if not path.is_file():
-            raise ExportRefused(f"{name} is missing")
-        if sha256_file(path) != want:
-            raise ExportRefused(f"{name} does not match the manifest sha256")
-    return manifest
-
-
-def _table(con: duckdb.DuckDBPyConnection, name: str) -> list[Json]:
-    cur = con.execute(f'SELECT * FROM "{name}"')  # noqa: S608 - fixed table names
-    cols = [d[0] for d in cur.description]
-    return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
-
-
-def _lead_mean(player: Json) -> float:
-    """The forecast mean used to order a team's players: points if he has them, else any stat."""
-    props = player["props"]
-    lead = props.get("pts") or next(iter(props.values()))
-    return float(lead["forecast"]["mean"] or 0.0)
-
-
-def _book_rank(book: str) -> tuple[int, str]:
-    return (BOOK_ORDER.index(book) if book in BOOK_ORDER else len(BOOK_ORDER), book)
-
-
-def _quote(r: Json) -> Json:
-    """A prop_lines row as the app keeps it. An unusable quote keeps no price at all."""
-    price = int(r["price_american"])
-    # Beyond the exporter's own flag: a number that is not an American price cannot be shown.
-    bad = r["unusable"] or price == 0 or -100 < price < 100
-    return {
-        "book": r["book"],
-        "line": float(r["line"]),
-        "side": r["side"],
-        "price": None if bad else price,
-        "unusable": bool(bad),
-        "reason": r["unusable_reason"] or ("not_american_odds" if bad else None),
-        "alt": bool(r["is_alternate"]),
-        "minutes_before_tip": r["minutes_before_tip"],
-        "snapshot_utc": None if r["snapshot_ts"] is None else _utc_iso(r["snapshot_ts"]),
-    }
-
-
-def main_line(quotes: list[Json]) -> float | None:
-    """The posted main line: among usable non-alternate quotes, the line the most books carry;
-    a tie goes to the line nearest the median of the tied lines, then the lower one. None when no
-    book posted a usable main line."""
-    books: dict[float, set[str]] = defaultdict(set)
-    for q in quotes:
-        if not q["alt"] and not q["unusable"]:
-            books[q["line"]].add(q["book"])
-    if not books:
-        return None
-    top = max(len(b) for b in books.values())
-    tied = sorted(ln for ln, b in books.items() if len(b) == top)
-    mid = statistics.median(tied)
-    return min(tied, key=lambda ln: (abs(ln - mid), ln))
-
-
-def line_entries(quotes: list[Json], main: float | None) -> list[Json]:
-    """One price entry per line for the breakdown's ladder: for each side, the best-ranked book
-    with a usable price there, preferring one book that has both sides."""
-    by_line: dict[float, dict[str, dict[str, Json]]] = defaultdict(lambda: defaultdict(dict))
-    for q in quotes:
-        if not q["unusable"]:
-            by_line[q["line"]][q["book"]][q["side"]] = q
-    out: list[Json] = []
-    for ln in sorted(by_line):
-        books = by_line[ln]
-        both = sorted((b for b, s in books.items() if "over" in s and "under" in s), key=_book_rank)
-        pick: dict[str, Json] = {}
-        for side in ("over", "under"):
-            if both:
-                pick[side] = books[both[0]][side]
-            else:
-                cands = sorted((b for b, s in books.items() if side in s), key=_book_rank)
-                if cands:
-                    pick[side] = books[cands[0]][side]
-        ov, un = pick.get("over"), pick.get("under")
-        out.append(
-            {
-                "main": ln == main,
-                "point": ln,
-                "over_price": None if ov is None else ov["price"],
-                "under_price": None if un is None else un["price"],
-                "over_book": None if ov is None else ov["book"],
-                "under_book": None if un is None else un["book"],
-                "snapshot_utc": (ov or un or {}).get("snapshot_utc"),
-            }
-        )
-    return out
-
-
-def _split_name(full: str) -> tuple[str, str]:
-    for nick in TWO_WORD_NICKNAMES:
-        if full.endswith(" " + nick):
-            return full[: -len(nick) - 1], nick
-    head, _, tail = full.rpartition(" ")
-    return (head, tail) if head else ("", full)
-
-
-def _stamp_text(row: Json) -> str:
-    bits = [f"{row['model_name']} {row['version']}"]
-    if row.get("stamp_fit_through"):
-        bits.append(f"fit through {row['stamp_fit_through']}")
-    if row.get("stamp_n_train"):
-        bits.append(f"n_train {row['stamp_n_train']}")
-    if row.get("stamp_weights_sha256"):
-        bits.append(f"weights {str(row['stamp_weights_sha256'])[:12]}")
-    if row.get("bundle_month"):
-        bits.append(f"bundle {row['bundle_month']}")
-    bits.append(f"made {_utc_iso(row['made_at'])}")
-    return "; ".join(bits)
-
-
-def _pick_latest(
-    rows: list[Json], key: Callable[[Json], Any], prefer: Callable[[Json], bool]
-) -> dict[Any, Json]:
-    """Per key, the usable row: the preferred kind first, then the newest made_at."""
-    best: dict[Any, tuple[tuple[bool, datetime, str], Json]] = {}
-    for r in rows:
-        k = key(r)
-        rank = (prefer(r), r["made_at"], r["run_id"])
-        cur = best.get(k)
-        if cur is None or rank > cur[0]:
-            best[k] = (rank, r)
-    return {k: v[1] for k, v in best.items()}
-
-
-def _display_name(pid: int, name: object) -> str:
-    text = str(name or "").strip()
-    if not text or re.fullmatch(r"Player \d+", text):
-        return f"Unnamed player (id {pid})"
-    return text
 
 
 class ExportStore:
@@ -278,7 +91,13 @@ class ExportStore:
         self.root = Path(directory)
         self._now = now or (lambda: datetime.now(UTC))
         self.manifest: Json = verify(self.root)
-        con = duckdb.connect(str(self.root / DB_NAME), read_only=True)
+        try:
+            con = duckdb.connect(str(self.root / DB_NAME), read_only=True)
+        except duckdb.Error as exc:
+            # The checksum matched, so the file is what the exporter wrote, but DuckDB cannot open
+            # it. Refused (503), not a crash; the reason names the error kind, never a path.
+            log.warning("export.duckdb cannot be opened: %s", exc)
+            raise ExportRefused(f"export.duckdb cannot be opened ({type(exc).__name__})") from exc
         try:
             tables = {
                 t: _table(con, t)
@@ -302,15 +121,37 @@ class ExportStore:
             tables["teammate_sits"] = (
                 _table(con, "teammate_sits") if "teammate_sits" in have else []
             )
+            meta = {r["key"]: r["value"] for r in tables["meta"]}
+            # best_model_schema 1: prop_grids marks one primary row per prop and p_play carries
+            # the chance to play. An export without it keeps the old production-model choice.
+            grids = tables["prop_grids"]
+            self.best_model: bool = _schema_at_least_1(meta.get("best_model_schema")) and (
+                not grids or "is_primary" in grids[0]
+            )
+            props = self._latest_props(grids)
+            # The honesty pages' sums and strip facts, read on this same verified connection;
+            # an absent table leaves them unavailable, never refuses the export.
+            self.scores: Scores = load_scores(con, have, self.manifest)
+            self.strip: StripFacts = load_strip(con, have)
             if "prop_lines" in have:
-                tables["prop_lines"] = _table(con, "prop_lines")
+                line_cols = {
+                    r[0]
+                    for r in con.execute(
+                        "SELECT column_name FROM information_schema.columns"
+                        " WHERE table_name = 'prop_lines'"
+                    ).fetchall()
+                }
+                extra = (IMPLIED_COL,) if IMPLIED_COL in line_cols else ()
+                tables["prop_lines"] = _prop_lines_for(con, props, extra)
             elif self.manifest["schema_version"] >= 2:
                 raise ExportRefused("a schema 2 export has no prop_lines table")
             else:
                 tables["prop_lines"] = []
+        except duckdb.Error as exc:  # a table or column the app needs is missing or unreadable
+            log.warning("export.duckdb could not be read: %s", exc)
+            raise ExportRefused(f"export.duckdb could not be read ({type(exc).__name__})") from exc
         finally:
             con.close()
-        meta = {r["key"]: r["value"] for r in tables["meta"]}
         if meta.get("made_at") != self.manifest["made_at"] or (
             meta.get("data_version", "") != (self.manifest.get("data_version") or "")
         ):
@@ -325,12 +166,6 @@ class ExportStore:
             int(r["season"]) == HOLDOUT_SEASON for r in tables["box_scores"]
         ):
             raise ExportRefused(f"box_scores holds season {HOLDOUT_SEASON}, the frozen holdout")
-        # best_model_schema 1: prop_grids marks one primary row per prop and p_play carries the
-        # chance to play. An export without it keeps the old production-model choice.
-        grids = tables["prop_grids"]
-        self.best_model: bool = _schema_at_least_1(meta.get("best_model_schema")) and (
-            not grids or "is_primary" in grids[0]
-        )
         self.sits_info: Json | None = (
             self.manifest["teammate_sits"]
             if isinstance(self.manifest.get("teammate_sits"), dict)
@@ -341,7 +176,7 @@ class ExportStore:
             self.sits_rows[str(r["game_id"])].append(r)
         self.made_at: str = self.manifest["made_at"]
         self.data_version: str = self.manifest["data_version"]
-        self._build(tables)
+        self._build(tables, props)
         self.parlay: Json = self._parlay()
         self.evidence: Json = {
             "available": False,
@@ -350,7 +185,9 @@ class ExportStore:
 
     # ------------------------------------------------------------------ building
 
-    def _build(self, tables: dict[str, list[Json]]) -> None:
+    def _build(
+        self, tables: dict[str, list[Json]], props: dict[tuple[str, int, str], Json]
+    ) -> None:
         # The export sometimes stores a placeholder ("Player 1643411") where it has no name. Show it
         # as what it is, not as something that looks like a name. No name is looked up elsewhere.
         self.names: dict[int, str] = {
@@ -385,8 +222,11 @@ class ExportStore:
             for r in tables["injury_report"]
             if r["team_id"] is not None
         }
-        win = self._latest_win(tables["win_probs"])
-        props = self._latest_props(tables["prop_grids"])
+        win_rows = self._win_primary(tables["win_probs"])
+        win = self._latest_win(win_rows)
+        self.records: Records = capture_records(
+            tables["prop_grids"], props, tables["win_probs"], win_rows
+        )
         self.pplay = self._pplay(tables["p_play"], props)
         stamps = {k: _stamp_text(v) for k, v in props.items()}
         # The team the exporter recorded for each forecast (box row or prior game), by game+player.
@@ -395,6 +235,7 @@ class ExportStore:
             if pr.get("team_id") is not None:
                 self.team_pk[(gid_, pid_)] = int(pr["team_id"])
         self.quotes = self._quotes_by_prop(tables["prop_lines"], props)
+        self.quote_implied = self._implied_by_prop(tables["prop_lines"], props)
         self.has_lines = any(main_line(q) is not None for q in self.quotes.values())
         self.has_stl_blk = any(b.get("stl") is not None or b.get("blk") is not None for b in played)
         self.history = self._history(games, played, tables["injury_report"])
@@ -466,9 +307,13 @@ class ExportStore:
         }  # fmt: skip
 
     @staticmethod
-    def _latest_win(rows: list[Json]) -> dict[str, Json]:
+    def _win_primary(rows: list[Json]) -> dict[str, Json]:
+        """The one game-winner row shown per game: latest, not comparison-only, primary first."""
         usable = [r for r in rows if r["is_latest"] and not r["comparison_only"]]
-        best = _pick_latest(usable, lambda r: r["game_id"], lambda r: bool(r["is_primary"]))
+        return _pick_latest(usable, lambda r: r["game_id"], lambda r: bool(r["is_primary"]))
+
+    @staticmethod
+    def _latest_win(best: dict[str, Json]) -> dict[str, Json]:
         out: dict[str, Json] = {}
         for gid, r in best.items():
             out[gid] = {
@@ -496,6 +341,27 @@ class ExportStore:
             rows = by_run.get((pr.get("lines_run_id") or pr["run_id"], *key))
             if rows:
                 out[key] = [_quote(r) for r in rows]
+        return out
+
+    @staticmethod
+    def _implied_by_prop(
+        lines: list[Json], props: dict[tuple[str, int, str], Json]
+    ) -> dict[tuple[str, int, str], array[float]]:
+        """The stored ``implied_prob_raw`` of each quote in ``quotes``, same keys, same order (NaN
+        where the export stored none or predates the column). Read only by the betting module's
+        quote board; a plain float array, so it costs about 8 bytes a quote."""
+        by_run: dict[tuple[str, str, int, str], list[Json]] = defaultdict(list)
+        for r in lines:
+            by_run[(r["run_id"], r["game_id"], int(r["player_id"]), r["stat"])].append(r)
+        out: dict[tuple[str, int, str], array[float]] = {}
+        nan = float("nan")
+        for key, pr in props.items():
+            rows = by_run.get((pr.get("lines_run_id") or pr["run_id"], *key))
+            if rows:
+                out[key] = array(
+                    "d",
+                    (nan if r.get(IMPLIED_COL) is None else float(r[IMPLIED_COL]) for r in rows),
+                )
         return out
 
     def _latest_props(self, rows: list[Json]) -> dict[tuple[str, int, str], Json]:
@@ -795,9 +661,18 @@ class ExportStore:
     # ------------------------------------------------------------------ parlay
 
     def _parlay(self) -> Json:
-        p = json.loads((self.root / PARLAY_NAME).read_text(encoding="utf-8"))
+        try:
+            p = json.loads((self.root / PARLAY_NAME).read_text(encoding="utf-8"))
+            if not isinstance(p, dict):
+                raise ValueError("not a JSON object")
+            _ = (int(p.get("n_evaluated", 0)), int(p.get("n_positive", 0)))  # counts are integers
+        except (OSError, ValueError, TypeError) as exc:
+            raise ExportRefused(f"{PARLAY_NAME} is not a readable parlay file") from exc
         recs = p.get("records")
         self.parlay_records: list[Json] = recs if isinstance(recs, list) else []
+        self.parlay_raw: Json = {
+            k: p.get(k) for k in ("date", "source", "status", "verdict", "n_evaluated")
+        }
         status, verdict = p.get("status"), p.get("verdict")
         n, npos = int(p.get("n_evaluated", 0)), int(p.get("n_positive", 0))
         base: Json = {
@@ -945,3 +820,24 @@ class ExportStore:
                 "seasons": m["seasons"],
             },
         }
+
+
+#: Imported from here by store.py and the tests; their homes are export_verify.py and
+#: export_rows.py since the split.
+__all__ = [
+    "DB_NAME",
+    "ExportRefused",
+    "HOLDOUT_SEASON",
+    "MANIFEST_NAME",
+    "PARLAY_NAME",
+    "PROP_LINE_COLS",
+    "_display_name",
+    "_table",
+    "has_export",
+    "line_entries",
+    "main_line",
+    "manifest_path",
+    "sha256_file",
+    "verify",
+    "ExportStore",
+]

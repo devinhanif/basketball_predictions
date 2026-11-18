@@ -7,12 +7,20 @@ export interface Raw {
   statusText: string;
   body: unknown;
   fromCache: boolean;
+  /** The server's X-Request-Id, when it sent one. */
+  requestId?: string | null;
 }
 
 export async function getRaw(path: string): Promise<Raw> {
   const res = await fetch(path, { headers: { Accept: "application/json" } });
   const body: unknown = await res.json().catch(() => null);
-  return { status: res.status, statusText: res.statusText, body, fromCache: res.headers.get("X-From-Cache") === "1" };
+  return {
+    status: res.status,
+    statusText: res.statusText,
+    body,
+    fromCache: res.headers.get("X-From-Cache") === "1",
+    requestId: res.headers.get("X-Request-Id"),
+  };
 }
 
 /**

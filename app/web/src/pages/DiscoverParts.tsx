@@ -1,4 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
+import { EdgeBadge } from "../ui";
+import { edgeLabelOf } from "../ui/semantic";
 import { api, getTopContracts } from "../api";
 import { Avatar } from "../Avatar";
 import { TeamTag, WinBars } from "../components";
@@ -46,7 +48,7 @@ export function Hero({ row, nPriced, fixture, desk }: { row: RadarRow | null; nP
   const isDesk = row.source === "desk";
   const wModel = desk?.status.w_model ?? null;
   return (
-    <section class="panel hero" aria-label="The closest look">
+    <section class="panel hero card-feature" aria-label="The closest look">
       <div class="hero-main">
         <div class="label">The closest look{isDesk ? "" : nPriced ? ` · best of ${nPriced.toLocaleString("en-US")} priced player contracts` : ""}</div>
         <div class="hero-who">
@@ -165,6 +167,7 @@ export function DeskTiles({ desk, date }: { desk: Desk; date: string }) {
         <div class="tile-v num">{desk.record ? `${desk.record.n_won.toString()}-${desk.record.n_lost.toString()}` : "-"}</div>
         <div class="tile-l">paper record</div>
         <div class="tile-n muted num">{rec.n > 0 ? `n = ${rec.n.toLocaleString("en-US")}` : "none settled"}</div>
+        {rec.n > 0 ? <span class="browser-note">n is won plus lost, added up in your browser from the stored counts, not by the engine.</span> : null}
       </div>
       <div class="tile">
         <div class="tile-v num">{clv.value !== null ? signedCents(clv.value, 2) : "-"}</div>
@@ -240,7 +243,15 @@ export function Radar({ rows, loading }: { rows: RadarRow[]; loading: boolean })
                     <td class="r" data-l="Fair">{fmtModel(r.fair)}</td>
                     <td class="r" data-l="Model">{fmtModel(r.model)}</td>
                     <td class="r" data-l="Ask">{r.ask_c !== null ? plainCents(r.ask_c) : "-"}</td>
-                    <td class="small status">{r.status}</td>
+                    <td class="small status">
+                      {r.label !== null && edgeLabelOf(r.label) !== null ? (
+                        <>
+                          <EdgeBadge label={r.label} /> {r.statusPlain}
+                        </>
+                      ) : (
+                        r.status
+                      )}
+                    </td>
                     <td class="watch-cell">
                       <button
                         type="button"
@@ -313,7 +324,7 @@ export function Discipline({ desk, engine }: { desk: Desk | null; engine: Parlay
         <>
           <h3>{engine ? engine.title : "No discipline check is stored"}</h3>
           <p class="small">{engine ? engine.verdict_line : "The engine's state could not be read."}</p>
-          <a class="linklike" href="#/parlay">
+          <a class="linklike tap" href="#/parlay">
             The full story
           </a>
         </>

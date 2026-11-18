@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
+import { PageHead } from "../ui";
 import { api, getTopContracts, type TopContract } from "../api";
 import { Avatar } from "../Avatar";
 import { Loading } from "../components";
@@ -197,15 +198,16 @@ function Lab({ pick, onReset }: { pick: Pick; onReset: () => void }) {
   const addedCost = totalCost(added.filter((a) => a.contracts > 0 && a.ask_c > 0));
   return (
     <>
-      <header class="page-head">
-        <div class="kicker">Position lab</div>
-        <h1 class="answer">
-          {sum
+      <PageHead
+        kicker="Position lab"
+        class="pb-answer"
+        title={
+          sum
             ? `Worst case ${centsText(sum.worst_c)}, best case ${centsText(sum.best_c)}${sum.before_fee ? " before fee" : ""}, across ${os.length.toString()} outcomes at the prices entered`
-            : "Enter contracts and an ask to see every outcome"}
-        </h1>
-        <p class="muted answer-src">{NOTE}</p>
-      </header>
+            : "Enter contracts and an ask to see every outcome"
+        }
+        description={NOTE}
+      />
       <section class="panel hero-pos" aria-label="Your paper position">
         <Avatar name={pick.player} team={pick.team} playerId={pick.playerId} size="lg" />
         <div class="hp-main">
@@ -377,11 +379,7 @@ export function Hedge(props: { game: string | null; player: number | null; stat:
         <Lab key={pick.base.id} pick={pick} onReset={() => undefined} />
       ) : (
         <>
-          <header class="page-head">
-            <div class="kicker">Position lab</div>
-            <h1 class="answer">Choose a stored contract to see what it pays in every outcome</h1>
-            <p class="muted answer-src">{NOTE}</p>
-          </header>
+          <PageHead kicker="Position lab" class="pb-answer" title="Choose a stored contract to see what it pays in every outcome" description={NOTE} />
           <Picker onPick={setPick} />
         </>
       )}

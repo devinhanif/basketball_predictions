@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { Badge, PageHead } from "../ui";
+import { EdgeBadge } from "../ui";
 import { Avatar } from "../Avatar";
 import { DeskAge, DeskGate } from "../DeskUI";
 import {
-  barScale, calibration, cents, clusteredRate, labelText, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd,
+  barScale, calibration, cents, clusteredRate, clvRate, dayBars, dayTally, filterLedger, ledgerCsv, LEDGER_FILTERS, playLabel, signedCents, usd,
   type DayBar, type Desk, type DeskPlay, type LedgerFilter,
 } from "../desk";
 import { longDate, pct } from "../format";
@@ -35,9 +37,12 @@ function Tiles({ desk }: { desk: Desk }) {
           {clv.ci ? `${ciText(clv.ci, "c")}, clustered on ${c?.clustered_on.replace("_", " ") ?? "date"}${c?.n_dates ? ` (${c.n_dates.toString()} dates)` : ""}` : (clv.reason ?? "")}
         </div>
         <div class="tile-n muted">All settled plays with a stored close. JARVIS's kill-switch rule uses a different sample (below).</div>
-        <div class="tile-n muted num">
+        <div class={`tile-n num pb-fixed${c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001 ? " on" : " muted"}`}>
+          {c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001 ? (
+            <Badge tone="amber" icon="book" word="Fixed review text, not live data" class="pb-fixed-badge" />
+          ) : null}
           {c !== null && c.n === 83 && Math.abs((c.mean_cents ?? 0) + 0.8795) < 0.001
-            ? "From the 2026-11-08 review (not in the desk file): of the -0.88c, about 0.69c is half the closing spread paid by buying at the ask. The line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero."
+            ? "Fixed text from a dated review (docs/reviews/desk_export_premerge_2026-11-08.md, 2026-11-08), not live data: of the -0.88c, about 0.69c is half the closing spread paid by buying at the ask. The line-movement part is -0.19c (95% interval -0.74c to +0.15c, n = 83, clustered on date), which cannot be told apart from zero."
             : "The 2026-11-08 review split this figure into half the closing spread and line movement; that split applies to the n = 83 snapshot only and is not shown for these numbers."}
         </div>
       </div>
@@ -54,9 +59,14 @@ function Tiles({ desk }: { desk: Desk }) {
           {cr.ci ? `95% interval ${pct(cr.ci[0])} to ${pct(cr.ci[1])} (bootstrap resampling whole dates: ${cr.nDates.toString()} dates, ${cr.reps.toLocaleString("en-US")} resamples, seed ${cr.seed.toString()}). ` : (cr.reason ?? "")}
           {cr.excluded > 0 ? `${cr.excluded.toString()} daily-dollar legs are in the record but not in this rate: they settle together.` : ""}
         </div>
+        {cr.rate !== null ? (
+          <span class="browser-note">
+            The rate and its interval are computed in your browser from the stored plays (each result and date, n = {cr.n.toString()}), not by the engine.
+          </span>
+        ) : null}
         <div class="tile-n muted">Win rate is not the measure of edge: price matters more than hits.</div>
       </div>
-      {desk.balance ? (
+      {desk.balance && desk.privacy === "private" ? (
         <div class="tile big">
           <div class="label">Paper balance (private)</div>
           <div class="tile-v num">{`$${desk.balance.current_usd.toFixed(2)}`}</div>
@@ -183,7 +193,7 @@ function DaysCard({ desk }: { desk: Desk }) {
               </h3>
               <p class="small muted num">
                 {day.n} settled, {day.won}-{day.n - day.won} won-lost
-                {day.pnl !== null ? `, net ${usd(day.pnl)}` : ""}. A single day is a small sample; it says little by itself.
+                {day.pnl !== null && desk.privacy === "private" ? `, net ${usd(day.pnl)}` : ""}. A single day is a small sample; it says little by itself.
               </p>
               {plays.length > 0 ? (
                 <ul class="plain small">
@@ -365,7 +375,7 @@ function LedgerCard({ desk }: { desk: Desk }) {
                   </td>
                   <td class="r" data-l="Entry">{cents(p.price_cents)}</td>
                   <td data-l="Signal">
-                    {labelText(p.edge_label)} {p.edge_cents !== null ? signedCents(p.edge_cents, 1) : ""}
+                    <EdgeBadge label={p.edge_label} /> {p.edge_cents !== null ? signedCents(p.edge_cents, 1) : ""}
                   </td>
                   <td class="r" data-l="Closing-line value">{signedCents(p.result?.clv_cents ?? null)}</td>
                   <td data-l="Result">{resultWord(p)}</td>
@@ -396,17 +406,22 @@ function Body({ desk }: { desk: Desk }) {
   const clv = clvRate(desk);
   return (
     <div class="stack">
-      <header class="page-head">
-        <div class="kicker">Model history</div>
-        <h1 class="answer">
-          {desk.record ? `${desk.record.n_won.toString()}-${desk.record.n_lost.toString()} on ${(desk.record.n_won + desk.record.n_lost).toLocaleString("en-US")} paper bets` : "No paper record is stored"}
-          {clv.value !== null ? ` · closing-line value ${signedCents(clv.value, 2)} (n = ${clv.n.toLocaleString("en-US")})` : ""}
-          {desk.status.kill_switch.on ? " · kill switch on" : ""}
-        </h1>
-        <p class="muted answer-src">
-          A record of paper results, costs and discipline. <DeskAge desk={desk} />
-        </p>
-      </header>
+      <PageHead
+        kicker="Model history"
+        class="pb-answer"
+        title={
+          <>
+            {desk.record ? `${desk.record.n_won.toString()}-${desk.record.n_lost.toString()} on ${(desk.record.n_won + desk.record.n_lost).toLocaleString("en-US")} paper bets` : "No paper record is stored"}
+            {clv.value !== null ? ` · closing-line value ${signedCents(clv.value, 2)} (n = ${clv.n.toLocaleString("en-US")})` : ""}
+            {desk.status.kill_switch.on ? " · kill switch on" : ""}
+          </>
+        }
+        description={
+          <>
+            A record of paper results, costs and discipline. <DeskAge desk={desk} />
+          </>
+        }
+      />
       <Tiles desk={desk} />
       <div class="two-col wide-left">
         <DaysCard desk={desk} />

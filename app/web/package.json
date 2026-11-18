@@ -13,6 +13,7 @@
     "build:artifact": "node scripts/build-artifact.mjs",
     "shots": "node scripts/shots.mjs",
     "learn-dom": "node scripts/learn-dom.mjs http://127.0.0.1:5181 9660",
+    "walk": "node scripts/route-walk.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "preview:lan": "vite preview --host 0.0.0.0 --port 4173",
     "lint": "eslint .",

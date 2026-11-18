@@ -1,4 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
+import { PageHead } from "../ui";
 import { buildNotices, filterNotices, newestNight, NOTICE_FILTERS, unreadCount, withOlderRead, type Notice, type NoticeFilter } from "../alerts";
 import { DeskAge, DeskGate } from "../DeskUI";
 import { correctionLinks, type Desk } from "../desk";
@@ -55,17 +56,20 @@ function Body({ desk }: { desk: Desk }) {
   const linked = [...links.correctedBy.keys()].length;
   return (
     <div class="stack">
-      <header class="page-head">
-        <div class="row between wrap">
-          <div>
-            <div class="kicker">Notification center</div>
-            <h1 class="answer">
-              {all.length.toLocaleString("en-US")} alerts and observations · {unread.toLocaleString("en-US")} unread
-            </h1>
-            <p class="muted answer-src">
-              What changed and what is still not known. Read marks are kept for you only; {newest ? `alerts older than ${longDate(newest).replace(/, \d{4}$/, "")} start as read.` : "older alerts start as read."}
-            </p>
-          </div>
+      <PageHead
+        kicker="Notification center"
+        class="pb-answer"
+        title={
+          <>
+            {all.length.toLocaleString("en-US")} alerts and observations · {unread.toLocaleString("en-US")} unread
+          </>
+        }
+        description={
+          <>
+            What changed and what is still not known. Read marks are kept for you only; {newest ? `alerts older than ${longDate(newest).replace(/, \d{4}$/, "")} start as read.` : "older alerts start as read."}
+          </>
+        }
+        actions={
           <button
             type="button"
             class="btn"
@@ -75,8 +79,8 @@ function Body({ desk }: { desk: Desk }) {
           >
             <Icon name="plus" /> Test an alert
           </button>
-        </div>
-      </header>
+        }
+      />
       <div class="two-col wide-left">
         <section class="panel" aria-labelledby="ev-h">
           <div class="row between wrap">

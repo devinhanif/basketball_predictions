@@ -27,12 +27,13 @@ import duckdb
 import numpy as np
 
 from nba.facts import query as facts_query
+from nba.leadtime import LEAD_MINUTES as _LEAD_MINUTES
 from nba.props import full_support as fsup
 from nba.shadow_llm.config import ShadowConfig
 
 ET = ZoneInfo("America/New_York")
 SCHEMA = "llm_shadow_payload_v1"
-LEAD_MINUTES = 60
+LEAD_MINUTES = _LEAD_MINUTES  # 60, nba.leadtime
 
 PROD_PROPS_MODEL = "props_context_residual"
 WIN_MODEL = "rung0_injury_elo"

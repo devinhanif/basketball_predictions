@@ -30,6 +30,10 @@ export interface RadarRow {
   /** Edge after fees in cents; null when none is stored. */
   edge_c: number | null;
   status: string;
+  /** The stored edge label (desk plays only), shown as a badge; null when none is stored. */
+  label: string | null;
+  /** The status without the label's word, for a row that shows the label as a badge. */
+  statusPlain: string;
   href: string | null;
   gameId: string | null;
   stat: string | null;
@@ -58,6 +62,7 @@ function fromPlay(p: Desk["plays"][number]): RadarRow {
   return {
     key: `desk:${p.play_id}`, source: "desk", name, team: p.team, playerId: p.player_id, market: p.player_name ? playLabel(p).replace(`${p.player_name}: `, "").replace(`${p.player_name} `, "") : "game result",
     matchup: p.matchup, model: p.model_prob, fair: p.fair_prob, ask_c: p.price_cents, fee_c: p.fee_cents, edge_c: p.edge_cents, status: statusFor(p.edge_cents, p.edge_label) + (stale ? ` · fair price ${String(fairAge)} min old (stale)` : ""),
+    label: p.edge_label, statusPlain: statusFor(p.edge_cents, null) + (stale ? ` · fair price ${String(fairAge)} min old (stale)` : ""),
     reason: p.reason, fairAge, stale,
     href: p.game_id && p.player_id !== null && p.stat && isLegStat(p.stat) ? legHref(p.game_id, p.player_id, p.stat) : null, gameId: p.game_id, stat: p.stat,
   };
@@ -68,7 +73,7 @@ function fromContract(c: TopContract): RadarRow {
   return {
     key: `export:${c.ticker}:${c.side}`, source: "export", name: c.player, team: c.team, playerId: c.player_id,
     market: legWords(c.side === "over" ? "yes" : "no", c.threshold, (STAT_LABEL[c.stat as Stat] as string | undefined)?.toLowerCase() ?? c.stat), matchup: c.matchup, model: c.model_prob, fair: null, reason: null, fairAge: null, stale: false,
-    ask_c: c.price * 100, fee_c: c.fees * 100, edge_c: edge, status: statusFor(edge, null), href: isLegStat(c.stat) ? legHref(c.game_id, c.player_id, c.stat, c.side) : null, gameId: c.game_id, stat: c.stat,
+    ask_c: c.price * 100, fee_c: c.fees * 100, edge_c: edge, status: statusFor(edge, null), label: null, statusPlain: statusFor(edge, null), href: isLegStat(c.stat) ? legHref(c.game_id, c.player_id, c.stat, c.side) : null, gameId: c.game_id, stat: c.stat,
   };
 }
 

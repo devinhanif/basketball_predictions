@@ -2,7 +2,7 @@ import { useState } from "preact/hooks";
 import { api } from "./api";
 import { Avatar } from "./Avatar";
 import { Explain, View } from "./components";
-import { american, lineText, pct } from "./format";
+import { priceText, lineText, pct } from "./format";
 import type { Lens } from "./prefs";
 import { evVerdict } from "./plain";
 import { hideBook, modelLine, calibratedLine, percentAlong, quantile, read, sliderRange, snapHalf } from "./slider";
@@ -94,7 +94,7 @@ function MinutesBlock(props: {
                 : ""}
             </p>
             <label class="xp-check">
-              <input type="checkbox" checked={props.narrow} onChange={(e) => { props.onNarrow(e.currentTarget.checked); }} /> Treat minutes as known (narrow the spread by that share)
+              <input type="checkbox" class="tap-check" checked={props.narrow} onChange={(e) => { props.onNarrow(e.currentTarget.checked); }} /> Treat minutes as known (narrow the spread by that share)
             </label>
           </>
         ) : (
@@ -153,7 +153,7 @@ function PriceBlock(props: { card: CardView; q: number | null; side: "over" | "u
             setUnder(fmt(card.under_price));
           }}
         >
-          Use the stored posted prices ({american(card.over_price ?? 0)} / {american(card.under_price ?? 0)} at {lineText(card.line)})
+          Use the stored posted prices ({priceText(card.over_price ?? 0)} / {priceText(card.under_price ?? 0)} at {lineText(card.line)})
         </button>
       ) : null}
       <div class="seg wide" role="group" aria-label="Which side is the price for">
@@ -292,9 +292,13 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   const calLine = unchanged ? calibratedLine(r) : null;
   const qSide: number | null = side === "over" ? pOver : pUnder;
   return (
-    <div class="stack tight">
+    <div class="stack tight xp-lab">
       <div class="xp-block">
-        <h3>Move the line</h3>
+        <h3>Move the what-if line</h3>
+        <p class="small muted xp-own-line">
+          This line belongs to the what-if only. It starts at {posted !== null ? "the posted line" : "the model's line"} and moves on its own:
+          the line card on this page does not follow it, and it does not follow the line card.
+        </p>
         <div class="ls-controls">
           <button type="button" class="btn" aria-label="Lower the line by one" disabled={line <= min} onClick={() => { step(-1); }}>
             -1
@@ -397,7 +401,7 @@ export function ExplorePanel(props: { gameId: string; playerId: number; stat: st
     <section class="panel explore" aria-label="What if">
       <h2>{props.lens === "market" ? "Price and what-ifs" : "What if?"}</h2>
       <p class="small muted">Everything below is worked out in your browser from the stored forecast. Nothing is saved or scored.</p>
-      <View state={state} reload={reload}>
+      <View state={state} reload={reload} errorLevel={2}>
         {(card) => (
           <>
             <p class="who explore-who">

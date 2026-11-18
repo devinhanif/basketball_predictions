@@ -12,11 +12,6 @@
   min-width: 44px;
   min-height: 44px;
 }
-.switch::before {
-  content: "";
-  position: absolute;
-  inset: -8px -4px;
-}
 details > summary {
   min-height: 44px;
 }
@@ -30,7 +25,7 @@ details > summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--sp-3);
   flex-wrap: nowrap;
   padding: 10px 12px;
   border: 1px solid var(--accent);
@@ -49,7 +44,7 @@ details > summary {
   gap: 2px;
 }
 .live-strip .ls-text span {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 .live-strip .live-dot {
@@ -70,12 +65,12 @@ details > summary {
   }
 }
 .game-state {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--pill);
   border: 1px solid var(--line);
   color: var(--muted);
   white-space: nowrap;
@@ -88,7 +83,7 @@ details > summary {
 .game-top .game-side {
   display: grid;
   justify-items: end;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 /* ---- view options (lens and detail) folded into one line on Discover ---- */
@@ -124,7 +119,7 @@ ol.plain {
   margin: 0;
   padding-left: 1.3rem;
   display: grid;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 .kn-first summary {
   min-height: 44px;

@@ -7,7 +7,9 @@ import { MIN_LEGS } from "./stats";
 import { teamColor } from "./teams";
 import type { PSource, PropView, Team, WinProbability } from "./types";
 import { STAT_LABEL } from "./types";
-import { errorCopy } from "./errors";
+import { failureFromMessage, reasonOf, technicalOf, type ApiFailure } from "./errors";
+import { ProblemPanel } from "./Problem";
+import { Skeleton } from "./ui/Skeleton";
 import { Icon } from "./icons";
 import { effectiveDark, setPref, usePrefs } from "./prefs";
 import { FOOTER_DISCLOSURE } from "./config";
@@ -98,58 +100,28 @@ export function Loading(props: { what?: string }) {
           ? "Still loading. The server was idle and is waking up; the first load after a pause can take up to 15 seconds. Nothing is wrong."
           : `Loading ${props.what ?? "the forecasts"} from the nightly export...`}
       </p>
-      <div class="skeleton" />
-      <div class="skeleton" />
+      <Skeleton lines={2} />
     </div>
   );
 }
 
-export function ErrorPanel(props: { message: string; retry: () => void }) {
-  if (/^404 /.test(props.message)) {
-    return (
-      <div class="panel error" role="alert">
-        <h1>We could not find that page</h1>
-        <p>
-          The link points to a game, player or stat we do not have, perhaps from an older night.
-          Nothing is broken.
-        </p>
-        {import.meta.env.DEV ? (
-          <p class="muted small">
-            Technical detail: <span class="mono">{props.message}</span>
-          </p>
-        ) : null}
-        <a class="btn" href="#/">
-          Back to today
-        </a>
-      </div>
-    );
-  }
-  const copy = errorCopy(props.message, import.meta.env.DEV);
+/**
+ * The failure screen for a load: the registry's words for the failure's code, a refusal's own reason, the code and
+ * the server's reference id, Try again, and a way home. `failure` is the typed result; screens that only kept the old
+ * message string get it read back from the message.
+ */
+export function ErrorPanel(props: { message: string; retry: () => void; failure?: ApiFailure; level?: 1 | 2 }) {
+  const f = props.failure ?? failureFromMessage(props.message);
   return (
-    <div class="panel error" role="alert">
-      <h1>{copy.title}</h1>
-      <p>{copy.body}</p>
-      {copy.reason ? (
-        <p>
-          Reason: <span class="mono">{copy.reason}</span>
-        </p>
-      ) : null}
-      {copy.devHint ? (
-        <p class="muted small">
-          Development build: start the API with <code>uv run uvicorn parlayhitters_api.main:app --app-dir src</code> in{" "}
-          <code>app/api</code>.
-        </p>
-      ) : null}
-      <details class="explain">
-        <summary>Technical detail</summary>
-        <div class="explain-body">
-          <span class="mono">{props.message}</span>
-        </div>
-      </details>
-      <button type="button" class="btn" onClick={props.retry}>
-        Try again
-      </button>
-    </div>
+    <ProblemPanel
+      code={f.code}
+      reason={reasonOf(f)}
+      requestId={f.requestId}
+      detail={technicalOf(f)}
+      retry={f.status === 404 ? null : props.retry}
+      level={props.level}
+      note={import.meta.env.DEV && f.status === null ? "Development build: start the API with uv run uvicorn parlayhitters_api.main:app --app-dir src in app/api." : null}
+    />
   );
 }
 
@@ -173,10 +145,13 @@ export function ModelNote(props: { items: readonly { source: string; label: stri
   const sources = [...bySource.keys()];
   const [first, ...rest] = sources;
   if (first === undefined) return null;
+  // Two stored sources can read the same in plain words (stale and missing fall back to one model): say each once.
+  const firstWords = plainModel(first);
+  const restWords = [...new Set(rest.map(plainModel))].filter((w) => w !== firstWords);
   const sentence =
-    rest.length === 0
+    restWords.length === 0
       ? plainModelSentence(first)
-      : `Forecasts come from ${plainModel(first)}; for some players, from ${rest.map(plainModel).join(" and ")}.`;
+      : `Forecasts come from ${firstWords}; for some players, from ${restWords.join(" and ")}.`;
   return (
     <div class="model-note">
       <p class="small muted">{sentence}</p>
@@ -207,6 +182,8 @@ export function View<T>(props: {
   /** What is loading, for the skeleton note ("tonight's games"). */
   what?: string;
   onStale?: (stale: boolean) => void;
+  /** Heading level of a failure panel: 2 when the page already has its own h1 above this view. */
+  errorLevel?: 1 | 2;
   children: (data: T) => ComponentChildren;
 }) {
   const { state, onStale } = props;
@@ -215,7 +192,7 @@ export function View<T>(props: {
     onStale?.(stale);
   }, [stale, onStale]);
   if (state.status === "loading") return <Loading what={props.what} />;
-  if (state.status === "error") return <ErrorPanel message={state.message} retry={props.reload} />;
+  if (state.status === "error") return <ErrorPanel message={state.message} failure={state.failure} retry={props.reload} level={props.errorLevel} />;
   return <>{props.children(state.data)}</>;
 }
 

@@ -66,6 +66,12 @@ MAX_SUBS_PER_GAME = 150
 MAX_WATCHED_GAMES = 30
 QUEUE_MAX = 64
 HEARTBEAT_S = 15.0
+#: Server-side bounds on one stream (live_routes.live_stream): a ``stale`` event after this long
+#: with no new capture body, an ``end`` and a close after IDLE_CLOSE_S with none, and an ``end``
+#: after STREAM_MAX_S whatever happens (the browser reconnects to a fresh snapshot).
+STALE_AFTER_S = 180.0
+IDLE_CLOSE_S = 1800.0
+STREAM_MAX_S = 4 * 3600.0
 PARSE_CACHE_MAX = 64
 MAX_BODY_BYTES = 20_000_000  # decompressed; a larger body is refused, not parsed
 
@@ -117,7 +123,16 @@ def _newest_in(directory: Path, source: str) -> BodyRef | None:
     return best
 
 
+def _check_parts(date: str, event_id: str | None = None) -> None:
+    """Every path below is built from a request's date and event id. The routes refuse anything
+    else first (params.py); this second check means no caller can ever build a path from an
+    unchecked value (digits and dashes cannot leave the capture root)."""
+    if not DATE_RE.fullmatch(date) or (event_id is not None and not EVENT_RE.fullmatch(event_id)):
+        raise ValueError("not a capture date or event id")
+
+
 def event_dirs(root: Path, date: str, event_id: str) -> tuple[Path, Path]:
+    _check_parts(date, event_id)
     night = root / f"live_{date}"
     return night / "espn_summary" / event_id, night / "fresh" / "espn_summary_fresh" / event_id
 
@@ -139,6 +154,8 @@ def _mtime(p: Path) -> int | None:
 
 def locate_event(root: Path, event_id: str) -> str | None:
     """The slate date whose capture directory holds this event (newest few nights only)."""
+    if not EVENT_RE.fullmatch(event_id):
+        return None
     try:
         nights = sorted(
             (p.name for p in root.iterdir() if p.name.startswith("live_")), reverse=True
@@ -153,6 +170,8 @@ def locate_event(root: Path, event_id: str) -> str | None:
 
 
 def list_event_ids(root: Path, date: str) -> list[str]:
+    if not DATE_RE.fullmatch(date):
+        return []
     base = root / f"live_{date}" / "espn_summary"
     try:
         return sorted(p.name for p in base.iterdir() if EVENT_RE.fullmatch(p.name) and p.is_dir())

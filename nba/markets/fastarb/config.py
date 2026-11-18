@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from nba.markets.fees import bankers_cent_fee
 from nba.parlay.config import FeeModel
 from nba.parlay.config import load_config as load_parlay_config
 
@@ -30,13 +30,7 @@ class FeeSchedule:
     source: str = ""
 
     def order_fee(self, price: float, contracts: int) -> float:
-        raw = (
-            Decimal(str(self.coefficient))
-            * contracts
-            * Decimal(str(price))
-            * (1 - Decimal(str(price)))
-        )
-        return float(raw.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN))
+        return bankers_cent_fee(self.coefficient, contracts, price)
 
     def require_verified(self) -> None:
         if not self.verified:
