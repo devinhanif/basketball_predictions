@@ -94,3 +94,82 @@ trade moves are flagged and B is printed with and without that night; (d) a cloc
 re-chosen after a result: no other threshold, window, sigma or event definition is tried.
 
 Data version: the files as they stand at the commit of this section (write-once pages; the manifest is append-only).
+
+---
+
+## Part 1 results (computed after the method commit 17404a4c; descriptive, no claim)
+
+Code: scratch only (`extract.py`, `analyze.py` in the session scratchpad; not committed, read-only on the capture). Data version:
+`data/raw/live_2026-11-{10..16}/manifest.jsonl` and `data/kalshi/candles15/2026-11-{10..16}/compacted/` as of 2026-11-17 ~20:30 CST.
+Every interval is a game-clustered 95% percentile bootstrap of the pooled median (B = 2,000, seed 0) unless stated.
+
+**Coverage.** 7 nights, 51 games (51 of 51 scheduled), 6,181 scoring plays; 10 excluded as first seen in the game's first live
+summary, 0 without a wallclock. Kalshi print coverage (union of own pulls and capture) against the official 1-minute candles: minute
+coverage 1.00 and volume coverage 1.00 on every night, so criterion (c) never fired.
+
+**A: our ESPN summary feed vs ESPN's own event time.**
+
+| | n plays | games | median (s) | 95% CI on median | p10 - p90 (s) |
+|---|---|---|---|---|---|
+| summary (`t_seen - wallclock`) | 6,171 | 51 | **66.8** | [65.8, 67.6] | 40.3 - 94.6 |
+| scoreboard (secondary) | 6,167 | 51 | **46.6** | [45.5, 48.1] | 20.5 - 72.3 |
+
+Per night the summary median ranges 65.5 to 67.5 s (each night's CI inside 63 to 69). No play was ever seen before its wallclock
+(0.0%). **Polling interval:** consecutive summaries of a game are 60.1 s apart (median; p10 59.96, p90 60.26; 7,139 gaps), so polling
+alone contributes about 30 s on average (uniform 0-60 s). What is left is ESPN's own publishing delay: about 37 s for the summary's
+play list and about 17 s for the scoreboard score (the scoreboard is also fetched about once a minute, 480 files a night; I did not
+measure its spacing separately). The scoreboard shows a new score about 20 s before the summary lists the play.
+
+**Clocks (a disclosure about the method).** The method said a Kalshi clock offset beyond 2 s would be "reported and subtracted". The
+median gap between our `fetched_at` and Kalshi's HTTP `Date` header is 3.1 to 11.5 s by night (3.4, 3.1, 9.3, 11.0, 6.9, 11.5, 6.0
+for 11-10..11-16), but it is **not a clock offset**: our trade pulls received prints as early as 0.07 s after Kalshi's own
+`created_time` (0.1% quantile; minimum -0.07 s on 11-12, -0.29 s on 11-16), so our clock agrees with Kalshi's trade clock to within
+about 0.3 s. The Date gap is the age of the `/markets` response itself (a cached or batched body), which means **the 15-second
+quotes are 3 to 11 s older than their `fetched_at`**. Subtracting it as a clock offset would be wrong, so nothing is subtracted. Had
+it been applied literally, A would fall by about 6 s; B on quotes is unchanged (both of its times are on our clock).
+
+**B: our first sighting vs the first market move** (qualifying events: isolated, reference quote OK, Brownian move >= 0.03).
+
+Funnel: 6,171 plays -> 271 isolated -> 225 with a usable reference quote -> **207 qualifying events in 47 games** (expected move
+median 0.073, p10 0.038, p90 0.151).
+
+Pre-declared verdict on the combined move definition: **UNINFORMATIVE by criterion (b).** The market "moved" on 0.995 of events but
+the placebo (same rule, wrong direction) fired on 0.667, more than half the real rate; the placebo fired before the real move on
+0.391. The combined statistic is printed only for completeness: B median 89.5 s [82.8, 92.4], p10-p90 54.4-126.5, n 206; move time
+minus wallclock median -20.5 s. Those numbers say the trade rule fired at the start of the window on noise, not that the market saw
+the play 20 s before ESPN.
+
+**Diagnostic, decided after seeing the combined result (disclosed; not a re-chosen definition):** the two pre-declared components
+split cleanly. Trade rule: rate 0.995, placebo 0.662 (any print one cent through the earlier ask within 225 s is common in a market
+with 150,000 to 550,000 game-winner prints a night). **Quote rule: rate 0.952, placebo 0.237** (it would pass criterion (b) on its
+own). The quote-only version, which the method listed to be printed beside the combined one:
+
+| quote-only (n = 197 events with a quote move, 47 games) | median | 95% CI | p10 - p90 |
+|---|---|---|---|
+| quote move minus wallclock (s) | **+30.0** | [27.1, 33.7] | -20.2 - +52.3 |
+| our summary sighting minus quote move (s) | **+38.6** | [33.7, 43.5] | +4.3 - +92.5 |
+| our scoreboard sighting minus quote move (s) | **+19.9** | [14.6, 26.1] | -22.3 - +77.3 |
+| share of events where the quote had moved before our **summary** showed the play | **0.919** | [0.884, 0.952] | |
+| share where the quote had moved before our **scoreboard** showed the score | **0.761** | [0.701, 0.815] | |
+
+Two things make these lower bounds on the market's lead: the quote is polled every 15 s (mean 7.5 s of our own wait) and the quote
+body is itself 3 to 11 s old when it arrives. The market's real move is therefore roughly 10 to 20 s earlier than `t_q`, i.e. at or
+shortly after ESPN's wallclock. By quarter (combined definition, same placebo caveat): Q1-Q3 155 events, Q4/OT 52; no difference
+worth reading.
+
+### Conclusion (one paragraph)
+
+Our live feed shows a scoring play a median **67 s** after ESPN's own timestamp (80% of plays between 40 and 95 s; 6,171 plays, 51
+games); about 30 s of that is our 60-second polling and about 37 s is ESPN's publishing delay; the scoreboard shows the new score
+about 20 s sooner (median 47 s). On material, isolated scoring plays the Kalshi game-winner quote had **already moved before our
+summary showed the play on 92% of them (95% CI 88-95%, 197 events, 47 games), by a median of at least 39 s**, and before our
+scoreboard showed the score on 76%. So a live chance computed from this feed is **honest to display** if it carries its own
+staleness ("as of Q3 4:12, 1 min ago"), but it is **not something to act on against Kalshi**: on most plays that matter the market
+has left it behind before we compute it. What would shorten it, with terms status from DECISIONS: (1) **polling cadence**, the
+cheapest lever: 60 s to 15 s cuts the polling share from about 30 s to about 7.5 s; the ESPN fresh poller already runs at 15 s
+under Devin's override (DECISIONS 2026-11-09 21:35 and 2026-11-10 10:45; ESPN's own terms were never read, flagged there), and its
+effect belongs to ESPN_FRESH_POLLER_NIGHT1 once that is frozen (I did not read its files); (2) **use the scoreboard score and clock
+for the live win chance** and the summary only for box stats: about 20 s fresher, no new request; (3) **a faster public source**:
+cdn.nba.com liveData is NOT cleared (DECISIONS 2026-11-09 21:33, nba.com terms s.9 bar gambling use; not covered by the override),
+and stats.nba.com returns nothing for games in progress (DECISIONS 2026-10-21 20:05). No cleared source can close the gap to zero:
+even with instant polling, ESPN's own 17 to 37 s publishing delay sits behind a market that reacts at about the wallclock.
