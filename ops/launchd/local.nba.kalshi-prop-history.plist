@@ -6,8 +6,10 @@
     uninstall:  launchctl bootout gui/$(id -u)/local.nba.kalshi-prop-history && rm ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist
   Four slots an hour, :02 :17 :32 :47 (minutes only, so the launchd clock's timezone does not matter): clear of the pretip runs (:20, :50), the app
   export (:05, :35) and the lineups ticks' T-30 work. Most slots are a one-second no-op (no capture for the slate yet, or the night is final).
-  While the live capture runs (first tip - 2 h to last tip + 4 h) a slot reads only the new pages (measured 3 to 5 s, 165 to 240 MB on 2026-11-16);
-  the first slot after last tip + 4 h 10 min writes the finished night once. Display data: no alert, EV or JARVIS path reads it.
+  While the live capture runs (first tip - 2 h to last tip + 4 h) a slot reads only the new pages (2026-11-16 copy, Mac at load 11: 5 to 7 s,
+  146 to 203 MB); the first slot after last tip + 4 h 10 min writes the finished night once, gzipped. Skips (heavy.lock, daily lock, under
+  5 GB free, own lock held) alert on the 4th in a row. Watched by nba.ops.watchdog (job kalshi-prop-history, optional until installed).
+  Display data: no alert, EV or JARVIS path reads it.
   Launched through uv, never /bin/sh: TCC blocks sh from reading ~/Downloads.
 -->
 <plist version="1.0">

@@ -170,6 +170,11 @@ def _files(d: Path) -> dict[str, bytes]:
     return {f.name: f.read_bytes() for f in sorted(d.glob("*.json"))}
 
 
+def _night_files(d: Path) -> dict[str, bytes]:
+    """A finished night is gzipped: name without ``.gz`` -> decompressed bytes."""
+    return {f.name[:-3]: gzip.decompress(f.read_bytes()) for f in sorted(d.glob("*.json.gz"))}
+
+
 def _run(root: Path, now: datetime, **kw: Any) -> job.RunResult:
     return job.run_slate(DAY, _paths(root), now=now, aliases=ALIASES, **kw)
 
@@ -345,14 +350,41 @@ def test_a_page_without_its_manifest_line_waits_with_the_later_pages_of_its_seri
     assert got == _reference(tmp_path, now, tmp_path / "ref")
 
 
-def test_a_page_older_than_what_was_applied_starts_the_state_over(tmp_path: Path) -> None:
+def test_a_late_older_page_defers_the_full_read_until_the_games_are_over(tmp_path: Path) -> None:
     cap = _night(tmp_path, range(2, 5))
     _run(tmp_path, BUILT)
     cap.poll(0, TIP)  # arrives late, older than pages already applied
-    res = _run(tmp_path, BUILT)
+    cap.poll(6, TIP + timedelta(minutes=6))  # and a normal new poll
+    res = _run(tmp_path, BUILT)  # games on: no 15-40 s re-read now
+    assert res.rebuilt is None and res.rebuild_deferred and "older" in res.rebuild_deferred
+    assert res.new_pages == 3  # the new poll is applied; the late one waits
+    after = TIP + job.GAMES_ON + timedelta(minutes=1)
+    res2 = _run(tmp_path, after)  # first slot after the games: the full re-read
+    assert res2.rebuilt and "older" in res2.rebuilt and res2.rebuild_deferred is None
+    got = _files(tmp_path / "data/export/kalshi_prop_history/latest")
+    assert got == _reference(tmp_path, after, tmp_path / "ref")
+
+
+def test_a_late_older_page_after_the_games_starts_the_state_over_at_once(tmp_path: Path) -> None:
+    cap = _night(tmp_path, range(2, 5))
+    late = TIP + job.GAMES_ON + timedelta(minutes=5)
+    _run(tmp_path, late)
+    cap.poll(0, TIP)
+    res = _run(tmp_path, late)
     assert res.rebuilt and "older" in res.rebuilt
     got = _files(tmp_path / "data/export/kalshi_prop_history/latest")
-    assert got == _reference(tmp_path, BUILT, tmp_path / "ref")
+    assert got == _reference(tmp_path, late, tmp_path / "ref")
+
+
+def test_a_deferred_reread_is_never_skipped_by_the_final_slot(tmp_path: Path) -> None:
+    cap = _night(tmp_path, range(2, 5))
+    _run(tmp_path, BUILT)
+    cap.poll(0, TIP)
+    assert _run(tmp_path, BUILT).rebuild_deferred
+    res = _run(tmp_path, FINAL_AT)  # the Mac slept through the slots between
+    assert res.decision == "final" and res.rebuilt
+    night = tmp_path / "data/export/kalshi_prop_history/2026-11-16"
+    assert _night_files(night) == _reference(tmp_path, FINAL_AT, tmp_path / "ref")
 
 
 def test_a_run_killed_after_appending_leaves_no_trace(tmp_path: Path) -> None:
@@ -387,14 +419,16 @@ def test_the_finished_night_is_written_once_and_the_state_dropped(tmp_path: Path
     res = _run(tmp_path, FINAL_AT)
     assert res.decision == "final" and res.status == "final"
     night = tmp_path / "data/export/kalshi_prop_history/2026-11-16"
-    files = _files(night)
+    assert not list(night.glob("*.json"))  # the finished night is gzipped only
+    files = _night_files(night)
     assert json.loads(files["index.json"])["status"] == "final"
     assert files == _files(tmp_path / "data/export/kalshi_prop_history/latest")
     assert files == _reference(tmp_path, FINAL_AT, tmp_path / "ref")
     assert not (tmp_path / "data/derived/kalshi_prop_history/2026-11-16").exists()
     assert not list((tmp_path / "data/export/kalshi_prop_history").glob(".*partial*"))
+    raw = {f.name: f.read_bytes() for f in night.iterdir()}
     again = _run(tmp_path, FINAL_AT + timedelta(minutes=15))
-    assert again.decision == "done" and _files(night) == files
+    assert again.decision == "done" and {f.name: f.read_bytes() for f in night.iterdir()} == raw
 
 
 def test_latest_drops_the_files_of_the_previous_slate(tmp_path: Path) -> None:
@@ -417,8 +451,8 @@ def test_main_finishes_a_missed_night_before_the_new_slate(tmp_path: Path) -> No
         ["run", "--date", "2026-11-17", "--root", str(tmp_path), "--now", later.isoformat()]
     )
     assert rc == 0
-    night = tmp_path / "data/export/kalshi_prop_history/2026-11-16/index.json"
-    assert json.loads(night.read_text())["status"] == "final"
+    idx = job.read_final_index(tmp_path / "data/export/kalshi_prop_history", DAY)
+    assert idx is not None and idx["status"] == "final"
 
 
 def test_main_refuses_earlier_slates_and_first_slate_matches() -> None:
@@ -524,7 +558,9 @@ def _fake_uv(tmp: Path, sleep_s: float = 0.0, rc: int = 0) -> Path:
     return uv
 
 
-def _launch(tmp: Path, sleep_s: float = 0.0, rc: int = 0) -> subprocess.Popen[str]:
+def _launch(
+    tmp: Path, sleep_s: float = 0.0, rc: int = 0, min_free_kb: int = 1
+) -> subprocess.Popen[str]:
     (tmp / "root").mkdir(exist_ok=True)
     env = {
         **os.environ,
@@ -532,6 +568,7 @@ def _launch(tmp: Path, sleep_s: float = 0.0, rc: int = 0) -> subprocess.Popen[st
         "NBA_UV": str(_fake_uv(tmp, sleep_s, rc)),
         "NBA_TEST_DATE_ET": "2026-11-16",
         "FAKE_LOG": str(tmp / "uv.log"),
+        "NBA_MIN_FREE_KB": str(min_free_kb),
     }
     return subprocess.Popen(
         ["/bin/sh", str(SCRIPT)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
@@ -613,3 +650,214 @@ def test_plist_is_valid_launches_through_uv_and_is_not_installed_by_the_repo() -
     assert p["Nice"] == 10 and p["RunAtLoad"] is True
     install = (REPO / "ops" / "install_launchd.sh").read_text()
     assert "kalshi-prop-history" not in install  # installed by hand after the merge
+
+
+# ------------------------------------------------------------ review fixes (adversary 2026-11-17)
+def test_a_snapshot_run_inside_its_settle_window_is_left_for_later(tmp_path: Path) -> None:
+    """mn2 M1: name time inside the settle window, file long quiet: still not read."""
+    _night(tmp_path, range(0, 2))
+    at = BUILT - timedelta(seconds=540)  # a literal: a mutant setting the constant to 0 must fail
+    _snap(tmp_path, at, "KXNBAPTS", [_market(A, 7)])
+    assert _run(tmp_path, BUILT).new_pages == 2 * 3 + 1  # capture and trades only
+    later = BUILT + timedelta(minutes=2)
+    assert _run(tmp_path, later).new_pages == 1
+    assert _files(tmp_path / "data/export/kalshi_prop_history/latest") == _reference(
+        tmp_path, later, tmp_path / "ref"
+    )
+
+
+def test_a_snapshot_run_still_writing_pages_is_left_for_later(tmp_path: Path) -> None:
+    """mn1: a run whose name time is old but one of its pages was written recently (a slow
+    run) is not read until every page of the run has been quiet for SNAPSHOT_QUIET_S."""
+    _night(tmp_path, range(0, 2))
+    at = BUILT - timedelta(hours=1)
+    _snap(tmp_path, at, "KXNBAPTS", [_market(A, 7)])
+    slow = _snap(tmp_path, at, "KXNBAREB", [_market(B, 7)])
+    os.utime(slow, (BUILT.timestamp() - 60, BUILT.timestamp() - 60))
+    assert _run(tmp_path, BUILT).new_pages == 2 * 3 + 1
+    later = BUILT + timedelta(seconds=job.SNAPSHOT_QUIET_S)
+    assert _run(tmp_path, later).new_pages == 2
+
+
+def test_a_torn_snapshot_page_is_retried_and_the_night_is_whole(tmp_path: Path) -> None:
+    """mn1 reproduction: a page unreadable when read is never dropped for good."""
+    _night(tmp_path, range(0, 2))
+    at = BUILT - timedelta(hours=1)
+    good = _market(A, 7)
+    _snap(tmp_path, at - timedelta(minutes=15), "KXNBAPTS", [_market(A, 6)])
+    page = _snap(tmp_path, at, "KXNBAPTS", [good])
+    _snap(tmp_path, at + timedelta(minutes=15), "KXNBAPTS", [_market(A, 8)])
+    whole = page.read_bytes()
+    page.write_bytes(whole[:20])  # torn
+    os.utime(page, (BUILT.timestamp() - 400, BUILT.timestamp() - 400))
+    r1 = _run(tmp_path, BUILT)
+    assert r1.new_pages == 2 * 3 + 1 + 2  # the torn page waits
+    page.write_bytes(whole)
+    os.utime(page, (BUILT.timestamp() - 400, BUILT.timestamp() - 400))
+    res = _run(tmp_path, FINAL_AT)
+    assert res.decision == "final"
+    night = _night_files(tmp_path / "data/export/kalshi_prop_history/2026-11-16")
+    assert night == _reference(tmp_path, FINAL_AT, tmp_path / "ref")
+    assert json.loads(night["index.json"])["unreadable_inputs"] == []
+
+
+def test_an_unreadable_page_is_given_up_only_once_quiet_for_long(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """mn2 M5: a young unreadable capture page is retried on the next run, not listed at once."""
+    cap = _night(tmp_path, range(0, 2))
+    rel = f"kalshi/KXNBAPTS_p0/{_stamp(_ts(TIP + timedelta(minutes=5)))}.json.gz"
+    (cap.dir / rel).write_bytes(b"not gzip")
+    os.utime(cap.dir / rel, (BUILT.timestamp() - 30, BUILT.timestamp() - 30))
+    cap.manifest(rel, TIP + timedelta(minutes=5))
+    _run(tmp_path, BUILT)
+    st = json.loads(
+        (tmp_path / "data/derived/kalshi_prop_history/2026-11-16/meta.json").read_text()
+    )
+    assert rel not in st["done"]["capture"] and st["unreadable"] == []
+    later = BUILT + timedelta(seconds=job.UNREADABLE_GIVEUP_S)
+    _run(tmp_path, later)
+    idx = json.loads((tmp_path / "data/export/kalshi_prop_history/latest/index.json").read_text())
+    assert idx["unreadable_inputs"] == [rel]
+    assert "gave up on " + rel in capsys.readouterr().err
+
+
+def test_write_final_never_replaces_a_night(tmp_path: Path) -> None:
+    """mn2 M3."""
+    out = tmp_path / "out"
+    idx = {"status": "final"}
+    assert job.write_final(out, DAY, [("26NOV16AAABBB", b"{}")], idx) is True
+    before = {f.name: f.read_bytes() for f in (out / "2026-11-16").iterdir()}
+    assert job.write_final(out, DAY, [("26NOV16AAABBB", b'{"x":1}')], {"status": "x"}) is False
+    assert {f.name: f.read_bytes() for f in (out / "2026-11-16").iterdir()} == before
+
+
+def test_an_interrupted_final_write_leaves_nothing_behind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """MJ2: the partial directory has a fixed name, so the next attempt removes a leftover."""
+    _night(tmp_path, range(0, 3))
+    real = os.rename
+
+    def full_disk(a: Any, b: Any) -> None:
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(job.os, "rename", full_disk)
+    with pytest.raises(OSError):
+        _run(tmp_path, FINAL_AT)
+    with pytest.raises(OSError):
+        _run(tmp_path, FINAL_AT)
+    out = tmp_path / "data/export/kalshi_prop_history"
+    assert [p.name for p in out.glob(".*")] == [".2026-11-16.partial"]
+    monkeypatch.setattr(job.os, "rename", real)
+    assert _run(tmp_path, FINAL_AT).decision == "final"
+    assert not list(out.glob(".*")) and (out / "2026-11-16" / "index.json.gz").exists()
+
+
+def test_a_run_writes_nothing_outside_its_two_directories(tmp_path: Path) -> None:
+    _night(tmp_path, range(0, 3))
+    _snap(tmp_path, TIP - timedelta(hours=2), "KXNBAPTS", [_market(A, 1)])
+    before = {p for p in tmp_path.rglob("*")}
+    snapshot = {p: p.read_bytes() for p in before if p.is_file()}
+    _run(tmp_path, BUILT)
+    _run(tmp_path, FINAL_AT)
+    new = {p for p in tmp_path.rglob("*")} - before
+    allowed = (
+        tmp_path / "data/export/kalshi_prop_history",
+        tmp_path / "data/derived/kalshi_prop_history",
+    )
+    # inside the two directories, or one of their parents being created
+    assert new and all(
+        any(p.is_relative_to(a) or a.is_relative_to(p) for a in allowed) for p in new
+    )
+    assert all(p.read_bytes() == b for p, b in snapshot.items())  # inputs untouched
+
+
+def test_a_night_without_tips_is_not_rerun_and_old_states_are_dropped(tmp_path: Path) -> None:
+    """mn4."""
+    cap = _night(tmp_path, range(0, 2))
+    for f in (cap.dir / "espn_scoreboard").rglob("*.json.gz"):
+        _gz(f, {"events": []}, OLD)
+    _run(tmp_path, BUILT)  # live, but no tips: can never finalize
+    old = tmp_path / "data/derived/kalshi_prop_history/2026-11-10"
+    old.mkdir(parents=True)
+    later = datetime(2026, 11, 17, 18, 0, tzinfo=UTC)
+    job.main(["run", "--date", "2026-11-17", "--root", str(tmp_path), "--now", later.isoformat()])
+    assert job.read_final_index(tmp_path / "data/export/kalshi_prop_history", DAY) is None
+    assert not old.exists()
+    assert (tmp_path / "data/derived/kalshi_prop_history/2026-11-16").exists()  # within 3 days
+
+
+def test_problem_flags_a_job_that_only_skips(tmp_path: Path) -> None:
+    """MJ1: last_success_ts does not move on skips; inside the window an old one is a problem."""
+    tips = [TIP]
+    now = TIP + timedelta(hours=1)
+    live = {"slate_date": "2026-11-16", "built_at": (now - timedelta(minutes=5)).isoformat()}
+    hb = {**HB_OK, "last_success_ts": (now - timedelta(minutes=50)).isoformat()}
+    assert "no successful run" in str(job.problem(now, hb, live, tips, DAY, None))
+    hb["last_success_ts"] = (now - timedelta(minutes=10)).isoformat()
+    assert job.problem(now, hb, live, tips, DAY, None) is None
+
+
+def _launch_n(tmp: Path, n: int, **kw: Any) -> None:
+    for _ in range(n):
+        assert _launch(tmp, **kw).wait(30) == 0
+
+
+def _alerts(tmp: Path) -> str:
+    p = tmp / "root/data/ops/ALERTS.md"
+    return p.read_text() if p.exists() else ""
+
+
+def test_the_fourth_consecutive_skip_alerts_with_its_cause(tmp_path: Path) -> None:
+    """MJ1 scenario 1: a leftover heavy.lock no longer means silence."""
+    (tmp_path / "root/data/ops/heavy.lock").mkdir(parents=True)
+    _launch_n(tmp_path, 3)
+    assert _alerts(tmp_path) == ""
+    _launch_n(tmp_path, 1)
+    assert "skipped 4 slots in a row (heavy.lock held)" in _alerts(tmp_path)
+    _launch_n(tmp_path, 1)
+    assert _alerts(tmp_path).count("skipped") == 1  # not every slot
+
+
+def test_a_lock_with_no_start_time_is_stale_after_30_minutes(tmp_path: Path) -> None:
+    """MJ1 scenario 2: killed between its two writes, the pid since recycled by a live process."""
+    lock = tmp_path / "root/data/ops/kalshi_prop_history_lock"
+    lock.mkdir(parents=True)
+    (lock / "pid").write_text(str(os.getpid()))  # alive, no start file
+    _launch_n(tmp_path, 1)
+    assert _calls(tmp_path) == []  # young: mid-write, kept
+    old = time.time() - 31 * 60
+    os.utime(lock, (old, old))
+    _launch_n(tmp_path, 1)
+    assert len(_calls(tmp_path)) == 1 and not lock.exists()
+    assert "cleared its own stale lock" in _alerts(tmp_path)
+
+
+@pytest.mark.parametrize("content", ["dead", "empty"])
+def test_a_dead_or_empty_lock_is_cleared_and_the_build_runs(tmp_path: Path, content: str) -> None:
+    """mn2 M2."""
+    lock = tmp_path / "root/data/ops/kalshi_prop_history_lock"
+    lock.mkdir(parents=True)
+    if content == "dead":
+        (lock / "pid").write_text("999999")
+    _launch_n(tmp_path, 1)
+    assert len(_calls(tmp_path)) == 1 and not lock.exists()
+
+
+def test_low_disk_skips_and_alerts_once(tmp_path: Path) -> None:
+    """MJ2: under 5 GB free the slot skips; the first skip of the stretch alerts."""
+    _launch_n(tmp_path, 2, min_free_kb=10**12)
+    assert _calls(tmp_path) == []
+    assert _alerts(tmp_path).count("prop price history paused") == 1
+    assert "disk below 5 GB" in _hb(tmp_path, "kalshi-prop-history.skip.json")["reason"]
+
+
+def test_last_success_is_set_by_a_success_and_kept_through_a_failure(tmp_path: Path) -> None:
+    """mn6."""
+    _launch_n(tmp_path, 1)
+    ok = _hb(tmp_path)["last_success_ts"]
+    assert ok and ok == _hb(tmp_path)["end_ts"]
+    _launch_n(tmp_path, 1, rc=3)
+    hb = _hb(tmp_path)
+    assert hb["rc"] == 3 and hb["last_success_ts"] == ok

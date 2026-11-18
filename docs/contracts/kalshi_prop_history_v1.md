@@ -26,7 +26,13 @@ Once the job is installed, the files below live under `data/export/kalshi_prop_h
   `index.json` is written after the game files, so read the index first and then the files it lists (a game file may be one
   build newer than the index; never of another slate). Files of the previous slate are removed after the new index lands.
 - `<slate_date>/`: the finished night (`status: "final"`), written once, about 4 h 10 min after the last scheduled tip, as one
-  directory rename (it appears whole or not at all). Never rewritten.
+  directory rename (it appears whole or not at all). Never rewritten. **Gzipped** (main session's decision, 2026-11-17: plain JSON
+  would be about 3.5 GB a season on a disk that was 97% full on 2026-11-10; gzipped about 3.2 MB a night, about 0.5 GB a season):
+  `index.json.gz` and `<event_code>.json.gz`; decompressed, each is byte for byte the plain file the same build put in `latest/`.
+  **What the app API needs** to read a finished night: open `index.json.gz` and the listed `<file>.gz` (the index's `file` field keeps
+  the plain name, so append `.gz`) with `gzip.open` (Python) or `zlib.gunzip` (Node); or serve the bytes unchanged with
+  `Content-Encoding: gzip` and `Content-Type: application/json` (the browser decompresses). The index's `bytes` is the plain JSON size
+  and `gz_bytes` its size at gzip level 6 (the dated files use level 9, slightly smaller). `latest/` stays plain JSON for now.
 - No capture for the slate (no games, capture not started): nothing is written and `latest/` keeps the previous night.
 The bytes are those the command below would write for the same inputs (tested byte-for-byte on 2026-11-16).
 

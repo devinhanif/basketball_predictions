@@ -1,7 +1,10 @@
 # Kalshi prop price history: scheduling it safely (raw reader, incremental runs, launcher)
 
 _2026-11-17, evening (CST). Branch `agent/market-prop-candles-sched`, cut from `agent/market-prop-candles` (7787d835). Market agent.
-Not merged, not installed, nothing pushed. Display data only._
+Not merged, not installed, nothing pushed. Display data only. **Revised after the adversary review (WOUNDED, no blocker): section 11
+has every finding with its fix and test; where sections 1 to 10 disagree with section 11 or with `docs/DAILY_PIPELINE.md`, those
+two are current** (finished nights are now gzipped, the watchdog is wired, the launcher alerts on skips, a mid-game full re-read is
+deferred)._
 
 Label: **follows Devin's decision** (2026-11-17: prop price history for the app after each night and every 10 to 15 minutes
 during games). The producer came from the earlier lane (`docs/reviews/kalshi_prop_history_2026-11-17.md`); this branch adds what
@@ -88,8 +91,10 @@ Rollback:
 launchctl bootout gui/$(id -u)/local.nba.kalshi-prop-history && rm ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist
 ```
 Only if a run was killed hard: `rm -f data/ops/kalshi_prop_history_lock/pid data/ops/kalshi_prop_history_lock/start; rmdir data/ops/kalshi_prop_history_lock`.
-Data may stay or go (`data/export/kalshi_prop_history/`, `data/derived/kalshi_prop_history/`, the two heartbeat files); nothing else
-reads them. Code: `git revert` the merge.
+Data may stay or go; nothing else reads it: `data/export/kalshi_prop_history/` (including any hidden `.<slate>.partial`),
+`data/derived/kalshi_prop_history/`, `data/ops/heartbeat/kalshi-prop-history.json` and `.skip.json`, `data/ops/kalshi_prop_history_*.log`,
+`data/ops/launchd_kalshi-prop-history.out` and `.err`. Delete the heartbeat file, or the watchdog keeps reporting the job stale.
+Code: `git revert` the merge.
 
 **What the watchdog should check** (ops owner, `nba/ops/watchdog.py`; not changed here): a `JobSpec("kalshi-prop-history",
 "local.nba.kalshi-prop-history", "slots", timedelta(minutes=25), minutes=(2, 17, 32, 47), hours=tuple(range(24)), max_skips=4,
@@ -166,3 +171,44 @@ DECISIONS (draft):
 > once at last tip + 4 h 10 min. Outside the replay closure. Reverse if: a slot ever overlaps a pretip run's memory peak badly enough
 > to slow it (then in-game slots every 30 minutes or after-night only), or the season's export size (about 3.5 GB as plain JSON) is
 > not wanted (gzip or retention).
+
+## 11. Adversary review (`docs/reviews/adversary_kalshi_prop_history_2026-11-17.md`, branch `agent/adversary-prop-history` 0e9bd0b8): findings and fixes
+
+| Finding | Fix | Test |
+|---|---|---|
+| **MJ1** can stop forever silently (leftover `heavy.lock`; live recycled pid in a lock with no `start`; no watchdog spec) | Launcher: the 4th consecutive skip appends an alert naming the cause, then once a day (every 96th); a lock with a live pid but no start time older than 30 min is stale; clearing its own stale lock alerts (mn9). Watchdog (authorised by the main session): `JobSpec("kalshi-prop-history", ..., "interval", grace 30 min, interval 15 min, max_skips=4, optional=True)` and `evaluate_prop_history` called from `check()`, which runs `problem()` (now also on `last_success_ts`) for the current slate and `final_overdue` for the one before. A "slots" spec was not used: with a grace longer than the 15-minute spacing it could never fire. | `test_the_fourth_consecutive_skip_alerts_with_its_cause`, `test_a_lock_with_no_start_time_is_stale_after_30_minutes`, `test_problem_flags_a_job_that_only_skips`; `tests/ops/test_watchdog_prop_history.py` (8: spec optional, never installed raises nothing, healthy silent, skipping job alerts, failed run, missing final for the previous slate, unreadable schedule left to the game-day probe, `check()` reports `:stale` and `:skipped` with the reason). Existing watchdog tests unchanged and passing. |
+| **MJ2** partial directories leak; no disk guard; 3.5 GB a season | Fixed temporary name `.<slate>.partial` (the next attempt removes a leftover; the lock means one writer). Launcher skips when the data volume has under 5 GiB free and alerts on the first such skip. Finished nights gzipped (`index.json.gz`, `<code>.json.gz`, level 9, mtime 0): 3.2 MB for 2026-11-16 instead of 21 MB, about 0.5 GB a season. `latest/` stays plain JSON (gzipping it would need app work). The contract says what the API needs: `gzip.open` or serve with `Content-Encoding: gzip`. | `test_an_interrupted_final_write_leaves_nothing_behind` (two ENOSPC renames, one leftover, then a clean night), `test_low_disk_skips_and_alerts_once`, `test_the_finished_night_is_written_once_and_the_state_dropped` (gzip, decompressed = `latest/` = reference). |
+| **mn1** settle by name time; a torn page dropped for good | A snapshot run is read only when its name time is 10 min old and no page of the run changed for 5 min (file mtime). No page is marked unreadable on first failure: it is retried every slot and given up (listed, reason on stderr) only once its file has been unchanged for 30 min, for capture, trades and snapshot alike. A retried page older than applied pages triggers the full re-read (deferred in game, mn3). | `test_a_snapshot_run_still_writing_pages_is_left_for_later`, `test_a_torn_snapshot_page_is_retried_and_the_night_is_whole` (the reproduction: final night equals the reference, `unreadable_inputs` empty), `test_an_unreadable_page_is_given_up_only_once_quiet_for_long`. |
+| **mn2** 5 of 8 mutants survived | Tests added for each. My rerun of the mutants: settle 0 killed (1 test, after making that test use a literal instead of the constant), quiet 0 killed (1), never clear a stale lock killed (3), `write_final` may replace killed (1), give-up at 0 killed (2), always rebuild at once killed (2), no 4th-skip alert killed (1), no disk guard killed (1). Survivor: `<=` to `<` in the out-of-order check, an equivalent mutant: a page with the same time as an applied page of its series gives the same output either way (run_length keeps the first quote at a time; the snapshot's later page wins in both paths). | `test_a_snapshot_run_inside_its_settle_window_is_left_for_later`, `test_write_final_never_replaces_a_night`, `test_a_dead_or_empty_lock_is_cleared_and_the_build_runs` (2), the young-unreadable test above, `test_a_run_writes_nothing_outside_its_two_directories`. |
+| **mn3** an in-game rebuild took 28 to 40 s | Chosen: **defer**. A page older than applied pages no longer forces an immediate re-read while games can be on (until last tip + 150 min): it waits, the run reports `rebuild_deferred`, every other new page is applied (the live set is short of that one page, labelled partial anyway), and the first slot after that time does the re-read; the final slot always does it before writing the night, so the finished night is never wrong. Not "one game per slot": every game's state shares the page-order bookkeeping, so a per-game re-read would mean per-game state, a larger change for a rare case. A state that cannot be read (corrupt, old version, truncated manifest) still starts over at once, because nothing correct can be served otherwise. Budget stated: in-game slot under 10 s / 300 MB; a first slot or full re-read under 60 s / 300 MB. | `test_a_late_older_page_defers_the_full_read_until_the_games_are_over`, `test_a_late_older_page_after_the_games_starts_the_state_over_at_once`, `test_a_deferred_reread_is_never_skipped_by_the_final_slot`. |
+| **mn4** a night without tips reruns every slot; states abandoned | The previous-night pass runs only when that night has tips, and does not rewrite `latest/` when today's capture has started; states more than 3 days older than the slate are deleted. | `test_a_night_without_tips_is_not_rerun_and_old_states_are_dropped`. |
+| **mn5** doc numbers drift; byte-identity overclaimed; rollback incomplete | DAILY_PIPELINE now quotes one measurement (below); the byte-identity sentence names its conditions (same pages, same `built_at`, same snapshot cut); rollback lists every path including `.<slate>.partial`, logs and launchd out/err. | docs |
+| **mn6** no `last_success_ts` | Written on rc 0, carried forward on failure; skips never touch it; the watchdog uses it. | `test_last_success_is_set_by_a_success_and_kept_through_a_failure`. |
+| **mn7** "imports nothing heavy" | Wording corrected in the module docstring and DAILY_PIPELINE: a build imports polars and the duckdb module (via `nba.parse`), opens no connection; no-op runs import neither. Moving `normalize_name` is outside this branch. | n/a (wording) |
+| **mn8** writes outside the two directories | Not a blocker, as the adversary judged: `ALERTS.md` appends are how every wrapper alerts. All paths are now listed in DAILY_PIPELINE ("Files it writes") and in the rollback. | `test_a_run_writes_nothing_outside_its_two_directories` (the Python job itself). |
+| **mn9** stale-lock removal vs "locks belong to whoever made them" | Kept, with a reason: the lock is this job's own (made by this launcher), and the rule's concern is removing another job's lock; it never touches `heavy.lock` or `data/ops/lock`. Clearing its own stale lock now appends an alert, so it is reported as well as removed. | the stale-lock tests above |
+
+### Re-run (2026-11-17, about 21:30 CST; the Mac at load average 11 with other lanes running)
+Staged chain on the 2026-11-16 copy (`/Users/devin/Downloads/nba-scratch-prop-candles-2/tools/chain.sh <tag> <cutoff> <now> [rebuild]`, which
+stages pages up to the cutoff with realistic file mtimes and runs `check.py engine` under `nice -n 10 /usr/bin/time -l`):
+
+| Run | Pages | Wall | Peak RSS |
+|---|---|---|---|
+| First slot, capture to 02:00Z | 3,771 | 24.7 s | 157 MB |
+| +15 min (02:15Z) | 115 | 5.1 s | 153 MB |
+| +15 min (02:30Z) | 115 | 6.7 s | 146 MB |
+| +1 h 45 min at once (04:15Z) | 864 | 6.6 s | 203 MB |
+| +15 min (04:30Z) | 131 | 5.2 s | 198 MB |
+| Forced full re-read in game (04:33Z) | 4,996 | 33.4 s | 194 MB |
+| Final slot (writes the gzipped night) | 344 | 12.9 s | 186 MB |
+
+Final night and `latest/`: **9 of 9 files identical** to the one-shot reference (decompressed). The same runs earlier in the evening on a
+quieter machine were 3.5 to 4.9 s (section 3); the CPU time per slot is about 4 to 5 s either way.
+
+Checks: `ruff check nba/kalshi nba/ops tests/kalshi tests/ops ops` exit 0; `ruff format --check` on the same paths exit 0 (65 files);
+repo-wide both exit 1 on the same pre-existing files as before (none touched); `mypy nba/` exit 0 (401 files); `pytest tests/kalshi`
+201 passed, exit 0 (42 in `test_prop_history_job.py`, 17 new); `pytest tests/ops` 294 passed, exit 0 (286 existing unchanged + 8 new); `pytest tests/test_layering.py` 15
+passed, exit 0.
+
+Not verified (beyond section 8): the watchdog wiring has run only in tests; the disk guard against a real full disk (tested with a
+threshold override); the 30-minute give-up and 5-minute quiet rules against the snapshot job writing in real time.

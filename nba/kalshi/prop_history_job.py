@@ -2,14 +2,16 @@
 
 Display data only, like ``nba.kalshi.prop_history`` (whose functions build every payload): no
 alert, EV, JARVIS or paper-trade path reads it, it carries no model number and derives no
-indicator. This module sends no request (it imports no HTTP client), opens no database and
-writes only under its own two directories:
+indicator. This module sends no request (it imports no HTTP client) and opens no database. (A
+build imports the parser, which pulls polars and, through ``nba.parse``, the duckdb module: about
+80 MB of the baseline; no connection is made.) It writes only under its own two directories:
 
 * ``data/derived/kalshi_prop_history/<slate>/``: rebuildable working state (compact points
-  appended per run, the list of pages already read, offsets), deleted once the night is final;
-* ``data/export/kalshi_prop_history/``: ``latest/`` (index plus one file per game, rewritten every
-  run while the slate is live) and ``<slate>/`` (the finished night, written once, as a whole
-  directory rename).
+  appended per run, the list of pages already read, offsets), deleted once the night is final,
+  or when it is more than ``STATE_KEEP_DAYS`` older than the current slate;
+* ``data/export/kalshi_prop_history/``: ``latest/`` (index plus one plain JSON file per game,
+  rewritten every run while the slate is live) and ``<slate>/`` (the finished night, gzipped,
+  written once as a whole directory rename from ``.<slate>.partial``).
 
 Inputs are read in place and never written: the live capture's write-once pages
 (``data/raw/live_<slate>/``: prop ``/markets`` pages, trade prints, ESPN scoreboard, manifest) and
@@ -19,9 +21,11 @@ Incremental: a page is parsed once. Each run lists the input trees, parses only 
 read, appends their compact points to per-game files and then rebuilds each game's payload from
 those points one game at a time (so memory is one game's worth, not the night's). A full build is
 the same code from an empty state, and equals ``prop_history.build_games`` on the same inputs
-(tested). Anything that would make the incremental result differ from a full build (a page that
-arrives out of time order, a truncated manifest, a state from another version) starts the state
-over from the raw pages.
+(tested). A state that cannot be read starts over at once; a page that arrives older than pages
+already applied makes the state unequal to a full build, so the full re-read is due: deferred
+while games can be on (``GAMES_ON``), never skipped by the final slot. A page that does not parse
+is retried on later slots and given up, with its reason logged, only once its file has been
+quiet for ``UNREADABLE_GIVEUP_S``.
 """
 
 from __future__ import annotations
@@ -41,12 +45,24 @@ from pathlib import Path
 from typing import Any
 
 STATE_VERSION = 1
-#: The snapshot job writes its pages in place (gzip stream, not tmp + rename), so a run is read
-#: only once it is this old; a whole run takes well under a minute.
+#: The snapshot job writes its pages in place (gzip stream, not tmp + rename) and names them by
+#: the run's START time. A run is read only when its name time is this old AND none of its pages
+#: has been modified for ``SNAPSHOT_QUIET_S`` (file mtime): 2,537 runs since 2026-10-20 had p50
+#: 17.7 s, p99 40 s, but 3 wrote pages more than 600 s after their name time (worst 1,993 s).
 SNAPSHOT_SETTLE_S = 600
-#: A capture page without its manifest line yet, or an unreadable file, younger than this is left
-#: for the next run (the capture renames a page into place, then appends the manifest line).
+SNAPSHOT_QUIET_S = 300
+#: A capture page without its manifest line yet younger than this is left for the next run (the
+#: capture renames a page into place, then appends the manifest line).
 YOUNG_FILE_S = 120
+#: A page that cannot be parsed is never dropped at once: it is retried on every later slot and
+#: given up (listed in ``unreadable_inputs``, the reason logged to stderr) only once its file has
+#: not been modified for this long.
+UNREADABLE_GIVEUP_S = 1800
+#: A page older than pages already applied makes the incremental state unequal to a full build.
+#: While games can be on (until the last tip + this) the full re-read is deferred: the page waits,
+#: every other new page is applied, and the first slot after this time (at the latest the final
+#: slot) re-reads everything. A rebuild costs 15 to 40 s; a slot otherwise 3 to 5 s.
+GAMES_ON = timedelta(minutes=150)
 #: Pages parsed per batch before the points are appended and the state committed (bounds memory
 #: on a first run that catches up a whole night).
 BATCH_FILES = 120
@@ -125,6 +141,39 @@ def _gz_json(path: Path) -> Any:
     return json.loads(gzip.decompress(path.read_bytes()))
 
 
+def _unreadable(
+    st: State, source: str, rel: str, path: Path, now_ts: float, err: Exception
+) -> None:
+    """A page that does not parse: retried on later slots; given up only once its file has been
+    quiet for ``UNREADABLE_GIVEUP_S`` (then listed, with the reason on stderr)."""
+    if _age_s(path, now_ts) < UNREADABLE_GIVEUP_S:
+        return
+    name = f"kalshi_raw/{rel}" if source == "snapshot" else rel
+    st.meta["unreadable"].append(name)
+    st.done[source].add(rel)
+    print(
+        f"prop_history_job: gave up on {name}: {type(err).__name__}: {err} "
+        f"(unchanged for {UNREADABLE_GIVEUP_S} s)",
+        file=sys.stderr,
+    )
+
+
+def _older_pages(
+    st: State, pages: list[Any], last: Mapping[str, int], what: str, defer: bool
+) -> list[Any]:
+    """Pages older than pages already applied: a full re-read now, or (``defer``, games on) the
+    pages wait and the re-read is due at the first slot after the games."""
+    old = [p for p in pages if p.t <= last.get(p.series, -1)]
+    if not old:
+        return pages
+    why = f"{what} page {old[0].rel} is older than pages already applied"
+    if not defer:
+        raise RebuildNeeded(why)
+    st.meta["rebuild_pending"] = st.meta.get("rebuild_pending") or why
+    waiting = {p.rel for p in old}
+    return [p for p in pages if p.rel not in waiting]
+
+
 # ---------------------------------------------------------------------------------------------
 # state
 
@@ -143,6 +192,7 @@ def _empty_meta(day: date) -> dict[str, Any]:
         "unreadable": [],
         "chunks": {},  # "<code>/<kind>.jsonl" -> committed bytes
         "market_sig": {},  # "<src>|<ticker>" -> [t, sig] of the last stored market fields
+        "rebuild_pending": None,  # why a deferred full re-read is due (see GAMES_ON)
     }
 
 
@@ -303,8 +353,7 @@ def _new_capture_pages(st: State, capture_dir: Path, now_ts: float) -> list[_Cap
                         held[series] = min(held.get(series, _epoch(when)), _epoch(when))
                     continue
             if when is None:
-                st.meta["unreadable"].append(rel)
-                st.done["capture"].add(rel)
+                _unreadable(st, "capture", rel, f, now_ts, ValueError("no receive time"))
                 continue
             out.append(_CapPage(_epoch(when), d.name, f.name, series, rel, f))
     out = [p for p in out if p.t < held.get(p.series, p.t + 1)]
@@ -312,14 +361,13 @@ def _new_capture_pages(st: State, capture_dir: Path, now_ts: float) -> list[_Cap
     return out
 
 
-def _ingest_capture(st: State, pages: list[_CapPage], day: date, now_ts: float) -> None:
+def _ingest_capture(
+    st: State, pages: list[_CapPage], day: date, now_ts: float, defer: bool = False
+) -> None:
     from nba.kalshi.prop_history import capture_page_points, market_subset
 
     last = st.meta["last_t"]["capture"]
-    start_last = dict(last)
-    for p in pages:
-        if p.t <= start_last.get(p.series, -1):
-            raise RebuildNeeded(f"capture page {p.rel} is older than pages already applied")
+    pages = _older_pages(st, pages, dict(last), "capture", defer)
     times = st.meta["capture_page_times"]
     sig = st.meta["market_sig"]
     for i in range(0, len(pages), BATCH_FILES):
@@ -328,11 +376,8 @@ def _ingest_capture(st: State, pages: list[_CapPage], day: date, now_ts: float) 
         for p in pages[i : i + BATCH_FILES]:
             try:
                 body = _gz_json(p.path)
-            except (OSError, ValueError, EOFError):
-                if _age_s(p.path, now_ts) < YOUNG_FILE_S:
-                    continue
-                st.meta["unreadable"].append(p.rel)
-                st.done["capture"].add(p.rel)
+            except (OSError, ValueError, EOFError) as err:
+                _unreadable(st, "capture", p.rel, p.path, now_ts, err)
                 continue
             times.setdefault(p.series, []).append(p.t)
             st.meta["capture_as_of"] = max(st.meta["capture_as_of"] or p.t, p.t)
@@ -371,11 +416,8 @@ def _ingest_trades(st: State, capture_dir: Path, day: date, now_ts: float) -> No
             rel = str(f.relative_to(capture_dir))
             try:
                 body = _gz_json(f)
-            except (OSError, ValueError, EOFError):
-                if _age_s(f, now_ts) < YOUNG_FILE_S:
-                    continue
-                st.meta["unreadable"].append(rel)
-                st.done["trades"].add(rel)
+            except (OSError, ValueError, EOFError) as err:
+                _unreadable(st, "trades", rel, f, now_ts, err)
                 continue
             for pr in trade_file_prints(body, day):
                 rows.setdefault(_code_of(pr.ticker), []).append(
@@ -387,7 +429,26 @@ def _ingest_trades(st: State, capture_dir: Path, day: date, now_ts: float) -> No
         st.commit()
 
 
-def _ingest_snapshot(st: State, raw_root: Path, day: date, now_ts: float) -> None:
+def _settled_snapshot_pages(pages: list[Any], now_ts: float) -> list[Any]:
+    """Pages of snapshot runs that are over: name time older than ``SNAPSHOT_SETTLE_S`` and no
+    page of the run modified within ``SNAPSHOT_QUIET_S``."""
+    newest: dict[int, float] = {}
+    for p in pages:
+        try:
+            m = p.path.stat().st_mtime
+        except OSError:
+            m = now_ts
+        newest[p.t] = max(newest.get(p.t, m), m)
+    return [
+        p
+        for p in pages
+        if now_ts - p.t >= SNAPSHOT_SETTLE_S and now_ts - newest[p.t] >= SNAPSHOT_QUIET_S
+    ]
+
+
+def _ingest_snapshot(
+    st: State, raw_root: Path, day: date, now_ts: float, defer: bool = False
+) -> None:
     from nba.kalshi.prop_history import (
         SnapshotFilter,
         market_subset,
@@ -395,16 +456,11 @@ def _ingest_snapshot(st: State, raw_root: Path, day: date, now_ts: float) -> Non
         snapshot_pages,
     )
 
-    settled_before = int(now_ts) - SNAPSHOT_SETTLE_S
-    pages = [
-        p
-        for p in snapshot_pages(raw_root, day)
-        if p.rel not in st.done["snapshot"] and p.t < settled_before
-    ]
+    pages = _settled_snapshot_pages(
+        [p for p in snapshot_pages(raw_root, day) if p.rel not in st.done["snapshot"]], now_ts
+    )
     last = st.meta["last_t"]["snapshot"]
-    for p in pages:
-        if p.t <= last.get(p.series, -1):
-            raise RebuildNeeded(f"snapshot page {p.rel} is older than pages already applied")
+    pages = _older_pages(st, pages, dict(last), "snapshot", defer)
     filt = SnapshotFilter()
     sig = st.meta["market_sig"]
     times = set(st.meta["snapshot_times"])
@@ -414,9 +470,8 @@ def _ingest_snapshot(st: State, raw_root: Path, day: date, now_ts: float) -> Non
         for p in pages[i : i + BATCH_FILES]:
             try:
                 body = _gz_json(p.path)
-            except (OSError, ValueError, EOFError):
-                st.meta["unreadable"].append(f"kalshi_raw/{p.rel}")
-                st.done["snapshot"].add(p.rel)
+            except (OSError, ValueError, EOFError) as err:
+                _unreadable(st, "snapshot", p.rel, p.path, now_ts, err)
                 continue
             for m, q in snapshot_page_points(body, p.t, day, filt):
                 code = _code_of(q.ticker)
@@ -431,10 +486,11 @@ def _ingest_snapshot(st: State, raw_root: Path, day: date, now_ts: float) -> Non
                     mkt.setdefault(code, []).append(["snapshot", q.ticker, q.t, sub])
                     sig[key] = [q.t, s]
             st.done["snapshot"].add(p.rel)
-        # the last t of a series moves only after its whole batch is read: pages of one run that
-        # share a time are applied together
+        # the last t of a series moves only after its whole batch is read (pages of one run that
+        # share a time are applied together), and only for pages actually read
         for p in pages[i : i + BATCH_FILES]:
-            last[p.series] = max(last.get(p.series, p.t), p.t)
+            if p.rel in st.done["snapshot"]:
+                last[p.series] = max(last.get(p.series, p.t), p.t)
         for code, rows in snap.items():
             st.append(code, "snap", rows)
         for code, rows in mkt.items():
@@ -560,22 +616,38 @@ def write_latest(out: Path, files: Sequence[tuple[str, bytes]], index: Mapping[s
             f.unlink(missing_ok=True)
 
 
+def _gzip(data: bytes) -> bytes:
+    """Deterministic gzip (no name, mtime 0): the same night always gives the same bytes."""
+    return gzip.compress(data, compresslevel=9, mtime=0)
+
+
 def write_final(
     out: Path, day: date, files: Sequence[tuple[str, bytes]], index: Mapping[str, Any]
 ) -> bool:
-    """``<slate>/``, once: built in a hidden directory, fsynced, then renamed into place (a
-    directory rename onto a missing name is atomic). Never replaces an existing night."""
+    """``<slate>/``, once, gzipped (``<code>.json.gz``, ``index.json.gz``; decompressed, the
+    bytes of the ``latest/`` files): built in ``.<slate>.partial`` (a fixed name, so a leftover
+    of an interrupted write is removed by the next attempt; the job's lock means one writer),
+    fsynced, then renamed into place (a directory rename onto a missing name is atomic). Never
+    replaces an existing night."""
     final = out / day.isoformat()
     if final.exists():
         return False
-    tmp = out / f".{day.isoformat()}.partial-{os.getpid()}"
+    tmp = out / f".{day.isoformat()}.partial"
     if tmp.exists():
         shutil.rmtree(tmp)
     for code, data in files:
-        _write_bytes_atomic(tmp / f"{code}.json", data)
-    _write_bytes_atomic(tmp / "index.json", _index_bytes(index))
+        _write_bytes_atomic(tmp / f"{code}.json.gz", _gzip(data))
+    _write_bytes_atomic(tmp / "index.json.gz", _gzip(_index_bytes(index)))
     os.rename(tmp, final)
     return True
+
+
+def read_final_index(out: Path, day: date) -> dict[str, Any] | None:
+    try:
+        idx = json.loads(gzip.decompress((out / day.isoformat() / "index.json.gz").read_bytes()))
+    except (OSError, ValueError, EOFError):
+        return None
+    return idx if isinstance(idx, dict) else None
 
 
 # ---------------------------------------------------------------------------------------------
@@ -591,6 +663,7 @@ class RunResult:
     n_markets: int = 0
     new_pages: int = 0
     rebuilt: str | None = None
+    rebuild_deferred: str | None = None
     seconds: float = 0.0
 
     def as_dict(self) -> dict[str, Any]:
@@ -598,21 +671,35 @@ class RunResult:
 
 
 def _final_written(paths: Paths, day: date) -> bool:
-    idx = _read_json(paths.out / day.isoformat() / "index.json")
-    return isinstance(idx, dict) and idx.get("status") == "final"
+    idx = read_final_index(paths.out, day)
+    return idx is not None and idx.get("status") == "final"
 
 
-def _ingest(st: State, paths: Paths, day: date, now_ts: float) -> int:
+def slate_tips(capture_dir: Path) -> list[datetime]:
+    """Scheduled tips from the capture's newest ESPN scoreboard page (empty without one)."""
+    if not capture_dir.exists():
+        return []
+    from nba.kalshi.prop_history import SlateInputs, read_scoreboard
+
+    inp = SlateInputs(date(2000, 1, 1))
+    read_scoreboard(capture_dir, inp)
+    return sorted(inp.tips.values())
+
+
+def _ingest(st: State, paths: Paths, day: date, now_ts: float, defer: bool) -> int:
     from nba.kalshi.prop_history import PROP_SERIES
 
     before = sum(len(v) for v in st.done.values())
     if paths.capture_dir.exists():
         _read_manifest(st, paths.capture_dir, PROP_SERIES)
-        _ingest_capture(st, _new_capture_pages(st, paths.capture_dir, now_ts), day, now_ts)
+        pages = _new_capture_pages(st, paths.capture_dir, now_ts)
+        _ingest_capture(st, pages, day, now_ts, defer)
         _ingest_trades(st, paths.capture_dir, day, now_ts)
     if paths.snapshot_raw is not None and paths.snapshot_raw.exists():
-        _ingest_snapshot(st, paths.snapshot_raw, day, now_ts)
+        _ingest_snapshot(st, paths.snapshot_raw, day, now_ts, defer)
     st.commit()
+    if st.meta.get("rebuild_pending") and not defer:
+        raise RebuildNeeded(str(st.meta["rebuild_pending"]))
     return sum(len(v) for v in st.done.values()) - before
 
 
@@ -625,10 +712,13 @@ def run_slate(
     allow_no_capture: bool = False,
     keep_state: bool = False,
     rebuild: bool = False,
+    update_latest: bool = True,
 ) -> RunResult:
     """One scheduled run for one slate: no-op when the night is already final or its capture
     has not started; otherwise read the new pages, rewrite ``latest/`` and, once the capture's
-    window is over (last scheduled tip + 4 h + margin), write the dated set and drop the state."""
+    window is over (last scheduled tip + 4 h + margin), write the dated set and drop the state.
+    A full re-read needed because a page arrived out of order waits while games can be on
+    (``GAMES_ON``); one needed because the state cannot be read happens at once."""
     t0 = time.monotonic()
     res = RunResult("done", day.isoformat())
     state_dir = paths.state(day)
@@ -644,25 +734,33 @@ def run_slate(
 
         aliases = load_reviewed_aliases()
     now_ts = now.timestamp()
+    tips = slate_tips(paths.capture_dir)
+    games_on = bool(tips) and now < max(tips) + GAMES_ON
     if rebuild and state_dir.exists():
         shutil.rmtree(state_dir)
         res.rebuilt = "requested"
     try:
         st = State.load(state_dir, day)
-        res.new_pages = _ingest(st, paths, day, now_ts)
+        res.new_pages = _ingest(st, paths, day, now_ts, games_on)
     except RebuildNeeded as why:
         shutil.rmtree(state_dir, ignore_errors=True)
         res.rebuilt = str(why)
         st = State.load(state_dir, day)
-        res.new_pages = _ingest(st, paths, day, now_ts)
+        res.new_pages = _ingest(st, paths, day, now_ts, False)
+    res.rebuild_deferred = st.meta.get("rebuild_pending")
     files, index, base = build_payloads(st, paths.capture_dir, aliases, now)
-    write_latest(paths.out, files, index)
+    if update_latest:
+        write_latest(paths.out, files, index)
     res.decision = "built"
     res.status = str(index["status"])
     res.games = len(files)
     res.n_markets = int(index["n_markets"])
     last_tip = max(base.tips.values()) if base.tips else None
-    if last_tip is not None and now >= last_tip + CAPTURE_TAIL + FINAL_MARGIN:
+    if (
+        last_tip is not None
+        and now >= last_tip + CAPTURE_TAIL + FINAL_MARGIN
+        and not st.meta.get("rebuild_pending")
+    ):
         write_final(paths.out, day, files, index)
         res.decision = "final"
         if not keep_state:
@@ -672,7 +770,7 @@ def run_slate(
 
 
 # ---------------------------------------------------------------------------------------------
-# watchdog check (pure; wiring it into nba.ops.watchdog is the ops owner's change)
+# watchdog check (pure; called by nba.ops.watchdog.evaluate_prop_history)
 
 
 def _ts(v: Any) -> datetime | None:
@@ -685,6 +783,16 @@ def _ts(v: Any) -> datetime | None:
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
+def final_overdue(
+    now: datetime, tips: Sequence[datetime], day: date, final_index: Mapping[str, Any] | None
+) -> str | None:
+    """``FINAL_OVERDUE`` after the last tip the night has no final set."""
+    done = final_index is not None and final_index.get("status") == "final"
+    if tips and now >= max(tips) + FINAL_OVERDUE and not done:
+        return f"kalshi-prop-history: no final set for {day}"
+    return None
+
+
 def problem(
     now: datetime,
     hb: Mapping[str, Any] | None,
@@ -694,8 +802,9 @@ def problem(
     final_index: Mapping[str, Any] | None,
 ) -> str | None:
     """One line for the independent watchdog, or None. Never installed (no heartbeat): None.
-    Problems: the last run failed; while games can be on (first tip to last tip + 4 h) the live
-    set is older than ``LIVE_STALE`` or of another slate; ``FINAL_OVERDUE`` after the last tip
+    Problems: the last run failed; while games can be on (first tip to last tip + 4 h) the last
+    successful run (``last_success_ts``, which skips do not move) is older than ``LIVE_STALE``,
+    or the live set is older than that or of another slate; ``FINAL_OVERDUE`` after the last tip
     the night has no final set."""
     if hb is None:
         return None
@@ -706,6 +815,12 @@ def problem(
         return None
     first, last = min(tips), max(tips)
     if first <= now <= last + CAPTURE_TAIL:
+        ok = _ts(hb.get("last_success_ts"))
+        if ok is not None and now - ok > LIVE_STALE:
+            return (
+                f"kalshi-prop-history: no successful run since {ok:%Y-%m-%d %H:%M} "
+                "(skipping? see kalshi-prop-history.skip.json)"
+            )
         if latest_index is None or latest_index.get("slate_date") != day.isoformat():
             if now >= first + LIVE_STALE:
                 return f"kalshi-prop-history: no live set for {day} since first tip"
@@ -713,11 +828,7 @@ def problem(
         built = _ts(latest_index.get("built_at"))
         if built is None or now - built > LIVE_STALE:
             return f"kalshi-prop-history: live set for {day} older than {LIVE_STALE}"
-    if now >= last + FINAL_OVERDUE and (
-        final_index is None or final_index.get("status") != "final"
-    ):
-        return f"kalshi-prop-history: no final set for {day}"
-    return None
+    return final_overdue(now, tips, day, final_index)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -762,6 +873,26 @@ def _paths(a: argparse.Namespace, day: date) -> Paths:
     )
 
 
+#: Working states of slates more than this many days before the current one are abandoned (a
+#: night that never finalized: no tips, the Mac off for days); they are deleted.
+STATE_KEEP_DAYS = 3
+
+
+def drop_old_states(state_root: Path, day: date) -> list[str]:
+    out: list[str] = []
+    if not state_root.is_dir():
+        return out
+    for d in sorted(state_root.iterdir()):
+        try:
+            slate = date.fromisoformat(d.name)
+        except ValueError:
+            continue
+        if d.is_dir() and slate < day - timedelta(days=STATE_KEEP_DAYS):
+            shutil.rmtree(d, ignore_errors=True)
+            out.append(d.name)
+    return out
+
+
 def main(argv: Sequence[str] | None = None, *, clock: Callable[[], datetime] | None = None) -> int:
     a = parse_args(argv)
     day = date.fromisoformat(a.date)
@@ -778,8 +909,18 @@ def main(argv: Sequence[str] | None = None, *, clock: Callable[[], datetime] | N
         pp = _paths(a, prev)
         # a night the scheduled runs did not finish (Mac asleep, a failed run): finish it first,
         # only when its state exists (it was live here) and its final set is missing
-        if pp.state(prev).exists() and not _final_written(pp, prev):
-            results.append(run_slate(prev, pp, now=now, keep_state=a.keep_state).as_dict())
+        # and only when it has tips (without them it can never finalize; it would rerun every slot)
+        if pp.state(prev).exists() and not _final_written(pp, prev) and slate_tips(pp.capture_dir):
+            today = _paths(a, day)
+            results.append(
+                run_slate(
+                    prev,
+                    pp,
+                    now=now,
+                    keep_state=a.keep_state,
+                    update_latest=not today.capture_dir.exists(),
+                ).as_dict()
+            )
     results.append(
         run_slate(
             day,
@@ -790,7 +931,10 @@ def main(argv: Sequence[str] | None = None, *, clock: Callable[[], datetime] | N
             rebuild=a.rebuild,
         ).as_dict()
     )
+    dropped = drop_old_states(_paths(a, day).state_root, day)
     out = results[-1] | ({"previous": results[0]} if len(results) > 1 else {})
+    if dropped:
+        out["dropped_states"] = dropped
     print(json.dumps(out))
     return 0
 
