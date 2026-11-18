@@ -22,6 +22,7 @@ exploration, however good it looks.
 
 | Date | Item | Verdict | Note |
 |---|---|---|---|
+| 2026-11-17 | Fast live model: Stern 1994 Brownian score, Polson-Stern implied volatility, Maymin-Maymin-Shen foul trouble, gamma-Poisson updating, Song-Shi gamma process, Yeh-Rice-Dubin real-time evaluation, Maddox et al., Deshpande-Jensen, CTG garbage time, in-play efficiency | PURSUE (Stern + implied vol as display and baseline; foul and garbage-time minutes shape, label-free first; evaluation tooling); PARK (gamma-Poisson knob, Song-Shi, Maddox); SKIP (Deshpande-Jensen attribution, in-play efficiency as an edge) | [live_model_reading_2026-11-17.md](live_model_reading_2026-11-17.md) |
 | 2026-10-27 | Trading repos: TradingAgents, OpenBB, ai-hedge-fund, Freqtrade, Qlib, NautilusTrader, RD-Agent | SKIP x6; PURSUE (DRAFT) AS_OF_IDENTITY from Freqtrade lookahead/recursive analysis | [trading_repos_2026-10-27.md](trading_repos_2026-10-27.md) |
 | 2026-10-09 | Historical odds providers (The Odds API, Kalshi, others) | PURSUE | [historical_odds_2026-10-09.md](historical_odds_2026-10-09.md) |
 | 2026-10-08 | Stacked-ensemble, GCN+RF, NCAA LSTM/Transformer papers (pasted) | tested → not kept | see T-rows for seq_props, joint_game_set, pbp_gpt, winprob family |

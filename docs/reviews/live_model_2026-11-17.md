@@ -173,3 +173,94 @@ for the live win chance** and the summary only for box stats: about 20 s fresher
 cdn.nba.com liveData is NOT cleared (DECISIONS 2026-11-09 21:33, nba.com terms s.9 bar gambling use; not covered by the override),
 and stats.nba.com returns nothing for games in progress (DECISIONS 2026-10-21 20:05). No cleared source can close the gap to zero:
 even with instant polling, ESPN's own 17 to 37 s publishing delay sits behind a market that reacts at about the wallclock.
+
+---
+
+## Part 2: the rule for the in-game line model (pointer)
+
+Draft `docs/prereg/INGAME_LINE_CAL_FWD.md` (commit e9318652; NOT frozen). Forward only: rows with `slate_date` after the freeze date;
+every row logged since 2026-11-10 is burned (counted only). Primary: at checkpoints 30/35/40, mean log loss of M minus the binding
+arithmetic baseline A\* (P1) and minus the Kalshi mid on two-sided rows (P2), floor -0.005, paired bootstrap, 97.5% (Bonferroni over two),
+the wider of game and date clustering decides. A1 (the arithmetic) is T508's B0 with the player's own pre-game rate and minutes, the fix
+the T508 attack pointed at; it is drafted as `nba/eval/ingame_arith_baseline.py` with 8 tests. Gate: 18,866 primary rows in 51 games over
+the 7 logged nights (label-free capture replay); look count 240 games and 30 dates; projected trigger 2026-12-30, scored 2027-01-01, if
+frozen by 2026-11-19. The app may show the live chance as "Experimental, not yet tested" with its age, and no running score of any kind.
+
+---
+
+## Part 3: reading log and the engineering shape
+
+Entries: `docs/research/live_model_reading_2026-11-17.md` (index row in `docs/research/README.md`). Verdicts: Stern 1994 and
+Polson-Stern 2015 **PURSUE** as the display engine and baseline for the live win chance (not a bet signal); Maymin-Maymin-Shen foul
+trouble and the Cleaning the Glass garbage-time definition **PURSUE** as one label-free minutes-shape table first; Yeh-Rice-Dubin
+**PURSUE** as evaluation tooling (and as outside evidence that simple logistic on score and strength matched ESPN's live model);
+gamma-Poisson updating **PARK** (it is already A1); Song-Shi **PARK**; Maddox et al. **PARK**; Deshpande-Jensen and in-play
+efficiency papers **SKIP** for this purpose. Could not open: Stern's scan (parameters unverified), the full texts of Polson-Stern,
+Maymin et al., Song-Shi, Yeh et al., Maddox et al.
+
+### Ranked plan (at most five)
+1. **Freeze INGAME_LINE_CAL_FWD.** Gate PASS on the real capture (section 9 of the draft). Cost: the A1 module (done, tested), an
+   optional historical Platt fit (C3, maintainer's heavy command), the scorer after the freeze.
+2. **Build the live update engine with arithmetic only** (A1 for props; Stern with market-implied drift and sigma for the win chance),
+   driven by the scoreboard (Part 1: about 20 s fresher than the summary). No evaluation needed to display it with the label and its age.
+3. **Minutes-left shape, label-free:** remaining starter minutes by the CTG garbage-time state and by Q+1 foul trouble, 2019-2024
+   play-by-play, per season. Minimum-data check: at least 500 player-games per (state, season) cell.
+4. **BM_WINPROB_DISPLAY forward rule:** Brownian chance vs the stored v1 at the 5-minute checkpoints, floor -0.005, game-clustered.
+   Minimum-data check: count of game-checkpoints with a pre-tip KXNBAGAME and KXNBASPREAD price and a two-sided in-game quote (about 460 a
+   week at today's slate), and a power line before freezing.
+5. **A2 = A1 + the minutes factors from step 3,** its own forward rule, only if step 3 shows a stable cut; about 240 games again, so not
+   before about February.
+
+### Engineering shape (what makes an update cheap)
+* **Priors stored once per player-game, before tip.** A write-once parquet per night, `data/live/priors_<date>.parquet`:
+  `(game_id, player_id, stat, mu, m_pre, vmr, r0, s0, source_run_id, known_at)` from the T-60 forward row (and the T-30 refresh when
+  lineups confirm), plus one row per game `(p_pre_home, mu_drift, sigma, known_at)` from the pre-tip Kalshi winner and spread mids. No
+  database is opened during the game.
+* **Event-driven update touching only what changed.** On each new capture page: diff the scoreboard (score, period, clock) per game and
+  the summary box (pts, reb, ast, 3PM, MIN, PF) per player against the last state; recompute only games whose score or clock changed (the
+  win chance: one Phi) and only players whose line changed (A1: two additions for the rate, one NegBin pmf per player-stat on the integer
+  grid, giving every strike at once). A full slate is well under 50 ms per tick on this CPU; nothing is fitted during a game.
+* **Integer-grid output.** Per player-stat, the remaining-stat pmf shifted by the current stat on 0..max (the production grid), from
+  which P(>= k) for any line and integer quantiles are read; never a continuous quantile against an integer line.
+* **Known-at on every live number.** `state_received_at` (our fetch), `source_wallclock` (ESPN's newest play), `computed_at`, and
+  `age_s`; a number older than 180 s is not shown (the checkpoint scorer's stale rule); the app prints the age.
+* **GET-only delivery.** After each update the engine writes one JSON snapshot atomically (tmp + rename), as in
+  `docs/contracts/ingame_checkpoint_snapshot_v1.md`; the app serves `GET /api/live/<game_id>` from that file (cache 5-15 s, ETag = the
+  snapshot's hash so a poll that sees no change costs nothing). The app never opens a DuckDB file and never writes; no websocket, no
+  credential, no order path.
+
+---
+
+## Playbook check (this report)
+* **Classes.** Part 1: none (a measurement). Part 2: two-stage gradient-boosted trees (T508 arm M) against an arithmetic NegBin count
+  baseline and a market price. Part 3: Brownian-motion score models and conjugate count updating (ratings-like, low data appetite).
+* **1. Information or capacity.** In-game state is information but public; the market sees it first (Part 1). The live engine adds no
+  capacity; A2 would add information (fouls, garbage-time state) through arithmetic.
+* **2. Enough data.** Training: T508 gate PASS on 2019-2024. Forward evaluation: 240 games and 30 dates reachable by about 2026-12-30.
+* **3. Test validity.** Fair baseline with M's own pre-game inputs (T508 lesson), integer support, same rows, known-at stamps,
+  forward only, clustered intervals, no running score displayed. Part 1's combined market-move definition failed its own placebo check
+  and is reported as uninformative, not as a number.
+* **4. Lineage.** T508, T508-attack, HALFTIME_OVERS_VS_PRICE amendment A, INGAME_WINPROB_V2 (frozen, unmerged, no result).
+* **5. Scored against.** Log loss at the Kalshi strike (Part 2); the live win chance against v1 and, descriptively, the Kalshi mid.
+
+## Honest no-signal note
+Nothing here is a finding about edge. Part 1 says the opposite: on material plays the market has moved before our feed shows them on
+about 92% of events. A live number from this feed is a display, not a signal, until a frozen forward test says otherwise, and even then the
+latency means it could only matter where the market is slow (none found).
+
+## Proposed rows (drafted here, not appended)
+
+**docs/PREDICTIONS_LEDGER.md** (stated before any post-freeze row exists):
+| Date | Rule / question | Prior stated before the result | Where written | Outcome | Hit? |
+|---|---|---|---|---|---|
+| 2026-11-17 | INGAME_LINE_CAL_FWD P1 (M vs arithmetic A\*, checkpoints 30-40) | modeler: P(BEATS) 0.25; P(NO_PRACTICAL_GAIN) 0.40; P(INCONCLUSIVE) 0.30; P(INSUFFICIENT_SAMPLE) 0.05; expected point -0.004 (80% -0.010 to +0.001); P(A\* = A1p) 0.45; P(G5 slope in [0.85, 1.15]) 0.70 | docs/prereg/INGAME_LINE_CAL_FWD.md (draft) | pending (look about 2027-01-01) | |
+| 2026-11-17 | INGAME_LINE_CAL_FWD P2 (M vs Kalshi mid) | modeler: P(BEATS) 0.05; P(NO_PRACTICAL_GAIN) 0.55; expected point +0.004 (80% -0.004 to +0.015); P(mid beats A\* by >= 0.005, descriptive) 0.60 | same | pending | |
+| 2026-11-17 | INGAME_LINE_CAL_FWD frozen by 2026-11-24 | modeler: 0.60 | same | pending | |
+
+**docs/DECISIONS.md:**
+| 2026-11-17 | Feed delay measured (descriptive, method 17404a4c before results 0bf288c6): our ESPN summary shows a scoring play a median 67 s after ESPN's wallclock (n 6,171, 51 games, CI [65.8, 67.6]); scoreboard 47 s; Kalshi's quote had moved first on 92% of material isolated plays (n 197, 47 games, CI 88-95%). Reading: a live chance from this feed is a display with its age, never an action signal. | Measurement, no decision logic changed. | A faster cleared source, or the fresh poller's frozen result showing a large gain. |
+| 2026-11-17 | PROPOSED (Devin's call): the live in-game line number may be displayed in the app and cards labelled "Experimental, not yet tested" with its age and no running score (INGAME_LINE_CAL_FWD s8); supersedes L1375's "no live use" for display only; no sizing, no alert. | Decisions review row 6; Devin's request. | A model change without a new rule id; any running score shown; the rule's verdict. |
+
+**docs/TEST_LEDGER.md** (descriptive row, no claim): FEED_DELAY_2026-11 | 2026-11-17 | method 17404a4c, results 0bf288c6 | A 66.8 s [65.8, 67.6] n 6,171 plays / 51 games; scoreboard 46.6 s [45.5, 48.1]; combined market-move definition UNINFORMATIVE (placebo 0.667 vs 0.995); quote-only diagnostic: quote moved +30.0 s after wallclock [27.1, 33.7], before our summary on 0.919 [0.884, 0.952] (n 197, 47 games) | game-clustered bootstrap of the median | descriptive | no 2025 touch.
+
+**HOLDOUT_ACCESS_LOG:** none (no season-2025 file read).
