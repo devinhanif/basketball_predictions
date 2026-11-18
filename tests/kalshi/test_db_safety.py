@@ -46,7 +46,7 @@ def test_alias_candidates_never_opens_a_database(
     def boom(*a: object, **k: object) -> None:
         raise AssertionError("alias-candidates must not open DuckDB")
 
-    monkeypatch.setattr(kmain, "connect", boom)
+    monkeypatch.setattr(kmain, "connect_with_retry", boom)
     assert kmain.main(["--db", str(tmp_path / "k.duckdb"), "alias-candidates"]) == 0
 
 
@@ -98,3 +98,20 @@ def test_every_attach_in_the_package_is_read_only() -> None:
             if re.search(r"duckdb\.connect\([^)]*kalshi", line) and "read_only" not in line:
                 bad.append(f"{f.relative_to(ROOT)}:{n}")
     assert not bad, bad
+
+
+def test_the_writer_waits_briefly_for_a_reader_lock(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Adversary m9 (2026-11-17): the snapshot writer retries a lock held by a reader (the export
+    reads the store for about 0.1 s), with a bounded total wait."""
+    seen: dict[str, object] = {}
+
+    def fake(path: object, **k: object) -> object:
+        seen.update(k)
+        raise SystemExit(0)  # stop before any network
+
+    monkeypatch.setattr(kmain, "connect_with_retry", fake)
+    with pytest.raises(SystemExit):
+        kmain.main(["--db", str(tmp_path / "k.duckdb"), "snapshot"])
+    assert seen["max_wait_s"] == kmain.LOCK_WAIT_S and float(kmain.LOCK_WAIT_S) <= 30.0

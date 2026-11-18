@@ -137,20 +137,50 @@ def score_checkpoints(
                 live_dir(cfg, slate), art, rec, cfg.fees["kalshi"], store, slate, now,
                 dict(h["fee_pin"]), only_games=set(games),
             )  # fmt: skip
+            rows_by_game = store.latest_by_game(slate)
             latest = build_views(
-                store.latest_by_game(slate), float(h["min_edge"]), int(s.get("top_n", 3)),
+                rows_by_game, float(h["min_edge"]), int(s.get("top_n", 3)),
                 int(h["display_min_bid_c"]), int(h["display_max_spread_c"]),
             )  # fmt: skip
         finally:
             store.close()
         refused = {k: v for k, v in rep.counts.items() if k in _REFUSALS}
+        snap = publish_snapshot(cfg, slate, now, rows_by_game, rep.latest_states, dry_run=dry_run)
         return {
             "ok": True, "stored": rep.stored, "fires": rep.counts.get("fires", 0),
-            "refused": refused, "latest": latest,
+            "refused": refused, "latest": latest, "snapshot": snap,
         }  # fmt: skip
     except Exception as exc:  # fail soft: a scorer problem never costs a check-in or the tick
         log.warning("ingame checkpoints failed (%s: %s)", type(exc).__name__, str(exc)[:120])
         return {"ok": False, "error": type(exc).__name__, "latest": {}}
+
+
+def publish_snapshot(
+    cfg: JarvisConfig,
+    slate: date,
+    now: datetime,
+    rows_by_game: dict[str, list[dict[str, Any]]],
+    states: dict[str, Any],
+    *,
+    dry_run: bool,
+) -> dict[str, Any]:
+    """Write the app's snapshot file (docs/contracts/ingame_checkpoint_snapshot_v2.md): only when the
+    flag is on (the caller returned earlier otherwise), never in a dry run, atomic temp + rename, and
+    never raises (``nba.markets.checkpoint_snapshot.publish`` contains every exception)."""
+    if dry_run:
+        return {"ok": True, "skipped": "dry_run"}
+    try:
+        from nba.markets import checkpoint_snapshot as CS
+
+        s = settings(cfg)
+        out = Path(str(s.get("snapshot", "data/jarvis/ingame_checkpoints_latest.json")))
+        out = out if out.is_absolute() else cfg.root / out
+        pre = CS.pregame_path(
+            cfg.root, slate, str(s.get("script_priors_dir", "data/export/latest"))
+        )
+        return CS.publish(out, pre, rows_by_game, states, now)
+    except Exception as exc:  # noqa: BLE001 - the snapshot never costs the tick
+        return {"ok": False, "error": type(exc).__name__}
 
 
 _REFUSALS = (
