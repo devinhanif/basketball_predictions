@@ -1148,3 +1148,75 @@ every `claimed_`/`reporter_` predicate). Nothing in
 `nba.daily` imports it, no prediction reads it, and the replay oracle is unaffected. Its heartbeat is
 `data/ops/heartbeat/reporters.json` (watchdog job `reporters`, optional). Details and the incident
 behind each choice: docs/REPORTER_FEED.md, "Capture fixes".
+
+## Kalshi prop price history job (2026-11-17, prepared; NOT installed)
+
+Devin, 2026-11-17: prop price history for the app after each night and every 10 to 15 minutes during games. Display data
+only: no alert, EV, JARVIS or paper-trade path reads it, it carries no model number and no derived indicator (contract
+`docs/contracts/kalshi_prop_history_v1.md`; reviews `docs/reviews/kalshi_prop_history_sched_2026-11-17.md` and the adversary's
+`docs/reviews/adversary_kalshi_prop_history_2026-11-17.md`, whose findings are all addressed there).
+
+* **What runs**: `ops/nba_kalshi_prop_history.sh` (launchd `local.nba.kalshi-prop-history`, at :02, :17, :32 and :47 every
+  hour and at load, through `uv run sh`, never `/bin/sh`) runs `nice -n 10 uv run --no-sync python -m nba.kalshi.prop_history_job
+  run --date <ET date of now - 6 h>`. Decisions printed as one JSON line: `no_capture` (no `data/raw/live_<slate>/` yet: nothing
+  written, about a second), `built` (new pages read, `latest/` rewritten), `final` (the first slot at or after the last scheduled tip
+  + 4 h 10 min also writes `<slate>/` once, gzipped, and drops the working state), `done` (the night is already final). A slate whose
+  final slot was missed is finished by the next day's first run when it has tips (`--no-previous` turns that off); working states more
+  than 3 days older than the slate are deleted.
+* **Inputs, read in place, never written**: the live capture's write-once pages under `data/raw/live_<slate>/` (prop `/markets`
+  pages, trade prints, ESPN scoreboard, `manifest.jsonl` read from a saved offset) and the 15-minute snapshot's raw pages
+  `data/kalshi/raw/<UTC date>/*_<prop series>_open_<n>.json.gz` for the slate's UTC date and the days either side. **No database is
+  opened** (neither `nba.duckdb` nor `kalshi.duckdb`; the parser's imports load the duckdb module, no connection is made). The
+  snapshot writes pages in place under its run's start time, so a run is read only when its name time is 10 minutes old and none
+  of its pages has changed for 5 minutes (3 of 2,537 runs since 2026-10-20 wrote pages more than 600 s after their name time). No
+  request of any kind.
+* **Incremental, and how it stays equal to a full build**: each run parses only pages it has not read; their compact points are
+  appended per game under `data/derived/kalshi_prop_history/<slate>/` (about 90 MB at the end of a full night, deleted at
+  `final`). Payloads are rebuilt one game at a time. A page that does not parse is retried on later slots and given up (listed in
+  `unreadable_inputs`, reason on stderr in the log) only once its file has not changed for 30 minutes. A state that cannot be read
+  starts over at once. A page older than pages already applied needs a full re-read: while games can be on (until last tip + 150 min)
+  it is deferred (the run reports `rebuild_deferred`, the late page waits, other pages are applied), then done by the first slot after
+  that, and the final slot always does it before writing the night.
+* **Outputs** under `data/export/kalshi_prop_history/`: `latest/` (plain `index.json` plus one `<event code>.json` per game; each
+  file replaced atomically, the index last) and `<slate>/` (`index.json.gz` and `<event code>.json.gz`, written once by renaming a
+  complete `.<slate>.partial` directory; a leftover from an interrupted write is removed by the next attempt). Decompressed, the
+  night is byte-identical to `latest/` and to the one-shot `python -m nba.kalshi.prop_history ... --snapshot-raw data/kalshi/raw`
+  given the same pages, the same `built_at` and the same snapshot cut (the one-shot CLI stamps the current time and applies no
+  settle, so it matches only on a finished night's pages).
+* **Cost** (one measurement, the 2026-11-16 copy, 8 games, 2,340 markets, this Mac at load average 11 with other lanes running,
+  `nice -n 10`, `/usr/bin/time -l`): in-game slot with 15 minutes of new pages 5.1 to 6.7 s wall, 146 to 198 MB peak RSS; 1 h 45 min
+  of pages at once 6.6 s, 203 MB; first slot of a night (capture at 02:00Z plus a day and a half of snapshot pages) 24.7 s, 157 MB; a
+  full re-read in game (forced) 33.4 s, 194 MB; final slot 12.9 s, 186 MB. Earlier the same night on a quieter machine the in-game
+  slot was 3.5 to 4.9 s. The one-shot build: 8.5 s, 780 MB with a DB copy; 14.4 s, 559 MB from raw pages. **Budget**: in-game slot
+  under 10 s and 300 MB; a first slot or a full re-read under 60 s and 300 MB (a re-read is deferred out of game time). Disk: a
+  finished night is 3.2 MB gzipped (21 MB plain), about 0.5 GB a season; `latest/` holds one plain night (about 21 MB).
+* **Locks and skips**: its own `data/ops/kalshi_prop_history_lock` (mkdir; pid and process start time inside; a live owner is never
+  stolen; a dead or recycled pid, or a lock with no start time older than 30 minutes, is cleared and the clearing alerts). It
+  **skips** (exit 0, `kalshi-prop-history.skip.json` counts consecutive skips) while `data/ops/heavy.lock` or `data/ops/lock` is held
+  (it only looks at them, never takes or removes them), while its own lock is held, or when the data volume has under 5 GB free. The
+  4th consecutive skip appends an alert naming the cause, then once a day while it lasts; low disk alerts on its first skip.
+* **Files it writes** (all its own, besides the two directories above): `data/ops/heartbeat/kalshi-prop-history.json` (`start_ts`,
+  `end_ts`, `rc`, `detail` = the decision, `last_success_ts` moved only by a run that exited 0), `.../kalshi-prop-history.skip.json`,
+  `data/ops/kalshi_prop_history_<YYYYMMDD>.log`, `data/ops/launchd_kalshi-prop-history.{out,err}`, the lock, and appended lines in
+  `data/ops/ALERTS.md` (`[kalshi-prop-history] ...`, as every wrapper does).
+* **Watchdog** (`nba/ops/watchdog.py`, wired on this branch): `JobSpec("kalshi-prop-history", ..., "interval", grace 30 min,
+  interval 15 min, max_skips=4, optional=True)`: no start for 45 minutes (skips write no start) is `kalshi-prop-history:stale`, 4
+  consecutive skips `:skipped` with the reason, a non-zero exit `:rc`; `optional` keeps it silent until the job has left a heartbeat
+  or its label is loaded. `evaluate_prop_history` (every check) runs `nba.kalshi.prop_history_job.problem` for the current slate
+  (ET date of now - 6 h; tips from the schedule cache): the last run failed; between first tip and last tip + 4 h no successful run
+  for 40 minutes (`last_success_ts`), or the live set older than 40 minutes or of another slate; and, for that slate and the one
+  before, no final night 5 h 30 min after its last tip. An unreadable schedule is left to the game-day probe's own alert.
+* **Replay oracle**: outside its closure. Nothing in `nba/daily` imports `nba.kalshi.prop_history*`, the job writes no store the
+  daily pipeline reads, and the replay does not run it. The branch adds files under `ops/` and a job to `nba/ops/watchdog.py`
+  (existing watchdog tests pass unchanged), so the merge is Devin's go.
+* **Install** (Devin, after the merge to main; one line): `cp ops/launchd/local.nba.kalshi-prop-history.plist ~/Library/LaunchAgents/
+  && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist && launchctl kickstart -k
+  gui/$(id -u)/local.nba.kalshi-prop-history`. Check: `cat data/ops/heartbeat/kalshi-prop-history.json` (rc 0, a
+  `last_success_ts`) and, during games, `ls -la data/export/kalshi_prop_history/latest/`.
+* **Rollback**: `launchctl bootout gui/$(id -u)/local.nba.kalshi-prop-history && rm
+  ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist`; then, only if a run was killed hard, `rm -f
+  data/ops/kalshi_prop_history_lock/pid data/ops/kalshi_prop_history_lock/start; rmdir data/ops/kalshi_prop_history_lock`. Its data
+  can stay or go; nothing else reads it: `data/export/kalshi_prop_history/` (including any hidden `.<slate>.partial`),
+  `data/derived/kalshi_prop_history/`, `data/ops/heartbeat/kalshi-prop-history.json` and `.skip.json`,
+  `data/ops/kalshi_prop_history_*.log`, `data/ops/launchd_kalshi-prop-history.out` and `.err`. Delete the heartbeat file too, or the
+  watchdog keeps reporting the job stale (it is silent only with no heartbeat and the label not loaded). Code: `git revert` the merge.

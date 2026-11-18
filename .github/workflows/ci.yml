@@ -66,12 +66,12 @@ jobs:
 
   unit-full:
     # Full truth (same as `make test`): both pytest invocations + the 70% coverage ratchet.
-    # Nightly / manual only, and non-blocking: a slow or flaky full run never hides a green fast run.
+    # Nightly / manual only. It is NOT continue-on-error: a failing full run (or the coverage
+    # ratchet) turns the workflow red, so it cannot go unnoticed (adversary M2, 2026-11-17).
     name: unit-full
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
         with:
