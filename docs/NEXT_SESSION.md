@@ -5,7 +5,9 @@
 - **AVG November weights installed and recorded** (model id 0d2bdc21, October gate carried; possessions check (88, 88); install_check ok; `meta bundle` exit 0). 395.6 h late: rows 11-01 to the install stay stale.
 - The morning merge's live-path half was adversary-reviewed: SURVIVES (agent/adversary-morning-live c6570830).
 
-**Verify first on 11-18 (none of this has been seen yet):**
+**Verified 2026-11-18 12:22 CST (items 1 to 3 below all passed):** AVG rows with tipoff from 11-18 on: 1,832, all `stale_model` false on model 0d2bdc21 (read-only query); morning job 08:00 to 08:16, every step ok; pretip ran 09:20 and 10:20, predict ok; the 12:05 app export built first try (rc 0) and wrote `combo_2026-11-18.json` (12 games, 27 to 34 players each, four scripts) and `game_scripts_2026-11-18.json` beside the usual files; the watchdog said nothing about the prop history job. Loose end, not chased: the watchdog's "daily-pretip stale" and "daily-morning stale" lines fire before those jobs' first slots on some mornings (11-14, 11-15, 11-18), a false alarm that predates the merge.
+
+**The checks that were owed (kept for the record):**
 1. After the 07:20 CT pretip run: `data/ops/heartbeat/avg_shadow.json` shows `stale_model` false and month_block 2026-11.
 2. The morning export ran clean with the new combo stage: a `combo/` file for the 11-18 slate exists in the export and nothing else in the export changed shape. If the export fails, revert the merge first and diagnose second.
 3. The watchdog is quiet about the prop history job (it is not installed; its JobSpec is optional). An alert about it is a bug.
