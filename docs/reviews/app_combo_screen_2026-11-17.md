@@ -113,3 +113,26 @@ passes. Layering: 15 passed. Combo-specific: 24 API tests (`test_combo.py`), 28 
 0 violations in each (exit 0). `walk.sh` has no 1280 px width; 1180 is its widest desktop. Two earlier runs found real things that are fixed: the
 Error codes help page (Learn lens) listed my `combo_refused` text with price words (reworded), and one injected-failure run showed a single "blank page"
 on `record-guess` (market lens reload), which did not reproduce on the rerun and is not a combo route. Screenshots: see the hand-off message.
+
+## Polish pass (content first), later the same day
+
+- Page intro is one line (hidden under 600 px). Everything explanatory (pure probability, posted lines only, coverage "N of M games", lines left out,
+  definitions, bar explanation) is in one folded "How to read this" at the end of each tab (closed by default).
+- Four short tabs on one row (Scripts, Together, Target, Build); the game picker and the Model / History switch share one row; script choices are
+  3-line tiles in Simple (name, "34% tonight", exploratory) and the four-row table in Analyst (Model: script, tonight, status; History: script, 2023/24
+  shares, season, status). "What the model gives..." box and repeated heading are gone; the one sentence sits above the lists with a one-line drawn key.
+- Photos: the slot is now `Face`: the app's Avatar twice, plain initials-on-team-colour underneath and the remote headshot on top with a transparent
+  background. The blank squares were the headshot image's opaque background showing while the NBA image loaded (or in headless Chrome, never loaded).
+  Test: `bar.test.ts` ("a row whose photo cannot load shows initials"); the test environment has no DOM, so it inspects the Face's element tree and the CSS.
+- On `#/combo` (route-scoped, `data-route` on the shell): the first-visit intro card is not rendered (`App.tsx`), the health strip is hidden and the
+  data line is one truncated line (`combo.css`). The Learn gate's "Switch to Explore" sets the lens, goes to `#/combo`, scrolls to the top and shows the
+  first game with lines (checked in a browser).
+- Measured at 375 by 812, dark, fresh Chrome profile (first visit), fixture mode (the heaviest header: a 3-line replay banner is cut to one line): the
+  first "More likely" row starts at y = 595 (Simple) and 577 (Analyst); the app's fixed bottom tab bar begins at 742, so the whole first row is visible in
+  both, and in Analyst the second row is about 60% visible. Not met literally: two full Analyst rows. The page description is hidden under 600 px.
+- Export mode, real: scratch copy of `data/export/latest` (3 files, original untouched) plus `combo_2026-11-17.json`, API with `APP_EXPORT_DIR` on it:
+  `/api/health` mode `export`, `/api/combo` lists `2026-11-17`, `/api/combo/2026-11-17` served with the real clock, an absent night is the typed 404.
+  The screen on tonight's file (3 games tipped by the time of the last run, 1 with no posted lines) says, per game, exactly one sentence:
+  - tipped: "POR at MIN has tipped, so combo mode is closed for it: a chance is never shown next to a result."
+  - no lines: "CHA at LAL has no posted lines in the file yet, so there is nothing to show for it. Check back closer to tip-off."
+  Neither is an error panel; the picker marks each game "(tipped)" or "(no posted lines)". Build says "No posted lines for this game" when no open game has any.
