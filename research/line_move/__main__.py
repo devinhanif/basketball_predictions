@@ -59,9 +59,9 @@ def _nba_api_version() -> str:
         return "unknown"
 
 
-# The frozen rules read the alias table as it was at their freeze (spec.ALIASES_SHA256, commit 57164b8).
-# The live table has grown since (2026-11-17), so the default is the byte-identical pinned copy; the sha
-# check below still refuses any other bytes.
+# The frozen rules read the alias table as it was at their freeze (spec.ALIASES_SHA256, commit
+# 57164b8). The live table has grown since (2026-11-17), so the default is the byte-identical
+# pinned copy; the sha check below still refuses any other bytes.
 PINNED_ALIASES_FILE = "kalshi_aliases_t510_pin_57164b8.yaml"
 
 
