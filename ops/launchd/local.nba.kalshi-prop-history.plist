@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Kalshi prop price history build (docs/DAILY_PIPELINE.md, "Kalshi prop price history job"). NOT loaded by anything in the repo: the maintainer installs it by hand, after agent/market-prop-candles-sched is merged to main.
+    install:    cp ops/launchd/local.nba.kalshi-prop-history.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist && launchctl kickstart -k gui/$(id -u)/local.nba.kalshi-prop-history
+    uninstall:  launchctl bootout gui/$(id -u)/local.nba.kalshi-prop-history && rm ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist
+  Four slots an hour, :02 :17 :32 :47 (minutes only, so the launchd clock's timezone does not matter): clear of the pretip runs (:20, :50), the app
+  export (:05, :35) and the lineups ticks' T-30 work. Most slots are a one-second no-op (no capture for the slate yet, or the night is final).
+  While the live capture runs (first tip - 2 h to last tip + 4 h) a slot reads only the new pages (2026-11-16 copy, Mac at load 11: 5 to 7 s,
+  146 to 203 MB); the first slot after last tip + 4 h 10 min writes the finished night once, gzipped. Skips (heavy.lock, daily lock, under
+  5 GB free, own lock held) alert on the 4th in a row. Watched by nba.ops.watchdog (job kalshi-prop-history, optional until installed).
+  Display data: no alert, EV or JARVIS path reads it.
+  Launched through uv, never /bin/sh: TCC blocks sh from reading ~/Downloads.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.nba.kalshi-prop-history</string>
+  <key>WorkingDirectory</key><string>/Users/devin/Downloads/nba-prediction</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/uv</string><string>run</string><string>--no-sync</string>
+    <string>sh</string><string>/Users/devin/Downloads/nba-prediction/ops/nba_kalshi_prop_history.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Minute</key><integer>2</integer></dict>
+    <dict><key>Minute</key><integer>17</integer></dict>
+    <dict><key>Minute</key><integer>32</integer></dict>
+    <dict><key>Minute</key><integer>47</integer></dict>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>Nice</key><integer>10</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_kalshi-prop-history.out</string>
+  <key>StandardErrorPath</key><string>/Users/devin/Downloads/nba-prediction/data/ops/launchd_kalshi-prop-history.err</string>
+</dict>
+</plist>

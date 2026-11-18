@@ -141,6 +141,21 @@ JOBS: tuple[JobSpec, ...] = (
         optional=True,
     ),
     JobSpec(
+        # the Kalshi prop price history build (nba.kalshi.prop_history_job, ops/launchd/
+        # local.nba.kalshi-prop-history.plist): slots :02 :17 :32 :47 every hour; most are a
+        # one-second no-op. Judged as an interval job (no start for 15 + 30 min = three missed
+        # slots, skips included: a skip writes no start), since a slot grace longer than the
+        # 15-minute spacing could never fire. Optional: silent until installed. Its game-day
+        # checks (last success, live set age, final set) are evaluate_prop_history.
+        "kalshi-prop-history",
+        "local.nba.kalshi-prop-history",
+        "interval",
+        timedelta(minutes=30),
+        timedelta(minutes=15),
+        max_skips=4,
+        optional=True,
+    ),
+    JobSpec(
         "kalshi-snapshot",
         "local.nba.kalshi-snapshot",
         "interval",
@@ -747,6 +762,51 @@ def pulls_problems_default(ops_dir: Path, now: datetime, tips: dict[str, datetim
     return pulls_problems(load_pulls_config(), ops_dir, now, tips, check_pinnacle=hourly)
 
 
+PROP_HISTORY_JOB = "kalshi-prop-history"
+
+
+def evaluate_prop_history(
+    now: datetime,
+    ops_dir: Path,
+    *,
+    data_dir: Path | None = None,
+    tips_fn: Callable[[Path, date], dict[str, datetime]] = todays_tips,
+) -> list[Alert]:
+    """The prop price history job's own checks (``nba.kalshi.prop_history_job.problem``) for its
+    current slate (ET date of now - 6 h, the launcher's rule) and whether the previous slate got
+    its final set. Silent until the job has left a heartbeat (never installed: nothing)."""
+    from nba.kalshi import prop_history_job as pj
+
+    hb_dir = ops_dir / "heartbeat"
+    hb = read_heartbeat(hb_dir, PROP_HISTORY_JOB)
+    if hb is None:
+        return []
+    data = data_dir if data_dir is not None else ops_dir.parent
+    export = data / "export" / "kalshi_prop_history"
+    slate = (now.astimezone(ET) - timedelta(hours=6)).date()
+    alerts: list[Alert] = []
+    try:
+        latest = json.loads((export / "latest" / "index.json").read_text())
+    except (OSError, ValueError):
+        latest = None
+    for day in (slate, slate - timedelta(days=1)):
+        try:
+            tips = list(tips_fn(data, day).values())
+        except Exception:
+            # an unreadable schedule is the game-day probe's alert (gameday:<date>:probe); the
+            # heartbeat checks above (JobSpec) still run, so this is not silence
+            continue
+        final = pj.read_final_index(export, day)
+        why = (
+            pj.problem(now, hb, latest, tips, day, final)
+            if day == slate
+            else pj.final_overdue(now, tips, day, final)
+        )
+        if why:
+            alerts.append(Alert(f"{PROP_HISTORY_JOB}:{day}", why))
+    return alerts
+
+
 def live_capture_problem(
     ops_dir: Path, now: datetime, tips: Sequence[datetime], day: date
 ) -> str | None:
@@ -845,6 +905,12 @@ def check(
     text = run_launchctl() if launchctl_text is None else launchctl_text
     kl = kalshi_log if kalshi_log is not None else ops_dir.parent / "kalshi" / "snapshot.log"
     current = evaluate(now, ops_dir / "heartbeat", text, first_seen, kl, tz=schedule_tz(ops_dir))
+    try:
+        current += evaluate_prop_history(now, ops_dir)
+    except Exception as e:  # display data: its check must never take the rest down
+        current.append(
+            Alert(f"{PROP_HISTORY_JOB}:probe-crash", f"prop history check crashed: {e!r}")
+        )
     try:
         current += (gameday or evaluate_game_day)(now, ops_dir)
     except Exception as e:  # the probe must never take the rest of the check down
