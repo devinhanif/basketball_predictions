@@ -131,3 +131,10 @@ Web (`liveCard.ts`, `LiveCardParts.tsx`, `useLiveCard.ts`, `liveApi.ts`, `liveCa
 ## Shared files I wanted but did not change
 
 None required. `api.ts` was left alone (the live calls live in `liveApi.ts`). Optional: add `liveApi` calls to the artifact bake list is not needed (live is not baked).
+
+## Check results (tip 295130d3 plus this note)
+
+`nice app/scripts/check.sh --bake`: API ruff, format, mypy clean (106 files); pytest 632 passed, 1 skipped; fixtures ruff; web eslint, tsc clean; vitest 606 passed
+(58 files); build; artifact bake; flag parity passed. `nice app/scripts/check.sh --betting`: same counts, all pass. `tests/test_layering.py`: 15 passed.
+Widths walk (`WALK_API_PORT=8341 WALK_WEB_PORT=5341 app/scripts/walk.sh --widths`, 390 injected, 360, 768, 1180): 0 violations.
+An earlier full run failed once on `test_route_contracts` because the new routes were not in `tests/hostile_gen.py`; fixed and re-run.
