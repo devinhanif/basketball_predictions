@@ -1,3 +1,21 @@
+# UPDATE 2026-11-18 01:35 CST (read this first; it overrides items 2, 3 and 4 and queue steps 1 and 2 of the block below)
+
+**Done overnight:**
+- **Merged to main (c4b1ef94):** agent/integration-2026-11-18 = the 47 Kalshi aliases + the game-scripts export stage + the prop price history job + two review fixes. Replay oracle IDENTICAL 89889f6d at the tested tip 9d7c028b (holdout log rows c1a975e1, ccc0e66f); 1,873 tests, ruff 0, mypy clean on that tip; main differs from it only in three docs files. Merged after the last game was final. Revert: `git revert -m 1 c4b1ef94`.
+- **AVG November weights installed and recorded** (model id 0d2bdc21, October gate carried; possessions check (88, 88); install_check ok; `meta bundle` exit 0). 395.6 h late: rows 11-01 to the install stay stale.
+- The morning merge's live-path half was adversary-reviewed: SURVIVES (agent/adversary-morning-live c6570830).
+
+**Verify first on 11-18 (none of this has been seen yet):**
+1. After the 07:20 CT pretip run: `data/ops/heartbeat/avg_shadow.json` shows `stale_model` false and month_block 2026-11.
+2. The morning export ran clean with the new combo stage: a `combo/` file for the 11-18 slate exists in the export and nothing else in the export changed shape. If the export fails, revert the merge first and diagnose second.
+3. The watchdog is quiet about the prop history job (it is not installed; its JobSpec is optional). An alert about it is a bug.
+4. The app API on :8000 was NOT restarted: the merge changed nothing under app/.
+
+**Devin's step, when he wants prop price history collected** (ideally after a short adversary re-check of the fix round, which has not been done):
+`cp ops/launchd/local.nba.kalshi-prop-history.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.nba.kalshi-prop-history.plist && launchctl kickstart -k gui/$(id -u)/local.nba.kalshi-prop-history`
+
+**Next in the queue:** step 3 of the block below (combo screen: adversary, merge; live card: verify the play-by-play fix through a real tunnel, review, merge), then the 4a line-pairing change (now unblocked; must land before GAME_SCRIPTS_FORWARD freezes), then step 5. Rerun the alias settlement check for the 18 block-B names once the 11-17 box scores are in. Scratch to delete (Devin): `~/Downloads/nba-scratch-1117`, `~/Downloads/nba-scratch-1118` (about 6 GB each). Retro: docs/reviews/retro_2026-11-18.md.
+
 # NEXT SESSION, resume here (written 2026-11-17 21:40 CST; this session ran 11-16 18:45 -> 11-17 night with many compactions: START A FRESH SESSION)
 
 **Phone summary for Devin:**
