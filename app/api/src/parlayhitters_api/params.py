@@ -66,6 +66,12 @@ async def _top_parlays_date(date: str) -> str:
     return date
 
 
+async def _combo_date(date: str) -> str:
+    if not is_date(date):
+        raise ApiError("not_a_date", "no combo file for that date", field="date")
+    return date
+
+
 async def _live_date(date: str) -> str:
     if not is_date(date):
         raise ApiError("not_a_date", "not a date", field="date")
@@ -92,6 +98,7 @@ async def _stat(stat: str) -> str:
 
 SlateDate = Annotated[str, Depends(_slate_date)]
 TopParlaysDate = Annotated[str, Depends(_top_parlays_date)]
+ComboDate = Annotated[str, Depends(_combo_date)]
 LiveDate = Annotated[str, Depends(_live_date)]
 GameId = Annotated[str, Depends(_game_id)]
 EventId = Annotated[str, Depends(_event_id)]

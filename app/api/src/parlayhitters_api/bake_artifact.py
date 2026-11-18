@@ -126,6 +126,8 @@ def bake(
     for d in want:
         slate = b.put_simple(f"/api/slates/{d}")["b"]
         b.put_simple(f"/api/top-parlays/{d}")
+        # Combo mode: the night's stored file (a baked 404 is the page's empty state).
+        b.put_group(f"c:{d}", f"/api/combo/{d}")
         results = b.fetch(f"/api/slates/{d}/results")
         night = f"d:{d}"
         b.groups.setdefault(night, {})[f"/api/slates/{d}/results"] = results
