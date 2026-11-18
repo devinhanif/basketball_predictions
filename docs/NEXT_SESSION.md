@@ -1,3 +1,39 @@
+# NEXT SESSION, resume here (written 2026-11-17 21:40 CST; this session ran 11-16 18:45 -> 11-17 night with many compactions: START A FRESH SESSION)
+
+**Phone summary for Devin:**
+1. **On main today:** the overnight app run + Jarvis look + betting tools (switch OFF) merged 61e3a741; CI green on Linux after 04763a5b; agents market / steward / archivist on Opus; decisions through 109f8c1d in docs/DECISIONS.md (holdout: NO rollover; two-stage testing; your picks on the open list and the seven older options; app look = terminal base, square bars, photos everywhere).
+2. **AVG November weights:** Colab run done (model id 0d2bdc21...), bundle assembled at data/avg_shadow/incoming/2026-11. Install was scheduled for ~23:35 CT 11-17 after the possessions check (expect (88, 88)). CHECK whether it happened: `ls data/avg_shadow/bundles/` should show 2026-11, and a DECISIONS row should name the model id. If not: steps are in agent/modeler-retrain-nov docs/reviews/retrain_survey_2026-11-17.md section 2.3 (check, install, install_check, meta bundle outside the game window).
+3. **Ready to merge after the replay oracle (your go given 11-17 20:08):** agent/market-kalshi-aliases (47 names, adversary 47/47, tip ec9f1c01). CHECK whether the oracle ran (HOLDOUT_ACCESS_LOG row dated 11-17/18) and whether it merged.
+4. **In fix rounds after adversary reviews (WOUNDED, no blockers):** agent/market-game-scripts-2 (M1-M3: app view does NOT turn on at merge; drop realised-script season totals; guard the history season) and agent/market-prop-candles-sched (MJ1 silent stall, MJ2 partial dirs/disk guard, gzip nights, watchdog wiring). Each needs: fixes verified, oracle (game-scripts; prop job is outside the closure), merge; then your install command for the prop job (in its docs/DAILY_PIPELINE.md).
+5. **App screens in progress:** agent/app-combo-screen ("If the game goes like this": built, polish pass running: content on the first screen, Explore button lands on it, real-export check) and agent/app-live-card (play-by-play fix first: the page waited on an SSE stream that Cloudflare quick tunnels hold; then the progress-and-pace board; live chance reader built OFF). Neither is reviewed or merged.
+6. **Yours to decide:** (a) is ONE pre-logged touch of season 2025 a clean confirmation for a never-evaluated model fit on seasons <= 2024 (needed by the information program; else the forward look is primary); (b) add the fairer baseline A1g to the in-game rule (recommended yes); (c) LADDER_CAL 2025 touch; (d) paid pull of old lines for calibration-by-time (default no, ~216k credits); (e) install the prop history job after its merge; (f) rclone's shared Google client id is being retired in 2026: set up your own before the December refit.
+
+**State of every branch from 11-17 (all pushed unless noted; nothing below is merged unless item 3 says so):**
+| Branch | What | State |
+|---|---|---|
+| agent/market-kalshi-aliases | 47 Kalshi name aliases + T510 pinned alias copy passed explicitly | adversary SURVIVES after B1 fix; needs oracle IDENTICAL then merge |
+| agent/market-game-scripts-2 | nightly combo + game-scripts export stage (one producer), JARVIS snapshot v2 | adversary WOUNDED; fixes in progress (review on agent/adversary-game-scripts-2) |
+| agent/market-prop-candles-sched | Kalshi prop price history, 15-min job, launcher + plist (not installed) | adversary WOUNDED; fixes in progress (review on agent/adversary-prop-history) |
+| agent/app-combo-screen | combo screen, API route, TS port vs golden vectors | polish pass in progress; needs adversary then merge (app only) |
+| agent/app-live-card | PBP fix, live score card step 1, v2 reader OFF | in progress (may be unpushed: check the worktree nba-wt-live-card) |
+| agent/modeler-live-model | feed-delay measurement, INGAME_LINE_CAL_FWD draft, reading log | pre-freeze review NOT_READY (agent/adversary-ingame-rule 7ed9b097): 4 blockers; needs rev 1 + a heavy fit off a game night; order: merge game-scripts-2 -> freeze -> DECISIONS row superseding L1375 -> app v2 reader |
+| agent/modeler-info-program | INFO_PROGRAM_2026_27 draft (8 sources, one family, two stages) | pre-freeze NOT_READY (agent/adversary-info-program eda4c16a): 5 blockers; RETURN_RAMP not freezable vs its own comparator; rev 1 not written |
+| agent/modeler-info-harness | backtest machinery | barely started, stopped; build member-independent machinery only (unpushed worktree nba-wt-info-harness) |
+| agent/modeler-calibration-program | audit + 4 drafts (serving checks, by-time, ladder, P(play)), rev 1 two-stage | pre-freeze review stopped mid-read (agent/adversary-calibration-drafts, may be unpushed) |
+| agent/modeler-retrain-nov | retraining survey | done; AVG steps in section 2.3; Dec gate per rule text is Devin's choice (10b), due 12-01 |
+| agent/archivist-decisions-review | review of DECISIONS.md, 15 flagged rows | done; several closed by 11-17 rows; open: T510 scoring (main session), frozen rules with no scorer, in-game logs, odds key check |
+| agent/market-combo-night, agent/market-prop-candles | superseded by game-scripts-2 and prop-candles-sched | keep for history |
+
+**Queue, in order (do not start everything at once; Devin asked to be careful with usage):**
+1. Verify items 2 and 3 above happened; finish them if not (outside game windows).
+2. Land the fix rounds of item 4 (adversary re-check where a fix touched something else), oracle for game-scripts-2, merges.
+3. Finish, review (adversary) and merge the combo screen, then the live card. Then put the combo preview on a REAL export for the day's slate (build the combo file from the morning export with `python -m nba.parlay.combo_night` on a copy) and post the link to Discord.
+4. 4a line-pairing change in nba/export (pair with the newest line, show its time): AFTER game-scripts-2 merges and BEFORE GAME_SCRIPTS_FORWARD freezes; use the narrow pin the adversary proposed.
+5. The "thorough review of everything" Devin asked for: adversary on the app side of 61e3a741; the read-only "make all user-facing data intuitive" walk on real data (ranked list to Devin before changes), then apply it with the chosen look; an integration branch + full checks + CI by workflow_dispatch; one page docs/reviews/review_of_everything_2026-11-18.md. The live-path half of the morning-merge review was running at hand-off (worktree nba-wt-adv-morning-live).
+6. Research (modeler, Opus; one lane at a time): INFO_PROGRAM rev 1; INGAME_LINE_CAL_FWD rev 1 + fit; calibration drafts review; AVG December gate per rule text (holdout row needed before the 2025-bearing rebuild: ask Devin first); MINUTES_DECISION run; QUESTIONABLE pooled gate; REPORTER_LEAD_TRIAL rule (50 dollars total); LATE_REPORT_FORWARD freeze; score T510 on a DB copy.
+
+**Non-obvious, learned 11-17:** `git push` over HTTP/2 hung 31 min; use `git -c http.version=HTTP/1.1 push`. The frozen T510 scorer hashes its own code: never edit research/line_move/*.py, pass `--aliases configs/kalshi_aliases_t510_pin_57164b8.yaml`. The calibrated ladder off the posted line is flat (56% for 18+, 44% for 32+): show main lines only, no curves. Cloudflare quick tunnels hold SSE streams. Season counts ("k of n") sit on a tab with no model chance until the LINE_CAL_LIVE look (~12-03 to 12-12). Our live feed is ~67 s behind the game and the Kalshi quote usually moves first. Retro for this session is still owed (docs/reviews/retro_2026-11-18.md).
+
 # NEXT SESSION, resume here (written 2026-11-10 early morning CST; overnight 11-09 -> 11-10; START A FRESH SESSION)
 
 **Phone summary for Devin:**
