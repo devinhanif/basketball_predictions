@@ -50,9 +50,10 @@ def _isolate_schedule_cache(
 # (details in docs/handoff_2026-11-17/lane_ci.md). A function prefix also matches longer names.
 SLOW_PREFIXES: tuple[str, ...] = (
     # whole files: module fixtures / most tests over ~10 s (measured 2026-11-16, 8 GB Mac, nice 15)
-    "tests/eval/test_avg_shadow_live.py",
-    "tests/eval/test_full_shadow_live.py",
-    "tests/daily/test_checkpoint.py",
+    # NOT here on purpose (adversary M2, 2026-11-17): tests/daily/test_checkpoint.py,
+    # tests/eval/test_avg_shadow_live.py and tests/eval/test_full_shadow_live.py are the only
+    # tests of the nightly checkpoint step and of the two frozen shadow-rule readers, so they
+    # stay in the blocking fast set although they take about a minute together.
     "tests/research/lineups_known_rebase/test_lineups_known_rebase.py",
     "tests/research/seq_learning_curve/test_eval.py",
     "tests/research/seq_learning_curve_2/test_eval.py",

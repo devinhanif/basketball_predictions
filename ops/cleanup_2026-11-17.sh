@@ -74,6 +74,13 @@ br=""
       elif git merge-base --is-ancestor "$br" main 2>/dev/null; then
         if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null | head -n 1)" ]; then
           printf '\n[review] %s (%s): merged but DIRTY, size %s, skipped\n' "$wt" "$br" "$(size_of "$wt")"
+        elif [ -z "$(find "$wt" -maxdepth 0 -mtime +1 2>/dev/null)" ]; then
+          # A lane cut from main with no commit yet is also an ancestor of main: never offer a
+          # worktree touched in the last 24 h (adversary M1, 2026-11-17).
+          printf '\n[review] %s (%s): no commits beyond main but touched in the last 24 h, skipped (may be an active lane)\n' "$wt" "$br"
+        elif [ -n "$(git -C "$wt" status --porcelain --ignored 2>/dev/null | grep '^!!' | grep -v -E '(\.venv|node_modules|__pycache__|\.pytest_cache|\.ruff_cache|\.mypy_cache|/dist/|\.egg-info|\.DS_Store)' | head -n 1)" ]; then
+          # `git worktree remove` deletes ignored files without listing them (models, stores).
+          printf '\n[review] %s (%s): merged but holds ignored files that are not caches, size %s, skipped (list: git -C %s status --ignored)\n' "$wt" "$br" "$(size_of "$wt")" "$wt"
         else
           item "merged worktree $wt ($br)" "$wt" git worktree remove -- "$wt"
           item "merged branch $br" - git branch -d -- "$br"
@@ -92,7 +99,11 @@ echo
 echo "== 3. data_aside directories (each holds only an empty raw/ at the time of writing) =="
 for d in "$ROOT"/.claude/worktrees/data_aside_* /Users/devin/Downloads/nba-wt-morning-advisory_data_aside /Users/devin/Downloads/scratchpad_data_aside_36311; do
   [ -e "$d" ] || continue
-  item "aside dir (check it holds no real data first: ls -laR $d)" "$d" rm -r -- "$d"
+  if [ -n "$(find "$d" -type f 2>/dev/null | head -n 1)" ]; then
+    printf '\n[review] %s : aside dir holds files, no command (look first: ls -laR %s)\n' "$d" "$d"
+    continue
+  fi
+  item "aside dir (holds no files)" "$d" rm -r -- "$d"
 done
 
 # ---- 4. stale environments and artifacts --------------------------------------------------------
@@ -100,8 +111,9 @@ echo
 echo "== 4. environments and stale artifacts =="
 item "old venv .venv-1 (Python-pin tests failed under it; the live env is .venv)" "$ROOT/.venv-1" rm -r -- "$ROOT/.venv-1"
 item "stale setuptools egg-info (the editable install uses dist-info + a finder; gitignored)" "$ROOT/nba_prediction.egg-info" rm -r -- "$ROOT/nba_prediction.egg-info"
-# .env.save may be the only copy of a key: confirm it duplicates .env before running this one.
-item "REVIEW FIRST (not read by this lane): .env.save, a copy of the secrets file" "$ROOT/.env.save" rm -- "$ROOT/.env.save"
+# .env.save may be the only copy of a key. This script never deletes it, even with --really
+# (adversary M1, 2026-11-17): compare it with .env by hand, then remove it yourself.
+[ -e "$ROOT/.env.save" ] && printf '\n[review] %s : a copy of the secrets file, no command (it may be the only copy of a key)\n' "$ROOT/.env.save"
 
 # ---- 5. logs --------------------------------------------------------------------------------------
 echo
