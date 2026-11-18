@@ -170,7 +170,7 @@
    "side": "api",
    "title": "The combo file failed its checks",
    "what": "The file exists but was not served.",
-   "why": "It did not match the combo contract, or it carried a price, fee, stake or expected value, so it was refused rather than shown.",
+   "why": "It did not match the combo contract, so it was refused rather than shown.",
    "todo": "Rebuild the combo file."
   },
   {
