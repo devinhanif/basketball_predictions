@@ -12,9 +12,20 @@ failure here is a manifest note, never a failed export), from the rows the expor
   UNCONDITIONAL probability.
 
 Inputs are the production (``props_context_residual``) rows only, as ``line_cal`` uses; the calibrated
-grid at the main line equals ``line_cal.p_over_cal``. Nothing is refit; no network; no credential.
-The game model is ``data/parlay/joint_model.json`` (five numbers fitted on seasons <= 2024) and its
-as-of total feature is built from the live season's games only (season 2025 is never read here).
+grid at the main line equals ``line_cal.p_over_cal`` (checked: ``combo_night.validate_payload`` runs on
+every payload before it is written, and a payload with an error is not written). Nothing is refit; no
+network; no credential. The game model is ``data/parlay/joint_model.json`` (five numbers fitted on
+seasons <= 2024) and its as-of total feature is built from the live season's games only
+(``history_rows``, the ``games`` table; season 2025 is never read here). That ``mu_t`` is the number
+GAME_SCRIPTS_FORWARD scores.
+
+This is the ONE producer of ``combo_<night>.json``. ``nba.parlay.combo_night`` is its offline rebuild
+command (from a copy of ``export.duckdb``) and calls ``build`` below; the season-2026 script history
+(``hist``) is ``nba.parlay.combo_hist``.
+
+Known-at: a game block uses rows stamped before its tip (and, offline, at or before ``asof``); the
+block's ``made_at`` is the newest stamp of every input it used (prop rows, the win row, P(plays) rows),
+and a main line is kept only if its pair is stamped at or before that ``made_at``.
 """
 
 from __future__ import annotations
@@ -33,6 +44,7 @@ import numpy as np
 from nba.export import rung_cal_fields as rcf
 from nba.parlay import combo as C
 from nba.parlay import combo_build as cb
+from nba.parlay import combo_hist as ch
 from nba.parlay import game_scripts as GS
 from nba.parlay import line_cal as lc
 from nba.parlay import top_source as ts
@@ -41,6 +53,9 @@ log = logging.getLogger(__name__)
 
 SCHEMA = "game_scripts_v1"
 COMBO_PARAMS = Path(__file__).resolve().parents[1] / "parlay" / "combo_params_v1.json"
+COMBO_EVAL = Path(__file__).resolve().parents[1] / "parlay" / "combo_eval.py"
+GRID_N = 199  # the production grid resolution; other resolutions are used as stored and counted
+HISTORY_GAMES = "games table (combo_stage.history_rows)"
 GAME_MODEL = Path(__file__).resolve().parents[2] / "data" / "parlay" / "joint_model.json"
 LOCK_FROM = date(
     2026, 10, 30
@@ -67,6 +82,9 @@ class StageResult:
     scripts: dict[str, Any] | None
     info: dict[str, Any]
     notes: list[str] = field(default_factory=list)
+    #: (game, player, stat) -> the export's ``line_cal.p_over_cal`` for every exported main line (what
+    #: the validator compared the calibrated grid against)
+    expected: dict[tuple[str, int, str], float | None] = field(default_factory=dict)
 
 
 def absent(reason: str, **extra: Any) -> StageResult:
@@ -77,53 +95,72 @@ def _iso_z(ts: datetime) -> str:
     return ts.replace(tzinfo=None).isoformat(timespec="seconds") + "Z"
 
 
-def load_shared(path: Path, cal: lc.CalMap, code_version: str | None) -> dict[str, Any]:
-    d = json.loads(path.read_text())
-    prov = {
+def _sha8(b: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha256(b).hexdigest()[:8]
+
+
+def provenance(
+    cal: lc.CalMap, params: Mapping[str, Any], params_bytes: bytes, code_version: str | None
+) -> dict[str, Any]:
+    """The contract's provenance block (combo_export_v1 section 2): ``combo_params_sha8`` is the sha of
+    the params FILE (the pin GAME_SCRIPTS_FORWARD checks), ``rule_sha8`` the sha of ``combo_eval.py``'s
+    docstring (the evaluation rule), ``rule_commit`` the commit that produced the params."""
+    import ast
+
+    doc = ast.get_docstring(ast.parse(COMBO_EVAL.read_text()), clean=False) or ""
+    return {
         "map": lc.RULE,
         "map_sha8": str(cal.meta.get("map_sha256", ""))[:8],
         "fit_through": str(cal.meta.get("fit_through", "")),
-        "corr_fit_seasons": d["corr_fit_seasons"],
-        "corr_n_games": d["n_games_corr"],
-        "combo_params_sha8": str(d["sha256"])[:8],
-        "rule_commit": d["eval_rule_commit"],
+        "corr_fit_seasons": params["corr_fit_seasons"],
+        "corr_n_games": params["n_games_corr"],
+        "combo_params_sha8": _sha8(params_bytes),
+        "rule_sha8": _sha8(doc.encode()),
+        "rule_commit": params["eval_rule_commit"],
         "code_version": code_version,
     }
+
+
+def load_shared(path: Path, cal: lc.CalMap, code_version: str | None) -> dict[str, Any]:
+    raw = path.read_bytes()
+    d = json.loads(raw)
     return cb.build_shared(
-        d["corr"], d["script_params"], d["script_status"], prov, d["definitions"]
-    )
+        d["corr"], d["script_params"], d["script_status"], provenance(cal, d, raw, code_version),
+        d["definitions"],
+    )  # fmt: skip
 
 
-def _win_p(win_probs: Sequence[Mapping[str, Any]]) -> dict[str, tuple[float, str]]:
-    """game_id -> (p_home, model): the production win row (injury-Elo, else MOV-Elo), newest pre-tip."""
-    best: dict[str, tuple[tuple[int, datetime, str], float, str]] = {}
+def _pretip(
+    rows: Sequence[Mapping[str, Any]], tips: Mapping[str, datetime], asof: datetime | None
+) -> list[Mapping[str, Any]]:
+    """Rows stamped before their game's tip and, when ``asof`` is given (the offline rebuild), at or
+    before it. The export's reader already drops post-tip rows; this repeats it where the rows are used."""
+    out: list[Mapping[str, Any]] = []
+    for r in rows:
+        tip = r.get("tipoff") or tips.get(str(r["game_id"]))
+        made = r.get("made_at")
+        if tip is None or made is None or not made < tip:
+            continue
+        if asof is not None and made > asof:
+            continue
+        out.append(r)
+    return out
+
+
+def _win_p(win_probs: Sequence[Mapping[str, Any]]) -> dict[str, tuple[float, str, datetime]]:
+    """game_id -> (p_home, model, made_at): the production win row (injury-Elo, else MOV-Elo), newest
+    pre-tip (GAME_SCRIPTS_FORWARD rule line 1 takes the same injury-Elo row)."""
+    best: dict[str, tuple[tuple[int, datetime, str], float, str, datetime]] = {}
     for w in win_probs:
         if w.get("comparison_only") or w.get("p_home") is None or w["model_name"] not in WIN_MODELS:
             continue
         key = (-WIN_MODELS.index(w["model_name"]), w["made_at"], str(w["run_id"]))
         g = str(w["game_id"])
         if g not in best or key > best[g][0]:
-            best[g] = (key, float(w["p_home"]), str(w["model_name"]))
-    return {g: (v[1], v[2]) for g, v in best.items()}
-
-
-def _hist_frame(rows: Sequence[Sequence[Any]]) -> Any:
-    import polars as pl
-
-    return pl.DataFrame(
-        {
-            "game_id": [str(r[0]) for r in rows],
-            "game_date": [r[1] for r in rows],
-            "home_team": [int(r[2]) for r in rows],
-            "away_team": [int(r[3]) for r in rows],
-            "home_pts": [float(r[4]) for r in rows],
-            "away_pts": [float(r[5]) for r in rows],
-        },
-        schema={
-            "game_id": pl.Utf8, "game_date": pl.Date, "home_team": pl.Int64,
-            "away_team": pl.Int64, "home_pts": pl.Float64, "away_pts": pl.Float64,
-        },
-    )  # fmt: skip
+            best[g] = (key, float(w["p_home"]), str(w["model_name"]), w["made_at"])
+    return {g: (v[1], v[2], v[3]) for g, v in best.items()}
 
 
 def history_rows(src: Any, day: date, season: int) -> list[tuple[Any, ...]]:
@@ -139,29 +176,44 @@ def history_rows(src: Any, day: date, season: int) -> list[tuple[Any, ...]]:
     )
 
 
-def _player_inputs(
+def calibrated(
     prod: Mapping[tuple[str, int, str], Mapping[str, Any]],
-) -> dict[str, dict[str, Any]]:
-    """Per stat: raw survival matrix, median, spread, starter rate, keys. Rows missing an input are
-    counted, never guessed."""
-    out: dict[str, dict[str, Any]] = {
-        s: {"keys": [], "raw": [], "med": [], "spr": [], "st10": []} for s in STATS
-    }
+    cal: lc.CalMap,
+    reasons: dict[str, dict[str, int]],
+) -> dict[tuple[str, int, str], tuple[np.ndarray, np.ndarray, tuple[int, int], float]]:
+    """key -> (calibrated survival row, raw row, (cal_lo, cal_hi), starter rate). Rows are calibrated in
+    groups of equal grid length, so a row's rungs are its own (no zero padding from another player's
+    longer grid). The raw survival is ``counts / n`` with the row's OWN ``n`` (as ``line_cal`` computes
+    ``p_over``), so a 10,000-sample row is used as stored and counted in ``reasons``. A row missing an
+    input is counted per game, never guessed."""
+    groups: dict[tuple[str, int], list[tuple[Any, ...]]] = defaultdict(list)
     for key, row in sorted(prod.items()):
-        game, pid, stat = key
-        if stat not in out:
+        game, _pid, stat = key
+        if stat not in STATS:
             continue
         counts, n = row.get("p_ge_full_counts") or [], int(row.get("p_ge_full_n") or 0)
-        sr = rcf._starter_rate(dict(row))
-        qs = ts.quartiles({"pred": _pred(row)})
-        if not counts or not n or sr is None or qs is None:
+        if not len(counts) or not n:
+            reasons[game]["no_survival_grid"] += 1
             continue
-        a = out[stat]
-        a["keys"].append(key)
-        a["raw"].append(np.asarray(counts, dtype=float) / float(n))
-        a["med"].append(qs[1])
-        a["spr"].append((qs[2] - qs[0]) / lc.IQR_TO_SD)
-        a["st10"].append(sr)
+        sr = rcf._starter_rate(dict(row))
+        if sr is None:
+            reasons[game]["no_starter_rate"] += 1
+            continue
+        qs = ts.quartiles({"pred": _pred(row)})
+        if qs is None:
+            reasons[game]["no_quartiles"] += 1
+            continue
+        if n != GRID_N:
+            reasons[game][f"grid_n_{n}_used"] += 1
+        raw = np.asarray(counts, dtype=float) / float(n)
+        groups[(stat, len(raw))].append((key, raw, qs[1], (qs[2] - qs[0]) / lc.IQR_TO_SD, sr))
+    out: dict[tuple[str, int, str], tuple[np.ndarray, np.ndarray, tuple[int, int], float]] = {}
+    for (stat, _k_len), items in sorted(groups.items()):
+        raw_m = np.vstack([it[1] for it in items])
+        med, spr, st10 = (np.asarray([it[j] for it in items], dtype=float) for j in (2, 3, 4))
+        surv, lo, hi = cb.calibrate_surv_banded(cal, stat, raw_m, med, spr, st10)
+        for i, it in enumerate(items):
+            out[it[0]] = (surv[i], raw_m[i], (int(lo[i]), int(hi[i])), float(st10[i]))
     return out
 
 
@@ -171,26 +223,7 @@ def _pred(row: Mapping[str, Any]) -> dict[str, Any]:
     return p(dict(row))
 
 
-def calibrated(
-    inputs: dict[str, dict[str, Any]], cal: lc.CalMap
-) -> dict[tuple[str, int, str], tuple[np.ndarray, np.ndarray, tuple[int, int], float]]:
-    """key -> (calibrated survival row, raw row, (cal_lo, cal_hi), starter rate)."""
-    out: dict[tuple[str, int, str], tuple[np.ndarray, np.ndarray, tuple[int, int], float]] = {}
-    for stat, a in inputs.items():
-        if not a["keys"]:
-            continue
-        k_max = max(len(r) for r in a["raw"])
-        raw = np.zeros((len(a["keys"]), k_max))
-        for i, r in enumerate(a["raw"]):
-            raw[i, : len(r)] = r
-        med, spr, st10 = (np.asarray(a[k], dtype=float) for k in ("med", "spr", "st10"))
-        surv, lo, hi = cb.calibrate_surv_banded(cal, stat, raw, med, spr, st10)
-        for i, key in enumerate(a["keys"]):
-            out[key] = (surv[i], raw[i], (int(lo[i]), int(hi[i])), float(st10[i]))
-    return out
-
-
-def _pplay_of(pplay: Sequence[Mapping[str, Any]]) -> dict[tuple[str, int], float]:
+def _pplay_of(pplay: Sequence[Mapping[str, Any]]) -> dict[tuple[str, int], tuple[datetime, float]]:
     newest: dict[tuple[str, int], tuple[datetime, float]] = {}
     for r in pplay:
         v = r.get("p_play_primary")
@@ -199,7 +232,7 @@ def _pplay_of(pplay: Sequence[Mapping[str, Any]]) -> dict[tuple[str, int], float
         k = (str(r["game_id"]), int(r["player_id"]))
         if k not in newest or r["made_at"] > newest[k][0]:
             newest[k] = (r["made_at"], float(v))
-    return {k: v[1] for k, v in newest.items()}
+    return newest
 
 
 def sits_block(rows: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -398,55 +431,79 @@ def build(
     asks: Mapping[tuple[str, int, str, int], Mapping[str, Any]] | None = None,
     cfg: Any = None,
     track: Any = None,
+    box_rows: Sequence[Mapping[str, Any]] | None = None,
+    asof: datetime | None = None,
+    history_input: str = HISTORY_GAMES,
 ) -> StageResult:
-    """The two payloads for ``day``. ``props`` are the export's prop rows after ``team_id`` was set."""
-    from nba.parlay.game_model import GameModelParams, slate_total_feature
+    """The two payloads for ``day``. ``props`` are the export's prop rows after ``team_id`` and
+    ``line_cal`` were set. ``hist_rows``: ``history_rows`` of the live season (the ``mu_t`` input and the
+    past games of ``hist``). ``box_rows``: season-2026 box rows for the players' game logs (``hist``);
+    None leaves ``hist`` out. ``asof``: the offline rebuild's cut (None in the nightly export, whose
+    reader already holds only rows stamped before now and before tip)."""
+    from nba.parlay import combo_night as cn
+    from nba.parlay.game_model import GameModelParams
 
     cal = cal if cal is not None else lc.load_map()
     shared = load_shared(params_path, cal, code_version)
     gm = GameModelParams.from_json(
         json.dumps(json.loads((game_model_path or GAME_MODEL).read_text())["params"])
     )
-    prod = rcf._production_rows([dict(p) for p in props])
-    cal_rows = calibrated(_player_inputs(prod), cal)
-    p_play = _pplay_of(pplay)
-    win = _win_p(win_probs)
-    hist = _hist_frame(hist_rows) if hist_rows else None
+    tips = {str(g["game_id"]): g["tipoff"] for g in games if g.get("tipoff") is not None}
+    prod = rcf._production_rows([dict(p) for p in _pretip(props, tips, asof)])
+    reasons: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    cal_rows = calibrated(prod, cal, reasons)
+    p_play = _pplay_of(_pretip(pplay, tips, asof))
+    win = _win_p(_pretip(win_probs, tips, asof))
+    frame = ch.hist_frame(hist_rows) if hist_rows else None
     sits = sits_block(sits_rows)
     notes: list[str] = []
     by_game: dict[str, list[tuple[int, str]]] = defaultdict(list)
     for gid, pid, stat in cal_rows:
         by_game[gid].append((pid, stat))
     out_games: list[dict[str, Any]] = []
+    expected: dict[tuple[str, int, str], float | None] = {}
     skipped: dict[str, int] = defaultdict(int)
+    blog: dict[str, Any] = {
+        "producer": "nba.export.combo_stage", "asof": None if asof is None else _iso_z(asof),
+        "history_input": history_input, "games": [], "n_players": 0, "n_stat_entries": 0,
+    }  # fmt: skip
     for g in games:
         gid = str(g["game_id"])
         if g.get("game_date") != day:
             continue
+        entry: dict[str, Any] = {"game_id": gid, "tip_utc": _iso_z(g["tipoff"])}
         home, away = g.get("home_team"), g.get("away_team")
         if home is None or away is None or gid not in win or gid not in by_game:
             skipped["no_win_row_or_teams_or_props" if gid not in win else "no_props"] += 1
+            why = "no_teams" if home is None or away is None else None
+            why = why or ("no_win_row_before_tip" if gid not in win else "no_production_props")
+            blog["games"].append({**entry, "status": "left_out", "reason": why})
             continue
-        feat = None
-        if hist is not None:
-            feat = slate_total_feature(hist, gm, int(home), int(away), day)
-        mu_t = gm.total_mu(feat)
-        mu_m = gm.margin_mu(win[gid][0])
+        mu_t, mu_t_src = ch.game_mu_t(frame, gm, int(home), int(away), day)
+        p_home, win_model, win_at = win[gid]
+        mu_m = gm.margin_mu(p_home)
         players: dict[int, dict[str, Any]] = {}
-        newest: datetime | None = None
+        stamps: list[datetime] = [win_at]
+        rows_of: dict[tuple[int, str], Mapping[str, Any]] = {}
         for pid, stat in sorted(by_game[gid]):
             row = prod[(gid, pid, stat)]
             tid = row.get("team_id")
             if tid is None or int(tid) not in (int(home), int(away)):
                 skipped["player_team_not_in_game"] += 1
+                reasons[gid]["player_team_not_in_game"] += 1
                 continue
-            pp = p_play.get((gid, pid))
+            pp_row = p_play.get((gid, pid))
+            pp = None if pp_row is None else pp_row[1]
             if pp is None and row.get("p_play") is not None:
                 pp = float(row["p_play"])
             if pp is not None and pp < MIN_P_PLAY_EXPORT:
+                reasons[gid]["p_play_below_0.02"] += 1
                 continue
+            if pp_row is not None:
+                stamps.append(pp_row[0])
             surv, raw, ck, sr = cal_rows[(gid, pid, stat)]
-            ml = _main_line(row)
+            if pid not in names:
+                reasons[gid]["no_player_name"] += 1
             ent = players.setdefault(
                 pid,
                 {"player_id": pid, "name": names.get(pid, f"Player {pid}"), "team": int(tid),
@@ -454,14 +511,24 @@ def build(
             )  # fmt: skip
             if pp is None:
                 ent["p_play"] = None
-            ent["stats"][stat] = {"cal": surv, "raw": raw, "main_line": ml, "cal_k": ck}
-            newest = row["made_at"] if newest is None else max(newest, row["made_at"])
+            ent["stats"][stat] = {"cal": surv, "raw": raw, "main_line": None, "cal_k": ck}
+            rows_of[(pid, stat)] = row
+            stamps.append(row["made_at"])
         if not players:
             skipped["no_players"] += 1
+            blog["games"].append({**entry, "status": "left_out", "reason": "no_players"})
             continue
+        block_made = max(stamps)
+        for (pid, stat), prow in rows_of.items():
+            ml, why_ml = main_line(prow, block_made)
+            if why_ml:
+                reasons[gid]["main_line_null:" + why_ml] += 1
+                continue
+            players[pid]["stats"][stat]["main_line"] = ml
+            expected[(gid, pid, stat)] = _p_over_cal(prow)
         payload = cb.build_game_payload(
             game_id=gid, date=day.isoformat(), home_team=int(home), away_team=int(away),
-            tip_utc=_iso_z(g["tipoff"]), made_at=_iso_z(newest or made_at),
+            tip_utc=_iso_z(g["tipoff"]), made_at=_iso_z(block_made),
             mu_m=mu_m, sd_m=gm.margin_sd, mu_t=mu_t, sd_t=gm.total_sd,
             players=[{**p, "p_play": 0.0 if p["p_play"] is None else p["p_play"]} for p in players.values()],
         )  # fmt: skip
@@ -476,15 +543,30 @@ def build(
             s: {"p": round(pri[s], 4), "rule": rules[s]["rule"], "status": GS.STATUS}
             for s in GS.SCRIPTS
         }
-        payload["win_model"] = win[gid][1]
-        payload["mu_t_source"] = "live-season games only" if hist is not None else "league fallback"
+        payload["win_model"] = win_model
+        payload["mu_t_source"] = mu_t_src
         if gid in sits:
             payload["sits"] = sits[gid]
         out_games.append(payload)
+        n_stat = sum(len(p["stats"]) for p in players.values())
+        blog["n_players"] += len(players)
+        blog["n_stat_entries"] += n_stat
+        blog["games"].append({
+            **entry, "status": "built", "made_at": payload["made_at"], "win_prob_model": win_model,
+            "n_players": len(players), "n_stat_entries": n_stat, "mu_t_source": mu_t_src,
+            "reasons": dict(sorted(reasons[gid].items())),
+        })  # fmt: skip
     if not out_games:
         return absent("no_games_built", skipped=dict(skipped))
     combo = cb.nightly(shared, out_games, day.isoformat())
     combo["generated_at"] = _iso_z(made_at)
+    if box_rows is not None:
+        ids = sorted({int(p["player_id"]) for g in combo["games"] for p in g["players"]})
+        logs = ch.player_logs(box_rows, day, ids)
+        blog["hist"] = ch.attach_hist(combo, frame, logs, gm, shared["scripts"]["definitions"], day)
+    else:
+        blog["hist"] = {"status": "no_box_rows"}
+    combo["build_log"] = blog
     asks = asks or {}
     gs_games = []
     n_priced = 0
@@ -520,15 +602,30 @@ def build(
         "definitions": shared["scripts"]["definitions"], "games": gs_games,
     }  # fmt: skip
     budget = enforce_budget(combo, scripts)
+    check = cn.validate_payload(
+        combo, expected=expected, check_size=False,
+        raw_at_main_dropped=bool(budget.get("dropped_raw_at_main")),
+    )  # fmt: skip
+    validation = {
+        "errors": len(check["errors"]), "main_line_checked": check["n_checked"]["main_line_checked"],
+        "max_abs_diff": None if check["max_abs_diff"] is None else round(check["max_abs_diff"], 7),
+    }  # fmt: skip
+    if check["errors"]:
+        return absent(
+            "validation_failed", validation=validation, first_errors=check["errors"][:10],
+            skipped=dict(skipped),
+        )  # fmt: skip
     mu_src: dict[str, int] = defaultdict(int)
     for g in out_games:
         mu_src[str(g["mu_t_source"])] += 1
     info = {
         "budget": budget, "mu_t_source": dict(mu_src), "status": "ok", "n_games": len(out_games), "n_players": sum(len(g["players"]) for g in out_games),
         "n_priced_picks": n_priced, "verdicts": dict(verdicts), "skipped": dict(skipped),
-        "n_asks": len(asks), "sits_games": len(sits),
+        "n_asks": len(asks), "sits_games": len(sits), "validation": validation,
+        "n_main_lines": sum(1 for v in expected.values() if v is not None),
+        "hist": {k: blog["hist"][k] for k in ("n_entries", "past_games") if k in blog["hist"]},
     }  # fmt: skip
-    return StageResult(combo, scripts, info, notes)
+    return StageResult(combo, scripts, info, notes, expected)
 
 
 COMBO_BUDGET = 300_000  # bytes raw per night (combo_export_v1 section 4)
@@ -578,11 +675,44 @@ def enforce_budget(combo: dict[str, Any], scripts: dict[str, Any]) -> dict[str, 
     return out
 
 
-def _main_line(row: Mapping[str, Any]) -> float | None:
+def _parse_ts(v: Any) -> datetime | None:
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v.replace(tzinfo=None)
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "")).replace(tzinfo=None)
+    except ValueError:
+        return None
+
+
+def _line_cal(row: Mapping[str, Any]) -> dict[str, Any] | None:
     lcal = row.get("line_cal")
-    if isinstance(lcal, dict) and lcal.get("main_line") is not None:
-        return float(lcal["main_line"])
-    return None
+    if isinstance(lcal, str) and lcal:
+        lcal = json.loads(lcal)
+    return lcal if isinstance(lcal, dict) else None
+
+
+def main_line(row: Mapping[str, Any], made_at: datetime) -> tuple[float | None, str | None]:
+    """(main_line, None) or (None, reason): the row's stored ``line_cal.main_line``, kept only if its pair
+    is stamped (``price_at``) at or before the block's ``made_at``. The export copies one prop's
+    ``line_cal`` onto every row of that prop, so an older row (offline, under an earlier ``asof``) can
+    carry a line its own run never saw: this check drops it."""
+    lcal = _line_cal(row)
+    if lcal is None or lcal.get("main_line") is None:
+        return None, str(row.get("line_cal_null_reason") or "no_line_cal")
+    at = _parse_ts(lcal.get("price_at"))
+    if at is None:
+        return None, "line_without_price_at"
+    if at > made_at.replace(tzinfo=None):
+        return None, "line_after_made_at"
+    return float(lcal["main_line"]), None
+
+
+def _p_over_cal(row: Mapping[str, Any]) -> float | None:
+    lcal = _line_cal(row)
+    v = None if lcal is None else lcal.get("p_over_cal")
+    return None if v is None else float(v)
 
 
 def dumps(obj: Any) -> str:

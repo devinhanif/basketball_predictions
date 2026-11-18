@@ -1,5 +1,6 @@
 # ruff: noqa: E501
-"""Nightly combo builder and validator on a small synthetic export (no live data, no network)."""
+"""The offline combo rebuild (``combo_night``: an export copy through ``combo_stage.build``, the one
+producer) and the payload validator, on a small synthetic export (no live data, no network)."""
 
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
+from nba.export import combo_stage as cs
 from nba.parlay import combo
 from nba.parlay import combo_night as cn
 from nba.parlay import line_cal as lc
@@ -39,7 +41,14 @@ MU_T_FALLBACK = round(
     GAME_PARAMS["total_a"] + GAME_PARAMS["total_c"] * GAME_PARAMS["league_total"], 2
 )
 CAL = lc.load_map()
-PARAMS = json.loads(cn.PARAMS_PATH.read_text())
+JM: Path = Path("unset")
+
+
+@pytest.fixture(autouse=True)
+def _joint_model(tmp_path_factory: pytest.TempPathFactory) -> None:
+    global JM
+    JM = tmp_path_factory.mktemp("jm") / "joint_model.json"
+    JM.write_text(json.dumps({"params": GAME_PARAMS}))
 
 
 def _sf_counts(mean: float, sd: float, k_len: int = 40, n: int = 199) -> list[int]:
@@ -54,9 +63,11 @@ def _q_grid(mean: float, sd: float) -> list[float]:
     return [nd.inv_cdf((i + 1) / 20) for i in range(19)]
 
 
-def _line_cal(counts: list[int], q: list[float], line: float, at: datetime) -> str:
-    po = counts[math.ceil(line) - 1] / 199
-    pc = CAL.apply("draftkings", "pts", po, line, q[9], (q[14] - q[4]) / lc.IQR_TO_SD, 0.9)
+def _line_cal(
+    counts: list[int], q: list[float], line: float, at: datetime, stat: str = "pts", n: int = 199
+) -> str:
+    po = counts[math.ceil(line) - 1] / n
+    pc = CAL.apply("draftkings", stat, po, line, q[9], (q[14] - q[4]) / lc.IQR_TO_SD, 0.9)
     return json.dumps(
         {
             "book": "draftkings",
@@ -83,10 +94,11 @@ def make_export(*, tipped: bool = False) -> duckdb.DuckDBPyConnection:
     tip = ASOF - timedelta(minutes=1) if tipped else TIP
     con.execute("INSERT INTO games VALUES ('G1', 2026, ?, ?, 10, 20)", [NIGHT, tip])
     con.execute(
-        "CREATE TABLE win_probs(game_id VARCHAR, made_at TIMESTAMP, run_id VARCHAR, p_home DOUBLE, model_name VARCHAR, is_primary BOOLEAN)"
+        "CREATE TABLE win_probs(game_id VARCHAR, made_at TIMESTAMP, run_id VARCHAR, p_home DOUBLE, model_name VARCHAR, is_primary BOOLEAN, comparison_only BOOLEAN)"
     )
     con.execute(
-        "INSERT INTO win_probs VALUES ('G1', ?, 'r1', 0.6, 'rung0_injury_elo', TRUE)", [T_RUN1]
+        "INSERT INTO win_probs VALUES ('G1', ?, 'r1', 0.6, 'rung0_injury_elo', TRUE, FALSE)",
+        [T_RUN1],
     )
     con.execute(
         """CREATE TABLE prop_grids(game_id VARCHAR, player_id INTEGER, stat VARCHAR, team_id INTEGER, made_at TIMESTAMP,
@@ -112,10 +124,10 @@ def add_row(
     stat: str = "pts",
     tip: datetime = TIP,
 ) -> None:
-    counts = _sf_counts(mean, 6.0, n=199)
+    counts = _sf_counts(mean, 6.0, n=n)
     q = _q_grid(mean, 6.0)
-    lcj = _line_cal(counts, q, line, line_at) if line is not None else None
-    pred = json.dumps({} if starter is None else {"starter_rate": starter})
+    lcj = _line_cal(counts, q, line, line_at, stat, n) if line is not None else None
+    pred = json.dumps({"q_grid": q} | ({} if starter is None else {"starter_rate": starter}))
     con.execute(
         "INSERT INTO prop_grids VALUES ('G1', ?, ?, 10, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE)",
         [
@@ -137,8 +149,14 @@ def add_row(
     )
 
 
+def run(con: duckdb.DuckDBPyConnection, **kw: object) -> cs.StageResult:
+    return cn.build_night(con, NIGHT, game_model_path=JM, cal=CAL, **kw)  # type: ignore[arg-type]
+
+
 def build(con: duckdb.DuckDBPyConnection, **kw: object) -> dict:
-    return cn.build_night(con, NIGHT, cal=CAL, params=PARAMS, game_params=GAME_PARAMS, **kw)  # type: ignore[arg-type]
+    res = run(con, **kw)
+    assert res.combo is not None, res.info
+    return res.combo
 
 
 def base() -> duckdb.DuckDBPyConnection:
@@ -160,8 +178,9 @@ def test_builds_and_validates_and_main_line_matches_export() -> None:
     )
     ann = g["players"][0]
     assert ann["name"] == "Ann Guard" and ann["starter"] == 1 and ann["p_play"] == 0.97
-    exp = cn.load_expected(con, pl)
-    res = cn.validate_payload(pl, expected=exp, asof=ASOF)
+    stage = run(con)
+    assert stage.info["validation"]["errors"] == 0  # the stage validated it before returning it
+    res = cn.validate_payload(pl, expected=stage.expected, asof=ASOF)
     assert res["errors"] == [] and res["n_checked"]["main_line_checked"] == 2
     assert res["max_abs_diff"] is not None and res["max_abs_diff"] <= cn.TOL
 
@@ -185,15 +204,22 @@ def test_payload_is_usable_by_the_reference_evaluator() -> None:
 
 def test_refuses_holdout_season_date() -> None:
     with pytest.raises(cn.NightRefusal):
-        cn.build_night(base(), "2026-03-01", cal=CAL, params=PARAMS, game_params=GAME_PARAMS)
+        cn.build_night(base(), "2026-03-01", game_model_path=JM)
 
 
-def test_game_tipped_at_or_before_asof_is_left_out_not_built() -> None:
+def test_a_tipped_game_is_built_from_pre_tip_rows_and_does_not_change() -> None:
+    """The nightly export runs after the early tips; the in-game snapshot needs those games' pre-game
+    block. It is built from pre-tip rows only, so building it after tip gives the same block."""
     con = make_export(tipped=True)
-    add_row(con, 1, T_RUN1, tip=ASOF - timedelta(minutes=1))
-    pl = build(con)
-    assert pl["games"] == []
-    assert pl["build_log"]["games"][0]["reason"] == "tipped_at_or_before_asof"
+    tip = ASOF - timedelta(minutes=1)
+    add_row(con, 1, T_RUN1, tip=tip)
+    before = build(con, asof=tip - timedelta(minutes=5))["games"]
+    res = run(con, asof=ASOF)
+    assert res.combo is not None and len(res.combo["games"]) == 1
+    assert before == res.combo["games"]
+    assert cn.validate_payload(res.combo, expected=res.expected)["errors"] == []
+    errs = cn.validate_payload(res.combo, expected=res.expected, asof=ASOF)["errors"]
+    assert errs == ["G1: built for a game that tipped at or before asof"]  # refusable on request
 
 
 def test_rows_after_asof_or_after_tip_are_ignored() -> None:
@@ -203,7 +229,8 @@ def test_rows_after_asof_or_after_tip_are_ignored() -> None:
     assert pl["games"][0]["made_at"] == "2026-11-17T14:00:00Z"
     con2 = make_export()
     add_row(con2, 1, TIP + timedelta(minutes=1))  # after tip
-    assert build(con2, asof=TIP + timedelta(hours=1))["games"] == []
+    res = run(con2, asof=TIP + timedelta(hours=1))
+    assert res.combo is None and res.info["reason"] == "no_games_built"
 
 
 def test_older_run_row_used_as_stamped_and_block_made_at_is_newest() -> None:
@@ -219,9 +246,7 @@ def test_main_line_stamped_after_made_at_is_dropped_with_reason() -> None:
     add_row(con, 1, T_RUN1, line_at=T_RUN1 + timedelta(minutes=1))
     pl = build(con)
     assert pl["games"][0]["players"][0]["stats"]["pts"]["main_line"] is None
-    assert (
-        "main_line_null:line_after_made_at" in pl["build_log"]["games"][0]["main_line_null_reasons"]
-    )
+    assert "main_line_null:line_after_made_at" in pl["build_log"]["games"][0]["reasons"]
 
 
 def test_no_book_line_gives_null_main_line_and_no_raw_at_main() -> None:
@@ -231,21 +256,20 @@ def test_no_book_line_gives_null_main_line_and_no_raw_at_main() -> None:
     assert e["main_line"] is None and "raw_at_main" not in e and e["cal_k"][0] >= 1
 
 
-def test_missing_inputs_are_skipped_with_reasons_never_guessed() -> None:
+def test_missing_inputs_are_counted_never_guessed() -> None:
     con = base()
-    add_row(con, 3, T_RUN1)  # no name in players
-    add_row(con, 1, T_RUN1, stat="reb", n=10000)  # not the 199-sample grid
-    add_row(con, 2, T_RUN1, stat="ast", starter=None)  # no starter rate
+    add_row(con, 3, T_RUN1)  # no name in players: kept under a placeholder, counted
+    add_row(con, 1, T_RUN1, stat="reb", mean=8.0, line=7.5, n=10000)  # a 10,000-sample grid: used
+    add_row(con, 2, T_RUN1, stat="ast", starter=None)  # no starter rate: left out, counted
     add_row(con, 2, T_RUN1, stat="fg3m", model="props_avg_live2")  # not the production model
-    pl = build(con)
-    reasons = pl["build_log"]["games"][0]["main_line_null_reasons"]
-    assert (
-        reasons["no_player_name"] == 1
-        and reasons["no_survival_grid_or_n_not_199"] == 1
-        and reasons["no_starter_rate"] == 1
-    )
-    stats = {p["player_id"]: set(p["stats"]) for p in pl["games"][0]["players"]}
-    assert stats == {1: {"pts"}, 2: {"pts"}}
+    res = run(con)
+    assert res.combo is not None and res.info["validation"]["errors"] == 0
+    reasons = res.combo["build_log"]["games"][0]["reasons"]
+    assert reasons["no_player_name"] == 1 and reasons["no_starter_rate"] == 1
+    assert reasons["grid_n_10000_used"] == 1
+    stats = {p["player_id"]: set(p["stats"]) for p in res.combo["games"][0]["players"]}
+    assert stats == {1: {"pts", "reb"}, 2: {"pts"}, 3: {"pts"}}
+    assert {p["player_id"]: p["name"] for p in res.combo["games"][0]["players"]}[3] == "Player 3"
 
 
 def test_null_p_play_stays_null_and_missing_win_prob_leaves_game_out() -> None:
@@ -253,17 +277,17 @@ def test_null_p_play_stays_null_and_missing_win_prob_leaves_game_out() -> None:
     add_row(con, 1, T_RUN1, p_play=None)
     assert build(con)["games"][0]["players"][0]["p_play"] is None
     con.execute("DELETE FROM win_probs")
-    pl = build(con)
-    assert pl["games"] == [] and "win_probability" in pl["build_log"]["games"][0]["reason"]
+    res = run(con)
+    assert res.combo is None and res.info["skipped"] == {"no_win_row_or_teams_or_props": 1}
 
 
 # ---------------------------------------------------------------- validator
 
 
 def good() -> tuple[dict, dict]:
-    con = base()
-    pl = build(con)
-    return pl, cn.load_expected(con, pl)
+    res = run(base())
+    assert res.combo is not None
+    return res.combo, res.expected
 
 
 def _errs(pl: dict, exp: dict | None = None) -> list[str]:
@@ -324,8 +348,7 @@ def test_cli_writes_file_and_exit_zero(tmp_path: Path) -> None:
         src.execute(f"CREATE TABLE out.{t} AS SELECT * FROM {t}")
     src.execute("DETACH out")
     src.close()
-    jm = tmp_path / "joint_model.json"
-    jm.write_text(json.dumps({"params": GAME_PARAMS}))
+    jm = JM
     rc = cn.main(
         ["--export", str(db), "--date", NIGHT, "--out", str(tmp_path), "--joint-model", str(jm)]
     )
@@ -466,9 +489,46 @@ def test_absent_history_gives_zero_counts_and_league_fallback_mu_t() -> None:
 
 
 def test_hist_is_in_the_validated_payload_and_has_no_price_key() -> None:
-    con = with_history()
-    pl = build(con)
-    assert cn.validate_payload(pl, expected=cn.load_expected(con, pl), asof=ASOF)["errors"] == []
+    res = run(with_history())
+    pl = res.combo
+    assert pl is not None
+    assert cn.validate_payload(pl, expected=res.expected, asof=ASOF)["errors"] == []
     bad = copy.deepcopy(pl)
     bad["games"][0]["players"][0]["stats"]["pts"]["hist"]["blowout"] = [2, 3]
     assert any("hist" in x for x in cn.validate_payload(bad, asof=ASOF)["errors"])
+
+
+# ---------------------------------------------------------------- one producer
+
+
+def test_the_offline_rebuild_is_the_nightly_stage(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, object] = {}
+
+    def fake(*a: object, **k: object) -> str:
+        seen.update(k)
+        return "the stage"
+
+    monkeypatch.setattr(cs, "build", fake)
+    assert cn.build_night(base(), NIGHT, game_model_path=JM) == "the stage"
+    assert seen["asof"] == ASOF and seen["history_input"] == cn.HISTORY_BOX
+
+
+def test_history_db_gives_the_apps_games_table_number() -> None:
+    """With a copy of the source database, mu_t comes from its games table through
+    ``combo_stage.history_rows`` (the rule's number); where the box scores agree, so do the two."""
+    con = with_history()
+    h = duckdb.connect(":memory:")
+    h.execute(
+        "CREATE TABLE games(game_id VARCHAR, season INTEGER, game_date DATE, home_team INTEGER, away_team INTEGER, home_pts INTEGER, away_pts INTEGER)"
+    )
+    h.execute(
+        "INSERT INTO games VALUES ('0022600001', 2026, '2026-11-10', 10, 20, 150, 100),"
+        "('0022600002', 2026, '2026-11-10', 10, 40, 103, 102), ('0022600003', 2026, '2026-11-11', 10, 20, 120, 110),"
+        "('0022600004', 2026, '2026-11-12', 10, 40, 100, 90), ('0022500001', 2025, '2026-11-12', 10, 20, 300, 10)"
+    )
+    via_games = run(con, history=h)
+    via_box = run(con)
+    assert via_games.combo is not None and via_box.combo is not None
+    assert via_games.combo["build_log"]["history_input"] == cs.HISTORY_GAMES
+    assert via_games.combo["games"][0]["game"] == via_box.combo["games"][0]["game"]
+    assert via_games.combo["build_log"]["hist"] == via_box.combo["build_log"]["hist"]

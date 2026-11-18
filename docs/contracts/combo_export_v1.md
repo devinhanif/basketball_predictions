@@ -21,7 +21,7 @@ ignores unknown keys. Top level:
 | `night` | string | slate date `YYYY-MM-DD` |
 | `shared` | object | night-level block (section 2), identical for every game |
 | `games` | array | one object per game (section 3) |
-| `build_log` | object, optional | how the file was built (`nba/parlay/combo_night.py`): `asof`, per game `status` (`built` or `left_out` with `reason`), `made_at`, counts, and reasons a prop has no `main_line` or was skipped. A reader ignores it; the app may show it as "why is this game / player missing". |
+| `build_log` | object, optional | how the file was built (`nba/export/combo_stage.py`, the one producer; `nba/parlay/combo_night.py` is its offline rebuild): `producer`, `asof` (null in the nightly export), `history_input` (where the past games came from), per game `status` (`built` or `left_out` with `reason`), `made_at`, counts, `reasons` (why a prop has no `main_line` or was left out, and `grid_n_<n>_used` for a grid stored at another resolution), and `hist`. A reader ignores it; the app may show it as "why is this game / player missing". (Revised 2026-11-17 at the merge of the two producers.) |
 
 ## 2. `shared` (about 4.1 KB raw, 1.1 KB gzipped)
 
@@ -69,9 +69,12 @@ ignores unknown keys. Top level:
 - **`mu_t` source (additive, 2026-11-17).** `mu_t` is the game model's total mean from completed SEASON-2026 games only (the as-of
   feature of `game_model.py`, rounded to 2 decimals; season 2025 is never read), so early in the season it leans on the league mean.
   The optional game key `mu_t_source` says which: `"live-season games only"` or `"league fallback"` (no completed game yet).
-  `nba/parlay/combo_night.py` rebuilds it from the export's `box_scores` team totals (the export's `games` table holds only the last
-  week), so it equals the live app's `game_scripts` number only where `box_scores` covers every completed game.
-- `mu_m` comes from the primary win probability stamped at or before `made_at`.
+  The past games are the `games` table rows of `nba.export.combo_stage.history_rows` (season 2026, final, before the slate, not
+  preseason or all-star): the number GAME_SCRIPTS_FORWARD scores. The offline rebuild (`nba/parlay/combo_night.py`) reads the same
+  query from a copy of the source database (`--history-db`); without one it builds rows of the same shape from the export copy's
+  season-2026 box scores (the export's `games` table holds only the last week) and says so in `build_log.history_input`, and then it
+  equals the app's number only where those box scores are complete.
+- `mu_m` comes from the production win row (injury-Elo, else MOV-Elo; newest stamped before tip), stamped at or before `made_at`.
 - `team`: integer team id; `home_team` / `away_team` say which side is home.
 - `p_play`: P(plays), 4 decimals, or `null` (unknown: then only conditional numbers are shown). All joint probabilities are
   CONDITIONAL on every named player playing; the reader reports `p_all_play = product of p_play over the distinct players` and
@@ -84,9 +87,9 @@ ignores unknown keys. Top level:
   "grind": [1, 0]}`. `n_all` = games the player played (minutes > 0; a DNP is not a game) strictly before the slate date; `k_all` = of
   those, games in which the stat finished OVER `main_line` (stat > main_line). Each script pair is `[n, k]` restricted to past games in which
   that script happened, with the definitions of `shared.scripts.definitions` on the final score (blowout `|margin| >= 15`, close
-  `|margin| <= 5`, shootout `total >= ceil(mu_t + 12)`, grind `total <= floor(mu_t - 12)`; a team's score is the sum of its players'
-  points; `mu_t` is that game's own pre-game value, built only from completed season-2026 games dated before it, 2 decimals, league
-  fallback when none). Scripts overlap, so the pairs do not sum to `n_all`. No rate, no smoothing, no blend with the model chance, no
+  `|margin| <= 5`, shootout `total >= ceil(mu_t + 12)`, grind `total <= floor(mu_t - 12)`; the final score is the `games` table's, the
+  same past games as `mu_t` (offline without `--history-db`: the sum of the players' points); `mu_t` is that game's own pre-game
+  value, built only from completed season-2026 games dated before it, 2 decimals, league fallback when none). Scripts overlap, so the pairs do not sum to `n_all`. No rate, no smoothing, no blend with the model chance, no
   score: show "k of n" and nothing else, and never as a prediction. Seasons 2023-25 are not used (roles change; season 2025 is the
   frozen holdout). Absent `hist`: show nothing. `build_log.hist` carries the same season's game counts (`past_games`).
 - per stat entry: `k0` (int), `surv` (array of 4-decimal numbers), `main_line` (x.5 or `null`), `raw_at_main` (the uncalibrated
@@ -104,9 +107,12 @@ ignores unknown keys. Top level:
   tails (PIT normal-score sd 0.63 to 0.90 against 1.07 to 1.13 for raw grids on 2024), which is an invalid distribution.
   Remaining flaw: even banded, the grid's PIT sd is 0.76 to 0.98, so it is a set of calibrated leg probabilities at plausible lines,
   not a validated whole distribution; interval legs (`over a` and `under b` on one stat) inherit this.
-- Known-at: `made_at` is the production forecast's own run clock (UTC, ISO Z) and `tip_utc` the real tip. A game block is built only
-  from a production row stamped at or before `made_at` and before tip, uses the main line pair stamped at or before that same
-  `made_at` (the `line_cal` rule), and is never rebuilt after tip. `main_line` carries no timestamp of its own: it is the
+- Known-at: `made_at` (UTC, ISO Z) is the newest stamp of every input the block used (production prop rows, the win row, P(plays)
+  rows; revised 2026-11-17: it was the newest prop row only, which understated the block when a later run's win row fed `mu_m`) and
+  `tip_utc` the real tip. A game block is built only from rows stamped before tip (and, offline, at or before `asof`) and uses the
+  main line pair stamped at or before that same `made_at` (the `line_cal` rule). Its inputs are all pre-tip, so a rebuild after tip
+  gives the same block; the nightly export (which runs after the early tips) keeps those games so the in-game snapshot has their
+  pre-game block. A grid stored at another resolution (10,000 samples) is used with its own `n`, as `line_cal` computes `p_over`. `main_line` carries no timestamp of its own: it is the
   `line_cal.main_line` of the same prop (one value per game, player, stat). Correlations, script parameters and the calibration map are
   fitted on 2023-24 only; no later information reaches a forecast.
 

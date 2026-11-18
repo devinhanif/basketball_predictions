@@ -461,6 +461,7 @@ def _scripts_stage(
     paper_db: Path | None,
     game_model: Path | None = None,
     hist_status: str = "ok",
+    box_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Write ``combo_<day>.json`` and ``game_scripts_<day>.json`` (contracts/game_scripts_v1.md)
     and return the manifest block. EVERYTHING here sits inside one guard: this step can never
@@ -496,7 +497,7 @@ def _scripts_stage(
         res = cs.build(
             day, fwd.games, fwd.win_probs, fwd.prop_grids, fwd.p_play, sits_rows, hist or [],
             names, abbr, made_at=made_at, code_version=git_sha, asks=asks, cfg=cfg, track=track,
-            game_model_path=game_model,
+            game_model_path=game_model, box_rows=box_rows,
         )  # fmt: skip
         if res.combo is None or res.scripts is None:
             return {
@@ -688,7 +689,7 @@ def build_export(
     if scripts:
         scripts_info = _scripts_stage(
             out_dir, day, fwd, sits_rows, scripts_hist, players, teams, made_at,
-            gi["git_sha"], kalshi_db, paper_db, game_model, hist_status,
+            gi["git_sha"], kalshi_db, paper_db, game_model, hist_status, box,
         )  # fmt: skip
 
     manifest: dict[str, Any] = {

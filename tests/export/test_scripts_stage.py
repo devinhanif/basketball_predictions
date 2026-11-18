@@ -28,6 +28,7 @@ DAY = date(2026, 11, 10)
 TIP = datetime(2026, 11, 10, 23, 30)
 MADE = TIP - timedelta(minutes=90)
 HOME, AWAY = load_team_abbr()["PHI"], load_team_abbr()["BOS"]
+CAL = lc.load_map()
 GM = {
     "params": {
         "fit_seasons": [2022, 2023, 2024], "halflife": 20.0, "league_total": 227.6,
@@ -50,13 +51,21 @@ def _prop(
     q = np.sort(np.clip(rng.normal(mean, sd, 199), 0, None))  # equally weighted samples
     fs = full_support.from_samples(q, stat)
     qg = [float(np.quantile(q, t)) for t in np.linspace(0.05, 0.95, 19)]
+    line_cal = None
+    if main is not None:  # what line_cal_fields stores: the pair stamp and the calibrated P(over)
+        qs = ts.quartiles({"pred": {"q_grid": qg}})
+        po = ts.p_over({"p_ge_full": {"c": fs["c"], "n": fs["n"]}}, main)
+        assert qs is not None and po is not None
+        pc = CAL.apply("draftkings", stat, po, main, qs[1], (qs[2] - qs[0]) / lc.IQR_TO_SD, sr)
+        line_cal = {"main_line": main, "price_at": "2026-11-10T21:55:00Z", "p_over_raw": po,
+                    "p_over_cal": pc}  # fmt: skip
     return {
         "run_id": "r1", "made_at": MADE, "game_id": "G1", "tipoff": TIP,
         "model_name": "props_context_residual", "comparison_only": False, "player_id": pid,
         "stat": stat, "p_play": pp, "team_id": PLAYERS[pid][0],
         "prediction_json": json.dumps({"q_grid": qg, "starter_rate": sr}),
         "p_ge_full_counts": fs["c"], "p_ge_full_n": fs["n"],
-        "line_cal": None if main is None else {"main_line": main},
+        "line_cal": line_cal,
     }  # fmt: skip
 
 
@@ -539,3 +548,142 @@ def test_second_file_failure_leaves_neither_file(
 
 def test_note_says_the_track_record_is_large_but_shows_no_skill() -> None:
     assert "shows no skill yet" in cs.MARKET_NOTE and "defers to the market" in cs.MARKET_NOTE
+
+
+# ------------------------------------------------------------------ one producer (2026-11-17 reconciliation)
+
+
+def test_history_rows_sql_is_the_text_the_forward_rule_runs() -> None:
+    """GAME_SCRIPTS_FORWARD rule line 2 recomputes mu_t with this exact SQL; it must not drift."""
+    seen: dict[str, Any] = {}
+
+    class Src:
+        def execute(self, sql: str, args: list[Any]) -> Any:
+            seen["sql"], seen["args"] = sql, args
+            return self
+
+        def fetchall(self) -> list[Any]:
+            return []
+
+    assert cs.history_rows(Src(), DAY, 2026) == []
+    assert seen["sql"] == (
+        "SELECT game_id, game_date, home_team, away_team, home_pts, away_pts FROM games "
+        "WHERE season = ? AND game_date < ? AND home_pts IS NOT NULL AND home_pts > 0 "
+        "AND game_id NOT LIKE '001%' AND game_id NOT LIKE '003%' ORDER BY game_date, game_id"
+    )
+    assert seen["args"] == [2026, DAY]
+
+
+def _box(
+    pid: int, gid: str, day: date, pts: int, *, season: int = 2026, minutes: float | None = 30.0
+) -> dict[str, Any]:
+    return {"game_id": gid, "player_id": pid, "team_id": PLAYERS[pid][0], "minutes": minutes,
+            "pts": pts, "reb": 5, "ast": 3, "fg3m": 1, "game_date": day, "season": season}  # fmt: skip
+
+
+def test_hist_counts_ride_in_the_payload_where_a_main_line_exists(gm_path: Path) -> None:
+    box = [
+        _box(101, "0022600001", DAY - timedelta(days=2), 30),  # H1 in the history rows: 118-110
+        _box(101, "0022600002", DAY - timedelta(days=1), 20),  # H2: 105-99
+        _box(101, "0022600003", DAY - timedelta(days=1), 0, minutes=None),  # a DNP is not a game
+        _box(101, "0022500009", DAY - timedelta(days=3), 50, season=2025),  # holdout season: never
+        _box(101, "0022500010", DAY - timedelta(days=3), 50),  # labelled 2026 with a 2025 id: never
+        _box(101, "0022600004", DAY, 50),  # the slate date itself: not before it
+    ]
+    i = _inputs()
+    i["hist"] = [("0022600001", DAY - timedelta(days=2), HOME, AWAY, 118, 110),
+                 ("0022600002", DAY - timedelta(days=1), AWAY, HOME, 105, 99)]  # fmt: skip
+    r = cs.build(
+        DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], i["hist"], i["names"], i["abbr"],
+        made_at=MADE + timedelta(minutes=5), game_model_path=gm_path, box_rows=box,
+    )  # fmt: skip
+    assert r.combo is not None and r.info["validation"]["errors"] == 0
+    g = r.combo["games"][0]
+    for p in g["players"]:
+        for e in p["stats"].values():
+            assert ("hist" in e) == (e["main_line"] is not None)
+    h = next(p for p in g["players"] if p["player_id"] == 101)["stats"]["pts"]["hist"]
+    assert h["n_all"] == 2 and h["k_all"] == 1  # 30 > 23.5, 20 < 23.5
+    assert h["close"] == [0, 0] and h["blowout"] == [0, 0]  # margins 8 and 6
+    assert r.combo["build_log"]["hist"]["past_games"]["n_games"] == 2
+    assert r.combo["build_log"]["history_input"] == cs.HISTORY_GAMES
+
+
+def test_without_box_rows_hist_is_left_out_not_zero(gm_path: Path) -> None:
+    r = _build_stage(gm_path)
+    assert r.combo is not None
+    assert all("hist" not in e for p in r.combo["games"][0]["players"] for e in p["stats"].values())
+    assert r.combo["build_log"]["hist"] == {"status": "no_box_rows"}
+
+
+def test_block_made_at_is_the_newest_input_used(gm_path: Path) -> None:
+    i = _inputs()
+    late = MADE + timedelta(minutes=30)
+    i["win_probs"][0]["made_at"] = late  # a newer win row (still before tip) feeds mu_m
+    r = cs.build(DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], i["hist"], i["names"],
+                 i["abbr"], made_at=late, game_model_path=gm_path)  # fmt: skip
+    assert r.combo is not None and r.combo["games"][0]["made_at"] == cs._iso_z(late)
+    i["win_probs"][0]["made_at"] = TIP  # a row stamped at tip is never used
+    r2 = cs.build(DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], i["hist"], i["names"],
+                  i["abbr"], made_at=late, game_model_path=gm_path)  # fmt: skip
+    assert r2.combo is None and r2.info["skipped"] == {"no_win_row_or_teams_or_props": 1}
+
+
+def test_a_line_stamped_after_made_at_is_dropped_and_counted(gm_path: Path) -> None:
+    i = _inputs()
+    for p in i["props"]:
+        if p["player_id"] == 101 and p["stat"] == "pts":
+            p["line_cal"] = {**p["line_cal"], "price_at": cs._iso_z(TIP - timedelta(minutes=1))}
+    r = cs.build(DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], i["hist"], i["names"],
+                 i["abbr"], made_at=MADE, game_model_path=gm_path)  # fmt: skip
+    assert r.combo is not None
+    e = next(p for p in r.combo["games"][0]["players"] if p["player_id"] == 101)["stats"]["pts"]
+    assert e["main_line"] is None and "raw_at_main" not in e
+    assert r.combo["build_log"]["games"][0]["reasons"]["main_line_null:line_after_made_at"] == 1
+    assert ("G1", 101, "pts") not in r.expected
+
+
+def test_a_payload_that_fails_validation_is_not_returned(
+    gm_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cs, "_p_over_cal", lambda row: 0.999)  # the export's value disagrees
+    r = _build_stage(gm_path)
+    assert r.combo is None and r.scripts is None
+    assert r.info["reason"] == "validation_failed" and r.info["validation"]["errors"] > 0
+
+
+def test_each_row_is_calibrated_on_its_own_grid(gm_path: Path) -> None:
+    """Grouping by grid length: a row's calibrated values do not depend on which other rows share
+    the night (the old stat-wide zero padding could move ``cal_k`` when a padded rung fell in band)."""
+    from collections import defaultdict
+
+    import nba.export.rung_cal_fields as rcf
+
+    def reasons() -> dict[str, dict[str, int]]:
+        return defaultdict(lambda: defaultdict(int))
+
+    prod = rcf._production_rows(_inputs()["props"])
+    together = cs.calibrated(prod, CAL, reasons())
+    for key, row in prod.items():
+        alone = cs.calibrated({key: row}, CAL, reasons())
+        a, b = alone[key], together[key]
+        assert np.array_equal(a[0], b[0]) and a[2] == b[2]
+
+
+def test_a_10000_sample_row_is_used_with_its_own_n(gm_path: Path) -> None:
+    i = _inputs()
+    row = next(p for p in i["props"] if p["player_id"] == 201 and p["stat"] == "pts")
+    row["p_ge_full_counts"] = [round(c * 10000 / 199) for c in row["p_ge_full_counts"]]
+    row["p_ge_full_n"] = 10000
+    po = ts.p_over({"p_ge_full": {"c": row["p_ge_full_counts"], "n": 10000}}, 20.5)
+    qs = ts.quartiles({"pred": json.loads(row["prediction_json"])})
+    assert po is not None and qs is not None
+    row["line_cal"]["p_over_cal"] = CAL.apply(
+        "draftkings", "pts", po, 20.5, qs[1], (qs[2] - qs[0]) / lc.IQR_TO_SD, 0.95
+    )
+    r = cs.build(DAY, i["games"], i["win_probs"], i["props"], i["pplay"], [], i["hist"], i["names"],
+                 i["abbr"], made_at=MADE, game_model_path=gm_path)  # fmt: skip
+    assert r.combo is not None and r.info["validation"]["errors"] == 0
+    assert r.combo["build_log"]["games"][0]["reasons"]["grid_n_10000_used"] == 1
+    e = next(p for p in r.combo["games"][0]["players"] if p["player_id"] == 201)["stats"]["pts"]
+    assert e["main_line"] == 20.5

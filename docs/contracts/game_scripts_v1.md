@@ -21,16 +21,19 @@ export; `--no-scripts` skips it) beside `export.duckdb`, each to a temp name and
 |---|---|---|---|
 | `combo_<YYYY-MM-DD>.json` | `combo_export_v1` plus the additive keys of section 1 | per game: the calibrated survival grid of every rotation player and stat, the game model, P(script), the who-sits support | **none** (a test greps its keys) |
 | `game_scripts_<YYYY-MM-DD>.json` | `game_scripts_v1` (section 3) | per game x script: ranked legs and same-player pairs; the ONLY place a `market` block exists | only inside `picks[..].legs[].market`, only where a current Kalshi ask exists |
-| `manifest.json` key `game_scripts` | | `{status: "ok" \| "absent", reason, n_games, n_players, n_priced_picks, verdicts, skipped, n_asks, sits_games, markets: {status, n_asks, left_out, n_settled_track}, files: {name: {bytes, gzip_bytes, sha256}}, seconds}` | |
+| `manifest.json` key `game_scripts` | | `{status: "ok" \| "absent", reason, n_games, n_players, n_priced_picks, verdicts, skipped, n_asks, sits_games, markets: {status, n_asks, left_out, n_settled_track}, validation: {errors, main_line_checked, max_abs_diff}, n_main_lines, hist: {n_entries, past_games}, files: {name: {bytes, gzip_bytes, sha256}}, seconds}` | |
 
-`absent` reasons: `disabled`, `no_games_built` (with `skipped` counts), `error:<ExceptionType>`. When absent the app shows
+`absent` reasons: `disabled`, `no_games_built` (with `skipped` counts), `validation_failed` (the combo payload failed
+`nba.parlay.combo_night.validate_payload`; `first_errors` lists up to 10; neither file is written), `error:<ExceptionType>`. When absent the app shows
 no script panel (not a placeholder number). The step reads the export's own in-memory tables, the Kalshi snapshot store
 read-only (a copy if locked), the paper-trade store read-only (track record), and `data/parlay/joint_model.json`; it
 fits nothing and makes no network call. Season 2025 is never read: the as-of total feature uses games of the live
 season only (so early in a season `mu_t` leans on the league mean; `mu_t_source` says which).
 
 Known-at: every game block is built only from production rows stamped before that game's tip (the export's own filter);
-`made_at` is the newest of those rows. Nothing in either file is an outcome. **LINE_CAL_LIVE (DECISIONS 2026-11-10
+`made_at` is the newest stamp of every input the block used (prop rows, the win row, P(plays) rows; revised 2026-11-17).
+The combo file also carries `build_log` and the season-2026 `hist` counts exactly as `combo_export_v1.md` section 3 says;
+`nba/parlay/combo_night.py` is the offline rebuild of the same file through the same `combo_stage.build`. Nothing in either file is an outcome. **LINE_CAL_LIVE (DECISIONS 2026-11-10
 02:51):** for slates from 2026-10-30 the app must not show a prop prediction next to its outcome; `game_scripts_*.json` carries
 `lock: {line_cal_live: true|false, note}` and the app applies the same finished-game rule it already applies to
 `/scenarios`: for a finished game it sends no pick, no leg probability and no script chance. No raw (uncalibrated)
