@@ -112,7 +112,7 @@ export function Settings() {
         <section class="panel settings" aria-label="Appearance and detail">
           <div class="kicker">Look and depth</div>
           <h2>Appearance and detail</h2>
-          <Choice legend="Appearance" help="Dark is the default. Match my device follows your system setting." value={p.theme} options={THEMES} onPick={(v) => { setPref("theme", v); }} />
+          <Choice legend="Appearance" help="Match my device (the default) follows your phone. Light and Dark stay as you set them." value={p.theme} options={THEMES} onPick={(v) => { setPref("theme", v); }} />
           <Choice legend="Detail level" help={lens === "market" ? "Simple shows plain cards, one line per player. Analyst adds the line ladder, splits, calibration and the edge arithmetic." : "Simple shows plain cards, one line per player. Analyst opens every section: the line ladder, splits, calibration and the model behind each number."} value={p.mode} options={MODES} onPick={(v) => { setPref("mode", v); }} />
           <Choice legend="Opens on" help="The screen you land on when you open the app without a link." value={p.screen} options={SCREENS.filter((o) => screenAllowed(o.value, lens))} onPick={(v) => { setPref("screen", v); }} />
           <Choice legend="Density" help="Compact tightens the space inside panels and between rows, to fit more on a screen." value={p.density} options={DENSITIES} onPick={(v) => { setPref("density", v); }} />
