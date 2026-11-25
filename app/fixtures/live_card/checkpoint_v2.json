@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "generated_at": "2026-11-10T01:41:30+00:00",
+  "SYNTHETIC": "made up for the live card tests (contract: docs/contracts/ingame_checkpoint_snapshot_v2.md); no number is a real model output",
+  "games": {
+    "401909952": {
+      "checkpoint": 25,
+      "e_used": 25.1,
+      "support": "trained",
+      "period": 3,
+      "clock": "3:39",
+      "known_at": "2026-11-10T01:40:00+00:00",
+      "rows": [
+        {"player": "Luka Doncic", "stat": "pts", "k": 31, "p_model": 0.62, "cur": 28, "minutes": 25, "fouls": 1},
+        {"player": "Luka Doncic", "stat": "ast", "k": 9, "p_model": 0.31, "cur": 6, "minutes": 25, "fouls": 1},
+        {"player": "Jalen Johnson", "stat": "pts", "k": 22, "p_model": 0.97, "cur": 26, "minutes": 24, "fouls": 2},
+        {"player": "Onyeka Okongwu", "stat": "reb", "k": 99, "p_model": 0.5, "cur": 16, "minutes": 22, "fouls": 2}
+      ],
+      "script": {
+        "status": "exploratory",
+        "method": "independent_increments_v1",
+        "label": "EXPLORATORY and UNPROVEN",
+        "p": {"blowout": 0.1, "close": 0.2, "shootout": 0.3, "grind": 0.4}
+      }
+    }
+  }
+}

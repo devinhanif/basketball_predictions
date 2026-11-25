@@ -66,6 +66,10 @@ MAX_SUBS_PER_GAME = 150
 MAX_WATCHED_GAMES = 30
 QUEUE_MAX = 64
 HEARTBEAT_S = 15.0
+#: The first bytes of every stream: one SSE comment line of padding (an EventSource ignores it) so a
+#: proxy that buffers small bodies has something to flush at once. The stream also sends
+#: X-Accel-Buffering: no.
+STREAM_PADDING = ":" + " " * 2048 + "\n"
 #: Server-side bounds on one stream (live_routes.live_stream): a ``stale`` event after this long
 #: with no new capture body, an ``end`` and a close after IDLE_CLOSE_S with none, and an ``end``
 #: after STREAM_MAX_S whatever happens (the browser reconnects to a fresh snapshot).

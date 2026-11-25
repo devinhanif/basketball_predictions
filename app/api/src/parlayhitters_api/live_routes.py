@@ -18,6 +18,7 @@ from .live import (
     IDLE_CLOSE_S,
     STALE_AFTER_S,
     STREAM_MAX_S,
+    STREAM_PADDING,
     HubFull,
     LiveHub,
     UnknownGame,
@@ -27,11 +28,13 @@ from .live import (
     snapshot_payload,
     sse,
 )
+from .live_card_routes import register_live_card
 from .params import EventId, LiveDate
 
 
 def register_live(app: FastAPI, hub: LiveHub) -> None:
     app.state.live_hub = hub
+    register_live_card(app, hub)
 
     @app.get("/api/live/{date}")
     async def live_games(date: LiveDate) -> dict[str, Any]:
@@ -97,7 +100,7 @@ def register_live(app: FastAPI, hub: LiveHub) -> None:
             opened = last_body = loop.time()
             stale_sent = False
             try:
-                yield "retry: 2000\n\n" + first[0]
+                yield STREAM_PADDING + "retry: 2000\n\n" + first[0]
                 for m in first[1:]:
                     yield m
                 if final:
