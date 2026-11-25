@@ -24,6 +24,7 @@ import { parseDesk, type Desk } from "./desk";
 import { clearMiss, missedRecently, noteMiss } from "./missMemo";
 import type { LiveList, Play } from "./live";
 import type { ScenariosView } from "./sits";
+import type { ComboEnvelope } from "./combo/types";
 
 export { warmGames };
 
@@ -73,6 +74,24 @@ export async function getTopParlays(date: string): Promise<Loaded<TpResult>> {
   return { data: { kind: "ok", data: r.body as TopParlays }, fromCache: r.fromCache };
 }
 
+/** The night's combo file. 404 means no file (a first-class state, never a sample); 422 means the API refused it. */
+export type ComboResultState = { kind: "ok"; data: ComboEnvelope } | { kind: "missing" } | { kind: "refused"; detail: string };
+
+/** The nights that have a combo file, oldest first. */
+export const getComboNights = (): Promise<Loaded<{ nights: string[] }>> => getJson<{ nights: string[] }>("/api/combo");
+
+export async function getCombo(date: string): Promise<Loaded<ComboResultState>> {
+  const path = `/api/combo/${encodeURIComponent(date)}`;
+  const r = await answer(path);
+  if (r.status === 404) return { data: { kind: "missing" }, fromCache: r.fromCache };
+  if (r.status === 422) {
+    const detail = (r.body as { detail?: string } | null)?.detail;
+    return { data: { kind: "refused", detail: detail ?? "refused" }, fromCache: r.fromCache };
+  }
+  if (r.status < 200 || r.status >= 300) throw refusal(r, path);
+  return { data: { kind: "ok", data: r.body as ComboEnvelope }, fromCache: r.fromCache };
+}
+
 /** 'If a teammate sits' for a game. A 404 (an old server, or a saved snapshot that does not carry it) is a plain
  * "no scenarios here", not an error screen. */
 export async function getScenarios(id: string): Promise<Loaded<ScenariosView>> {
@@ -94,6 +113,8 @@ export async function getScenarios(id: string): Promise<Loaded<ScenariosView>> {
 }
 
 export const api = {
+  combo: getCombo,
+  comboNights: getComboNights,
   topParlays: getTopParlays,
   meta: () => getJson<Meta>("/api/meta"),
   slates: () => getJson<SlateListItem[]>("/api/slates"),

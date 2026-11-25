@@ -40,6 +40,8 @@ export function isBaked(x: unknown): x is Baked {
 export function shardOf(pathname: string): string | null {
   const m = /^\/api\/(games|breakdown|edges|card|record|distribution)\/([^/]+)/.exec(pathname);
   if (m?.[2]) return `g:${decodeURIComponent(m[2])}`;
+  const c = /^\/api\/combo\/([^/]+)$/.exec(pathname);
+  if (c?.[1]) return `c:${decodeURIComponent(c[1])}`;
   const n = /^\/api\/slates\/([^/]+)\/(results|swipe)$/.exec(pathname);
   if (n?.[1]) return `d:${decodeURIComponent(n[1])}`;
   return null;

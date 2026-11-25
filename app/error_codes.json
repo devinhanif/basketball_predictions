@@ -156,6 +156,33 @@
    "todo": "Try again in a minute."
   },
   {
+   "code": "no_combo",
+   "status": 404,
+   "side": "api",
+   "title": "No combo file for that night",
+   "what": "There is no combo-mode file for that date.",
+   "why": "The combo job did not run for that night, or it has not been written yet.",
+   "todo": "Pick another night."
+  },
+  {
+   "code": "combo_refused",
+   "status": 422,
+   "side": "api",
+   "title": "The combo file failed its checks",
+   "what": "The file exists but was not served.",
+   "why": "It did not match the combo contract, so it was refused rather than shown.",
+   "todo": "Rebuild the combo file."
+  },
+  {
+   "code": "combo_unavailable",
+   "status": 503,
+   "side": "api",
+   "title": "The combo file cannot be read right now",
+   "what": "The folder holding the combo files could not be read.",
+   "why": "It may be mid-write.",
+   "todo": "Try again in a minute."
+  },
+  {
    "code": "no_parlay_check",
    "status": 404,
    "side": "api",

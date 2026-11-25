@@ -5,6 +5,7 @@ import { Game } from "./pages/Game";
 import { Leg } from "./pages/Leg";
 import { ParlayPage } from "./pages/Parlay";
 import { Picks } from "./pages/Picks";
+import { ComboPage } from "./pages/Combo";
 import { Swipe } from "./pages/Swipe";
 import { Settings } from "./pages/Settings";
 import { Signals } from "./pages/Signals";
@@ -67,6 +68,9 @@ export function App() {
     case "parlay":
       page = <ParlayPage date={route.date} />;
       break;
+    case "combo":
+      page = <ComboPage date={route.date} />;
+      break;
     case "settings":
       page = <Settings />;
       break;
@@ -123,7 +127,7 @@ export function App() {
   return (
     <Boundary outer>
       <Shell route={route} meta={meta} offline={stale}>
-        <Welcome deep={route.name !== "today"} />
+        {route.name === "combo" ? null : <Welcome deep={route.name !== "today"} />}
         <Boundary resetKey={JSON.stringify(route)}>{page}</Boundary>
       </Shell>
       {IS_ARTIFACT ? null : <Tour />}

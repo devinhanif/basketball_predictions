@@ -31,6 +31,7 @@ interface NavDef {
 const ALL_WORKSPACE: NavDef[] = [
   { name: "today", label: "Discover", icon: "discover" },
   { name: "live", label: "Live", icon: "live" },
+  { name: "combo", label: "Combo mode", icon: "grid" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
   { name: "picks", label: "My picks", icon: "picks" },
   { name: "record", label: "Track record", icon: "record" },
@@ -51,7 +52,7 @@ const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name
  * "You". A section with nothing visible in the current lens is not drawn.
  */
 const GROUPS: readonly { label: string; names: readonly TopName[]; bet?: true }[] = [
-  { label: "Tonight", names: ["today", "live", "swipe", "picks"] },
+  { label: "Tonight", names: ["today", "live", "combo", "swipe", "picks"] },
   { label: "Record and tests", names: ["record", "scorecard", "tests"] },
   { label: "Market tools", names: ["signals", "hedge", "history"], bet: true },
   { label: "Reference", names: ["terms", "help"] },
@@ -59,17 +60,19 @@ const GROUPS: readonly { label: string; names: readonly TopName[]; bet?: true }[
 /** The phone's bottom bar: the five most used, the same in every lens (everything else is in the menu drawer). */
 const TABS: TopName[] = ["today", "live", "record", "swipe", "picks", "terms"];
 export { MARKET_ONLY };
+/** Screens listed in Explore and Market but not in Learn (combo mode). */
+const EXPLORE_UP: readonly TopName[] = ["combo"];
 
 // The nav entry marked current on each route (a game, a leg and the source page belong to Discover).
 const ROUTE_TOP: Record<Route["name"], TopName> = {
-  today: "today", game: "today", leg: "today", parlay: "today", swipe: "swipe", picks: "picks", settings: "settings",
+  today: "today", game: "today", leg: "today", parlay: "today", combo: "combo", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
   terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
   // A betting screen has no TopName of its own (the module brings its own nav); crumbs() names it and `here` is null.
   bet: "today",
 };
 const TITLES: Record<TopName, string> = {
-  today: "Discover", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
+  today: "Discover", combo: "Combo mode", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
   scorecard: "Scorecard", tests: "Forward tests", help: "Error codes",
 };
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };
@@ -353,7 +356,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
   const [keysOpen, setKeysOpen] = useState(false);
   const index = useSearchIndex(searchOpen, isAdmin);
   const lens = useLens();
-  const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
+  const visible = WORKSPACE.filter((n) => (lens === "market" || !MARKET_ONLY.includes(n.name)) && (lens !== "learn" || !EXPLORE_UP.includes(n.name)));
   const tabs = TABS.filter((t) => visible.some((w) => w.name === t)).slice(0, 5);
   // On a betting screen no top-level view is current (the module's own nav entry is).
   const here: TopName | null = BETTING && props.route.name === "bet" ? null : ROUTE_TOP[props.route.name];
@@ -453,7 +456,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
     });
 
   return (
-    <div class="shell">
+    <div class="shell" data-route={props.route.name}>
       <a
         class="skip-link"
         href="#main"

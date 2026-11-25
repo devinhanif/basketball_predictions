@@ -1,0 +1,850 @@
+/* Combo mode (pure probability). Uses the app's tokens; nothing is smaller than 12 px. Classes are prefixed cb-. */
+.cb-page .panel h2,
+.cb-page .panel h3 {
+  margin-top: 0;
+}
+.cb-fixture {
+  border-left: 3px solid var(--tonight);
+  background: var(--tonight-soft);
+}
+.cb-scripts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+.cb-script {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  padding: var(--sp-3);
+  text-align: left;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+}
+.cb-script:hover {
+  border-color: var(--accent);
+}
+.cb-script[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.cb-script-title {
+  font-family: var(--display);
+  font-weight: 700;
+}
+.cb-tag {
+  margin-top: 2px;
+  padding: 1px 8px;
+  font-size: var(--fs-xs);
+  color: var(--notice-ink);
+  background: var(--notice-bg);
+  border-radius: var(--pill);
+}
+.cb-sentence {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-lg);
+  line-height: 1.45;
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+.cb-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--row-gap);
+}
+@media (min-width: 900px) {
+  .cb-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+.cb-rows,
+.cb-legs,
+.cb-rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.cb-row {
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+.cb-row:last-child {
+  border-bottom: 0;
+}
+.cb-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  margin: 0;
+}
+.cb-row-nums {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-3);
+  margin: var(--sp-1) 0;
+}
+.cb-delta {
+  font-weight: 700;
+}
+.cb-delta.more,
+.cb-more h2 {
+  color: var(--better);
+}
+.cb-delta.less,
+.cb-less h2 {
+  color: var(--worse);
+}
+.cb-hist,
+.cb-move {
+  margin: 2px 0;
+}
+.cb-trend {
+  display: block;
+  margin-top: 2px;
+}
+.cb-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: flex-end;
+  margin: var(--sp-3) 0;
+}
+.cb-controls .field {
+  min-width: 140px;
+  flex: 1 1 140px;
+}
+.cb-controls select,
+.cb-controls input[type="number"] {
+  width: 100%;
+}
+.cb-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 44px;
+}
+.cb-leg {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.cb-big {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+}
+.cb-pm {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+}
+.cb-estimate {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--notice-bg);
+  color: var(--notice-ink);
+  border-radius: var(--radius-sm);
+}
+.cb-warn {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--loss);
+  border-radius: var(--radius-sm);
+}
+.cb-page .tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  overflow-x: visible;
+}
+.cb-page .tabs .tab {
+  flex: 1 1 auto;
+  min-height: 44px;
+  white-space: normal;
+}
+.cb-page .field {
+  min-width: 0;
+}
+.cb-page select {
+  max-width: 100%;
+  width: 100%;
+  text-overflow: ellipsis;
+}
+.cb-page select,
+.cb-page input[type="number"] {
+  min-height: 44px;
+}
+
+/* ---- photos (the app's Avatar, resized here only) ---- */
+.cb-av {
+  flex: none;
+  display: inline-flex;
+}
+.cb-av .avatar {
+  width: 36px;
+  height: 44px;
+  border-radius: var(--radius-xs);
+}
+.cb-faces {
+  display: inline-flex;
+  gap: var(--sp-1);
+  margin-right: var(--sp-2);
+}
+.cb-pickface {
+  align-self: flex-end;
+}
+.cb-legline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* ---- one row per leg: photo, name and counts, square bar, chance under the script ---- */
+.cb-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "av who end"
+    "bar bar bar";
+  gap: var(--sp-2) var(--sp-3);
+  align-items: start;
+}
+.cb-row .cb-av {
+  grid-area: av;
+}
+.cb-row .cb-who {
+  grid-area: who;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cb-row .cb-end {
+  grid-area: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.cb-row .cb-bar {
+  grid-area: bar;
+}
+.cb-end-main {
+  font-family: var(--display);
+  font-size: var(--fs-xl);
+}
+.cb-legname {
+  color: var(--muted);
+}
+@media (min-width: 900px) {
+  .cb-two .cb-row {
+    grid-template-columns: auto minmax(0, 1fr) 120px auto;
+    grid-template-areas: "av who bar end";
+    align-items: center;
+  }
+}
+
+/* ---- the square bar ---- */
+.cb-bar {
+  position: relative;
+  display: block;
+  height: 18px;
+  min-width: 96px;
+}
+.cb-bar > span {
+  position: absolute;
+  display: block;
+}
+.cb-bar-track {
+  inset: 6px 0;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+}
+.cb-bar-mid {
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: var(--ink);
+  opacity: 0.55;
+}
+.cb-bar-band {
+  top: 6px;
+  height: 6px;
+}
+.cb-bar-band.up {
+  background: var(--better);
+}
+.cb-bar-band.down {
+  background: var(--worse);
+}
+.cb-bar-now {
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+.cb-bar-script {
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--ink);
+  border: 1px solid var(--bg);
+}
+.cb-bar-off {
+  right: 0;
+  top: 18px;
+  color: var(--muted);
+}
+.cb-bar.off {
+  margin-bottom: 16px;
+}
+.cb-legend {
+  margin: 0;
+}
+
+/* ---- Analyst: a terminal. Monospace, sharp corners, no glow, dense rows. ---- */
+.cb-term,
+.cb-term .panel,
+.cb-term .cb-script,
+.cb-term .cb-sentence,
+.cb-term .cb-estimate,
+.cb-term .cb-warn,
+.cb-term .cb-fixture,
+.cb-term .btn,
+.cb-term select,
+.cb-term input,
+.cb-term .tab,
+.cb-term .cb-av .avatar {
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+  background-image: none;
+}
+.cb-term {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+}
+.cb-term h1,
+.cb-term h2,
+.cb-term h3,
+.cb-term .cb-end-main,
+.cb-term .cb-big {
+  font-family: var(--mono);
+  letter-spacing: 0;
+}
+.cb-term .cb-row {
+  padding-bottom: var(--sp-2);
+  gap: var(--sp-1) var(--sp-2);
+}
+.cb-term .cb-av .avatar {
+  width: 36px;
+  height: 44px;
+}
+.cb-term .cb-rows {
+  gap: var(--sp-2);
+}
+.cb-term .cb-end-main {
+  font-size: var(--fs-lg);
+}
+.cb-term .cb-sentence {
+  font-size: var(--fs-md);
+}
+.cb-term .mono,
+.cb-term .cb-counts {
+  font-family: var(--mono);
+}
+.cb-counts {
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+.cb-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.cb-script-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+}
+.cb-script-table caption {
+  text-align: left;
+  padding-bottom: var(--sp-2);
+  color: var(--accent-ink);
+}
+.cb-script-table th,
+.cb-script-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.cb-script-table .num {
+  text-align: right;
+}
+.cb-script-table tr.on {
+  background: var(--accent-soft);
+}
+.cb-trow {
+  min-height: 32px;
+  padding: 0 8px;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+.cb-trow[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.cb-cmd {
+  font-family: var(--mono);
+}
+
+/* ---- Simple: larger type and bigger photos ---- */
+.cb-simple .cb-row .cb-av .avatar {
+  width: 56px;
+  height: 68px;
+}
+.cb-simple .cb-row {
+  font-size: var(--fs-lg);
+}
+.cb-script-table caption {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .cb-script-table th:nth-child(2),
+  .cb-script-table td:nth-child(2) {
+    display: none;
+  }
+}
+
+/* One look, two densities (Devin, 2026-11-17): the terminal base above serves both modes; Simple only enlarges type and photos. */
+.cb-simple.cb-term {
+  font-size: var(--fs-lg);
+}
+.cb-simple.cb-term .small {
+  font-size: var(--fs-md);
+}
+.cb-simple.cb-term .cb-end-main {
+  font-size: var(--fs-2xl);
+}
+.cb-sub {
+  margin-top: var(--sp-3);
+}
+.cb-term .seg,
+.cb-term .seg-btn {
+  border-radius: 0;
+}
+.cb-hrow {
+  grid-template-areas: "av who";
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+/* ---- content first: compact head, picker, tabs, tiles, lead line, folded notes ---- */
+.cb-head {
+  margin-bottom: 0;
+}
+.cb-head .page-heading-title {
+  font-size: var(--fs-xl);
+}
+.cb-head .page-heading-desc {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+}
+@media (max-width: 600px) {
+  .cb-head .eyebrow {
+    display: none;
+  }
+}
+.cb-fixture {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-sm);
+}
+.cb-page .cb-pick {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-2);
+}
+.cb-page .cb-tabs.tabs {
+  flex-wrap: nowrap;
+}
+.cb-page .cb-tabs .tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: var(--sp-2);
+  padding-right: var(--sp-2);
+  text-align: center;
+}
+.cb-top {
+  padding: var(--sp-2) var(--sp-3);
+}
+.cb-script {
+  min-height: 44px;
+  padding: var(--sp-2) var(--sp-3);
+  gap: 2px;
+}
+.cb-script-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  width: 100%;
+  flex-wrap: wrap;
+}
+.cb-tag {
+  margin-top: 0;
+}
+.cb-sub {
+  margin-top: var(--sp-2);
+}
+.cb-lead {
+  padding: var(--sp-2) var(--sp-3);
+}
+.cb-lead .cb-sentence {
+  padding: 0 0 var(--sp-2);
+  border-left: 0;
+  background: transparent;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+}
+.cb-simple.cb-term .cb-lead .cb-sentence {
+  font-size: var(--fs-base);
+}
+.cb-key {
+  margin: 0;
+}
+.cb-key i {
+  display: inline-block;
+  vertical-align: middle;
+  background: var(--muted);
+}
+.cb-key-now {
+  width: 2px;
+  height: 12px;
+}
+.cb-key-script {
+  width: 9px;
+  height: 9px;
+  background: var(--ink) !important;
+  border: 1px solid var(--bg);
+}
+.cb-how {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.cb-how > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  cursor: pointer;
+  color: var(--accent-ink);
+}
+.cb-how-body {
+  padding: 0 var(--sp-3) var(--sp-3);
+}
+.cb-how-body p {
+  margin: 0 0 var(--sp-2);
+}
+
+/* ---- the photo slot: initials always underneath ---- */
+.cb-face {
+  position: relative;
+  width: 36px;
+  height: 44px;
+}
+.cb-face-under,
+.cb-face-over {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.cb-face .avatar {
+  width: 100%;
+  height: 100%;
+}
+.cb-face-over .avatar.headshot {
+  background: transparent;
+}
+.cb-simple .cb-row .cb-face,
+.cb-simple .cb-hrow .cb-face {
+  width: 56px;
+  height: 68px;
+}
+@media (max-width: 600px) {
+  .cb-script-table caption {
+    display: none;
+  }
+  .cb-script-table th,
+  .cb-script-table td {
+    padding: 3px 8px;
+  }
+  .cb-trow {
+    min-height: 28px;
+  }
+  .cb-term .cb-row .cb-face {
+    width: 30px;
+    height: 36px;
+  }
+}
+
+/* ---- tighter for a phone ---- */
+.cb-fixture {
+  font-family: var(--font);
+  font-size: var(--fs-s);
+  line-height: 1.35;
+}
+.cb-fixture strong {
+  font-weight: 700;
+}
+.cb-list h2 {
+  font-size: var(--fs-lg);
+  margin: 0 0 var(--sp-2);
+}
+.cb-list.panel {
+  padding: var(--sp-3);
+}
+.cb-sub .seg-btn {
+  min-height: 36px;
+}
+.cb-page .cb-pick select {
+  min-height: 40px;
+}
+.cb-key-now {
+  margin-left: 2px;
+}
+.cb-script-table th,
+.cb-script-table td {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+.cb-trow {
+  min-height: 30px;
+}
+
+/* ---- sizes: the Face box sets the size, the avatars fill it ---- */
+.cb-page .cb-face .avatar,
+.cb-page .cb-row .cb-face .avatar,
+.cb-page .cb-hrow .cb-face .avatar,
+.cb-page .cb-face.cb-av .avatar {
+  width: 100%;
+  height: 100%;
+}
+@media (max-width: 600px) {
+  .cb-simple .cb-row .cb-face,
+  .cb-simple .cb-hrow .cb-face {
+    width: 44px;
+    height: 54px;
+  }
+  .cb-dense .cb-row .cb-face,
+  .cb-dense .cb-hrow .cb-face {
+    width: 32px;
+    height: 38px;
+  }
+  .cb-page.stack {
+    gap: var(--sp-2);
+  }
+  .cb-script {
+    padding: 6px var(--sp-3);
+    line-height: 1.2;
+  }
+  .cb-script-title {
+    font-size: var(--fs-md);
+  }
+  .cb-fixture {
+    padding: 4px var(--sp-3);
+    font-size: var(--fs-xs);
+  }
+  .cb-lead .cb-sentence {
+    font-size: var(--fs-sm);
+    padding-bottom: 4px;
+  }
+  .cb-simple.cb-term .cb-lead .cb-sentence {
+    font-size: var(--fs-md);
+  }
+}
+
+/* ---- picker and switch share a row; the label is for screen readers ---- */
+.cb-page .cb-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.cb-page .cb-pick > .field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cb-page .cb-pick > .field > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.cb-page .cb-pick .cb-sub {
+  flex: none;
+  margin: 0;
+}
+.cb-head .page-heading-title {
+  margin: 0;
+}
+.cb-head {
+  gap: 0;
+  padding-bottom: 0;
+}
+@media (max-width: 600px) {
+  .cb-script-table th,
+  .cb-script-table td {
+    padding: 1px 8px;
+    font-size: var(--fs-sm);
+  }
+  .cb-script-table thead th {
+    font-size: var(--fs-xs);
+  }
+  .cb-trow {
+    min-height: 26px;
+  }
+  .cb-top {
+    padding: 4px var(--sp-2);
+  }
+  .cb-lead {
+    padding: 4px var(--sp-3);
+  }
+  .cb-key {
+    font-size: var(--fs-xs);
+  }
+}
+
+@media (max-width: 600px) {
+  .cb-head .page-heading-desc {
+    display: none;
+  }
+  .cb-head {
+    margin-top: calc(-1 * var(--sp-2));
+  }
+  .cb-simple.cb-term .cb-row {
+    font-size: var(--fs-md);
+  }
+  .cb-simple.cb-term .cb-end-main {
+    font-size: var(--fs-xl);
+  }
+  .cb-simple.cb-term .small {
+    font-size: var(--fs-s);
+  }
+  .cb-page .cb-tabs .tab {
+    min-height: 40px;
+  }
+  .cb-lead .cb-sentence {
+    margin-bottom: 0;
+  }
+  .cb-list .cb-rows {
+    gap: var(--sp-2);
+  }
+  .cb-row {
+    padding-bottom: var(--sp-1);
+  }
+}
+
+@media (max-width: 600px) {
+  .cb-script-top {
+    flex-wrap: nowrap;
+  }
+  .cb-script .cb-tag {
+    padding: 0 6px;
+    font-size: var(--fs-xs);
+  }
+  .cb-script {
+    padding: 4px var(--sp-2);
+  }
+  .cb-head .page-heading-title {
+    font-size: var(--fs-lg);
+  }
+  .cb-lead .cb-sentence {
+    font-size: var(--fs-s);
+    line-height: 1.3;
+  }
+}
+
+.cb-script-top {
+  gap: 4px;
+  justify-content: flex-start;
+}
+.cb-script-top .small {
+  white-space: nowrap;
+  font-size: var(--fs-s);
+}
+.cb-script .cb-tag {
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.cb-script-top {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.cb-script {
+  gap: 1px;
+}
+
+@media (max-width: 600px) {
+  .cb-page.stack {
+    gap: 6px;
+  }
+  .cb-page .cb-pick .cb-sub .seg-btn {
+    min-height: 34px;
+  }
+  .cb-page .cb-pick select {
+    min-height: 36px;
+  }
+  .cb-page .cb-tabs .tab {
+    min-height: 36px;
+  }
+  .cb-list.panel {
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .cb-list h2 {
+    margin-bottom: 4px;
+  }
+}
+
+/* ---- the app's own top matter stays out of the way on this route (route-scoped; the intro card is not rendered here at all) ---- */
+.shell[data-route="combo"] .dataline {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 2.4em;
+}
+.shell[data-route="combo"] .dataline > *,
+.shell[data-route="combo"] .dataline p {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shell[data-route="combo"] .hstrip {
+  display: none;
+}

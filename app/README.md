@@ -292,8 +292,19 @@ any game from a later season. `fixtures/manifest.json` records the verbatim quer
 `/api/health`, `/api/meta`, `/api/slates`, `/api/slates/{date}`, `/api/games/{id}`, `/api/games/{id}/result`, `/api/games/{id}/scenarios`,
 `/api/props/{game_id}/{player_id}/{stat}?line=`, `/api/breakdown/{game_id}/{player_id}/{stat}?line=&side=`, `/api/slates/{date}/swipe?seed=&n=`, `/api/slates/{date}/results`,
 `/api/card/{game_id}/{player_id}/{stat}` (swipe-card stats and the full distribution grid, fetched only when the user opens it), `/api/parlay-of-the-day`, `/api/evidence`,
-`/api/knows/{game_id}[/{player_id}/{stat}]`, `/api/track-record/{calibration,guess}` (and `guess/{game_id}/{player_id}/{stat}`), `/api/edges/{game_id}/{player_id}/{stat}`, `/api/contracts/top`, `/api/top-parlays/{date}`, `/api/desk`, and the live routes below. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
+`/api/knows/{game_id}[/{player_id}/{stat}]`, `/api/track-record/{calibration,guess}` (and `guess/{game_id}/{player_id}/{stat}`), `/api/edges/{game_id}/{player_id}/{stat}`, `/api/contracts/top`, `/api/top-parlays/{date}`, `/api/combo`, `/api/combo/{date}`, `/api/desk`, and the live routes below. Interactive docs at `/api/docs`. P(over) at a line is read from the stored
 quantiles by interpolation with a continuity correction for integer counts: an approximation, labelled as one.
+
+## Combo mode (Explore and Market lenses; `#/combo`)
+
+Pure probability, no prices, EV, fees or stakes; not behind the betting switch. Contract `docs/contracts/combo_export_v1.md`, reader notes
+`docs/contracts/combo_app_reader_v1.md`. API: `GET /api/combo` (nights that have a file) and `GET /api/combo/{date}` (the stored
+`combo_<date>.json` unchanged, plus the server clock); in export mode the file is read from `APP_EXPORT_DIR` beside the manifest, in fixture
+mode from `app/fixtures/combo` (rebuild: `uv run --script app/fixtures/build_combo_fixture.py`; synthetic numbers on real 2024-11-12 games).
+Absent file = typed 404 `no_combo`, shown as a plain empty state. Browser: `web/src/combo/engine.ts` is a port of `nba/parlay/combo.py`, tested
+against `web/src/combo/golden/combo_golden_v1.json` (a copy of `tests/parlay/golden/combo_golden_v1.json`, sha256 pinned in
+`engine.test.ts`; refresh it only with the reference file, in review). Screens: "If the game goes like this" (lead), lines that move together,
+aim for a chance, build your own. Only calibrated lines (inside `cal_k`) are offered; a game past `tip_utc` on the server's clock is closed.
 
 ## Reading the nightly export (`APP_EXPORT_DIR`)
 

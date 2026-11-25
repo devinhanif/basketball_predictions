@@ -105,7 +105,13 @@ def bake(
     meta = dict(meta) | {"slates": sorted(want, reverse=True)}
     b.simple["/api/meta"] = {"s": 200, "b": meta}
     b.simple["/api/slates"] = {"s": 200, "b": [s for s in slates_all if s["date"] in want]}
-    for path in ("/api/parlay-of-the-day", "/api/evidence", "/api/contracts/top", "/api/desk"):
+    for path in (
+        "/api/combo",
+        "/api/parlay-of-the-day",
+        "/api/evidence",
+        "/api/contracts/top",
+        "/api/desk",
+    ):
         b.put_simple(path)
     # The honesty pages: scorecard, forward tests, error registry, health strip, as answered.
     for path in HONESTY_SIMPLE:
@@ -126,6 +132,8 @@ def bake(
     for d in want:
         slate = b.put_simple(f"/api/slates/{d}")["b"]
         b.put_simple(f"/api/top-parlays/{d}")
+        # Combo mode: the night's stored file (a baked 404 is the page's empty state).
+        b.put_group(f"c:{d}", f"/api/combo/{d}")
         results = b.fetch(f"/api/slates/{d}/results")
         night = f"d:{d}"
         b.groups.setdefault(night, {})[f"/api/slates/{d}/results"] = results
