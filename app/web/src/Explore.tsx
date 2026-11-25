@@ -256,7 +256,6 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   const base = momentsOf(pge);
   const [minutes, setMinutes] = useState(baseline === null ? 0 : Math.round(baseline));
   const [narrow, setNarrow] = useState(false);
-  const [priceOn, setPriceOn] = useState(false);
   const [side, setSide] = useState<"over" | "under">("over");
   const unchanged = baseline === null || (!narrow && minutes === Math.round(baseline));
   const known = narrow && mi?.minutes_share != null ? { share: mi.minutes_share, mean: base.mean } : null;
@@ -288,7 +287,7 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
   const marks: { at: number; name: string }[] = [];
   if (posted !== null) marks.push({ at: posted, name: "posted line" });
   marks.push({ at: model, name: "model's line" });
-  const showPrice = lens === "market" || priceOn;
+  const showPrice = lens === "market";
   const calLine = unchanged ? calibratedLine(r) : null;
   const qSide: number | null = side === "over" ? pOver : pUnder;
   return (
@@ -372,17 +371,9 @@ function Lab({ card, lens }: { card: CardView; lens: Lens }) {
 
       {showPrice ? (
         <PriceBlock card={card} q={qSide} side={side} onSide={setSide} qLabel={`Model's chance of the ${side}${unchanged ? "" : " (scaled)"}`} />
-      ) : (
-        <div class="xp-block">
-          <h3>Price and fees</h3>
-          <p class="small muted">Off by default in this lens: Explore is about the forecast. Turn it on to type a price and a fee.</p>
-          <button type="button" class="btn" onClick={() => { setPriceOn(true); }}>
-            Show the price arithmetic
-          </button>
-        </div>
-      )}
+      ) : null}
 
-      {lens === "explore" ? (
+      {lens !== "market" ? (
         <>
           <SitsPicker gameId={card.game_id} playerId={card.player_id} playerName={card.player} />
           <div class="xp-soon-row">

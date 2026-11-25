@@ -6,7 +6,6 @@ import { ErrorPanel, Explain, Loading } from "../components";
 import { failureMessage, failureOf, type ApiFailure } from "../errors";
 import { IS_ARTIFACT } from "../env";
 import { useLens, useMode, type Lens } from "../prefs";
-import { PageControls } from "../Lens";
 import { ExplorePanel } from "../Explore";
 import { PlayerKnowsPanel } from "../Knows";
 import { OnItChip } from "../SharedUI";
@@ -41,7 +40,6 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
           </span>
           {data.player}
         </h1>
-        <PageControls lens detail />
       </div>
       <SoWhat>
         {data.player}, {data.label.toLowerCase()} at {lineText(line)}: his recent games and the forecast are below. A forecast is a range, and nothing here is a pick.
@@ -189,7 +187,7 @@ export function Leg(props: { gameId: string; playerId: number; stat: LegStat; si
     <div class={`stack leg${fresh ? "" : " stale"}`} aria-busy={pending}>
       <Header data={data} line={shown} />
       <OnThisPage />
-      {lens === "explore" ? <LensExplore data={data} modelStat={modelStat} lens={lens} /> : null}
+      {lens !== "market" ? <LensExplore data={data} modelStat={modelStat} lens={lens} /> : null}
       <LineCard
         data={data}
         line={shown}

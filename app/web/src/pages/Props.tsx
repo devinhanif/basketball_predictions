@@ -6,7 +6,6 @@ import { Avatar } from "../Avatar";
 import { CalTag, View } from "../components";
 import { Door, DoorGroup } from "../Doors";
 import { lineText, longDate, num, pctBounded, tipTime } from "../format";
-import { PageControls } from "../Lens";
 import { chronological, defaultNight } from "../nights";
 import { JOBS } from "../jobs";
 import { gameHref, legHref, propsHref } from "../router";
@@ -98,7 +97,6 @@ function PropsNight(props: { date: string; nights: string[]; game: string | null
         kicker={`${longDate(date)} · NBA`}
         title="Player props"
         description="One player, one line, one chance. Tap a row for the player's page."
-        actions={<PageControls lens detail />}
       />
       <JobNights dates={props.nights} date={date} base="#/props" />
       <View state={slate} reload={reload} onStale={props.onStale} what="tonight's lines" errorLevel={2}>

@@ -109,6 +109,22 @@ caret and command line of the mock-ups were not built (the app has no command in
 5. Tests: `colour.test.ts` gains four tests (slip route, view tabs and gate; market-only doors; leg back door; stray tokens). `combo/page.test.ts`
    changed to expect `EXPLORE_UP = ["combo", "slip"]`. The route walk visits `#/slip`, `#/teams` and `#/props` in the fixture and artifact sets.
 
+## Round 2 (Devin's three approvals, decision row 2026-11-24 19:50)
+
+A. No gates. Learn and Explore are one no-prices view; the lens is a two-way "Market side: hidden / shown" (`Lens = "base" | "market"`, key `ph.lens`
+   kept, an old `learn` or `explore` reads as hidden). The combo and slip gates and the "Switch to Explore" button are gone; "Explore" is no longer a lens
+   label (the purple tab keeps the name). Market gating is unchanged. Where the two old views differed I took the stricter side (no prices in the
+   folded view): the priced "Today's picks" list (shown in Explore before) and the opt-in price-arithmetic block on the what-if panel are Market side only now;
+   the what-ifs, teammate-sits picker and the combo screens show by default. Home, Teams and Props show no book figure unless the market side is shown.
+B. The market-side, Simple/Analyst and theme switches live in the profile menu (stacked, one per row). Page bodies have none. With the market side shown, a
+   neutral boxed "MARKET SIDE SHOWN" ("MARKET ON" on a phone) sits in the header. Keyboard access and shortcuts are unchanged (the menu is the same popover).
+C. Terminal look in both themes: `terminal.css` (loaded last): Martian Mono body, Unbounded headings (npm `@fontsource/martian-mono` and
+   `@fontsource/unbounded` 5.3.0, exact, latin 400/600 and 600/800 woff2 copied into `src/fonts` with their OFL licences; no runtime request to any font
+   service; about 63 KB), sharp corners and no shadows everywhere, square bars, `> Title` prompt headings, the search as the command bar, square player photos
+   with the team colour on the edge, photos added to the game cards on home and Teams and to My picks rows. Simple 14px body, Analyst 13px. Optional per-row
+   "+ SLIP" skipped: the Build view keeps its leg picker in local state and cannot take a preselected leg without real new work.
+D. Verified on the real export and fixtures; screenshots are listed in the hand-back.
+
 ## Checks (all unpiped, `nice`, exit code 0 each; logs in the session scratch area)
 
 | check | before (main + two merges) | after |

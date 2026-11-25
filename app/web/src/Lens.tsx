@@ -1,73 +1,32 @@
-import { ModeToggle } from "./components";
 import { LENSES, setPref, useLens, type Lens } from "./prefs";
 
-export const LENS_LABEL: Record<Lens, string> = { learn: "Learn", explore: "Explore", market: "Market" };
+/** The two settings of "Market side", in the words on the switch. */
+export const LENS_LABEL: Record<Lens, string> = { base: "Hidden", market: "Shown" };
 
 /** One line each, in words a first-time visitor can act on. */
 export const LENS_SAY: Record<Lens, string> = {
-  learn: "How the game and forecast work. Market side hidden.",
-  explore: "Move the line or minutes; nothing is saved.",
-  market: "Posted prices, edges and fees, as stored.",
+  base: "Market side hidden: how the game and the forecast work, and what changes if the game goes a certain way.",
+  market: "Market side shown: posted prices, edges and fees, as stored.",
 };
 
-/** The three lenses on one screen. The choice is remembered on this device (default Learn). */
-export function LensSwitch(props: { compact?: boolean }) {
+/** "Market side: hidden / shown", a two-way switch. It lives in the profile menu, not in the page bodies. The choice is remembered on this device. */
+export function LensSwitch() {
   const lens = useLens();
   return (
-    <div class="lens">
-      <div class="seg wide lens-seg" role="group" aria-label="Lens">
-        {LENSES.map((l) => (
-          <button
-            key={l}
-            type="button"
-            class="seg-btn"
-            aria-pressed={lens === l}
-            onClick={() => {
-              setPref("lens", l);
-            }}
-          >
-            {LENS_LABEL[l]}
-          </button>
-        ))}
-      </div>
-      {props.compact ? null : (
-        <p class="small muted lens-say" aria-live="polite">
-          {LENS_SAY[lens]}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
- * The page's view controls, always in the same place: the right of the page heading (under it on a phone). The lens
- * switch (with its one-line meaning) and the Simple/Analyst switch, each with its label. Pages pass what they have.
- */
-export function PageControls(props: { lens?: boolean; detail?: boolean }) {
-  const lens = useLens();
-  return (
-    <div class="page-controls">
-      {props.lens ? (
-        <div class="pc-row">
-          <span class="pc-label" aria-hidden="true">
-            Lens
-          </span>
-          <LensSwitch compact />
-        </div>
-      ) : null}
-      {props.detail ? (
-        <div class="pc-row">
-          <span class="pc-label" aria-hidden="true">
-            Detail
-          </span>
-          <ModeToggle />
-        </div>
-      ) : null}
-      {props.lens ? (
-        <p class="small muted lens-say pc-say" aria-live="polite">
-          {LENS_SAY[lens]}
-        </p>
-      ) : null}
+    <div class="seg lens-seg" role="group" aria-label="Market side">
+      {LENSES.map((l) => (
+        <button
+          key={l}
+          type="button"
+          class="seg-btn"
+          aria-pressed={lens === l}
+          onClick={() => {
+            setPref("lens", l);
+          }}
+        >
+          {LENS_LABEL[l]}
+        </button>
+      ))}
     </div>
   );
 }
@@ -78,7 +37,7 @@ export function marketOnlyId(name: string): string {
 }
 
 /**
- * Shown in place of a screen that is all prices and edges when the lens is Learn or Explore. It is the page's h1 when it
+ * Shown in place of a screen that is all prices and edges while the market side is hidden. It is the page's h1 when it
  * stands in for the whole screen (the default); a page that has its own h1 passes `level={2}`.
  */
 export function MarketOnly(props: { name: string; what: string; level?: 1 | 2 | 3 }) {
@@ -87,7 +46,7 @@ export function MarketOnly(props: { name: string; what: string; level?: 1 | 2 | 
   return (
     <section class="panel empty market-only" aria-labelledby={hid}>
       <H id={hid} class="market-only-title">{props.name} is a Market screen</H>
-      <p>{props.what} It stays out of view in the Learn and Explore lenses.</p>
+      <p>{props.what} It stays out of view while the market side is hidden.</p>
       <button
         type="button"
         class="btn primary"
@@ -97,7 +56,7 @@ export function MarketOnly(props: { name: string; what: string; level?: 1 | 2 | 
       >
         Switch to Market
       </button>
-      <p class="small muted">Nothing is lost by switching. You can switch back from any game or player page, or from the top of Discover.</p>
+      <p class="small muted">Nothing is lost by switching. You can switch back from the profile menu.</p>
     </section>
   );
 }

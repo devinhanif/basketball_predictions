@@ -15,20 +15,21 @@ beforeEach(() => {
 });
 
 describe("the lens", () => {
-  it("is Learn for a new visitor, and anything unreadable is Learn", () => {
-    expect(DEFAULTS.lens).toBe("learn");
-    expect(getPrefs().lens).toBe("learn");
-    expect(parseLens(null)).toBe("learn");
-    expect(parseLens("nonsense")).toBe("learn");
-    expect(parseLens("explore")).toBe("explore");
+  it("is the no-prices view for a new visitor; anything unreadable, and an old stored learn or explore, reads as that view", () => {
+    expect(DEFAULTS.lens).toBe("base");
+    expect(getPrefs().lens).toBe("base");
+    expect(parseLens(null)).toBe("base");
+    expect(parseLens("nonsense")).toBe("base");
+    expect(parseLens("learn")).toBe("base");
+    expect(parseLens("explore")).toBe("base");
     expect(parseLens("market")).toBe("market");
   });
   it("is remembered, even when storage is blocked (the in-memory fallback)", () => {
     setPref("lens", "market");
     expect(getPrefs().lens).toBe("market");
-    writeKey(KEYS.lens, "explore");
+    writeKey(KEYS.lens, "base");
     resetPrefsCache(); // the cache is rebuilt from what was written (here the in-memory copy)
-    expect(getPrefs().lens).toBe("learn"); // resetPrefsCache also clears the memory: a fresh visit
+    expect(getPrefs().lens).toBe("base"); // resetPrefsCache also clears the memory: a fresh visit
   });
 });
 
@@ -146,10 +147,9 @@ describe("the Learn lens, app-wide", () => {
     expect(headline({ games: 7, engine: null, speaks: false, tickets: null, live: { live: 1, final: 0 } }).text).toContain("7 games · 1 live · pricing");
   });
   it("Opens on offers Signals only in the Market lens", () => {
-    expect(screenAllowed("signals", "learn")).toBe(false);
-    expect(screenAllowed("signals", "explore")).toBe(false);
+    expect(screenAllowed("signals", "base")).toBe(false);
     expect(screenAllowed("signals", "market")).toBe(true);
-    expect(screenAllowed("swipe", "learn")).toBe(true);
+    expect(screenAllowed("swipe", "base")).toBe(true);
   });
   it("the market-only screens are the ones whose subject is prices and edges", () => {
     expect([...MARKET_ONLY].sort()).toEqual(["hedge", "history", "signals"]);

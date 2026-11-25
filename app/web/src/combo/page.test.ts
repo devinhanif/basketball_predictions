@@ -23,19 +23,19 @@ describe("the combo route", () => {
   });
 });
 
-describe("lens placement: Explore and Market, not Learn", () => {
-  it("is searchable in Explore and Market and left out of Learn", () => {
+describe("combo and slip land on content: no lens gate (2026-11-24)", () => {
+  it("is searchable and in the nav with the market side hidden or shown", () => {
     const href = topHref("combo");
-    expect(screensFor(false, SCREEN_ITEMS, true).some((i) => i.href === href)).toBe(true); // Explore
-    expect(screensFor(true, SCREEN_ITEMS, true).some((i) => i.href === href)).toBe(true); // Market
-    expect(screensFor(false, SCREEN_ITEMS, false).some((i) => i.href === href)).toBe(false); // Learn
+    expect(screensFor(false, SCREEN_ITEMS).some((i) => i.href === href)).toBe(true);
+    expect(screensFor(true, SCREEN_ITEMS).some((i) => i.href === href)).toBe(true);
+    expect(screensFor(false, SCREEN_ITEMS).some((i) => i.href === topHref("slip"))).toBe(true);
   });
-  it("the nav hides it in Learn and the page itself says it is an Explore screen", () => {
-    expect(read("Shell.tsx")).toMatch(/EXPLORE_UP: readonly TopName\[\] = \["combo", "slip"\]/);
-    expect(read("Shell.tsx")).toMatch(/lens !== "learn" \|\| !EXPLORE_UP\.includes/);
+  it("neither the nav nor the page has a lens gate any more", () => {
+    expect(read("Shell.tsx")).not.toMatch(/EXPLORE_UP/);
     const page = read("pages/Combo.tsx");
-    expect(page).toContain('lens === "learn"');
-    expect(page).toContain("Combo mode is an Explore screen");
+    expect(page).not.toContain('lens === "learn"');
+    expect(page).not.toContain("is an Explore screen");
+    expect(page).not.toContain("Switch to Explore");
   });
   it("is not behind the betting switch", () => {
     expect(read("pages/Combo.tsx")).not.toMatch(/BETTING/);

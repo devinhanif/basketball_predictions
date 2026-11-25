@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { IS_ARTIFACT } from "../env";
 import { count } from "../format";
-import { PageControls } from "../Lens";
 import { useLens } from "../prefs";
 import { termsHashFor, topHref } from "../router";
 import { allTerms, searchTerms, termHref, termsFor } from "../terms";
@@ -44,7 +43,6 @@ export function Terms(props: { term: string | null; q: string | null }) {
             anywhere it is used. The codes on failure screens have <a href={topHref("help")}>their own help page</a>.
           </>
         }
-        actions={<PageControls lens />}
       />
       {hidden > 0 && !market ? <p class="small muted">{count(hidden)} more terms about the market are listed in the Market lens.</p> : null}
       {wantedHidden ? (

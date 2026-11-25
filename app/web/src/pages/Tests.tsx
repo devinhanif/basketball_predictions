@@ -4,7 +4,6 @@
 import { View } from "../components";
 import { count, MISSING } from "../format";
 import { hasPriceWords, honestyApi, type ForwardTest, type ForwardTests, type Maybe } from "../honesty";
-import { PageControls } from "../Lens";
 import { useLens, useMode } from "../prefs";
 import { topHref } from "../router";
 import { termHref } from "../terms";
@@ -139,7 +138,6 @@ export function TestsPage() {
             <a class="nowrap" href={topHref("scorecard")}>Scorecard</a>
           </>
         }
-        actions={<PageControls lens />}
       />
       <OnThisPage />
       <View state={state} reload={reload} what="the forward tests" errorLevel={2}>

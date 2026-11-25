@@ -11,8 +11,6 @@ export interface SearchItem {
   words?: string;
   /** A screen whose whole subject is prices and edges: listed in the Market lens only (like the nav). */
   marketOnly?: boolean;
-  /** A screen that is listed in Explore and Market but not in Learn (combo mode). */
-  exploreUp?: boolean;
 }
 
 export const KIND_LABEL: Record<SearchKind, string> = { screen: "Screens", game: "Games", player: "Players", term: "Key terms" };

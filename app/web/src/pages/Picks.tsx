@@ -1,3 +1,4 @@
+import { Avatar } from "../Avatar";
 import { useMemo } from "preact/hooks";
 import { Explain, RecordBoard, ResetPicks } from "../components";
 import { priceText, lineText, longDate, pct } from "../format";
@@ -22,6 +23,12 @@ function download(picks: Pick[]): void {
 
 const BADGE = { win: "Hit", loss: "Miss", push: "Push" } as const;
 
+/** The player id inside a prop id ("game:player:stat"), or null when the id has another shape. */
+function playerIdOf(propId: string): number | null {
+  const n = Number(propId.split(":")[1]);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: boolean }) {
   const market = useLens() === "market";
   const skipped = p.side === "skip";
@@ -35,6 +42,7 @@ function PickRow({ p, s, isOpen }: { p: Pick; s: Settled | undefined; isOpen: bo
   } else title = isOpen ? `${p.player}: waiting on the game` : p.player;
   return (
     <li class={`pick ${cls}`}>
+      <Avatar name={p.player} team={p.team} playerId={playerIdOf(p.prop_id)} size="sm" remote />
       <span class="badge">{badge}</span>
       <div class="pick-body">
         <div class="pick-title">

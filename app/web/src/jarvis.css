@@ -512,27 +512,6 @@ textarea:focus-visible {
   }
 }
 
-/* ---------------------------------------------------------------- avatars */
-.avatar.initials {
-  background: linear-gradient(140deg, #3b4058, #292e40);
-  color: #f4f5fa;
-}
-:root[data-theme="light"] .avatar.initials {
-  background: linear-gradient(140deg, #e6e2f0, #f3f0f9);
-  color: var(--ink);
-}
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .avatar.initials {
-    background: linear-gradient(140deg, #e6e2f0, #f3f0f9);
-    color: var(--ink);
-  }
-}
-/* On the purple hero the initials stay on the dark disc in both themes (light ink on a light disc otherwise). */
-:root .panel.card-feature .avatar.initials {
-  background: linear-gradient(140deg, #3b4058, #292e40);
-  color: #f4f5fa;
-}
-
 /* ---------------------------------------------------------------- skeleton */
 .skeleton {
   border-radius: var(--radius-sm);

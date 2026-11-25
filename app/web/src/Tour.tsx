@@ -98,19 +98,19 @@ export function Tour() {
       },
     },
     {
-      title: "Pick a lens",
+      title: "Market side",
       body: (
         <>
-          <p>Every game and player page has a lens switch. Try it here; it is the real one.</p>
-          <LensSwitch compact />
+          <p>The market side (prices, edges and fees) is hidden until you show it. The real switch is in the profile menu, top right. Try it here.</p>
+          <LensSwitch />
           <ul class="plain tour-lenses">
             {LENSES.map((l) => (
               <li key={l}>
-                <b>{LENS_LABEL[l]}.</b> {LENS_SAY[l]}
+                <b>Market side {LENS_LABEL[l].toLowerCase()}.</b> {LENS_SAY[l]}
               </li>
             ))}
           </ul>
-          <p class="small muted">New here? Stay on Learn. Your choice is remembered on this device.</p>
+          <p class="small muted">New here? Leave it hidden. Your choice is remembered on this device.</p>
         </>
       ),
     },
@@ -119,7 +119,7 @@ export function Tour() {
       body: (
         <>
           <p>
-            In <b>Explore</b>, open any player and drag the line: the chance of over and under moves, and so does the whole spread of outcomes. Change his minutes to
+            Open any player and drag the line: the chance of over and under moves, and so does the whole spread of outcomes. Change his minutes to
             see what that does, and see roughly how much of the uncertainty is minutes.
           </p>
           <p class="small muted">The minutes what-if is an approximation (his per-minute rate held fixed) and it says so on the screen.</p>
@@ -129,7 +129,7 @@ export function Tour() {
         ? {
             label: "Try it on a real player",
             go: () => {
-              setPref("lens", "explore");
+              setPref("lens", "base");
               go(leg);
             },
           }

@@ -16,9 +16,11 @@ export function Avatar(props: { name: string; team?: string | null; playerId?: n
   const [failed, setFailed] = useState<number | null>(null);
   const id = props.playerId ?? null;
   const uploaded = props.src ?? (id !== null ? (photos[id.toString()] ?? null) : null);
+  // The team's colour is on the edge of the photo (team colours appear only here and on the team chip).
+  const edge = props.team ? { "--av": teamColor(props.team) } : undefined;
   const size = props.size ?? "md";
   const px = PX[size];
-  if (uploaded) return <img class={`avatar ${size}`} src={uploaded} alt="" width={px} height={px} />;
+  if (uploaded) return <img class={`avatar headshot ${size}`} style={edge} src={uploaded} alt="" width={px} height={px} />;
   const remote = props.remote === true && id !== null && failed !== id ? headshotUrl(id) : null;
   if (remote)
     return (
@@ -26,6 +28,7 @@ export function Avatar(props: { name: string; team?: string | null; playerId?: n
         class={`avatar headshot ${size}`}
         src={remote}
         alt={props.name}
+        style={edge}
         width={px}
         height={px}
         loading="lazy"

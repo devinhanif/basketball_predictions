@@ -7,7 +7,6 @@ import { Avatar } from "../Avatar";
 import { CalTag, DistBar, DistLegend, Explain, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { OnItChip } from "../SharedUI";
 import { useLens, useMode, type Lens, type Mode } from "../prefs";
-import { PageControls } from "../Lens";
 import { GameKnowsPanel } from "../Knows";
 import { GameLive } from "../LiveParts";
 import { IS_ARTIFACT } from "../env";
@@ -49,9 +48,9 @@ function PropBlock(props: { gameId: string; playerId: number; player: string; pr
         <a class="btn leg-open" href={legHref(props.gameId, props.playerId, prop.stat)}>
           Full breakdown: last 10, splits, teammates out
         </a>
-        {props.lens === "explore" && !IS_ARTIFACT ? (
+        {props.lens !== "market" && !IS_ARTIFACT ? (
           <a class="btn leg-open" href={legHref(props.gameId, props.playerId, prop.stat)}>
-            Explore: move the line and the minutes
+            Move the line and the minutes
           </a>
         ) : null}
         <AddToSlipSlot gameId={props.gameId} playerId={props.playerId} stat={prop.stat} side={null} line={prop.line} from="game" />
@@ -193,7 +192,6 @@ function Body({ g }: { g: GameDetail }) {
         class="game-head"
         kicker={`${longDate(g.date)} · tip-off ${tipTime(g.tip_utc)}`}
         title={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}`}
-        actions={<PageControls lens detail />}
       />
       <DoorGroup label="Go deeper on this game">
         <Door to="props" href={propsHref(g.game_id)}>

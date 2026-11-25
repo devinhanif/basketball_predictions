@@ -1,0 +1,309 @@
+/* The terminal look (picked 2026-11-17, applied 2026-11-24, both themes): monospace body, a wide techy face for headings,
+   sharp corners, 1px rules instead of shadows, square bars, a player photo with its team colour on the edge wherever a player is
+   named, and a `> ` prompt as each job screen's heading. Simple is the same family, larger and more filled; Analyst is thinner.
+   Fonts are self-hosted (SIL OFL 1.1; licences beside the files in ./fonts): Martian Mono 400 and 600, Unbounded 600 and 800,
+   latin subset; no font service is contacted. Loaded last. */
+@font-face {
+  font-family: "Martian Mono";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/martian-mono-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Martian Mono";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/martian-mono-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Unbounded";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/unbounded-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Unbounded";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/unbounded-latin-800-normal.woff2") format("woff2");
+}
+
+:root {
+  --font: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --mono: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --display: "Unbounded", "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 0;
+  --radius-sm: 0;
+  --radius-xs: 0;
+  --radius-2xs: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --pill: 0;
+  --fs-2xl: 1.3rem;
+  --fs-3xl: 1.4rem;
+  --fs-xl: 1.05rem;
+  --fs-lg: 0.95rem;
+  --track-title: 0;
+  --track-head: 0;
+  --elev-1: none;
+  --elev-2: none;
+  --elev-3: none;
+  --shadow: none;
+}
+body {
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: break-word;
+}
+html[data-mode="simple"] body {
+  font-size: 14px;
+}
+h1,
+h2,
+h3,
+.big-num,
+.tile-v,
+.brand {
+  font-family: var(--display);
+  letter-spacing: 0;
+  font-weight: 600;
+  line-height: 1.25;
+}
+h1 {
+  font-size: var(--fs-2xl);
+}
+.big-num {
+  font-size: 1.1rem;
+}
+.num,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* sharp corners everywhere, flat: a rule is 1px, never a shadow or a glow (focus keeps its outline) */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+  text-shadow: none !important;
+}
+*:not(:focus-visible),
+*::before,
+*::after {
+  box-shadow: none !important;
+}
+.topbar,
+.nav-bottom,
+.sidebar,
+.modal,
+.popover,
+.drawer-scrim * {
+  backdrop-filter: none !important;
+}
+
+/* The page prompt: `> Title` in the screen's colour is the heading style of a job screen. */
+.page-heading-title::before {
+  content: "> ";
+  color: var(--job-ink);
+}
+.page-heading-title {
+  font-size: var(--fs-xl);
+}
+.page-heading-desc {
+  color: var(--muted);
+}
+
+/* The search is the command bar: a prompt, the word, the key. */
+.search-btn {
+  font-family: var(--mono);
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+@media (min-width: 480px) {
+  .search-btn .icon-btn-text::before {
+    content: "> ";
+    color: var(--job-ink);
+  }
+}
+.kbd {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+}
+
+/* the header flag that says the market side is on: neutral, small, a word */
+.market-flag {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+/* a player photo is a square with the team colour on its edge */
+.avatar {
+  border-width: 2px;
+}
+.avatar.headshot,
+.avatar.initials {
+  border-style: solid;
+}
+.ol-name,
+.prop-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pick > .avatar {
+  align-self: flex-start;
+  margin-right: 8px;
+}
+
+/* bars are square: a marker for the value, a band for a change, a line at the reference */
+.wp-bar,
+.wp-bar > i,
+.meter,
+.meter > span,
+svg rect {
+  border-radius: 0;
+}
+.side-link[aria-current="page"] {
+  box-shadow: none;
+  border-left: 3px solid var(--job-ink);
+}
+
+/* Simple: the same family, larger and more filled */
+html[data-mode="simple"] .panel,
+html[data-mode="simple"] .game {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+html[data-mode="simple"] .btn,
+html[data-mode="simple"] .seg-btn {
+  min-height: 48px;
+}
+html[data-mode="analyst"] .panel {
+  border-color: var(--line);
+}
+
+/* initials sit on a square without wrapping (the wide display face did not fit 28px) */
+.avatar {
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: -0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.avatar.sm {
+  width: 32px;
+  height: 32px;
+}
+.avatar.md {
+  width: 44px;
+  height: 44px;
+}
+/* phones: the top bar keeps the menu, the screen's title, search, alerts and the profile; the home link is the TONIGHT tab */
+@media (max-width: 599px) {
+  .topbar .brand-small {
+    display: none;
+  }
+  .job-title {
+    font-size: var(--fs-xs);
+    padding-right: 2px;
+  }
+  .topbar-in {
+    gap: 0;
+  }
+}
+
+/* the profile menu stacks each switch under its label (three words and the wide face do not fit beside it) */
+.popover .pop-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.popover .pop-row .seg {
+  width: 100%;
+}
+.popover .pop-row .seg-btn {
+  flex: 1;
+  white-space: nowrap;
+  padding: 0 6px;
+}
+.beyond-val {
+  font-size: var(--fs-lg);
+}
+
+.sidebar .brand {
+  font-size: 1.05rem;
+}
+.kbanner {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  text-align: left;
+}
+.kbanner-text {
+  flex: 1 1 0;
+}
+.kbanner > svg {
+  margin-top: 2px;
+}
+.beyond-row {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+.beyond-name {
+  white-space: nowrap;
+}
+.table-wrap th,
+.table-wrap td {
+  padding: 6px 6px;
+  font-size: var(--fs-s);
+}
+
+.topbar-flag {
+  padding: 0 var(--gutter-r) 6px var(--gutter);
+}
+.props.one-line li {
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+.ol-say {
+  flex: 0 1 auto;
+  white-space: normal;
+  min-width: 0;
+}
+
+/* the wide display face is bigger per character: the large figures come down a size so a phone row never overflows */
+.score-row {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.score-mid .final {
+  font-size: 1.7rem;
+}
+.team.big {
+  font-size: 1.05rem;
+}
+.swipe-card .line {
+  font-size: 3.2rem;
+}
+.line-out {
+  font-size: 1.8rem;
+}
+.brand {
+  font-size: 1.05rem;
+}
+.state-body {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+.state-action .btn {
+  white-space: normal;
+  text-align: center;
+}

@@ -7,11 +7,12 @@ export type Theme = "system" | "light" | "dark";
 export type Mode = "simple" | "analyst";
 export type Screen = "today" | "signals" | "swipe" | "picks";
 /**
- * What a game or player screen shows. Learn: how the game and the forecast work, with no price, edge or fee anywhere.
- * Explore: Learn plus what-ifs you can move. Market: the existing views with prices, edges and fees.
+ * The market side, hidden or shown (2026-11-24: Learn and Explore folded into one no-prices view). "base" is the default and
+ * shows everything except prices, edges and fees (including the what-ifs you can move); "market" adds the existing market views.
+ * The stored key stays `ph.lens`; an old stored `learn` or `explore` reads as "base".
  */
-export type Lens = "learn" | "explore" | "market";
-export const LENSES: readonly Lens[] = ["learn", "explore", "market"];
+export type Lens = "base" | "market";
+export const LENSES: readonly Lens[] = ["base", "market"];
 
 /** How a posted American price is written: as posted (the default, what the app always showed) or as decimal odds. */
 export type Odds = "american" | "decimal";
@@ -28,7 +29,7 @@ export interface Prefs {
 }
 
 export const KEYS = { theme: "ph.theme", mode: "ph.mode", screen: "ph.screen", lens: "ph.lens", odds: "ph.odds", density: "ph.density" } as const;
-export const DEFAULTS: Prefs = { theme: "system", mode: "simple", screen: "today", lens: "learn", odds: "american", density: "comfortable" };
+export const DEFAULTS: Prefs = { theme: "system", mode: "simple", screen: "today", lens: "base", odds: "american", density: "comfortable" };
 
 const memory = new Map<string, string>();
 
@@ -60,7 +61,7 @@ export function parseScreen(v: string | null): Screen {
 }
 
 export function parseLens(v: string | null): Lens {
-  return v === "explore" || v === "market" ? v : "learn";
+  return v === "market" ? "market" : "base";
 }
 
 export function parseOdds(v: string | null): Odds {

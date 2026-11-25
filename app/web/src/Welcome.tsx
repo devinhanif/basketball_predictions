@@ -4,7 +4,6 @@ import { setPref, usePrefs, type Mode } from "./prefs";
 import { IS_ARTIFACT } from "./env";
 import { cleanName, hasWelcomed, markWelcomed, setLocalName, useIdentity } from "./identity";
 import { Icon } from "./icons";
-import { LENS_LABEL } from "./Lens";
 import { recordHref } from "./router";
 import { termsHref } from "./terms";
 import { openTour } from "./tourState";
@@ -195,8 +194,7 @@ export function Welcome(props: { deep?: boolean }) {
           worth taking is a result, not an error.
         </li>
         <li>
-          <b>Lenses.</b> {LENS_LABEL.learn} explains the game and the forecast (the default), {LENS_LABEL.explore} lets you move the line and the minutes, and{" "}
-          {LENS_LABEL.market} adds the market's side.
+          <b>Market side.</b> It is hidden by default: the screens explain the game and the forecast, and you can move the line and the minutes. Show it from the profile menu to add the market's side.
         </li>
         <li>
           <b>Where the record is.</b>{" "}

@@ -2,7 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { api, type Loaded } from "../api";
 import { View } from "../components";
 import { longDate, tipTime } from "../format";
-import { setPref, useLens, useMode } from "../prefs";
+import { useLens, useMode } from "../prefs";
 import { StateBlock, Tabs, TabPanel, PageHead, Card } from "../ui";
 import { useLoad } from "../useLoad";
 import { Door, DoorGroup } from "../Doors";
@@ -64,32 +64,6 @@ async function loadNight(date: string | null): Promise<Loaded<Night>> {
     /* the file's own team ids are shown instead */
   }
   return { data: { date: d, state: combo.data, teams }, fromCache: combo.fromCache };
-}
-
-/** Learn lens: combo mode is an Explore screen. */
-function ExploreOnly({ view }: { view: ComboView }) {
-  const here = view === "slip" ? "#/slip" : "#/combo";
-  return (
-    <section class="panel empty market-only" aria-labelledby="mo-combo-mode">
-      <h1 id="mo-combo-mode" class="market-only-title">
-        {view === "slip" ? "Slip check is an Explore screen" : "Combo mode is an Explore screen"}
-      </h1>
-      <p>It lets you move around the game's possible scripts and build your own combos, so it stays out of view in the Learn lens.</p>
-      <button
-        type="button"
-        class="btn primary"
-        onClick={() => {
-          // Land on the combo screen itself, at the top, with its first game showing.
-          if (window.location.hash.replace(/\?.*$/, "") !== here) window.location.hash = here;
-          setPref("lens", "explore");
-          window.scrollTo(0, 0);
-        }}
-      >
-        Switch to Explore
-      </button>
-      <p class="small muted">Nothing is lost by switching. You can switch back from the top of Discover.</p>
-    </section>
-  );
 }
 
 function Body(props: { night: Night; view: ComboView }) {
@@ -203,7 +177,6 @@ export function ComboPage(props: { date: string | null; view?: ComboView }) {
   const lens = useLens();
   const market = lens === "market";
   const [state, reload] = useLoad(() => loadNight(props.date), [props.date]);
-  if (lens === "learn") return <ExploreOnly view={view} />;
   return (
     <div class="stack">
       {view === "slip" ? (

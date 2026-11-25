@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "preact/hooks";
 import { api, warmGames } from "../api";
+import { Avatar } from "../Avatar";
 import { CalTag, ModelNote, TeamTag, View, WinBars, WinLegend } from "../components";
 import { lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
 import { headline, learnHeadline } from "../headline";
-import { PageControls } from "../Lens";
 import { liveHref } from "../router";
 import { clockLabel, type LiveGameSummary } from "../live";
 import { useLiveList } from "../useLiveData";
@@ -35,7 +35,10 @@ function KeyPropsFull({ game, market, showBook }: { game: GameSummary; market: b
           <div class="prop-line" key={p.player_id}>
             <div class="prop-main">
               <div class="prop-name">
-                {p.name} <span class="muted">{p.team}</span>
+                <Avatar name={p.name} team={p.team} playerId={p.player_id} size="sm" remote />
+                <span>
+                  {p.name} <span class="muted">{p.team}</span>
+                </span>
               </div>
               <div class="prop-say">
                 {reference
@@ -98,7 +101,10 @@ function KeyPropsOneLine({ game, market }: { game: GameSummary; market: boolean 
         return (
           <li key={p.player_id}>
             <span class="ol-name">
-              {p.name} <span class="muted">{p.team}</span>
+              <Avatar name={p.name} team={p.team} playerId={p.player_id} size="sm" remote />
+              <span>
+                {p.name} <span class="muted">{p.team}</span>
+              </span>
             </span>
             <span class="ol-say num">
               {reference ? (
@@ -275,9 +281,6 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
             <h1 class="answer pending">Reading the night&hellip;</h1>
           )}
         </div>
-        <div class="page-heading-actions">
-          <PageControls lens detail />
-        </div>
       </header>
       {/* The page's toolbar: which night. Navigation sits above the content it changes; the lens is in the heading. */}
       <div class="disc-toolbar">
@@ -300,7 +303,7 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
         </div>
       ) : null}
       {/* Prices, fees and a book's name: never in the Learn lens (scripts/learn-dom.mjs). */}
-      {lens === "learn" ? null : <TodaysPicks date={date} engine={engine} onStale={props.onStale} />}
+      {!market ? null : <TodaysPicks date={date} engine={engine} onStale={props.onStale} />}
       {market && radar.desk ? <DeskTiles desk={radar.desk} date={date} /> : null}
       {market ? (
         <div class="two-col wide-left">
@@ -330,7 +333,6 @@ function WarmCache({ ids }: { ids: string[] }) {
 
 function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolean; mode: Mode; market: boolean; liveGames: LiveGameSummary[] }) {
   const { s, engine, speaks, mode, market } = props;
-  const lens = useLens();
   const liveOf = (g: GameSummary): LiveGameSummary | null => props.liveGames.find((l) => l.home.abbr === g.home.abbr && l.away.abbr === g.away.abbr) ?? null;
   const gamesList = (
     <section class="disc-games" aria-labelledby="disc-games-h">
@@ -341,7 +343,7 @@ function SlateBody(props: { s: Slate; engine: ParlayState | null; speaks: boolea
       />
     <div class="games">
       {s.games.map((g) => (
-        <GameRow key={g.game_id} g={g} mode={mode} market={market} learn={lens === "learn"} live={liveOf(g)} />
+        <GameRow key={g.game_id} g={g} mode={mode} market={market} learn={!market} live={liveOf(g)} />
       ))}
     </div>
     </section>

@@ -2,6 +2,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Avatar } from "./Avatar";
 import { Footer, ModeToggle, ThemePicker, ThemeToggle } from "./components";
+import { LensSwitch } from "./Lens";
 import { deskOf, useDesk } from "./deskStore";
 import { IS_ARTIFACT } from "./env";
 import { clearLocalIdentity, useIdentity } from "./identity";
@@ -62,8 +63,6 @@ const GROUPS: readonly { label: string; names: readonly TopName[]; bet?: true }[
   { label: "Reference", names: ["terms", "help"] },
 ];
 export { MARKET_ONLY };
-/** Screens listed in Explore and Market but not in Learn (combo mode). */
-const EXPLORE_UP: readonly TopName[] = ["combo", "slip"];
 
 // The nav entry marked current on each route (a game, a leg and the source page belong to Discover).
 const ROUTE_TOP: Record<Route["name"], TopName> = {
@@ -271,6 +270,10 @@ function ProfileMenu(props: { onClose: () => void; onAbout: () => void; onKeys: 
         <span class="small muted">Theme</span>
         <ThemePicker />
       </div>
+      <div class="pop-row">
+        <span class="small muted">Market side</span>
+        <LensSwitch />
+      </div>
       <a class="pop-link" href={topHref("settings")} onClick={props.onClose}>
         Preferences
       </a>
@@ -362,7 +365,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
   const [keysOpen, setKeysOpen] = useState(false);
   const index = useSearchIndex(searchOpen, isAdmin);
   const lens = useLens();
-  const visible = WORKSPACE.filter((n) => (lens === "market" || !MARKET_ONLY.includes(n.name)) && (lens !== "learn" || !EXPLORE_UP.includes(n.name)));
+  const visible = WORKSPACE.filter((n) => lens === "market" || !MARKET_ONLY.includes(n.name));
   const job: Job = jobOfRoute(props.route);
   // On a betting screen no top-level view is current (the module's own nav entry is).
   const here: TopName | null = BETTING && props.route.name === "bet" ? null : ROUTE_TOP[props.route.name];
@@ -608,6 +611,13 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
               <Avatar name={name} src={id.avatarUrl} size="sm" />
             </button>
           </div>
+          {lens === "market" ? (
+            <div class="topbar-flag">
+              <span class="market-flag" role="status">
+                Market side shown
+              </span>
+            </div>
+          ) : null}
           {profileOpen ? <ProfileMenu onClose={() => { setProfileOpen(false); }} onAbout={() => { setAboutOpen(true); }} onKeys={() => { setKeysOpen(true); }} /> : null}
           {menuOpen ? (
             <MenuDrawer

@@ -5,7 +5,6 @@ import { api } from "../api";
 import { View, WinLegend } from "../components";
 import { Door, DoorGroup } from "../Doors";
 import { longDate } from "../format";
-import { PageControls } from "../Lens";
 import { chronological, defaultNight } from "../nights";
 import { useLens, useMode } from "../prefs";
 import { propsHref, topHref } from "../router";
@@ -50,7 +49,6 @@ function TeamsNight(props: { date: string; nights: string[]; onStale: (s: boolea
         kicker={`${longDate(date)} · NBA`}
         title="Team picks"
         description="Who wins, and by how much. Tap a game for its players, minutes and lines."
-        actions={<PageControls lens detail />}
       />
       <JobNights dates={props.nights} date={date} base="#/teams" />
       <LiveStrip date={date} games={liveGames} />
@@ -65,7 +63,7 @@ function TeamsNight(props: { date: string; nights: string[]; onStale: (s: boolea
               <div class="games">
                 {s.games.map((g) => (
                   <div class="teams-game" key={g.game_id}>
-                    <GameRow g={g} mode={mode} market={market} learn={lens === "learn"} live={liveOf(g)} />
+                    <GameRow g={g} mode={mode} market={market} learn={!market} live={liveOf(g)} />
                     <DoorGroup label={`Go deeper on ${g.away.abbr} at ${g.home.abbr}`} class="inline">
                       <Door to="props" href={propsHref(g.game_id)}>
                         {g.key_props.length > 0 ? `${g.key_props.length.toString()} ${g.key_props.length === 1 ? "line" : "lines"} in this game` : "player lines in this game"}

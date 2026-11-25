@@ -1,7 +1,7 @@
 // Key terms: one or two plain sentences each, seeded from the project glossary. `market` terms are about prices and only
 // appear in the Market lens (the Learn lens shows no price words). Each has an anchor: link with termHref(id).
 import { IS_ARTIFACT } from "./env";
-import { LENS_LABEL, LENS_SAY } from "./Lens";
+import { LENS_SAY } from "./Lens";
 import { EDGE_LABELS, EDGE_LOOK } from "./ui/semantic";
 
 export interface Term {
@@ -45,8 +45,8 @@ export function allTerms(): Term[] {
   const lenses: Term = {
     id: "lenses",
     term: "Lenses",
-    also: "learn explore market",
-    says: `${LENS_LABEL.learn}: ${LENS_SAY.learn} ${LENS_LABEL.explore}: ${LENS_SAY.explore}`,
+    also: "market side hidden shown",
+    says: `${LENS_SAY.base} The market side can be shown from the profile menu.`,
   };
   const marketLens: Term = { id: "lens-market", term: "Market lens", also: "lenses", says: LENS_SAY.market, market: true };
   return [...BASE, lenses, ...MARKET, marketLens];

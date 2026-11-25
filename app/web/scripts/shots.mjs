@@ -116,8 +116,13 @@ const SCREENS = artifact
   : [
       ["today", "#/", ""],
       ["teams", "#/teams", ""],
+      ["menu", "#/", `document.querySelector('.avatar-btn, .side-me').click()`],
+      ["tour", "#/", `document.querySelector('.avatar-btn, .side-me').click(); await new Promise(r=>setTimeout(r,300)); [...document.querySelectorAll('.pop-link')].find(b=>/tour/i.test(b.textContent)).click()`],
       ["props", "#/props", ""],
       ["combo", "#/combo", ""],
+      ["bet", "#/bet", ""],
+      ["betcompare", "#/bet/compare", ""],
+      ["betslip", "#/bet/slip", ""],
       ["slip", "#/slip", ""],
       ["livegame", "#/live/401909952?date=2026-11-09", ""],
       ["game", `#/game/${GAME}`, ""],

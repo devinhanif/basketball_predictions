@@ -23,6 +23,7 @@ import "./pages-a.css";
 import "./pages-b.css";
 import "./combo/combo.css";
 import "./colour.css";
+import "./terminal.css";
 
 applyTheme(getPrefs().theme);
 applyDensity(getPrefs().density);

@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { JOBS, JOBS_ORDER, ROUTE_NAMES, jobOfRoute, type Job } from "./jobs";
+import { parseLens } from "./prefs";
 import { parse, type Route } from "./router";
 
 const dir = __dirname;
@@ -275,8 +276,8 @@ describe("fix round 1: slip landing, leg back door, no stray hues", () => {
     expect(page).toMatch(/slip: \[\s*\{ key: "lift", label: "Together" \},\s*\{ key: "build", label: "Build" \},\s*\]/);
     expect(page).toMatch(/explore: \[\s*\{ key: "script", label: "Scripts" \},\s*\{ key: "target", label: "Target" \},\s*\]/);
     expect(page).toContain('slip: "lift"');
-    // Only the Learn lens meets the gate; the Explore and Market lenses reach the tabs (the walk visits #/slip on fixtures).
-    expect(page).toMatch(/if \(lens === "learn"\) return <ExploreOnly view=\{view\} \/>;/);
+    // No lens gate: every visitor reaches the tabs (the walk visits #/slip on fixtures).
+    expect(page).not.toMatch(/return <ExploreOnly/);
     expect(read("App.tsx")).toContain('view="slip"');
     expect(readFileSync(join(dir, "..", "scripts", "route-walk.mjs"), "utf8")).toContain('"#/slip"');
   });
@@ -303,5 +304,94 @@ describe("fix round 1: slip landing, leg back door, no stray hues", () => {
     for (const f of readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((x) => x.endsWith(".css") && x !== "colour.css")) {
       for (const n of strays) expect(read(f), `${f} --${n}`).not.toMatch(new RegExp(`--${n}:`));
     }
+  });
+});
+
+describe("round 2: one no-prices view, switches in the profile menu, the terminal look", () => {
+  const read = (...p: string[]): string => readFileSync(join(dir, ...p), "utf8");
+  const sources = (d: string): string[] =>
+    readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? sources(join(d, e.name)) : [join(d, e.name)]));
+  const code = sources(dir).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts") && !f.includes("golden"));
+
+  it("the lens is a two-way setting: ph.lens stays, old learn and explore read as the no-prices view", () => {
+    const prefs = read("prefs.ts");
+    expect(prefs).toContain('lens: "ph.lens"');
+    expect(prefs).toContain('export type Lens = "base" | "market";');
+    expect(parseLens("learn")).toBe("base");
+    expect(parseLens("explore")).toBe("base");
+    expect(parseLens("market")).toBe("market");
+    expect(parseLens(null)).toBe("base");
+  });
+
+  it("no gate is left: nothing compares a lens with learn or explore, and the Switch to Explore button is gone", () => {
+    for (const f of code) {
+      const text = readFileSync(f, "utf8");
+      expect(text, f).not.toMatch(/lens\s*[!=]==?\s*"(learn|explore)"/);
+      expect(text, f).not.toContain("Switch to Explore");
+      expect(text, f).not.toContain("is an Explore screen");
+    }
+  });
+
+  it("the default view shows combo and slip content but none of the market side", () => {
+    const combo = read("pages", "Combo.tsx");
+    expect(combo).not.toMatch(/return <ExploreOnly/);
+    // the market-side doors exist only behind `market`
+    for (const href of ["#/parlay", "#/hedge"]) {
+      const at = combo.indexOf(`href="${href}"`);
+      expect(at, href).toBeGreaterThan(0);
+      expect(combo.slice(Math.max(0, at - 90), at)).toMatch(/\{market \? \(\s*<Door/);
+    }
+    // priced picks, the book's chance, the price arithmetic and the market columns stay behind `market`
+    expect(read("pages", "Today.tsx")).toContain("{!market ? null : <TodaysPicks");
+    expect(read("pages", "Today.tsx")).toContain("learn={!market}");
+    expect(read("pages", "Teams.tsx")).toContain("learn={!market}");
+    expect(read("Explore.tsx")).toContain('const showPrice = lens === "market";');
+    expect(read("Lens.tsx")).toContain("Market screen");
+  });
+
+  it("no lens or detail control sits in a page body: they are in the profile menu beside Auto, Light and Dark", () => {
+    for (const f of sources(join(dir, "pages")).filter((x) => x.endsWith(".tsx"))) {
+      const text = readFileSync(f, "utf8");
+      expect(text, f).not.toMatch(/PageControls|<LensSwitch|<ModeToggle|<ThemePicker/);
+    }
+    expect(read("Lens.tsx")).not.toContain("PageControls");
+    const shell = read("Shell.tsx");
+    const menu = shell.slice(shell.indexOf("function ProfileMenu"), shell.indexOf("export function Toasts"));
+    for (const c of ["<ModeToggle />", "<ThemePicker />", "<LensSwitch />"]) expect(menu, c).toContain(c);
+  });
+
+  it("when the market side is shown the header says so, in neutral ink with words", () => {
+    expect(read("Shell.tsx")).toMatch(/lens === "market" \? \(\s*<div class="topbar-flag">\s*<span class="market-flag" role="status">\s*Market side shown/);
+    expect(readFileSync(join(dir, "terminal.css"), "utf8")).toMatch(/\.market-flag \{[^}]*border: 1px solid var\(--ink\)/);
+  });
+
+  it("the first-row check exists for teams, props, slip and explore at 375x812", () => {
+    const script = readFileSync(join(dir, "..", "scripts", "first-row.mjs"), "utf8");
+    for (const h of ["#/teams", "#/props", "#/slip", "#/combo"]) expect(script).toContain(`"${h}"`);
+    expect(script).toContain("const H = 812;");
+  });
+
+  it("the terminal look: self-hosted mono and display faces, sharp corners, no shadows, a prompt heading", () => {
+    const t = read("terminal.css");
+    expect(t).toContain('font-family: "Martian Mono"');
+    expect(t).toContain('font-family: "Unbounded"');
+    expect(t).not.toMatch(/https?:\/\//);
+    expect(t).toMatch(/border-radius: 0 !important/);
+    expect(t).toMatch(/box-shadow: none !important/);
+    expect(t).toMatch(/\.page-heading-title::before \{\s*content: "> "/);
+    expect(t).toMatch(/--font: "Martian Mono", ui-monospace/);
+    for (const f of ["martian-mono-latin-400-normal", "martian-mono-latin-600-normal", "unbounded-latin-600-normal", "unbounded-latin-800-normal"]) {
+      expect(readFileSync(join(dir, "fonts", `${f}.woff2`)).length, f).toBeGreaterThan(5000);
+    }
+    expect(readFileSync(join(dir, "fonts", "OFL-Martian-Mono.txt"), "utf8")).toContain("SIL Open Font License");
+    // no text under 12px: the smallest type token
+    expect(readFileSync(join(dir, "theme.css"), "utf8")).toContain("--fs-xs: 0.75rem;");
+    expect(read("main.tsx")).toContain('import "./terminal.css";');
+  });
+
+  it("a player named in a game card on home or Teams has a photo with the team colour on its edge", () => {
+    const today = read("pages", "Today.tsx");
+    expect((today.match(/<Avatar name=\{p\.name\} team=\{p\.team\}/g) ?? []).length).toBe(2);
+    expect(read("Avatar.tsx")).toContain("--av");
   });
 });
