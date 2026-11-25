@@ -44,6 +44,8 @@ export const MARKET_ONLY: readonly TopName[] = ["signals", "hedge", "history"];
 
 export const SCREEN_ITEMS: SearchItem[] = [
   { kind: "screen", label: "Discover", sub: "Tonight's answer, the closest look, the games", href: topHref("today"), words: "home today" },
+  { kind: "screen", label: "Team picks", sub: "Who wins tonight, with the win chances", href: topHref("teams"), words: "teams games winner win chance" },
+  { kind: "screen", label: "Player props", sub: "One player, one line, one calibrated chance", href: topHref("props"), words: "props lines over under players" },
   { kind: "screen", label: "Signals", sub: "What the desk noticed, with certainty labels", href: topHref("signals"), marketOnly: true },
   { kind: "screen", label: "Hedge Finder", sub: "Position lab: what a paper position pays in every outcome", href: topHref("hedge"), words: "position lab scenario", marketOnly: true },
   { kind: "screen", label: "Model History", sub: "Closing-line value, record, calibration, ledger", href: topHref("history"), words: "clv ledger record", marketOnly: true },
@@ -61,7 +63,7 @@ export const SCREEN_ITEMS: SearchItem[] = [
         { kind: "screen" as const, label: "Track record", sub: "Replay, calibration and guess the line", href: topHref("record"), words: "history replay calibration guess" },
         { kind: "screen" as const, label: "Scorecard", sub: "The model against its baseline, with n and intervals", href: topHref("scorecard"), words: "scores crps baseline record" },
         { kind: "screen" as const, label: "Forward tests", sub: "What is being tested, and when each result reads", href: topHref("tests"), words: "frozen rule prereg holdout" },
-        { kind: "screen" as const, label: "Parlay of the day", sub: "The engine's verdict for the newest night", href: "#/parlay", words: "parlay combo ticket" },
+        { kind: "screen" as const, label: "Slip check", sub: "Parlay of the day: does a parlay hold together?", href: "#/parlay", words: "parlay slip combo ticket legs" },
       ]),
   // The betting module's screens (none in a build with the switch off).
   ...(BETTING ? BETTING_MODULE.nav.map((n): SearchItem => ({ kind: "screen", label: n.label, sub: n.sub, href: n.href, words: n.words, marketOnly: n.marketOnly })) : []),

@@ -16,6 +16,10 @@ export type Route =
   | { name: "game"; id: string }
   | { name: "leg"; gameId: string; playerId: number; stat: LegStat; side: Side }
   | { name: "swipe"; date: string | null }
+  /** Team picks: tonight's games with the win chances (the TEAMS job). */
+  | { name: "teams"; date: string | null }
+  /** Player props: each game's lines with the calibrated chance; `game` shows one game only (the PROPS job). */
+  | { name: "props"; date: string | null; game: string | null }
   | { name: "picks" }
   | { name: "parlay"; date: string | null }
   | { name: "settings" }
@@ -43,15 +47,25 @@ export type Route =
   | { name: "notfound"; hash: string };
 
 /** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
-export type TopName = "today" | "combo" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings" | "terms" | "scorecard" | "tests" | "help";
+export type TopName = "today" | "teams" | "props" | "combo" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings" | "terms" | "scorecard" | "tests" | "help";
 const ARTIFACT_NAME: Record<TopName, string> = {
-  today: "discover", combo: "combo", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs", terms: "terms",
+  today: "discover", teams: "teams", props: "props", combo: "combo", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs", terms: "terms",
   scorecard: "scorecard", tests: "tests", help: "help",
 };
 
 /** Hash for a leg breakdown. The line is not part of it: the page owns the line while you drag it. */
 export function legHref(gameId: string, playerId: number, stat: LegStat, side: Side = "over"): string {
   return `#/leg/${encodeURIComponent(gameId)}/${playerId.toString()}/${stat}${side === "under" ? "?side=under" : ""}`;
+}
+
+/** Hash for the player props screen, optionally for one game. */
+export function propsHref(game: string | null = null): string {
+  return game === null ? "#/props" : `#/props?game=${encodeURIComponent(game)}`;
+}
+
+/** Hash for the team picks screen on a night. */
+export function teamsHref(date: string): string {
+  return `#/teams?date=${encodeURIComponent(date)}`;
 }
 
 /** Hash for a game page. */
@@ -163,6 +177,16 @@ export function parse(hash: string): Route {
       const d = date();
       return d === undefined || extra ? notFound : { name: "swipe", date: d };
     }
+    case "teams": {
+      const d = date();
+      return d === undefined || extra ? notFound : { name: "teams", date: d };
+    }
+    case "props": {
+      const d = date();
+      const g = q.get("game");
+      const game = g !== null && okId(g) ? g : null;
+      return d === undefined || extra || (g !== null && game === null) ? notFound : { name: "props", date: d, game };
+    }
     case "parlay": {
       const d = date();
       return d === undefined || extra ? notFound : { name: "parlay", date: d };
@@ -272,6 +296,10 @@ export function plainName(route: Route): TopName | null {
       return route.date === null ? "today" : null;
     case "swipe":
       return route.date === null ? "swipe" : null;
+    case "teams":
+      return route.date === null ? "teams" : null;
+    case "props":
+      return route.date === null && route.game === null ? "props" : null;
     case "combo":
       return route.date === null ? "combo" : null;
     case "hedge":

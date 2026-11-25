@@ -48,6 +48,12 @@ export const ICONS = {
   panel: "M4 4h16v16H4zM15 4v16",
   layout: "M4 4h7v9H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 15h7v5H4z",
   half: "M12 3a9 9 0 1 0 0 18zM12 3a9 9 0 0 1 0 18",
+  // The five jobs (colour as navigation): tonight, team picks, player props, slip check, explore.
+  jobTonight: "M4 11l8-7 8 7M6 10v10h12V10",
+  jobTeams: "M3 6h18v12H3zM12 6v12",
+  jobProps: "M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM4 21c0-4 4-6 8-6s8 2 8 6",
+  jobSlip: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6",
+  jobExplore: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM15 9l-2 4-4 2 2-4z",
 } as const;
 export type IconName = keyof typeof ICONS;
 
@@ -62,10 +68,10 @@ export function Icon({ name }: { name: IconName }) {
 export function Logo() {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="16" fill="var(--accent)" />
-      <rect x="14" y="36" width="9" height="14" rx="2" fill="var(--on-accent)" />
-      <rect x="27.5" y="18" width="9" height="32" rx="2" fill="var(--on-accent)" />
-      <rect x="41" y="28" width="9" height="22" rx="2" fill="var(--on-accent)" />
+      <rect width="64" height="64" fill="var(--ink)" />
+      <rect x="14" y="36" width="9" height="14" fill="var(--bg)" />
+      <rect x="27.5" y="18" width="9" height="32" fill="var(--bg)" />
+      <rect x="41" y="28" width="9" height="22" fill="var(--bg)" />
     </svg>
   );
 }

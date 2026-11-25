@@ -120,7 +120,7 @@ h3 {
   border-color: var(--feature-line);
   color: var(--on-feature);
   border-radius: var(--radius-xl);
-  box-shadow: inset 0 0 70px #6b4a9e22, var(--elev-2);
+  box-shadow: none;
 }
 .panel.card-feature::before {
   content: "";
@@ -128,36 +128,12 @@ h3 {
   inset: 0;
   pointer-events: none;
   opacity: 0.2;
-  background-image: linear-gradient(#f1e0ff19 1px, transparent 1px), linear-gradient(90deg, #f1e0ff19 1px, transparent 1px);
+  background-image: none;
   background-size: 44px 44px;
   mask-image: linear-gradient(to right, transparent, #000);
 }
 .panel.card-feature > * {
   position: relative;
-}
-/* Inside the hero the page's tokens are re-pointed at the purple: text takes the on-feature inks, and anything with its
-   own surface (tiles, badges, buttons) becomes dark glass carrying the dark theme's status colours. So small and muted
-   text passes AA on the card in both themes, whatever component sits in it (theme.css: the centre stop is #6a52a8). */
-.panel.card-feature {
-  --ink: var(--on-feature);
-  --muted: var(--on-feature-muted);
-  --head: var(--on-feature);
-  --accent-ink: var(--on-feature);
-  --line: #ffffff2e;
-  --surface: #120e26c4;
-  --surface-2: #120e26b0;
-  --surface-3: #120e269c;
-  --grad-tile: linear-gradient(110deg, #120e26c4, #120e26a8);
-  --accent-soft: #120e26b0;
-  --win: #6fdcae;
-  --loss: #f58f9d;
-  --book: #9aa3b8;
-  --mine: #e9b949;
-  --mine-ink: #f2cd73;
-  --edge-thin: #e9b949;
-  --edge-arb: #7cc4ff;
-  --notice-ink: #f4dc9a;
-  color-scheme: dark;
 }
 .panel.card-feature .kicker,
 .panel.card-feature .muted,
@@ -196,7 +172,7 @@ h3 {
   transform: translateY(1px);
 }
 .btn.primary {
-  box-shadow: 0 2px 8px #8873ff1f;
+  box-shadow: none;
 }
 .btn.primary:hover {
   background: var(--accent-ink);
@@ -298,7 +274,7 @@ textarea:focus-visible {
 }
 :root[data-theme="light"] .seg-btn[aria-pressed="true"] {
   background: var(--surface);
-  box-shadow: 0 1px 3px #38304a26, inset 0 0 0 1px var(--accent-line);
+  box-shadow: 0 1px 3px #00000026, inset 0 0 0 1px var(--accent-line);
 }
 
 /* ---------------------------------------------------------------- chips and filter pills */
@@ -814,7 +790,7 @@ textarea:focus-visible {
   margin-bottom: var(--sp-3);
   border-radius: 14px;
   border: 1px solid var(--accent-line);
-  background: linear-gradient(145deg, #ad8dff22, #7257b311);
+  background: var(--accent-soft);
   color: var(--accent-ink);
 }
 .fr-spark svg {
@@ -859,7 +835,7 @@ textarea:focus-visible {
 .fr-option.fr-on {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
-  background: radial-gradient(ellipse at 50% 0%, #a186ea14, transparent 80%), var(--surface);
+  background: var(--surface);
 }
 .fr-top {
   display: flex;
@@ -1022,7 +998,7 @@ textarea:focus-visible {
 .brand svg {
   border-radius: 11px;
   background: var(--grad-brand);
-  box-shadow: 0 4px 25px #9781ff26;
+  box-shadow: none;
 }
 .sidebar .brand svg {
   width: 34px;
@@ -1092,7 +1068,7 @@ textarea:focus-visible {
   padding: 14px;
   border-radius: 10px;
   border-color: var(--line);
-  background: radial-gradient(ellipse at 20% 0%, #705f9e1f, transparent 90%);
+  background: var(--surface);
   gap: 4px;
 }
 .side-card strong {

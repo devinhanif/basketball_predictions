@@ -13,7 +13,8 @@ import { GameLive } from "../LiveParts";
 import { IS_ARTIFACT } from "../env";
 import { plainPlay } from "../plain";
 import { priceText, bookName, lineText, longDate, num, pct, pctBounded, tipTime } from "../format";
-import { legHref, nightHref } from "../router";
+import { legHref, propsHref, teamsHref, topHref } from "../router";
+import { Door, DoorGroup } from "../Doors";
 import { Chips } from "../Viz";
 import { useLoad } from "../useLoad";
 import type { GameDetail, GameResult, PlayerView, PropView, Stat } from "../types";
@@ -184,8 +185,8 @@ function Body({ g }: { g: GameDetail }) {
   return (
     <div class="stack">
       <p class="back-row" style={{ margin: 0 }}>
-        <a class="back-link" href={nightHref(g.date)}>
-          Back to all games
+        <a class="back-link" href={teamsHref(g.date)}>
+          Back to team picks
         </a>
       </p>
       <PageHead
@@ -194,6 +195,14 @@ function Body({ g }: { g: GameDetail }) {
         title={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}`}
         actions={<PageControls lens detail />}
       />
+      <DoorGroup label="Go deeper on this game">
+        <Door to="props" href={propsHref(g.game_id)}>
+          every player line in this game
+        </Door>
+        <Door to="explore" href={topHref("combo")}>
+          if the game goes a certain way
+        </Door>
+      </DoorGroup>
       <SoWhat>
         {modelHome === null
           ? `${g.away.name} at ${g.home.name}: we have no forecast for this game.`

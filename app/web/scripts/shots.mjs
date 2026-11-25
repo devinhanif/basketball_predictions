@@ -115,6 +115,10 @@ const SCREENS = artifact
     ]
   : [
       ["today", "#/", ""],
+      ["teams", "#/teams", ""],
+      ["props", "#/props", ""],
+      ["combo", "#/combo", ""],
+      ["livegame", "#/live/401909952?date=2026-11-09", ""],
       ["game", `#/game/${GAME}`, ""],
       ["leg", `#/leg/${GAME}/${kp.player_id}/${kp.stat}`, ""],
       ["parlay", "#/parlay", ""],
@@ -141,7 +145,7 @@ const SCREENS = artifact
 
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
 if (ONLY) for (let i = SCREENS.length - 1; i >= 0; i--) if (!ONLY.has(SCREENS[i][0])) SCREENS.splice(i, 1);
-const sizes = [["m", 390, 844], ["d", 1440, 900]].filter((s) => !process.env.W || String(s[1]) === process.env.W);
+const sizes = [["m", Number(process.env.PHONE_W ?? 390), 844], ["d", Number(process.env.DESK_W ?? 1440), 900]].filter((s) => !process.env.W || String(s[1]) === process.env.W);
 const audit = [];
 async function idle(max = 20000) {
   const t0 = Date.now();
@@ -176,10 +180,10 @@ async function shoot(name, w, h, theme, mode, hash, action, full) {
 for (const [, w, h] of sizes) {
   for (const theme of ["dark", "light"]) {
     for (const [name, hash, action] of SCREENS) {
-      await shoot(name, w, h, theme, "simple", hash, action, true);
+      await shoot(name, w, h, theme, "simple", hash, action, process.env.VIEWPORT !== "1");
     }
     // Analyst on the screens whose depth changes
-    for (const [name, hash, action] of SCREENS.filter((s) => ["today", "game", "leg", "signals", "history"].includes(s[0]))) {
+    for (const [name, hash, action] of (process.env.NO_ANALYST ? [] : SCREENS.filter((s) => ["today", "game", "leg", "signals", "history"].includes(s[0])))) {
       await shoot(name, w, h, theme, "analyst", hash, action, true);
     }
   }

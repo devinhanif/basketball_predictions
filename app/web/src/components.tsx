@@ -32,7 +32,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      class="icon-btn"
+      class="icon-btn theme-btn"
       aria-label={dark ? "Switch to the light theme" : "Switch to the dark theme"}
       onClick={() => {
         setPref("theme", dark ? "light" : "dark");
@@ -60,6 +60,34 @@ export function ModeToggle() {
           }}
         >
           {m === "simple" ? "Simple" : "Analyst"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Auto (follow the phone), Light or Dark. A per-device preference, stored as ph.theme. */
+export function ThemePicker() {
+  const { theme } = usePrefs();
+  return (
+    <div class="seg" role="group" aria-label="Theme">
+      {(
+        [
+          ["system", "Auto"],
+          ["light", "Light"],
+          ["dark", "Dark"],
+        ] as const
+      ).map(([v, label]) => (
+        <button
+          key={v}
+          type="button"
+          class="seg-btn"
+          aria-pressed={theme === v}
+          onClick={() => {
+            setPref("theme", v);
+          }}
+        >
+          {label}
         </button>
       ))}
     </div>
@@ -210,8 +238,8 @@ function WpRow(props: { label: string; kind: "model" | "book"; homeP: number; ho
         role="img"
         aria-label={`${props.label}: ${away.abbr} ${pct(1 - homeP)}, ${home.abbr} ${pct(homeP)}`}
       >
-        <i style={{ flexGrow: 1 - homeP, background: teamColor(away.abbr) }} />
-        <i style={{ flexGrow: homeP, background: teamColor(home.abbr) }} />
+        <i class="wp-away" style={{ flexGrow: 1 - homeP }} />
+        <i class="wp-home" style={{ flexGrow: homeP }} />
       </div>
       <div class="wp-ends num">
         <span>

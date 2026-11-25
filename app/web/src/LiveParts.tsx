@@ -452,7 +452,9 @@ export function LiveGame(props: { eventId: string; game: GameDetail | null; game
       <AsOf meta={live.meta} receivedMs={conn.receivedMs} state={live.state} />
       <PollingNote conn={conn} />
       <PhaseNote conn={conn} />
-      <ScoreBoard eventId={live.gameId} />
+      <div data-job="props">
+        <ScoreBoard eventId={live.gameId} />
+      </div>
       <Tabs
         label="Live views"
         idBase="live"

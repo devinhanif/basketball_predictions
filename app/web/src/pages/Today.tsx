@@ -20,6 +20,7 @@ import { hasTickets, type TpResult } from "../topParlays";
 import { TodaysPicks } from "../TodaysPicks";
 import { SectionHead } from "../ui";
 import { instantMs } from "../time";
+import { HomeDoors } from "../Home";
 
 /** Analyst: every key prop with its sentence, the book's number and a plain comparison. */
 /** `showBook`: the book's chance beside ours, never in the Learn lens (a book figure is a price word there). */
@@ -127,7 +128,7 @@ function StateChip({ live }: { live: LiveGameSummary | null }) {
 }
 
 /** Live made findable from Discover: one tap from tonight's games to the live view. */
-function LiveStrip({ date, games }: { date: string; games: LiveGameSummary[] }) {
+export function LiveStrip({ date, games }: { date: string; games: LiveGameSummary[] }) {
   if (games.length === 0) return null;
   const inPlay = games.filter((g) => g.state === "in");
   const pre = games.filter((g) => g.state === "pre").length;
@@ -153,7 +154,7 @@ function LiveStrip({ date, games }: { date: string; games: LiveGameSummary[] }) 
   );
 }
 
-function GameRow({ g, mode, market, learn, live }: { g: GameSummary; mode: Mode; market: boolean; learn: boolean; live: LiveGameSummary | null }) {
+export function GameRow({ g, mode, market, learn, live }: { g: GameSummary; mode: Mode; market: boolean; learn: boolean; live: LiveGameSummary | null }) {
   return (
     <a class="game" href={`#/game/${g.game_id}`} aria-label={`${g.away.city} ${g.away.name} at ${g.home.city} ${g.home.name}, open game`}>
       <div class="game-top">
@@ -195,10 +196,13 @@ export function Today(props: { date: string | null; onStale: (s: boolean) => voi
           const slates = chronological(raw);
           const date = props.date ?? defaultNight(slates);
           return date ? <Night date={date} nights={slates.map((s) => s.date)} onStale={props.onStale} /> : (
+            <>
+            <HomeDoors facts={null} />
             <div class="panel empty" role="status">
               <h1>No nights are loaded</h1>
               <p>This copy of the data holds no slates, so there is nothing to show yet. Nothing is broken; check back after the nightly run.</p>
             </div>
+            </>
           );
         }}
       </View>
@@ -248,8 +252,13 @@ function Night(props: { date: string; nights: string[]; onStale: (s: boolean) =>
         ? headline({ games: slate.data.counts.games, engine, speaks, tickets, live: liveCounts })
         : learnHeadline(slate.data.counts.games, liveCounts)
       : null;
+  const facts =
+    slate.status === "ready"
+      ? { games: slate.data.counts.games, props: slate.data.counts.props, propsWord: slate.data.mode === "fixture_replay" ? "player lines" : "player forecasts" }
+      : null;
   return (
     <>
+      <HomeDoors facts={facts} />
       <header class="page-head today-head page-heading">
         <div class="page-heading-text">
           <div class="kicker">

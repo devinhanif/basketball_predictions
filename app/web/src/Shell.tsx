@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Avatar } from "./Avatar";
-import { Footer, ModeToggle, ThemeToggle } from "./components";
+import { Footer, ModeToggle, ThemePicker, ThemeToggle } from "./components";
 import { deskOf, useDesk } from "./deskStore";
 import { IS_ARTIFACT } from "./env";
 import { clearLocalIdentity, useIdentity } from "./identity";
@@ -10,6 +10,7 @@ import { moveSelection, search, KIND_LABEL, type SearchItem } from "./search";
 import { MARKET_ONLY, useIsAdmin, useNotices, useSearchIndex } from "./shellData";
 import { useLens } from "./prefs";
 import { topHref, type Route, type TopName } from "./router";
+import { JOBS, JOBS_ORDER, jobOfRoute, type Job } from "./jobs";
 import type { MetaLine } from "./metaWatch";
 import { Banner, Dialog } from "./ui";
 import { ShortcutsDialog, isTypingTarget } from "./Shortcuts";
@@ -30,6 +31,8 @@ interface NavDef {
 // Every top-level view, by name. The sidebar groups them below; the order inside a group is the order on screen.
 const ALL_WORKSPACE: NavDef[] = [
   { name: "today", label: "Discover", icon: "discover" },
+  { name: "teams", label: "Team picks", icon: "jobTeams" },
+  { name: "props", label: "Player props", icon: "jobProps" },
   { name: "live", label: "Live", icon: "live" },
   { name: "combo", label: "Combo mode", icon: "grid" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
@@ -52,27 +55,25 @@ const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name
  * "You". A section with nothing visible in the current lens is not drawn.
  */
 const GROUPS: readonly { label: string; names: readonly TopName[]; bet?: true }[] = [
-  { label: "Tonight", names: ["today", "live", "combo", "swipe", "picks"] },
+  { label: "Tonight", names: ["today", "teams", "props", "live", "combo", "swipe", "picks"] },
   { label: "Record and tests", names: ["record", "scorecard", "tests"] },
   { label: "Market tools", names: ["signals", "hedge", "history"], bet: true },
   { label: "Reference", names: ["terms", "help"] },
 ];
-/** The phone's bottom bar: the five most used, the same in every lens (everything else is in the menu drawer). */
-const TABS: TopName[] = ["today", "live", "record", "swipe", "picks", "terms"];
 export { MARKET_ONLY };
 /** Screens listed in Explore and Market but not in Learn (combo mode). */
 const EXPLORE_UP: readonly TopName[] = ["combo"];
 
 // The nav entry marked current on each route (a game, a leg and the source page belong to Discover).
 const ROUTE_TOP: Record<Route["name"], TopName> = {
-  today: "today", game: "today", leg: "today", parlay: "today", combo: "combo", swipe: "swipe", picks: "picks", settings: "settings",
+  today: "today", game: "teams", leg: "props", parlay: "today", teams: "teams", props: "props", combo: "combo", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
   terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
   // A betting screen has no TopName of its own (the module brings its own nav); crumbs() names it and `here` is null.
   bet: "today",
 };
 const TITLES: Record<TopName, string> = {
-  today: "Discover", combo: "Combo mode", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
+  today: "Discover", teams: "Team picks", props: "Player props", combo: "Combo mode", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
   scorecard: "Scorecard", tests: "Forward tests", help: "Error codes",
 };
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };
@@ -265,6 +266,10 @@ function ProfileMenu(props: { onClose: () => void; onAbout: () => void; onKeys: 
         <span class="small muted">Detail</span>
         <ModeToggle />
       </div>
+      <div class="pop-row">
+        <span class="small muted">Theme</span>
+        <ThemePicker />
+      </div>
       <a class="pop-link" href={topHref("settings")} onClick={props.onClose}>
         Preferences
       </a>
@@ -357,7 +362,7 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
   const index = useSearchIndex(searchOpen, isAdmin);
   const lens = useLens();
   const visible = WORKSPACE.filter((n) => (lens === "market" || !MARKET_ONLY.includes(n.name)) && (lens !== "learn" || !EXPLORE_UP.includes(n.name)));
-  const tabs = TABS.filter((t) => visible.some((w) => w.name === t)).slice(0, 5);
+  const job: Job = jobOfRoute(props.route);
   // On a betting screen no top-level view is current (the module's own nav entry is).
   const here: TopName | null = BETTING && props.route.name === "bet" ? null : ROUTE_TOP[props.route.name];
   const ready = deskOf(desk);
@@ -386,6 +391,10 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
     setMenuOpen(false);
     setProfileOpen(false);
   }, [props.route]);
+  // The job colour is a scope: the shell wears it, and so does the root, so a dialog or the onboarding tour matches.
+  useEffect(() => {
+    document.documentElement.dataset["job"] = job;
+  }, [job]);
 
   const signalsToday = ready ? ready.observations.filter((o) => o.slate_date === (ready.observations.map((x) => x.slate_date).sort().at(-1) ?? "")).length : 0;
   const badge = (n: TopName): number => (n === "alerts" ? unread : n === "signals" ? signalsToday : 0);
@@ -455,8 +464,15 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
       );
     });
 
+  const jobLink = (j: Job, cls: string) => (
+    <a key={j} class={cls} data-to={j} href={JOBS[j].href} aria-current={job === j ? "page" : undefined}>
+      <Icon name={JOBS[j].icon} />
+      <span class="jt-word">{JOBS[j].tab}</span>
+    </a>
+  );
+
   return (
-    <div class="shell" data-route={props.route.name}>
+    <div class="shell" data-route={props.route.name} data-job={job}>
       <a
         class="skip-link"
         href="#main"
@@ -490,7 +506,10 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
             <span class="small muted">{ready?.fixture ? "synthetic desk fixture" : IS_ARTIFACT ? "shared page, snapshot" : "this machine"}</span>
           </span>
         </button>
-        <nav class="side-nav side-groups" aria-label="Main">{sectionsFor("side")}</nav>
+        <nav class="job-nav" aria-label="Where to go">
+          {JOBS_ORDER.map((j) => jobLink(j, "job-link"))}
+        </nav>
+        <nav class="side-nav side-groups" aria-label="More screens">{sectionsFor("side")}</nav>
         <div class="side-foot">
           <div class="side-card">
             <strong class="small">Paper only</strong>
@@ -529,14 +548,24 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
               <Logo />
               <span class="brand-text">parlayhitters</span>
             </a>
+            <span class="job-title" data-to={job}>
+              {JOBS[job].title}
+            </span>
             <nav class="crumbs" aria-label="Breadcrumb">
-              <span class="muted">Workspace</span>
-              {crumb.map((c, i) => (
+              {(crumb.length > 1 ? crumb : []).map((c, i) => (
                 <span key={c}>
-                  <span class="crumb-sep" aria-hidden="true">
-                    <Icon name="chevron" />
-                  </span>
-                  <span aria-current={i === crumb.length - 1 ? "page" : undefined}>{c}</span>
+                  {i > 0 ? (
+                    <span class="crumb-sep" aria-hidden="true">
+                      <Icon name="chevron" />
+                    </span>
+                  ) : null}
+                  {i < crumb.length - 1 ? (
+                    <a class="crumb-back" href={topHref(ROUTE_TOP[props.route.name])}>
+                      {c}
+                    </a>
+                  ) : (
+                    <span aria-current="page">{c}</span>
+                  )}
                 </span>
               ))}
             </nav>
@@ -635,17 +664,8 @@ export function Shell(props: { route: Route; meta: MetaLine; offline: boolean; c
         <Footer />
       </div>
       <SidePanelHost />
-      <nav class="nav-bottom" aria-label="Main">
-        {tabs.map((t) => {
-          const n = visible.find((w) => w.name === t) as NavDef;
-          return (
-            <a key={t} href={topHref(t)} aria-current={here === t ? "page" : undefined}>
-              <Icon name={n.icon} />
-              {n.label}
-              {badge(t) > 0 ? <span class="tab-badge num">{badge(t) > 99 ? "99+" : badge(t)}</span> : null}
-            </a>
-          );
-        })}
+      <nav class="nav-bottom jobtabs" aria-label="Main">
+        {JOBS_ORDER.map((j) => jobLink(j, "jt"))}
       </nav>
       {keysOpen ? <ShortcutsDialog onClose={() => { setKeysOpen(false); }} /> : null}
       {searchOpen ? <SearchModal index={index} onClose={() => { setSearchOpen(false); }} /> : null}

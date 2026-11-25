@@ -12,7 +12,9 @@ import { PlayerKnowsPanel } from "../Knows";
 import { OnItChip } from "../SharedUI";
 import { lineText, longDate, tipTime } from "../format";
 import { ladderAt } from "../leg";
-import { gameHref, legHref } from "../router";
+import { gameHref, legHref, topHref } from "../router";
+import { Door, DoorGroup } from "../Doors";
+import { JOBS } from "../jobs";
 import { LEG_SHORT, type LegBreakdown, type LegStat, type Side } from "../legTypes";
 import { Headline, LineCard, NoHistory } from "./LegLine";
 import { Books, Games, InWords, Ladder, ModelPanel } from "./LegHistory";
@@ -64,6 +66,17 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
       <p class="small muted" style={{ margin: "4px 0 0" }}>
         A dot means no model forecast yet for that stat.
       </p>
+      <DoorGroup label="Go to another screen about this game">
+        <Door to="teams" href={gameHref(data.game_id)}>
+          {data.team} {data.home ? "vs" : "at"} {data.opponent}: the game and its win chances
+        </Door>
+        <Door to="explore" href={topHref("combo")}>
+          if the game goes a certain way
+        </Door>
+        <Door to="slip" href={JOBS.slip.href}>
+          does a parlay hold together?
+        </Door>
+      </DoorGroup>
       <OnItChip propId={`${data.game_id}:${data.player_id.toString()}:${data.stat}`} />
     </header>
   );

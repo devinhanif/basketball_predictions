@@ -7,6 +7,8 @@ import { ParlayPage } from "./pages/Parlay";
 import { Picks } from "./pages/Picks";
 import { ComboPage } from "./pages/Combo";
 import { Swipe } from "./pages/Swipe";
+import { Teams } from "./pages/Teams";
+import { Props } from "./pages/Props";
 import { Settings } from "./pages/Settings";
 import { Signals } from "./pages/Signals";
 import { Hedge } from "./pages/Hedge";
@@ -61,6 +63,12 @@ export function App() {
       break;
     case "swipe":
       page = <Swipe date={route.date} onStale={setStale} />;
+      break;
+    case "teams":
+      page = <Teams date={route.date} onStale={setStale} />;
+      break;
+    case "props":
+      page = <Props date={route.date} game={route.game} onStale={setStale} />;
       break;
     case "picks":
       page = <Picks />;

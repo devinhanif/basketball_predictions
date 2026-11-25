@@ -1,0 +1,709 @@
+/* Colour as navigation (Devin, 2026-11-24). One colour per JOB a visitor comes to do:
+     TEAMS   sky blue   who wins tonight            PROPS    amber   is this player's line good
+     SLIP    pink       does my parlay hold up      EXPLORE  purple  what if the game goes this way
+     TONIGHT neutral text colour, with a four-segment bar in the four colours (the home screen and every reference screen)
+   A screen wears exactly one of them (src/jobs.ts maps every route): its header title, the 3px rule under the header,
+   its section labels, its links, buttons and focus rings, and its active tab. A coloured OUTLINED box is a door to
+   another job's screen, drawn in the DESTINATION's colour with its name written on it. Green and red mean only that a
+   chance went up or went down (and a settled hit or miss). Team colours appear only on player photos and team chips.
+   Colour never carries meaning alone: every coloured thing has a word, and tabs have an icon.
+
+   Every colour is a token. For each job: -ink (text and rules on the ground), -fill (a filled block) and -on (text on that
+   fill). Both themes are first-class; src/colour.test.ts computes WCAG contrast for every pair used and fails under 4.5:1
+   (3:1 for non-text rules and for 24px-plus text). The light block exists twice (the media query for "Auto" and the
+   attribute for an explicit choice) and the test fails if the two drift apart. Loaded after the older sheets on purpose. */
+
+/* ---- 1. tokens: dark (the default) ---- */
+:root {
+  --bg: #08070c;
+  --head: #0d0b12;
+  --surface: #14121c;
+  --surface-2: #1c1927;
+  --surface-3: #262236;
+  --ink: #e9e6f2;
+  --muted: #a7a1b8;
+  --line: #2a2636;
+  --line-strong: #3a3549;
+  --subtle: #5b566b;
+  --up: #6fe3a1;
+  --down: #ff8f8f;
+  --tonight-ink: #e9e6f2;
+  --tonight-fill: #e9e6f2;
+  --tonight-on: #08070c;
+  --teams-ink: #4cc2ff;
+  --teams-fill: #4cc2ff;
+  --teams-on: #08070c;
+  --props-ink: #ffb224;
+  --props-fill: #ffb224;
+  --props-on: #08070c;
+  --slip-ink: #ff6fd0;
+  --slip-fill: #ff6fd0;
+  --slip-on: #08070c;
+  --explore-ink: #9d7bff;
+  --explore-fill: #9d7bff;
+  --explore-on: #08070c;
+  color-scheme: dark;
+}
+/* ---- 1b. tokens: light (same hue families, darkened for the light ground; the ground is not pure white) ---- */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f1f6;
+    --head: #fbfafd;
+    --surface: #fbfafd;
+    --surface-2: #ebe8f0;
+    --surface-3: #e0dce9;
+    --ink: #1b1826;
+    --muted: #55506a;
+    --line: #d6d2e0;
+    --line-strong: #bdb8cc;
+    --subtle: #8d88a0;
+    --up: #12703f;
+    --down: #b3261e;
+    --tonight-ink: #1b1826;
+    --tonight-fill: #1b1826;
+    --tonight-on: #f3f1f6;
+    --teams-ink: #0a6aa6;
+    --teams-fill: #0a6aa6;
+    --teams-on: #ffffff;
+    --props-ink: #8a5200;
+    --props-fill: #8a5200;
+    --props-on: #ffffff;
+    --slip-ink: #b0167a;
+    --slip-fill: #b0167a;
+    --slip-on: #ffffff;
+    --explore-ink: #5b3fd6;
+    --explore-fill: #5b3fd6;
+    --explore-on: #ffffff;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f3f1f6;
+  --head: #fbfafd;
+  --surface: #fbfafd;
+  --surface-2: #ebe8f0;
+  --surface-3: #e0dce9;
+  --ink: #1b1826;
+  --muted: #55506a;
+  --line: #d6d2e0;
+  --line-strong: #bdb8cc;
+  --subtle: #8d88a0;
+  --up: #12703f;
+  --down: #b3261e;
+  --tonight-ink: #1b1826;
+  --tonight-fill: #1b1826;
+  --tonight-on: #f3f1f6;
+  --teams-ink: #0a6aa6;
+  --teams-fill: #0a6aa6;
+  --teams-on: #ffffff;
+  --props-ink: #8a5200;
+  --props-fill: #8a5200;
+  --props-on: #ffffff;
+  --slip-ink: #b0167a;
+  --slip-fill: #b0167a;
+  --slip-on: #ffffff;
+  --explore-ink: #5b3fd6;
+  --explore-fill: #5b3fd6;
+  --explore-on: #ffffff;
+  color-scheme: light;
+}
+
+/* ---- 2. which job the screen wears: --job-* and the older accent names derived from them ----
+   (`--accent` and friends were the app-wide purple; they now follow the screen's job, so every old use is the job colour.) */
+:root,
+[data-job] {
+  --job-ink: var(--tonight-ink);
+  --job-fill: var(--tonight-fill);
+  --job-on: var(--tonight-on);
+  --job-rule: linear-gradient(90deg, var(--teams-ink) 0 25%, var(--props-ink) 25% 50%, var(--slip-ink) 50% 75%, var(--explore-ink) 75% 100%);
+}
+[data-job="teams"] {
+  --job-ink: var(--teams-ink);
+  --job-fill: var(--teams-fill);
+  --job-on: var(--teams-on);
+  --job-rule: var(--teams-ink);
+}
+[data-job="props"] {
+  --job-ink: var(--props-ink);
+  --job-fill: var(--props-fill);
+  --job-on: var(--props-on);
+  --job-rule: var(--props-ink);
+}
+[data-job="slip"] {
+  --job-ink: var(--slip-ink);
+  --job-fill: var(--slip-fill);
+  --job-on: var(--slip-on);
+  --job-rule: var(--slip-ink);
+}
+[data-job="explore"] {
+  --job-ink: var(--explore-ink);
+  --job-fill: var(--explore-fill);
+  --job-on: var(--explore-on);
+  --job-rule: var(--explore-ink);
+}
+/* The same names as a destination, for tabs, doors and the home cards (data-to="teams"). */
+[data-to="tonight"] {
+  --to-ink: var(--tonight-ink);
+  --to-fill: var(--tonight-fill);
+  --to-on: var(--tonight-on);
+}
+[data-to="teams"] {
+  --to-ink: var(--teams-ink);
+  --to-fill: var(--teams-fill);
+  --to-on: var(--teams-on);
+}
+[data-to="props"] {
+  --to-ink: var(--props-ink);
+  --to-fill: var(--props-fill);
+  --to-on: var(--props-on);
+}
+[data-to="slip"] {
+  --to-ink: var(--slip-ink);
+  --to-fill: var(--slip-fill);
+  --to-on: var(--slip-on);
+}
+[data-to="explore"] {
+  --to-ink: var(--explore-ink);
+  --to-fill: var(--explore-fill);
+  --to-on: var(--explore-on);
+}
+
+:root,
+[data-job] {
+  --win: var(--up);
+  --loss: var(--down);
+  --accent: var(--job-fill);
+  --accent-ink: var(--job-ink);
+  --on-accent: var(--job-on);
+  --accent-soft: color-mix(in srgb, var(--job-fill) 13%, var(--surface));
+  --accent-line: color-mix(in srgb, var(--job-ink) 38%, transparent);
+  --focus: var(--job-ink);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--job-ink) 32%, transparent);
+  --model: var(--job-fill);
+  --model-ink: var(--job-ink);
+  --model-soft: var(--accent-soft);
+  --grad-nav-active: linear-gradient(var(--accent-soft), var(--accent-soft));
+  --grad-page: none;
+  --grad-brand: var(--ink);
+  --on-brand: var(--bg);
+  --grad-card: linear-gradient(var(--surface), var(--surface));
+  --grad-tile: linear-gradient(var(--surface), var(--surface));
+  --grad-feature: linear-gradient(var(--surface-2), var(--surface-2));
+  --feature-line: var(--job-ink);
+  --on-feature: var(--ink);
+  --on-feature-muted: var(--muted);
+}
+/* The hero card used to be a purple gradient with its own re-pointed inks. It is now a raised surface wearing the screen's rule,
+   so the text on it is the page's own text in either theme (jarvis.css no longer re-points the tokens inside it). */
+.panel.card-feature {
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--job-ink);
+  box-shadow: none;
+  border-radius: var(--radius-xs);
+}
+.panel.card-feature::before {
+  display: none;
+}
+
+/* ---- 3. the frame: header title, the 3px rule, back link, the four-colour bar on neutral screens ---- */
+.topbar {
+  background: var(--head);
+  border-bottom: 0;
+}
+.topbar::after {
+  content: "";
+  display: block;
+  height: 3px;
+  background: var(--job-rule);
+}
+.job-title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--to-ink);
+  white-space: nowrap;
+  padding-right: 8px;
+}
+.crumbs {
+  min-width: 0;
+}
+.crumb-back {
+  color: var(--muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-right: 4px;
+}
+.crumb-back::before {
+  content: "\2039\00a0";
+}
+.crumb-back:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+.brand svg {
+  border-radius: 0;
+  box-shadow: none;
+}
+.sidebar .brand svg {
+  transform: none;
+}
+
+/* Section labels wear the screen's colour; the words are what carry the meaning. */
+main .kicker,
+main .eyebrow,
+main .label,
+main .door-group-label {
+  color: var(--job-ink);
+}
+.kicker .tonight-dot {
+  background: var(--job-ink);
+}
+
+/* Buttons and links: the screen's colour. A "primary" is a fill with its own on-colour. */
+.btn.primary,
+.btn.primary:hover {
+  background: var(--job-fill);
+  color: var(--job-on);
+  border-color: var(--job-fill);
+}
+.skip-link {
+  background: var(--job-fill);
+  color: var(--job-on);
+}
+
+/* ---- 4. the five tabs (phone) and the five links (sidebar): an icon, a word and a bar that is always there ---- */
+.nav-bottom.jobtabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  background: var(--head);
+  border-top: 1px solid var(--line);
+  gap: 0;
+}
+.jobtabs .jt {
+  min-height: 56px;
+  border-top: 3px solid var(--to-ink);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  gap: 3px;
+  padding: 5px 0 4px;
+  min-width: 0;
+}
+.nav-bottom.jobtabs a svg {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.nav-bottom.jobtabs a[aria-current="page"] svg {
+  background: transparent;
+}
+.nav-bottom.jobtabs {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.jobtabs .jt[aria-current="page"] {
+  background: var(--to-fill);
+  color: var(--to-on);
+}
+.jobtabs .jt:hover:not([aria-current="page"]) {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--to-fill) 12%, transparent);
+}
+.job-nav {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .nav-bottom.jobtabs {
+    display: none;
+  }
+}
+@media (min-width: 1024px) {
+  .job-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 0 12px;
+  }
+  .job-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-left: 3px solid var(--to-ink);
+    background: transparent;
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: var(--fs-sm);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .job-link svg {
+    width: 20px;
+    height: 20px;
+    color: var(--to-ink);
+  }
+  .job-link:hover {
+    background: color-mix(in srgb, var(--to-fill) 12%, transparent);
+  }
+  .job-link[aria-current="page"] {
+    background: var(--to-fill);
+    color: var(--to-on);
+  }
+  .job-link[aria-current="page"] svg {
+    color: var(--to-on);
+  }
+}
+/* The old per-screen highlight in the grouped list is the job colour, not the old purple glow. */
+.side-link[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--job-ink);
+}
+
+/* ---- 5. doors: a coloured outlined box, in the DESTINATION's colour, with its name written on it ---- */
+.door {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--to-ink);
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  border-radius: var(--radius-2xs);
+}
+.door:hover {
+  background: color-mix(in srgb, var(--to-fill) 12%, transparent);
+}
+.door:focus-visible,
+.home-door:focus-visible {
+  outline: 3px solid var(--to-ink);
+  outline-offset: 2px;
+}
+.door-sw {
+  width: 10px;
+  height: 10px;
+  background: var(--to-fill);
+  flex: none;
+}
+.door-name {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--to-ink);
+  flex: none;
+}
+.door-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+}
+.door-go {
+  color: var(--to-ink);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.door-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.door-group-label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.door-group.inline .door-group-label {
+  display: none;
+}
+html[data-mode="simple"] .door {
+  min-height: 52px;
+  font-size: var(--fs-base);
+  background: color-mix(in srgb, var(--to-fill) 8%, transparent);
+}
+.teams-game {
+  display: flex;
+  flex-direction: column;
+}
+.teams-game .door-group {
+  margin-top: 6px;
+}
+
+/* ---- 6. home: the question and the four doors, then the legend ---- */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.home-q {
+  font-family: var(--mono);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.home-caret {
+  color: var(--ink);
+}
+.home-doors {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 720px) {
+  .home-doors {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.home-door {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  min-height: 96px;
+  border: 1px solid var(--to-ink);
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--surface);
+}
+.home-door:hover {
+  background: color-mix(in srgb, var(--to-fill) 10%, var(--surface));
+}
+.home-door-icon {
+  background: var(--to-fill);
+  color: var(--to-on);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-door-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.home-door-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  min-width: 0;
+}
+.home-door-name {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--to-ink);
+}
+.home-door-fact {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+html[data-mode="simple"] .home-door {
+  min-height: 108px;
+  font-size: var(--fs-base);
+}
+.home-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin-top: 6px;
+}
+.home-legend p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-legend-title {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: var(--fs-xs);
+  color: var(--ink);
+}
+.lg-sw {
+  flex: none;
+  display: inline-flex;
+  gap: 2px;
+}
+.lg-updown i {
+  display: block;
+  width: 10px;
+  height: 10px;
+}
+.lg-updown .up {
+  background: var(--up);
+}
+.lg-updown .down {
+  background: var(--down);
+}
+.lg-team {
+  width: 28px;
+  height: 10px;
+  background: #1d42a6;
+  border-bottom: 3px solid #c8102e;
+}
+.lg-door {
+  width: 28px;
+  height: 10px;
+  border: 1px solid var(--ink);
+}
+
+/* ---- 7. the props screen ---- */
+.props-game {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.props-game-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+.props-game-head h2 {
+  font-size: var(--fs-lg);
+}
+.prop-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.prop-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: var(--radius-2xs);
+}
+.prop-row:hover {
+  border-color: var(--job-ink);
+}
+.prop-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.prop-row-name {
+  font-weight: 700;
+}
+.prop-row-say {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.prop-row-num {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.prop-row-num b {
+  font-family: var(--display);
+  font-size: 1.15rem;
+}
+.chance-bar .cb-track {
+  fill: var(--surface-2);
+}
+.chance-bar .cb-mid {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.chance-bar .cb-mark {
+  fill: var(--ink);
+}
+.chance-key {
+  display: inline-block;
+  width: 5px;
+  height: 10px;
+  background: var(--ink);
+  margin-right: 4px;
+}
+
+/* ---- 8. green and red are only "a chance went up / went down" (and a settled hit or miss) ----
+   An error, a live dot, a health dot, a warning or "out" status is not that: it takes the neutral ink plus its own icon and word. */
+.panel.error {
+  border-top-color: var(--ink);
+  border-left-color: var(--ink);
+}
+.ls-state.in {
+  background: var(--ink);
+  color: var(--bg);
+}
+.box tr.foul-trouble td:nth-child(7),
+.pb-problem-head .state-mark {
+  color: var(--ink);
+}
+.cb-warn,
+.leg-status.out,
+.discipline.alarm,
+.tile.alarm {
+  border-color: var(--ink);
+}
+.leg-status.out {
+  color: var(--ink);
+}
+.pace-on-pace .pace-chip {
+  background: var(--job-fill);
+  color: var(--job-on);
+}
+.pace-on-pace .meter > span {
+  background: var(--job-fill);
+}
+.hs-dot {
+  background: var(--ink);
+}
+.lcd-out .lcd-fill {
+  background: var(--muted);
+}
+.linked {
+  border-left-color: var(--job-ink);
+}
+
+/* Team colours are for player photos and team chips only: the win bar is the screen's colour (home) against grey (away), with both
+   teams named and their chances written under it. */
+.wp-bar .wp-home {
+  background: var(--job-fill);
+}
+.wp-bar .wp-away {
+  background: var(--muted);
+  opacity: 0.7;
+}
+@media (max-width: 599px) {
+  .topbar .theme-btn {
+    display: none;
+  }
+}

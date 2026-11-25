@@ -23,7 +23,7 @@ describe("every leg link opens the leg route", () => {
 });
 
 describe("no link in the source points at a route that does not exist", () => {
-  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay", "settings", "prefs", "signals", "hedge", "history", "alerts", "admin", "record", "live", "terms"]);
+  const known = new Set(["", "game", "leg", "swipe", "picks", "parlay", "settings", "prefs", "signals", "hedge", "history", "alerts", "admin", "record", "live", "terms", "teams", "props", "combo"]);
   const files = [
     ...readdirSync("src").filter((f) => f.endsWith(".tsx")).map((f) => join("src", f)),
     ...readdirSync("src/pages").filter((f) => f.endsWith(".tsx")).map((f) => join("src/pages", f)),
@@ -69,7 +69,7 @@ describe("F10: back to the night you came from", () => {
   });
   it("the game page uses it", () => {
     const src = readFileSync(join(import.meta.dirname, "pages", "Game.tsx"), "utf8");
-    expect(src).toContain("nightHref(g.date)");
+    expect(src).toContain("teamsHref(g.date)");
     expect(src).not.toContain('<a href="#/">Back to the night');
   });
 });

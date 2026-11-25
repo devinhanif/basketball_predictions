@@ -2,7 +2,7 @@
 // and shared picks light up through the platform's db and user capabilities when they resolve (sharedPicks.ts).
 import { render } from "preact";
 import { App } from "./App";
-import { applyDensity, applyTheme, getPrefs } from "./prefs";
+import { applyDensity, applyMode, applyTheme, getPrefs } from "./prefs";
 import { startShared, type ClaudeLike } from "./sharedPicks";
 import { startUserStateSync } from "./userState";
 import { startWatchSync } from "./watch";
@@ -22,9 +22,11 @@ import "./jarvis.css";
 import "./pages-a.css";
 import "./pages-b.css";
 import "./combo/combo.css";
+import "./colour.css";
 
 applyTheme(getPrefs().theme);
 applyDensity(getPrefs().density);
+applyMode(getPrefs().mode);
 void startUserStateSync();
 void startWatchSync();
 void startPhotoSync();

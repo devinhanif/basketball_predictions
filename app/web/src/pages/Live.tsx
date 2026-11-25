@@ -115,7 +115,11 @@ function List({ date }: { date: string | null }) {
           ))}
         </div>
       ) : null}
-      {view === "players" && all.length > 0 ? <SlateBoard dates={dates} /> : null}
+      {view === "players" && all.length > 0 ? (
+        <div data-job="props">
+          <SlateBoard dates={dates} />
+        </div>
+      ) : null}
       {view === "games" ? (
         <>
           <Section title="Live now" games={now} receivedMs={st.receivedMs} />

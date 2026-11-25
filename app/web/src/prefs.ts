@@ -95,7 +95,7 @@ export function applyTheme(theme: Theme): void {
 }
 
 /** The browser bar's colour per theme: the same two values index.html declares for the system's light and dark. */
-export const HEAD_COLOR = { light: "#ffffff", dark: "#0c0f18" } as const;
+export const HEAD_COLOR = { light: "#fbfafd", dark: "#0d0b12" } as const;
 
 /** A theme picked in the app also colours the browser bar; "system" puts back the two media-keyed defaults. */
 function applyHeadColor(theme: Theme): void {
@@ -112,11 +112,18 @@ export function applyDensity(density: Density): void {
   else document.documentElement.dataset["density"] = density;
 }
 
+/** Puts the detail level on the root element (the same colour map in both; Simple only fills more and is larger). */
+export function applyMode(mode: Mode): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.dataset["mode"] = mode;
+}
+
 export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
   current = { ...getPrefs(), [key]: value };
   writeKey(KEYS[key], value);
   if (key === "theme") applyTheme(value as Theme);
   if (key === "density") applyDensity(value as Density);
+  if (key === "mode") applyMode(value as Mode);
   for (const l of listeners) l();
 }
 

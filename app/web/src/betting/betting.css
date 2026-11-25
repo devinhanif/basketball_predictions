@@ -1142,3 +1142,16 @@
   display: flex;
   align-items: center;
 }
+
+/* Colour as navigation: green and red mean only "a chance went up or down", so an error, a negative amount, a status dot and a
+   failed toast take the neutral ink (each also carries its own word or icon). */
+.ph-bet .ph-bet-err,
+.ph-bet .ph-bet-neg {
+  color: var(--ink);
+}
+.ph-bet .ph-bet-dot {
+  background: var(--ink);
+}
+.ph-bet .ph-bet-toast.failed {
+  border-left-color: var(--ink);
+}

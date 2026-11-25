@@ -9,6 +9,8 @@ import { useLens, useMode } from "../prefs";
 import { MarketOnly } from "../Lens";
 import { ParlayDiagnostics } from "../ParlayDiag";
 import type { ParlayState } from "../types";
+import { Door, DoorGroup } from "../Doors";
+import { propsHref, topHref } from "../router";
 
 /** Plain-language headline for the verdict. The engine's own label is kept in the details. */
 export function verdictText(p: ParlayState): string {
@@ -145,10 +147,21 @@ export function ParlayPage(props: { date: string | null }) {
   return (
     <div class="stack pb-page">
       <PageHead
-        kicker="Market side"
+        kicker="Slip check"
         title="Parlay of the day"
         description={market ? "The engine's check of tonight's open parlay markets, after fees. Nothing worth betting is a normal answer." : <strong class="pb-sowhat">The engine's card belongs to the market side, so this lens gives the standing answer: keep your money.</strong>}
       />
+      <DoorGroup label="Go to another screen">
+        <Door to="props" href={propsHref()}>
+          pick the lines for a slip
+        </Door>
+        <Door to="explore" href={topHref("combo")}>
+          what changes if the game goes a certain way
+        </Door>
+        <Door to="teams" href="#/teams">
+          tonight's games and win chances
+        </Door>
+      </DoorGroup>
       {/* The engine's card speaks of prices, fees and a book: Market lens only, like the ticket list below. */}
       {market ? (
         <ParlayCard compact={false} date={props.date} />

@@ -5,6 +5,9 @@ import { longDate, tipTime } from "../format";
 import { setPref, useLens, useMode } from "../prefs";
 import { StateBlock, Tabs, TabPanel, PageHead, Card } from "../ui";
 import { useLoad } from "../useLoad";
+import { Door, DoorGroup } from "../Doors";
+import { JOBS } from "../jobs";
+import { propsHref } from "../router";
 import type { ComboResultState } from "../api";
 import { closedSentence, matchup, noLinesSentence, type Ctx } from "../combo/Bits";
 import { BuildTab } from "../combo/ComboBuild";
@@ -199,6 +202,14 @@ export function ComboPage(props: { date: string | null }) {
         description="Lines that move if the game goes a certain way."
         class="cb-head"
       />
+      <DoorGroup label="Go to another screen">
+        <Door to="props" href={propsHref()}>
+          the lines in tonight's games
+        </Door>
+        <Door to="slip" href={JOBS.slip.href}>
+          does a parlay hold together?
+        </Door>
+      </DoorGroup>
       <View state={state} reload={reload} what="the combo file" errorLevel={2}>
         {(night) => <Body night={night} />}
       </View>

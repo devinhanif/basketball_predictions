@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { App } from "./App";
-import { applyDensity, applyTheme, getPrefs } from "./prefs";
+import { applyDensity, applyMode, applyTheme, getPrefs } from "./prefs";
 import { startUserStateSync } from "./userState";
 import { startWatchSync } from "./watch";
 import { startPhotoSync } from "./photos";
@@ -19,9 +19,11 @@ import "./jarvis.css";
 import "./pages-a.css";
 import "./pages-b.css";
 import "./combo/combo.css";
+import "./colour.css";
 
 applyTheme(getPrefs().theme);
 applyDensity(getPrefs().density);
+applyMode(getPrefs().mode);
 void startUserStateSync();
 void startWatchSync();
 void startPhotoSync();
