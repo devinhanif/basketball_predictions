@@ -79,6 +79,9 @@ export function App() {
     case "combo":
       page = <ComboPage date={route.date} />;
       break;
+    case "slip":
+      page = <ComboPage date={route.date} view="slip" />;
+      break;
     case "settings":
       page = <Settings />;
       break;
@@ -135,7 +138,7 @@ export function App() {
   return (
     <Boundary outer>
       <Shell route={route} meta={meta} offline={stale}>
-        {route.name === "combo" ? null : <Welcome deep={route.name !== "today"} />}
+        {route.name === "combo" || route.name === "slip" ? null : <Welcome deep={route.name !== "today"} />}
         <Boundary resetKey={JSON.stringify(route)}>{page}</Boundary>
       </Shell>
       {IS_ARTIFACT ? null : <Tour />}

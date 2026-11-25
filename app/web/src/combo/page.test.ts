@@ -31,7 +31,7 @@ describe("lens placement: Explore and Market, not Learn", () => {
     expect(screensFor(false, SCREEN_ITEMS, false).some((i) => i.href === href)).toBe(false); // Learn
   });
   it("the nav hides it in Learn and the page itself says it is an Explore screen", () => {
-    expect(read("Shell.tsx")).toMatch(/EXPLORE_UP: readonly TopName\[\] = \["combo"\]/);
+    expect(read("Shell.tsx")).toMatch(/EXPLORE_UP: readonly TopName\[\] = \["combo", "slip"\]/);
     expect(read("Shell.tsx")).toMatch(/lens !== "learn" \|\| !EXPLORE_UP\.includes/);
     const page = read("pages/Combo.tsx");
     expect(page).toContain('lens === "learn"');

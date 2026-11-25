@@ -42,12 +42,11 @@ Branch `agent/app-colour-nav` (worktree `/Users/devin/Downloads/nba-wt-colour-na
 | today (home), record, scorecard, tests, terms, help, alerts, settings, admin, history, notfound, betting module screens | TONIGHT (neutral, four-colour bar) |
 | teams, game, live (list and one game), source (game's win chance) | TEAMS |
 | props, leg, swipe, picks, signals, source (one prop) | PROPS |
-| parlay (Parlay of the day), hedge | SLIP |
-| combo | EXPLORE |
+| slip (new, `#/slip`: Together and Build), parlay (Parlay of the day), hedge | SLIP |
+| combo (Scripts, with its History view, and Target) | EXPLORE |
 
 Live: no hue of its own. The live player card (`ScoreBoard`, `SlateBoard`) sits in a `data-job="props"` scope inside the TEAMS-coloured live page.
-Judgement calls to confirm: the SLIP tab opens Parlay of the day (the only screen about whether a parlay holds); the combo screen, whose "Together"
-and "Build" tabs are slip-like, is wholly EXPLORE; swipe and My picks are PROPS (over/under on player lines); Signals is PROPS, Hedge Finder SLIP.
+Judgement calls to confirm (SLIP and combo superseded by fix round 1 below): swipe and My picks are PROPS (over/under on player lines); Signals is PROPS, Hedge Finder SLIP.
 
 ## Tokens (both themes; contrast from `colour.test.ts`, computed WCAG ratios)
 
@@ -90,6 +89,25 @@ caret and command line of the mock-ups were not built (the app has no command in
   break rule 3. I left them (a change touches the Market lens vocabulary).
 - Whether the SLIP tab should wait for a real slip screen (today it is the Parlay of the day page, which is market-side and says "keep your money"
   in Learn and Explore).
+
+## Fix round 1 (coordinator review, 2026-11-24)
+
+1. SLIP lands on slip-check content. New route `#/slip` (date optional) renders the combo page's Together and Build views, pink; Scripts (with the
+   Model and History switch) and Target stay on `#/combo`, purple. Same file, same engine, same gates: the Learn lens still meets the Explore gate
+   (title adapted: "Slip check is an Explore screen", button "Switch to Explore" lands on `#/slip`); main lines only, calibrated only and the History
+   lock are untouched. The two screens link to each other by doors. Parlay of the day and Hedge Finder stay in the SLIP job and are doors on the slip
+   screen shown only in the Market lens (the betting module keeps its own nav behind its switch). `#/parlay` and all old links still work; the SLIP
+   tab, the home door and every SLIP door now point to `#/slip`. Sidebar "Slip check" and search entry are hidden in Learn like Combo mode.
+2. Leg page: "Back to the game" is a TEAMS door.
+3. Combo data line at 375px: it predates this branch. `combo.css` (from the combo branch, 315e6c6b) forced one line with an ellipsis, which hid
+   "not tonight's slate" on a replay night. It now wraps (the slip route too). The audit finding is gone.
+4. Strays: `--notice-*` (amber-brown), `--tonight` (orange), `--mine*` (gold), `--amber*`, `--cyan*`, `--edge-arb*` (blue), `--edge-thin*` (gold) are removed from
+   theme.css and defined only in colour.css as neutral references (ink, surface-2, surface-3). Banners are ink on a surface with a rule, their icon and
+   their words. Left as they are: up/down green and red; team colours on Avatar and TeamTag; `--book` (a blue-grey that reads as grey, the market's
+   number, always labelled) and the slate-grey avatar gradient in jarvis.css; and, open point, in the Market lens `--edge-strong` (green) and the
+   better/worse badges (`--better/--worse`).
+5. Tests: `colour.test.ts` gains four tests (slip route, view tabs and gate; market-only doors; leg back door; stray tokens). `combo/page.test.ts`
+   changed to expect `EXPLORE_UP = ["combo", "slip"]`. The route walk visits `#/slip`, `#/teams` and `#/props` in the fixture and artifact sets.
 
 ## Checks (all unpiped, `nice`, exit code 0 each; logs in the session scratch area)
 

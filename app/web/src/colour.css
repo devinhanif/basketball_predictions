@@ -190,6 +190,23 @@
   --grad-tile: linear-gradient(var(--surface), var(--surface));
   --grad-feature: linear-gradient(var(--surface-2), var(--surface-2));
   --feature-line: var(--job-ink);
+  /* The old stray hues (orange "tonight", gold "mine", amber, cyan, the blue and gold edge labels, the amber-brown notice) sat close
+     to the PROPS amber and the TEAMS blue. They are neutral now: ink on a surface. Whatever they mark also has a word or an icon. */
+  --notice-bg: var(--surface-2);
+  --notice-ink: var(--ink);
+  --tonight: var(--ink);
+  --tonight-soft: var(--surface-2);
+  --mine: var(--ink);
+  --mine-ink: var(--ink);
+  --mine-soft: var(--surface-3);
+  --edge-arb: var(--ink);
+  --edge-arb-soft: var(--surface-2);
+  --edge-thin: var(--ink);
+  --edge-thin-soft: var(--surface-2);
+  --cyan: var(--ink);
+  --cyan-soft: var(--surface-2);
+  --amber: var(--ink);
+  --amber-soft: var(--surface-2);
   --on-feature: var(--ink);
   --on-feature-muted: var(--muted);
 }
@@ -706,4 +723,12 @@ html[data-mode="simple"] .home-door {
   .topbar .theme-btn {
     display: none;
   }
+}
+
+/* Banners and notices: ink on a surface with a rule, an icon and the words (never a coloured wash). */
+.kbanner,
+.banner,
+.datanote,
+.kbanner.dataline.tone-notice {
+  border-bottom: 1px solid var(--line-strong);
 }

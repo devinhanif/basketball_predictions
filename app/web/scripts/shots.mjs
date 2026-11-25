@@ -118,6 +118,7 @@ const SCREENS = artifact
       ["teams", "#/teams", ""],
       ["props", "#/props", ""],
       ["combo", "#/combo", ""],
+      ["slip", "#/slip", ""],
       ["livegame", "#/live/401909952?date=2026-11-09", ""],
       ["game", `#/game/${GAME}`, ""],
       ["leg", `#/leg/${GAME}/${kp.player_id}/${kp.stat}`, ""],

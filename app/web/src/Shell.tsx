@@ -35,6 +35,7 @@ const ALL_WORKSPACE: NavDef[] = [
   { name: "props", label: "Player props", icon: "jobProps" },
   { name: "live", label: "Live", icon: "live" },
   { name: "combo", label: "Combo mode", icon: "grid" },
+  { name: "slip", label: "Slip check", icon: "jobSlip" },
   { name: "swipe", label: "Swipe", icon: "swipe" },
   { name: "picks", label: "My picks", icon: "picks" },
   { name: "record", label: "Track record", icon: "record" },
@@ -55,25 +56,25 @@ const WORKSPACE: NavDef[] = ALL_WORKSPACE.filter((n) => !(IS_ARTIFACT && (n.name
  * "You". A section with nothing visible in the current lens is not drawn.
  */
 const GROUPS: readonly { label: string; names: readonly TopName[]; bet?: true }[] = [
-  { label: "Tonight", names: ["today", "teams", "props", "live", "combo", "swipe", "picks"] },
+  { label: "Tonight", names: ["today", "teams", "props", "live", "combo", "slip", "swipe", "picks"] },
   { label: "Record and tests", names: ["record", "scorecard", "tests"] },
   { label: "Market tools", names: ["signals", "hedge", "history"], bet: true },
   { label: "Reference", names: ["terms", "help"] },
 ];
 export { MARKET_ONLY };
 /** Screens listed in Explore and Market but not in Learn (combo mode). */
-const EXPLORE_UP: readonly TopName[] = ["combo"];
+const EXPLORE_UP: readonly TopName[] = ["combo", "slip"];
 
 // The nav entry marked current on each route (a game, a leg and the source page belong to Discover).
 const ROUTE_TOP: Record<Route["name"], TopName> = {
-  today: "today", game: "teams", leg: "props", parlay: "today", teams: "teams", props: "props", combo: "combo", swipe: "swipe", picks: "picks", settings: "settings",
+  today: "today", game: "teams", leg: "props", parlay: "today", slip: "slip", teams: "teams", props: "props", combo: "combo", swipe: "swipe", picks: "picks", settings: "settings",
   signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", admin: "admin",
   terms: "terms", notfound: "today", source: "today", scorecard: "scorecard", tests: "tests", help: "help",
   // A betting screen has no TopName of its own (the module brings its own nav); crumbs() names it and `here` is null.
   bet: "today",
 };
 const TITLES: Record<TopName, string> = {
-  today: "Discover", teams: "Team picks", props: "Player props", combo: "Combo mode", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
+  today: "Discover", teams: "Team picks", props: "Player props", combo: "Combo mode", slip: "Slip check", signals: "Signals", hedge: "Hedge Finder", history: "Model History", record: "Track record", live: "Live", alerts: "Alerts", swipe: "Swipe", picks: "My picks", admin: "Admin studio", settings: "Preferences", terms: "Key terms",
   scorecard: "Scorecard", tests: "Forward tests", help: "Error codes",
 };
 const CRUMB: Partial<Record<Route["name"], string>> = { game: "Game", leg: "Leg", parlay: "Parlay of the day", notfound: "Not found", source: "Where a number comes from" };

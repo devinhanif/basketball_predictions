@@ -7,7 +7,7 @@ import { StateBlock, Tabs, TabPanel, PageHead, Card } from "../ui";
 import { useLoad } from "../useLoad";
 import { Door, DoorGroup } from "../Doors";
 import { JOBS } from "../jobs";
-import { propsHref } from "../router";
+import { propsHref, topHref } from "../router";
 import type { ComboResultState } from "../api";
 import { closedSentence, matchup, noLinesSentence, type Ctx } from "../combo/Bits";
 import { BuildTab } from "../combo/ComboBuild";
@@ -19,12 +19,19 @@ import type { ComboGame } from "../combo/types";
 
 type TabKey = "script" | "lift" | "target" | "build";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "script", label: "Scripts" },
-  { key: "lift", label: "Together" },
-  { key: "target", label: "Target" },
-  { key: "build", label: "Build" },
-];
+/** The two faces of the combo file: EXPLORE (the scripts and the target search) and SLIP (lines that move together, and your own build). */
+export type ComboView = "explore" | "slip";
+const TABS_BY_VIEW: Record<ComboView, { key: TabKey; label: string }[]> = {
+  explore: [
+    { key: "script", label: "Scripts" },
+    { key: "target", label: "Target" },
+  ],
+  slip: [
+    { key: "lift", label: "Together" },
+    { key: "build", label: "Build" },
+  ],
+};
+const FIRST_TAB: Record<ComboView, TabKey> = { explore: "script", slip: "lift" };
 
 interface Night {
   date: string | null;
@@ -60,11 +67,12 @@ async function loadNight(date: string | null): Promise<Loaded<Night>> {
 }
 
 /** Learn lens: combo mode is an Explore screen. */
-function ExploreOnly() {
+function ExploreOnly({ view }: { view: ComboView }) {
+  const here = view === "slip" ? "#/slip" : "#/combo";
   return (
     <section class="panel empty market-only" aria-labelledby="mo-combo-mode">
       <h1 id="mo-combo-mode" class="market-only-title">
-        Combo mode is an Explore screen
+        {view === "slip" ? "Slip check is an Explore screen" : "Combo mode is an Explore screen"}
       </h1>
       <p>It lets you move around the game's possible scripts and build your own combos, so it stays out of view in the Learn lens.</p>
       <button
@@ -72,7 +80,7 @@ function ExploreOnly() {
         class="btn primary"
         onClick={() => {
           // Land on the combo screen itself, at the top, with its first game showing.
-          if (window.location.hash.replace(/\?.*$/, "") !== "#/combo") window.location.hash = "#/combo";
+          if (window.location.hash.replace(/\?.*$/, "") !== here) window.location.hash = here;
           setPref("lens", "explore");
           window.scrollTo(0, 0);
         }}
@@ -84,10 +92,10 @@ function ExploreOnly() {
   );
 }
 
-function Body(props: { night: Night }) {
-  const { night } = props;
+function Body(props: { night: Night; view: ComboView }) {
+  const { night, view } = props;
   const [gid, setGid] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>("script");
+  const [tab, setTab] = useState<TabKey>(FIRST_TAB[view]);
   const analyst = useMode() === "analyst";
   const [sub, setSub] = useState<Sub>("model");
   const st = night.state;
@@ -166,7 +174,7 @@ function Body(props: { night: Night }) {
           </div>
         ) : null}
       </div>
-      <Tabs label="Combo mode views" tabs={TABS} value={tab} onChange={setTab} idBase="cb" class="cb-tabs" />
+      <Tabs label={view === "slip" ? "Slip check views" : "Combo mode views"} tabs={TABS_BY_VIEW[view]} value={tab} onChange={setTab} idBase="cb" class="cb-tabs" />
       <TabPanel idBase="cb" value={tab}>
         {tab === "build" ? (
           <BuildTab ctx={ctx} game={game} />
@@ -190,28 +198,57 @@ function Body(props: { night: Night }) {
   );
 }
 
-export function ComboPage(props: { date: string | null }) {
+export function ComboPage(props: { date: string | null; view?: ComboView }) {
+  const view = props.view ?? "explore";
   const lens = useLens();
+  const market = lens === "market";
   const [state, reload] = useLoad(() => loadNight(props.date), [props.date]);
-  if (lens === "learn") return <ExploreOnly />;
+  if (lens === "learn") return <ExploreOnly view={view} />;
   return (
     <div class="stack">
-      <PageHead
-        kicker="Explore"
-        title="Combo mode"
-        description="Lines that move if the game goes a certain way."
-        class="cb-head"
-      />
+      {view === "slip" ? (
+        <PageHead
+          kicker="Slip check"
+          title="Do these legs hold together?"
+          description="Lines from the same game move together, and the chance of all of them is not the product of the single chances."
+          class="cb-head"
+        />
+      ) : (
+        <PageHead kicker="Explore" title="Combo mode" description="Lines that move if the game goes a certain way." class="cb-head" />
+      )}
       <DoorGroup label="Go to another screen">
-        <Door to="props" href={propsHref()}>
-          the lines in tonight's games
-        </Door>
-        <Door to="slip" href={JOBS.slip.href}>
-          does a parlay hold together?
-        </Door>
+        {view === "slip" ? (
+          <>
+            <Door to="explore" href={topHref("combo")}>
+              what changes if the game goes a certain way
+            </Door>
+            <Door to="props" href={propsHref()}>
+              pick the lines for a slip
+            </Door>
+            {market ? (
+              <Door to="slip" href="#/parlay" label="Parlay of the day, market side">
+                parlay of the day (market side)
+              </Door>
+            ) : null}
+            {market ? (
+              <Door to="slip" href="#/hedge" label="Hedge Finder, market side">
+                hedge finder (market side)
+              </Door>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Door to="slip" href={JOBS.slip.href}>
+              do these legs hold together?
+            </Door>
+            <Door to="props" href={propsHref()}>
+              the lines in tonight's games
+            </Door>
+          </>
+        )}
       </DoorGroup>
       <View state={state} reload={reload} what="the combo file" errorLevel={2}>
-        {(night) => <Body night={night} />}
+        {(night) => <Body night={night} view={view} />}
       </View>
     </div>
   );

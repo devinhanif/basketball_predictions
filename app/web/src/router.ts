@@ -25,6 +25,8 @@ export type Route =
   | { name: "settings" }
   /** Combo mode: probability of several lines together; `date` is the night (null = the newest). */
   | { name: "combo"; date: string | null }
+  /** Slip check: the combo file's Together and Build views, in the SLIP colour. */
+  | { name: "slip"; date: string | null }
   | { name: "signals" }
   | { name: "hedge"; game: string | null; player: number | null; stat: string | null }
   | { name: "history" }
@@ -47,9 +49,9 @@ export type Route =
   | { name: "notfound"; hash: string };
 
 /** The top-level views, in nav order. `today` is the Discover screen; `settings` is Preferences. */
-export type TopName = "today" | "teams" | "props" | "combo" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings" | "terms" | "scorecard" | "tests" | "help";
+export type TopName = "today" | "teams" | "props" | "combo" | "slip" | "signals" | "hedge" | "history" | "record" | "live" | "alerts" | "swipe" | "picks" | "admin" | "settings" | "terms" | "scorecard" | "tests" | "help";
 const ARTIFACT_NAME: Record<TopName, string> = {
-  today: "discover", teams: "teams", props: "props", combo: "combo", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs", terms: "terms",
+  today: "discover", teams: "teams", props: "props", combo: "combo", slip: "slip", signals: "signals", hedge: "hedge", history: "history", record: "record", live: "live", alerts: "alerts", swipe: "swipe", picks: "picks", admin: "admin", settings: "prefs", terms: "terms",
   scorecard: "scorecard", tests: "tests", help: "help",
 };
 
@@ -195,6 +197,10 @@ export function parse(hash: string): Route {
       const d = date();
       return d === undefined || extra ? notFound : { name: "combo", date: d };
     }
+    case "slip": {
+      const d = date();
+      return d === undefined || extra ? notFound : { name: "slip", date: d };
+    }
     case "picks":
     case "settings":
     case "prefs":
@@ -302,6 +308,8 @@ export function plainName(route: Route): TopName | null {
       return route.date === null && route.game === null ? "props" : null;
     case "combo":
       return route.date === null ? "combo" : null;
+    case "slip":
+      return route.date === null ? "slip" : null;
     case "hedge":
       return route.game === null ? "hedge" : null;
     case "record":

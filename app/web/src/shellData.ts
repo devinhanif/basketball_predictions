@@ -50,6 +50,7 @@ export const SCREEN_ITEMS: SearchItem[] = [
   { kind: "screen", label: "Hedge Finder", sub: "Position lab: what a paper position pays in every outcome", href: topHref("hedge"), words: "position lab scenario", marketOnly: true },
   { kind: "screen", label: "Model History", sub: "Closing-line value, record, calibration, ledger", href: topHref("history"), words: "clv ledger record", marketOnly: true },
   { kind: "screen", label: "Combo mode", sub: "If the game goes like this: which lines get more or less likely, and how lines move together", href: topHref("combo"), words: "combo script blowout shootout grind parlay legs joint", exploreUp: true },
+  { kind: "screen", label: "Slip check", sub: "Do these legs hold together? Lines that move together, and your own build (no prices)", href: topHref("slip"), words: "slip parlay legs together build joint", exploreUp: true },
   { kind: "screen", label: "Alerts", sub: "Notification center", href: topHref("alerts"), words: "notifications bell" },
   { kind: "screen", label: "Swipe", sub: "Over or under, graded after", href: topHref("swipe") },
   { kind: "screen", label: "My picks", sub: "Your paper picks and your friends'", href: topHref("picks") },
@@ -63,7 +64,7 @@ export const SCREEN_ITEMS: SearchItem[] = [
         { kind: "screen" as const, label: "Track record", sub: "Replay, calibration and guess the line", href: topHref("record"), words: "history replay calibration guess" },
         { kind: "screen" as const, label: "Scorecard", sub: "The model against its baseline, with n and intervals", href: topHref("scorecard"), words: "scores crps baseline record" },
         { kind: "screen" as const, label: "Forward tests", sub: "What is being tested, and when each result reads", href: topHref("tests"), words: "frozen rule prereg holdout" },
-        { kind: "screen" as const, label: "Slip check", sub: "Parlay of the day: does a parlay hold together?", href: "#/parlay", words: "parlay slip combo ticket legs" },
+        { kind: "screen" as const, label: "Parlay of the day", sub: "The engine's verdict for the newest night (market side)", href: "#/parlay", words: "parlay combo ticket" },
       ]),
   // The betting module's screens (none in a build with the switch off).
   ...(BETTING ? BETTING_MODULE.nav.map((n): SearchItem => ({ kind: "screen", label: n.label, sub: n.sub, href: n.href, words: n.words, marketOnly: n.marketOnly })) : []),

@@ -22,7 +22,7 @@ export const JOBS: Record<Job, JobDef> = {
   tonight: { tab: "Tonight", title: "Tonight", sentence: "What is on tonight, and where do you want to go?", icon: "jobTonight", href: "#/" },
   teams: { tab: "Teams", title: "Team picks", sentence: "Who wins, and by how much.", icon: "jobTeams", href: "#/teams" },
   props: { tab: "Props", title: "Player props", sentence: "One player, one line, one chance.", icon: "jobProps", href: "#/props" },
-  slip: { tab: "Slip", title: "Slip check", sentence: "Do your legs help or fight each other?", icon: "jobSlip", href: "#/parlay" },
+  slip: { tab: "Slip", title: "Slip check", sentence: "Do your legs help or fight each other?", icon: "jobSlip", href: "#/slip" },
   explore: { tab: "Explore", title: "Explore", sentence: "If the game goes like this, what changes?", icon: "jobExplore", href: "#/combo" },
 };
 
@@ -45,6 +45,7 @@ export function jobOfRoute(route: Route): Job {
       return "props";
     case "source":
       return route.playerId === null ? "teams" : "props";
+    case "slip":
     case "parlay":
     case "hedge":
       return "slip";
@@ -57,7 +58,7 @@ export function jobOfRoute(route: Route): Job {
 
 /** Every route name the router can produce (the type makes a missing one a compile error), so a test can prove the map is total. */
 const ALL: Record<Route["name"], true> = {
-  today: true, game: true, leg: true, swipe: true, teams: true, props: true, picks: true, parlay: true, settings: true, combo: true,
+  today: true, game: true, leg: true, swipe: true, teams: true, props: true, picks: true, parlay: true, settings: true, combo: true, slip: true,
   signals: true, hedge: true, history: true, record: true, live: true, alerts: true, admin: true, source: true, scorecard: true,
   tests: true, help: true, terms: true, bet: true, notfound: true,
 };

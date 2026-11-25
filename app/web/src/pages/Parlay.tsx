@@ -11,6 +11,7 @@ import { ParlayDiagnostics } from "../ParlayDiag";
 import type { ParlayState } from "../types";
 import { Door, DoorGroup } from "../Doors";
 import { propsHref, topHref } from "../router";
+import { JOBS } from "../jobs";
 
 /** Plain-language headline for the verdict. The engine's own label is kept in the details. */
 export function verdictText(p: ParlayState): string {
@@ -147,11 +148,14 @@ export function ParlayPage(props: { date: string | null }) {
   return (
     <div class="stack pb-page">
       <PageHead
-        kicker="Slip check"
+        kicker="Slip check, market side"
         title="Parlay of the day"
         description={market ? "The engine's check of tonight's open parlay markets, after fees. Nothing worth betting is a normal answer." : <strong class="pb-sowhat">The engine's card belongs to the market side, so this lens gives the standing answer: keep your money.</strong>}
       />
       <DoorGroup label="Go to another screen">
+        <Door to="slip" href={JOBS.slip.href}>
+          do these legs hold together? (no prices)
+        </Door>
         <Door to="props" href={propsHref()}>
           pick the lines for a slip
         </Door>

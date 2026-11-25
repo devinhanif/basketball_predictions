@@ -29,11 +29,11 @@ const S = (n: number): string => n.toString();
 function Header({ data, line }: { data: LegBreakdown; line: number }) {
   return (
     <header class="leg-title">
-      <p class="back-row">
-        <a class="back-link" href={gameHref(data.game_id)}>
+      <div class="leg-back">
+        <Door to="teams" href={gameHref(data.game_id)}>
           Back to the game
-        </a>
-      </p>
+        </Door>
+      </div>
       <div class="leg-head-row">
         <h1 class="who">
           <span class="who-photo" aria-hidden="true">
@@ -67,9 +67,6 @@ function Header({ data, line }: { data: LegBreakdown; line: number }) {
         A dot means no model forecast yet for that stat.
       </p>
       <DoorGroup label="Go to another screen about this game">
-        <Door to="teams" href={gameHref(data.game_id)}>
-          {data.team} {data.home ? "vs" : "at"} {data.opponent}: the game and its win chances
-        </Door>
         <Door to="explore" href={topHref("combo")}>
           if the game goes a certain way
         </Door>

@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { JOBS, JOBS_ORDER, ROUTE_NAMES, jobOfRoute, type Job } from "./jobs";
-import type { Route } from "./router";
+import { parse, type Route } from "./router";
 
 const dir = __dirname;
 const css = readFileSync(join(dir, "colour.css"), "utf8");
@@ -256,5 +256,52 @@ describe("the rules in the source", () => {
     expect(home).toContain("What are you here for?");
     expect((home.match(/<BigDoor /g) ?? []).length).toBe(4);
     expect((home.match(/<p>/g) ?? []).length).toBe(3);
+  });
+});
+
+describe("fix round 1: slip landing, leg back door, no stray hues", () => {
+  const read = (...p: string[]): string => readFileSync(join(dir, ...p), "utf8");
+  const theme = read("theme.css");
+
+  it("the SLIP job lands on its own screen (#/slip), which is the combo file's Together and Build views", () => {
+    expect(JOBS.slip.href).toBe("#/slip");
+    expect(parse("#/slip")).toEqual({ name: "slip", date: null });
+    expect(parse("#/slip?date=2024-11-12")).toEqual({ name: "slip", date: "2024-11-12" });
+    expect(parse("#/combo")).toEqual({ name: "combo", date: null });
+    expect(jobOfRoute({ name: "slip", date: null })).toBe("slip");
+    expect(jobOfRoute({ name: "combo", date: null })).toBe("explore");
+    expect(jobOfRoute({ name: "parlay", date: null })).toBe("slip");
+    const page = read("pages", "Combo.tsx");
+    expect(page).toMatch(/slip: \[\s*\{ key: "lift", label: "Together" \},\s*\{ key: "build", label: "Build" \},\s*\]/);
+    expect(page).toMatch(/explore: \[\s*\{ key: "script", label: "Scripts" \},\s*\{ key: "target", label: "Target" \},\s*\]/);
+    expect(page).toContain('slip: "lift"');
+    // Only the Learn lens meets the gate; the Explore and Market lenses reach the tabs (the walk visits #/slip on fixtures).
+    expect(page).toMatch(/if \(lens === "learn"\) return <ExploreOnly view=\{view\} \/>;/);
+    expect(read("App.tsx")).toContain('view="slip"');
+    expect(readFileSync(join(dir, "..", "scripts", "route-walk.mjs"), "utf8")).toContain('"#/slip"');
+  });
+
+  it("the market side (Parlay of the day, Hedge Finder) is a door on the slip screen only in the Market lens", () => {
+    const page = read("pages", "Combo.tsx");
+    expect(page).toMatch(/\{market \? \(\s*<Door to="slip" href="#\/parlay"/);
+    expect(page).toMatch(/\{market \? \(\s*<Door to="slip" href="#\/hedge"/);
+  });
+
+  it("the leg page's way back to the game is a TEAMS door, not a link in the PROPS colour", () => {
+    const leg = read("pages", "Leg.tsx");
+    expect(leg).toMatch(/<Door to="teams" href=\{gameHref\(data\.game_id\)\}>\s*Back to the game/);
+    expect(leg).not.toMatch(/class="back-link" href=\{gameHref/);
+  });
+
+  it("the near-hue strays are neutral tokens defined once, in colour.css, as references and never as hex", () => {
+    const strays = ["tonight", "tonight-soft", "notice-bg", "notice-ink", "mine", "mine-ink", "mine-soft", "edge-arb", "edge-arb-soft", "edge-thin", "edge-thin-soft", "cyan", "cyan-soft", "amber", "amber-soft"];
+    for (const n of strays) {
+      expect(theme, n).not.toMatch(new RegExp(`--${n}:`));
+      const m = new RegExp(`--${n}:\\s*([^;]+);`).exec(css);
+      expect(m?.[1], n).toMatch(/^var\(--(ink|surface-2|surface-3)\)$/);
+    }
+    for (const f of readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((x) => x.endsWith(".css") && x !== "colour.css")) {
+      for (const n of strays) expect(read(f), `${f} --${n}`).not.toMatch(new RegExp(`--${n}:`));
+    }
   });
 });
